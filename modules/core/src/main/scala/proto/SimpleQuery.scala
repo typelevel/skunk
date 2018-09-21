@@ -40,7 +40,10 @@ object SimpleQuery {
     s.onFinalize(s.compile.drain *> ams.expect { case ReadyForQuery(_) => ().pure[F] })
   }
 
-  /** A stream that, when run, will execute the given query and emit all rows, processed by `f`. */
+  /**
+   * A stream that, when run, will execute the given query and emit all rows, processed by `f`,
+   * guaranteeing that any unconsumed rows will be drained and discarded.
+   */
   def query[F[_]: Sync, A](
     ams:   ActiveMessageSocket[F],
     query: Query,
