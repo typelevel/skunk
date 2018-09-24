@@ -9,9 +9,6 @@ import fs2.Stream
 import skunk.proto.message._
 
 
-trait Notification
-case class NotificationMessage(n: Notification) extends BackendMessage
-
 
 // name??
 trait ActiveMessageSocket[F[_]] {
@@ -20,8 +17,8 @@ trait ActiveMessageSocket[F[_]] {
   def transactionStatus: Signal[F, ReadyForQuery.Status]
   def parameters: Signal[F, Map[String, String]]
   def backendKeyData: Deferred[F, BackendKeyData]
-  def notifications(maxQueued: Int): Stream[F, Notification]
-  def expect[B](f: PartialFunction[BackendMessage, F[B]]): F[B]
+  def notifications(maxQueued: Int): Stream[F, NotificationResponse]
+  def expect[B](f: PartialFunction[BackendMessage, B]): F[B]
 }
 
 object ActiveMessageSocket {
@@ -29,10 +26,10 @@ object ActiveMessageSocket {
   // A stream that reads one message and might emit it
   private def scatter[F[_]: Sync](
     ms:    MessageSocket[F],
-    xaSig: SignallingRef[F, ReadyForQuery.Status],
-    paSig: SignallingRef[F, Map[String, String]],
+    xaSig: Ref[F, ReadyForQuery.Status],
+    paSig: Ref[F, Map[String, String]],
     bkDef: Deferred[F, BackendKeyData],
-    noTop: Topic[F, Notification]
+    noTop: Topic[F, NotificationResponse]
   ): Stream[F, BackendMessage] =
     Stream.eval(ms.receive).flatMap {
 
@@ -40,16 +37,16 @@ object ActiveMessageSocket {
       case m @ ReadyForQuery(s)       => Stream.eval(xaSig.set(s).as(m))
 
       // These messages are handled here and are never seen by higher-level code
-      case     ParameterStatus(k, v)  => Stream.eval_(paSig.update(_ + (k -> v)))
-      case     NotificationMessage(n) => Stream.eval_(noTop.publish1(n))
-      case m @ BackendKeyData(_, _)   => Stream.eval_(bkDef.complete(m))
+      case     ParameterStatus(k, v)         => Stream.eval_(paSig.update(_ + (k -> v)))
+      case n @ NotificationResponse(_, _, _) => Stream.eval_(noTop.publish1(n))
+      case m @ BackendKeyData(_, _)          => Stream.eval_(bkDef.complete(m))
    // case     NoticeResponse(info) => publish these too, or maybe just log them? not a lot you can do with them
 
       // TODO: we should log and swallow Unknown messages but for now let them propagate because
       // it's easier to catch.
 
       // Anothing else gets passed on.
-      case m                          => Stream.emit(m)
+      case m => Stream.emit(m)
 
     }
 
@@ -63,7 +60,7 @@ object ActiveMessageSocket {
       xaSig <- SignallingRef[F, ReadyForQuery.Status](ReadyForQuery.Status.Idle)
       paSig <- SignallingRef[F, Map[String, String]](Map.empty)
       bkSig <- Deferred[F, BackendKeyData]
-      noTop <- Topic[F, Notification](null) // :-\
+      noTop <- Topic[F, NotificationResponse](NotificationResponse(-1, "", "")) // lame, we filter this out on subscribe below
       _     <- scatter(ms, xaSig, paSig, bkSig, noTop).repeat.to(queue.enqueue).compile.drain.attempt.flatMap {
                  case Left(e: java.nio.channels.AsynchronousCloseException) => throw e // TODO: handle better … we  want to ignore this but may want to enqueue a Terminated message or something
                  case Left(e) => Sync[F].delay(e.printStackTrace)
@@ -82,16 +79,16 @@ object ActiveMessageSocket {
         def transactionStatus = xaSig
         def parameters = paSig
         def backendKeyData = bkSig
-         def notifications(maxQueued: Int) = noTop.subscribe(maxQueued)
+        def notifications(maxQueued: Int) = noTop.subscribe(maxQueued).filter(_.pid > 0) // filter out the bogus initial value
 
         // Like flatMap but raises an error if a case isn't handled. This makes writing protocol
         // handlers much easier.
-        def expect[B](f: PartialFunction[BackendMessage, F[B]]): F[B] =
-          receive.flatMap {
-            f.applyOrElse[BackendMessage, F[B]](
-              _, m => Concurrent[F].raiseError(new RuntimeException(s"Unhandled: $m"))
-            )
+        def expect[B](f: PartialFunction[BackendMessage, B]): F[B] =
+          receive.flatMap { m =>
+            if (f.isDefinedAt(m)) f(m).pure[F]
+            else Concurrent[F].raiseError(new RuntimeException(s"Unhandled: $m"))
           }
+
       }
 
 }

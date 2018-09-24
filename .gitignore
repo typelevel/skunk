@@ -34,3 +34,6 @@ bin/
 
 # IntelliJ
 .idea/
+
+# Mill
+out/

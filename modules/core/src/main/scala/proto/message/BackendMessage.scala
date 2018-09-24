@@ -25,6 +25,7 @@ object BackendMessage {
        case ErrorResponse.Tag         => ErrorResponse.decoder
        case RowDescription.Tag        => RowDescription.decoder
        case CommandComplete.Tag       => CommandComplete.decoder
+       case NotificationResponse.Tag  => NotificationResponse.decoder
        case _                         => UnknownMessage.decoder(tag)
     }
 

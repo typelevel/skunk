@@ -3,7 +3,6 @@ package skunk
 import cats.effect._
 import cats.implicits._
 import scodec.codecs._
-import scodec.bits._
 import skunk.proto.message._
 
 /** A higher-level socket interface defined in terms of `Message`. */
@@ -19,26 +18,24 @@ object MessageSocket {
 
       /**
        * Messages are prefixed with a 5-byte header consisting of a tag (byte) and a length (int32,
-       * total including self but not including the tag) in network order. We are in charge of
-       * stripping that stuff off and returning the tag and payload for further decoding.
+       * total including self but not including the tag) in network order.
        */
-      val rawReceive: F[(Byte, BitVector)] = {
+      val receiveImpl: F[BackendMessage] = {
         val header = byte ~ int32
-        bvs.readBitVector(5).flatMap { bits =>
+        bvs.read(5).flatMap { bits =>
           val (tag, len) = header.decodeValue(bits).require
-          bvs.readBitVector(len - 4).map((tag, _))
+          val decoder    = BackendMessage.decoder(tag)
+          bvs.read(len - 4).map(decoder.decodeValue(_).require)
         }
       }
 
-      def receive: F[BackendMessage] =
+      val receive: F[BackendMessage] =
         for {
-          msg <- rawReceive.map { case (tag, data) => BackendMessage.decoder(tag).decodeValue(data).require } // TODO: handle decoding error
+          msg <- receiveImpl
           _   <- Sync[F].delay(println(s"${Console.GREEN}$msg${Console.RESET}"))
         } yield msg
 
-      def send[A](a: A)(
-        implicit ev: FrontendMessage[A]
-      ): F[Unit] =
+      def send[A](a: A)(implicit ev: FrontendMessage[A]): F[Unit] =
         for {
           _ <- Sync[F].delay(println(s"${Console.YELLOW}$a${Console.RESET}"))
           _ <- bvs.write(ev.fullEncoder.encode(a).require)
