@@ -189,10 +189,10 @@ lazy val core = project
     description := "Mystery Project",
     libraryDependencies ++= Seq(
       "org.typelevel"        %% "cats-core"     % catsVersion,
-      "org.typelevel"        %% "cats-free"     % catsVersion,
+      // "org.typelevel"        %% "cats-free"     % catsVersion,
       "org.typelevel"        %% "cats-effect"   % catsEffectVersion,
-      "org.typelevel"        %% "cats-mtl-core" % catsMtlVersion,
-      "org.typelevel" %% "cats-tagless-macros" % catsTaglessVersion,
+      // "org.typelevel"        %% "cats-mtl-core" % catsMtlVersion,
+      // "org.typelevel"        %% "cats-tagless-macros" % catsTaglessVersion,
       "co.fs2"               %% "fs2-core"      % fs2Version,
       "co.fs2"               %% "fs2-io"        % fs2Version,
       "org.scodec"           %% "scodec-core"   % scodecCoreVersion,

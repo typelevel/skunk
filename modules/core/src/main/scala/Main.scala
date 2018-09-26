@@ -11,6 +11,8 @@ import java.nio.charset._
 import java.util.concurrent._
 import scala.concurrent.duration._
 import skunk.proto.message._
+import skunk.dsl._
+import skunk.dsl.Codec._
 
 object Main extends IOApp {
 
@@ -44,10 +46,15 @@ object Main extends IOApp {
   def decode: RowDescription => RowData => List[String] =
     desc => data => (desc.fields.map(_.name), data.decode(StandardCharsets.UTF_8)).zipped.map(_ + "=" + _)
 
+  def report: ((RowDescription, List[RowData])) => IO[Unit] = { case (rd, rs) =>
+    rs.traverse_(r => putStrLn(decode(rd)(r).mkString("Row(", ", ", ")")))
+  }
+
   def putStrLn(a: Any): IO[Unit] =
     IO(println(a))
 
-  val anyLinesStdOut: Sink[IO, Any] = _.map(_.toString).to(showLinesStdOut)
+  val anyLinesStdOut: Sink[IO, Any] =
+    _.map(_.toString).to(showLinesStdOut)
 
   def run(args: List[String]): IO[ExitCode] =
     session.use { s =>
@@ -57,13 +64,12 @@ object Main extends IOApp {
         enc <- s.parameters.get.map(_.get("client_encoding"))
         _   <- putStrLn(s"Logged in! Transaction status is $st and client_encoding is $enc")
         _   <- s.listen("foo", 10).to(anyLinesStdOut).compile.drain.start
-        x   <- s.query("select name, population from country limit 20")
-        _   <- putStrLn(x._1)
-        _   <- x._2.traverse(putStrLn)
-        _   <- putStrLn("Waiting...")
-        _   <- IO.sleep(10.seconds)
-        _   <- s.query("select 'föf'").flatMap(putStrLn)
+        _   <- s.query("select name, population from country limit 20").flatMap(report)
+        _   <- s.notify("foo", "here is a message")
+        _   <- s.query("select 'föf'").flatMap(report)
         _   <- putStrLn("Done.")
+        _   <- s.parse(sql"select * from country where population < $int4")
+        _   <- IO.sleep(3.seconds)
       } yield ExitCode.Success
     }
 

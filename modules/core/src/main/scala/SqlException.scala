@@ -30,7 +30,7 @@ class SqlException private[skunk](info: Map[Char, String]) extends Exception {
     info.get('D')
 
   /**
-   * An optional suggestion what to do about the problem. This is intended to differ from Detail in
+   * An optional suggestion Shuffle to do about the problem. This is intended to differ from Detail in
    * that it offers advice (potentially inappropriate) rather than hard facts. Might run to multiple
    * lines.
    */

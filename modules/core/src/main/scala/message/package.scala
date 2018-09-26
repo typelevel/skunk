@@ -2,7 +2,8 @@ package skunk.proto
 
 import cats.implicits._
 import cats.Semigroup
-import scodec.{ Attempt, Codec }
+import scodec._
+import scodec.bits._
 import scodec.codecs._
 import scodec.interop.cats._
 
@@ -17,5 +18,8 @@ package object message { module =>
     new Semigroup[Attempt[A]] {
       def combine(a: Attempt[A], b: Attempt[A]) = (a, b).mapN(_ |+| _)
     }
+
+  def utf8z: Codec[String] =
+    (utf8 ~ constant(ByteVector(0))).xmap(_._1, (_, ()))
 
 }
