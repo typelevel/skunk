@@ -7,7 +7,9 @@ import scodec._
 import scodec.codecs._
 import scodec.interop.cats._
 
-case class RowDescription(fields: List[RowDescription.Field]) extends BackendMessage
+case class RowDescription(fields: List[RowDescription.Field]) extends BackendMessage {
+  def oids: List[Int] = fields.map(_.typeOid)
+}
 
 object RowDescription {
 

@@ -6,10 +6,10 @@ import scodec.Attempt
 import scodec.bits._
 import scodec._
 
-case object Sync {
+case object Flush {
 
-  implicit val SyncFrontendMessage: FrontendMessage[Sync.type] =
-    FrontendMessage.tagged('S') {
+  implicit val SyncFrontendMessage: FrontendMessage[Flush.type] =
+    FrontendMessage.tagged('H') {
       Encoder { _ =>
         Attempt.Successful(BitVector.empty)
       }

@@ -2,18 +2,13 @@ package skunk
 package proto
 package message
 
-import cats.data.Nested
 import cats.implicits._
-import java.nio.charset.Charset
+import java.nio.charset.StandardCharsets.UTF_8
 import scodec._
-import scodec.bits._
 import scodec.codecs._
 import scodec.interop.cats._
 
-case class RowData(fields: List[Option[ByteVector]]) extends BackendMessage {
-  def decode(cs: Charset): List[Option[String]] =
-    Nested(fields).map(bv => new String(bv.toArray, cs)).value
-}
+case class RowData(fields: List[Option[String]]) extends BackendMessage
 
 object RowData {
 
@@ -30,10 +25,10 @@ object RowData {
   //         NULL case.
   // Byten - The value of the column, in the format indicated by the associated format code. n is the
   //         above length.
-  private val field: Decoder[Option[ByteVector]] =
+  private val field: Decoder[Option[String]] =
     int32.flatMap {
       case -1 => Decoder.point(None)
-      case n  => bytes(n).map(Some(_))
+      case n  => bytes(n).map(bv => Some(new String(bv.toArray, UTF_8)))
     }
 
 }

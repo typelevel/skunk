@@ -1,31 +1,39 @@
 package skunk
-package dsl
+
 
 import cats._
-import cats.data.Chain
 
 trait Decoder[A] { outer =>
 
-  def decode(ss: List[String]): A
-  def oids: Chain[Type]
+  def decode(ss: List[Option[String]]): A
+  def oids: List[Type]
 
   def map[B](f: A => B): Decoder[B] =
     new Decoder[B] {
-      def decode(ss: List[String]) = f(outer.decode(ss))
+      def decode(ss: List[Option[String]]) = f(outer.decode(ss))
       val oids = outer.oids
     }
 
   def product[B](fb: Decoder[B]): Decoder[(A, B)] =
     new Decoder[(A, B)] {
-      def decode(ss: List[String]) = {
+      def decode(ss: List[Option[String]]) = {
         val (sa, sb) = ss.splitAt(outer.oids.length.toInt)
         (outer.decode(sa), fb.decode(sb))
       }
       val oids = outer.oids ++ fb.oids
     }
 
+  def ~[B](fb: Decoder[B]): Decoder[(A, B)] =
+    product(fb)
+
   override def toString =
     s"Decoder(${oids.toList.mkString(", ")})"
+
+  def opt: Decoder[Option[A]] =
+    new Decoder[Option[A]] {
+      def decode(ss: List[Option[String]]) = if (ss.forall(_.isEmpty)) None else Some(outer.decode(ss))
+      val oids = outer.oids
+    }
 
 }
 

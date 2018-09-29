@@ -27,6 +27,8 @@ object BackendMessage {
        case CommandComplete.Tag       => CommandComplete.decoder
        case NotificationResponse.Tag  => NotificationResponse.decoder
        case ParseComplete.Tag         => ParseComplete.decoder
+       case ParameterDescription.Tag  => ParameterDescription.decoder
+       case NoData.Tag                => NoData.decoder
        case _                         => UnknownMessage.decoder(tag)
     }
 

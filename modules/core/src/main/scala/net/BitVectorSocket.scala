@@ -1,11 +1,16 @@
-package skunk
+package skunk.net
 
 import cats._
+import cats.effect._
 import cats.implicits._
 import fs2.Chunk
 import fs2.io.tcp.Socket
 import scala.concurrent.duration.FiniteDuration
 import scodec.bits.BitVector
+import java.net.InetSocketAddress
+import java.nio.channels._
+import java.util.concurrent.Executors
+import scala.concurrent.duration._
 
 /** A higher-level socket interface defined in terms of `BitVector`. */
 trait BitVectorSocket[F[_]] {
@@ -35,6 +40,23 @@ object BitVectorSocket {
         socket.write(Chunk.array(bits.toByteArray), Some(writeTimeout))
 
     }
+
+  def apply[F[_]: ConcurrentEffect](host: String, port: Int): Resource[F, BitVectorSocket[F]] = {
+
+    val acg: Resource[F, AsynchronousChannelGroup] = {
+      val alloc = Sync[F].delay(AsynchronousChannelGroup.withThreadPool(Executors.newCachedThreadPool()))
+      val free  = (acg: AsynchronousChannelGroup) => Sync[F].delay(acg.shutdown())
+      Resource.make(alloc)(free)
+    }
+
+    val sock: Resource[F, Socket[F]] =
+      acg.flatMap { implicit acg =>
+        fs2.io.tcp.client(new InetSocketAddress(host, port))
+      }
+
+    sock.map(fromSocket(_, 1.day, 5.seconds))
+
+  }
 
 }
 

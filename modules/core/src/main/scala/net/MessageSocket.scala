@@ -1,9 +1,9 @@
-package skunk
+package skunk.net
 
 import cats.effect._
 import cats.implicits._
 import scodec.codecs._
-import skunk.proto.message._
+import skunk.proto.message.{ Sync => _, _ }
 
 /** A higher-level socket interface defined in terms of `Message`. */
 trait MessageSocket[F[_]] {
@@ -42,5 +42,9 @@ object MessageSocket {
         } yield ()
 
     }
+
+  def apply[F[_]: ConcurrentEffect](host: String, port: Int): Resource[F, MessageSocket[F]] =
+    BitVectorSocket(host, port).map(fromBitVectorSocket[F])
+
 
 }

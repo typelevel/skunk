@@ -1,14 +1,16 @@
 package skunk
-package dsl
+
 
 import cats._
-import cats.data.Chain
 
 trait Encoder[A] { outer =>
 
-  def encode(a: A): Chain[String]
+  lazy val empty: List[Option[String]] =
+    oids.map(_ => None)
 
-  def oids: Chain[Type]
+  def encode(a: A): List[Option[String]]
+
+  def oids: List[Type]
 
   def contramap[B](f: B => A): Encoder[B] =
     new Encoder[B] {
@@ -22,8 +24,19 @@ trait Encoder[A] { outer =>
       val oids = outer.oids ++ fb.oids
     }
 
+  def ~[B](fb: Encoder[B]): Encoder[(A, B)] =
+    product(fb)
+
   override def toString =
     s"Encoder(${oids.toList.mkString(", ")})"
+
+  // todo: implicit evidence that it's not already an option .. can be circumvented but prevents
+  // dumb errors
+  def opt: Encoder[Option[A]] =
+    new Encoder[Option[A]] {
+      def encode(a: Option[A]) = a.fold(empty)(outer.encode)
+      val oids = outer.oids
+    }
 
 }
 

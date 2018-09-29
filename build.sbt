@@ -11,7 +11,7 @@ lazy val fs2Version           = "1.0.0-M5"
 lazy val scodecCoreVersion    = "1.10.3"
 lazy val scodecCatsVersion    = "0.8.0"
 lazy val scala11Version       = "2.11.11"
-lazy val scala12Version       = "2.12.6"
+lazy val scala12Version       = "2.12.7"
 
 // run dependencyUpdates whenever we [re]load. Spooky eh?
 // onLoad in Global := { s => "dependencyUpdates" :: s }
@@ -117,7 +117,6 @@ lazy val commonSettings = scalacSettings ++ Seq(
   ),
 
   addCompilerPlugin("org.spire-math" %% "kind-projector" % kindProjectorVersion),
-  addCompilerPlugin(("org.scalameta" % "paradise" % "3.0.0-M11").cross(CrossVersion.full))
 
 )
 
@@ -197,7 +196,8 @@ lazy val core = project
       "co.fs2"               %% "fs2-io"        % fs2Version,
       "org.scodec"           %% "scodec-core"   % scodecCoreVersion,
       "org.scodec"           %% "scodec-cats"   % scodecCatsVersion,
-      "org.typelevel"        %% "cats-testkit"  % catsVersion % "test"
+      "org.typelevel"        %% "cats-testkit"  % catsVersion % "test",
+
     )
   )
 

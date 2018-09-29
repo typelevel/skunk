@@ -1,4 +1,4 @@
-package skunk
+package skunk.net
 
 import cats.effect._
 import cats.effect.concurrent._
@@ -6,9 +6,9 @@ import cats.effect.implicits._
 import cats.implicits._
 import fs2.concurrent._
 import fs2.Stream
+import java.nio.channels.AsynchronousCloseException
 import skunk.proto.message._
-
-
+import skunk.SqlException
 
 // name??
 trait ActiveMessageSocket[F[_]] {
@@ -51,9 +51,9 @@ object ActiveMessageSocket {
     }
 
   // Here we read messages as they arrive, rather than waiting for the user to ask. This allows us
-  // to handle asynchronous messages, which are handled here and not passed on. Other messages are
-  // queued up and are typically consumed immediately, so the queue need not be large … a queue of
-  // size 1 is probably fine most of the time.
+  // to handle asynchronous messages, which are dealt with here and not passed on. Other messages
+  // are queued up and are typically consumed immediately, so the queue need not be large … a queue
+  // of size 1 is probably fine most of the time.
   def fromMessageSocket[F[_]: Concurrent](ms: MessageSocket[F], maxSize: Int): F[ActiveMessageSocket[F]] =
     for {
       queue <- Queue.bounded[F, BackendMessage](maxSize)
@@ -62,19 +62,14 @@ object ActiveMessageSocket {
       bkSig <- Deferred[F, BackendKeyData]
       noTop <- Topic[F, NotificationResponse](NotificationResponse(-1, "", "")) // lame, we filter this out on subscribe below
       _     <- scatter(ms, xaSig, paSig, bkSig, noTop).repeat.to(queue.enqueue).compile.drain.attempt.flatMap {
-                 case Left(e: java.nio.channels.AsynchronousCloseException) => throw e // TODO: handle better … we  want to ignore this but may want to enqueue a Terminated message or something
-                 case Left(e) => Sync[F].delay(e.printStackTrace)
+                 case Left(e: AsynchronousCloseException) => throw e // TODO: handle better … we  want to ignore this but may want to enqueue a Terminated message or something
+                 case Left(e)  => Concurrent[F].delay(e.printStackTrace)
                  case Right(a) => a.pure[F]
                } .start
     } yield
       new ActiveMessageSocket[F] {
 
-        def receive =
-          queue.dequeue1.flatMap {
-            case ErrorResponse(info) => Sync[F].raiseError(new SqlException(info))
-            case m => Sync[F].pure(m)
-          }
-
+        def receive = queue.dequeue1
         def send[A: FrontendMessage](a: A) = ms.send(a)
         def transactionStatus = xaSig
         def parameters = paSig
@@ -84,11 +79,19 @@ object ActiveMessageSocket {
         // Like flatMap but raises an error if a case isn't handled. This makes writing protocol
         // handlers much easier.
         def expect[B](f: PartialFunction[BackendMessage, B]): F[B] =
-          receive.flatMap { m =>
-            if (f.isDefinedAt(m)) f(m).pure[F]
-            else Concurrent[F].raiseError(new RuntimeException(s"Unhandled: $m"))
+          receive.flatMap {
+            case m if f.isDefinedAt(m) => f(m).pure[F]
+            case ErrorResponse(map)    => Concurrent[F].raiseError(new SqlException(map))
+            case m                     => Concurrent[F].raiseError(new RuntimeException(s"Unhandled: $m"))
           }
 
+      }
+
+    def apply[F[_]: ConcurrentEffect](host: String, port: Int): Resource[F, ActiveMessageSocket[F]] =
+      MessageSocket(host, port).flatMap { ms =>
+        val alloc = ActiveMessageSocket.fromMessageSocket[F](ms, 256)
+        val free  = (_: ActiveMessageSocket[F]) => ms.send(Terminate)
+        Resource.make(alloc)(free)
       }
 
 }
