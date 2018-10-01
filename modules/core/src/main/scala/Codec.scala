@@ -69,4 +69,9 @@ trait Codecs { this: Codec.type =>
   val int4: Codec[Int]   = simple(_.toString, _.toInt,   Type.int4)
   val int8: Codec[Long]  = simple(_.toString, _.toLong,  Type.int8)
 
+  // TODO: ESCAPE!!!
+  val varchar: Codec[String] = simple(_.toString, _.toString, Type.varchar)
+  val name:    Codec[String] = simple(_.toString, _.toString, Type.name)
+  val bpchar:  Codec[String] = simple(_.toString, _.toString, Type.bpchar)
+
 }

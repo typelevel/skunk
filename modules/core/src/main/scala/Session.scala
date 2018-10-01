@@ -11,12 +11,18 @@ import skunk.net._
 import skunk.proto.message. { Query => QueryMessage, _ }
 import skunk.util.Namer
 
+/**
+ * Represents a live connection to a Postgres database. This is a lifetime-managed resource and as
+ * such is invalid outside the scope of its owning `Resource`, as are any streams yielded here. If
+ * you construct a stream and never run it, no problem. But if you do run it you must do so while
+ * the session is valid, and you must consume all input as it arrives.
+ */
 trait Session[F[_]] {
 
   // When we prepare a statement the result is dependent on its session. Really they should
   // depend on the *transaction* but we dont have transactions modeled yet.
-  type PreparedQuery[A, B]
-  type PreparedCommand[A]
+  case class PreparedQuery[A, B](name: String, query: Query[A, B])
+  case class PreparedCommand[A](name: String, command: Command[A])
 
   def startup(user: String, database: String): F[Unit]
 
@@ -45,10 +51,12 @@ trait Session[F[_]] {
   def notify(channel: String, message: String): F[Unit]
 
   def prepare[A, B](query: Query[A, B]): F[PreparedQuery[A, B]]
+
   def prepare[A](command: Command[A]): F[PreparedCommand[A]]
 
-  // def check[A, B](query: PreparedQuery[A, B]): F[Unit]
-  // def check[A](command: PreparedCommand[A]): F[Unit]
+  def check[A, B](query: PreparedQuery[A, B]): F[Unit]
+
+  def check[A](command: PreparedCommand[A]): F[Unit]
 
   // We're not going to worry about exposing portals. Execution will create the portal, fetch the
   // data, and close the portal on complete. We will need to hold the mutex for every fetch, which
@@ -79,36 +87,48 @@ object Session {
     implicit val HNilNonParameterized: NonParameterized[HNil] = new NonParameterized[HNil] {}
   }
 
-  def apply[F[_]: ConcurrentEffect](host: String, port: Int): Resource[F, Session[F]] =
+  /**
+   * Resource yielding a new `Session` with the given `host`, `port`, and statement checking policy.
+   * @param host  Postgres server host
+   * @param port  Postgres port, default 5432
+   * @param check Check all `prepare` and `quick` statements for consistency with the schema. This
+   *   is true by default and is recommended for development work. You may wish to turn this off in
+   *   production but honestly it's really cheap and probably worth keeping.
+   */
+  def apply[F[_]: ConcurrentEffect](
+    host:  String,
+    port:  Int     = 5432,
+    check: Boolean = true
+  ): Resource[F, Session[F]] =
     for {
       ams <- ActiveMessageSocket[F](host, port)
-      ses <- Resource.liftF(Session.fromActiveMessageSocket(ams))
+      ses <- Resource.liftF(Session.fromActiveMessageSocket(ams, check))
     } yield ses
 
-  def fromActiveMessageSocket[F[_]: Concurrent](ams: ActiveMessageSocket[F]): F[Session[F]] =
+  /** Construct a `Session` by wrapping an `ActiveMessageSocket`. */
+  private def fromActiveMessageSocket[F[_]: Concurrent](
+    ams:   ActiveMessageSocket[F],
+    check: Boolean
+  ): F[Session[F]] =
     for {
       nam <- Namer[F]("statement")
       sem <- Semaphore[F](1)
-    } yield new SessionImpl(ams, nam, sem)
+    } yield new SessionImpl(ams, nam, sem, check)
 
+  /**
+   * `Session` implementation.
+   * @param ams `ActiveMessageSocket` that manages message exchange.
+   * @param nam `Namer` for giving unique (per session) names for prepared statements and portals.
+   * @param sem Single-key `Semaphore` used as a mutex for message exchanges. Every "conversation"
+   *   must be conducted while holding the mutex because we may have interleaved streams.
+   * @param check Check all `prepare` and `quick` statements for consistency with the schema.
+   */
   private class SessionImpl[F[_]: Concurrent](
-    ams: ActiveMessageSocket[F],
-    nam: Namer[F],
-    sem: Semaphore[F]
+    ams:   ActiveMessageSocket[F],
+    nam:   Namer[F],
+    sem:   Semaphore[F],
+    check: Boolean
   ) extends Session[F] {
-
-    class PreparedQuery[A, B](
-      val name:    String,
-      val sql:     String,
-      val encoder: Encoder[A],
-      val decoder: Decoder[B]
-    )
-
-    class PreparedCommand[A](
-      val name:    String,
-      val sql:     String,
-      val encoder: Encoder[A]
-    )
 
     // Parameters and Transaction Status are freebies
     def parameters: Signal[F, Map[String, String]] = ams.parameters
@@ -119,7 +139,9 @@ object Session {
       sem.withPermit {
         for {
           _  <- ams.send(QueryMessage(query.sql))
-          _  <- ams.expect { case rd @ RowDescription(_) => rd } // todo: analyze
+          rd <- ams.expect { case rd @ RowDescription(_) => rd }
+          _  <- printStatement(query.sql).whenA(check)
+          _  <- checkRowDescription(rd, query.decoder).whenA(check)
           rs <- unroll(query.decoder)
           _  <- ams.expect { case ReadyForQuery(_) => }
         } yield rs
@@ -129,6 +151,7 @@ object Session {
       sem.withPermit {
         for {
           _  <- ams.send(QueryMessage(command.sql))
+          _  <- printStatement(command.sql).whenA(check)
           cc <- ams.expect { case cc @ CommandComplete(_) => cc }
           _  <- ams.expect { case ReadyForQuery(_) => }
         } yield cc
@@ -171,8 +194,8 @@ object Session {
           _ <- ams.send(Sync)
           _ <- ams.expect { case ParseComplete => }
           _ <- ams.expect { case ReadyForQuery(_) => }
-        } yield new PreparedQuery(n, query.sql, query.encoder, query.decoder)
-      } flatMap { ps => analyzeStatement(ps).as(ps) } // TODO: this, but only if there's a flag
+        } yield PreparedQuery(n, query)
+      } flatMap { pq => check(pq).whenA(check).as(pq) }
 
     // Parse a command and construct a PreparedCommand for later execution
     def prepare[A](command: Command[A]): F[PreparedCommand[A]] =
@@ -183,8 +206,8 @@ object Session {
           _ <- ams.send(Sync)
           _ <- ams.expect { case ParseComplete => }
           _ <- ams.expect { case ReadyForQuery(_) => }
-        } yield new PreparedCommand(n, command.sql, command.encoder)
-      } flatMap { pc => analyzeCommand(pc).as(pc) } // TODO: this, but only if there's a flag
+        } yield new PreparedCommand(n, command)
+      } flatMap { pq => check(pq).whenA(check).as(pq) }
 
     // Unroll a series of RowData messages into a List. Caller must hold the mutex.
     def unroll[A](dec: Decoder[A], accum: List[A] = Nil): F[List[A]] =
@@ -202,50 +225,65 @@ object Session {
       } yield ()
 
     // Analyze a prepared statement and ensure that the asserted types are correct.
-    def analyzeStatement(stmt: PreparedQuery[_, _]): F[Unit] = {
-      def print(a: Any) = Concurrent[F].delay(println(a))
-      val assertedFieldTypes = stmt.decoder.oids
-      val assertedParameterTypes = stmt.encoder.oids
+    def check[A, B](stmt: PreparedQuery[A, B]): F[Unit] =
       sem.withPermit {
         for {
           _  <- ams.send(Describe.statement(stmt.name))
           _  <- ams.send(Sync)
-          ps <- ams.expect { case ParameterDescription(oids) => oids }
-          fs <- ams.expect { case rd @ RowDescription(_) => rd.oids }
+          pd <- ams.expect { case pd @ ParameterDescription(_) => pd }
+          fs <- ams.expect { case rd @ RowDescription(_) => rd }
           _  <- ams.expect { case ReadyForQuery(_) => }
-          _  <- print("**")
-          _  <- stmt.sql.lines.toList.traverse(s => print("** " + s))
-          _  <- print("**")
-          _  <- print("** Parameters: asserted: " + assertedParameterTypes.map(_.name).mkString(", "))
-          _  <- print("**               actual: " + ps.map(n => Type.forOid(n).getOrElse(s"«$n»")).mkString(", "))
-          _  <- print("**")
-          _  <- print("** Fields:     asserted: " + assertedFieldTypes.map(_.name).mkString(", "))
-          _  <- print("**               actual: " + fs.map(n => Type.forOid(n).getOrElse(s"«$n»")).mkString(", "))
-          _  <- print("**")
+          _  <- printStatement(stmt.query.sql)
+          _  <- checkParameterDescription(pd, stmt.query.encoder)
+          _  <- checkRowDescription(fs, stmt.query.decoder)
         } yield ()
       }
-    }
 
     // Analyze a prepared statement and ensure that the asserted types are correct.
-    def analyzeCommand(stmt: PreparedCommand[_]): F[Unit] = {
-      def print(a: Any) = Concurrent[F].delay(println(a))
-      val assertedParameterTypes = stmt.encoder.oids
+    def check[A](stmt: PreparedCommand[A]): F[Unit] =
       sem.withPermit {
         for {
           _  <- ams.send(Describe.statement(stmt.name))
           _  <- ams.send(Sync)
-          ps <- ams.expect { case ParameterDescription(oids) => oids }
+          pd <- ams.expect { case pd @ ParameterDescription(_) => pd }
           _  <- ams.expect { case NoData => }
           _  <- ams.expect { case ReadyForQuery(_) => }
-          _  <- print("**")
-          _  <- stmt.sql.lines.toList.traverse(s => print("** " + s))
-          _  <- print("**")
-          _  <- print("** Parameters: asserted: " + assertedParameterTypes.map(_.name).mkString(", "))
-          _  <- print("**               actual: " + ps.map(n => Type.forOid(n).getOrElse(s"«$n»")).mkString(", "))
-          _  <- print("**")
+          _  <- printStatement(stmt.command.sql)
+          _  <- checkParameterDescription(pd, stmt.command.encoder)
         } yield ()
       }
+
+    private def printStatement(sql: String): F[Unit] = {
+      def print(a: Any) = Concurrent[F].delay(println(a))
+      for {
+        _  <- print("**")
+        _  <- sql.lines.toList.traverse(s => print("** " + s))
+        _  <- print("**")
+      } yield ()
     }
+
+    private def checkRowDescription(rd: RowDescription, dec: Decoder[_]): F[Unit] = {
+      def print(a: Any) = Concurrent[F].delay(println(a))
+      val assertedFieldTypes = dec.oids
+      val fs = rd.oids
+      for {
+        _  <- print("** Fields:     asserted: " + assertedFieldTypes.map(_.name).mkString(", "))
+        _  <- print("**               actual: " + fs.map(n => Type.forOid(n).getOrElse(s"«$n»")).mkString(", "))
+        _  <- print("**")
+      } yield ()
+    }
+
+    private def checkParameterDescription(pd: ParameterDescription, enc: Encoder[_]): F[Unit] = {
+      def print(a: Any) = Concurrent[F].delay(println(a))
+      val assertedParameterTypes = enc.oids
+      val ps = pd.oids
+      for {
+        _  <- print("** Parameters: asserted: " + assertedParameterTypes.map(_.name).mkString(", "))
+        _  <- print("**               actual: " + ps.map(n => Type.forOid(n).getOrElse(s"«$n»")).mkString(", "))
+        _  <- print("**")
+      } yield ()
+    }
+
 
   }
 
