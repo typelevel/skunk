@@ -23,7 +23,7 @@ trait Decoder[A] { outer =>
       val oids = outer.oids ++ fb.oids
     }
 
-  def ~[B](fb: Decoder[B]): Decoder[(A, B)] =
+  def ~[B](fb: Decoder[B]): Decoder[A ~ B] =
     product(fb)
 
   override def toString =

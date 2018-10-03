@@ -4,9 +4,8 @@ import cats.effect.{ Concurrent, ConcurrentEffect, Resource }
 import cats.effect.concurrent.Semaphore
 import cats.implicits._
 import fs2.concurrent.Signal
-import fs2.Stream
+import fs2.{ Chunk, Stream }
 import scala.annotation.implicitNotFound
-import shapeless._
 import skunk.net._
 import skunk.proto.message. { Query => QueryMessage, _ }
 import skunk.util.Namer
@@ -23,11 +22,15 @@ trait Session[F[_]] {
   // depend on the *transaction* but we dont have transactions modeled yet.
   case class PreparedQuery[A, B](name: String, query: Query[A, B])
   case class PreparedCommand[A](name: String, command: Command[A])
+  case class Portal[A](name: String, decoder: Decoder[A])
 
   def startup(user: String, database: String): F[Unit]
 
   def parameters: Signal[F, Map[String, String]]
   def transactionStatus: Signal[F, ReadyForQuery.Status]
+
+  def parameter(key: String): Stream[F, String] =
+    parameters.discrete.map(_.get(key)).unNone.changes
 
   /**
    * Execute a non-parameterized query and yield all results. This is convenient for queries that
@@ -58,33 +61,21 @@ trait Session[F[_]] {
 
   def check[A](command: PreparedCommand[A]): F[Unit]
 
-  // We're not going to worry about exposing portals. Execution will create the portal, fetch the
-  // data, and close the portal on complete. We will need to hold the mutex for every fetch, which
-  // can in principle allow two queries to have their results interleaved. This would be a good
-  // testcase.
-  protected def executeImpl[A, B](query: PreparedQuery[A, B], args: A): Stream[F, B] = ???
-  // protected def executeImpl[A](query: PreparedCommand[A], args: A): F[CommandComplete]
+  def bind[A, B](query: PreparedQuery[A, B], args: A): Resource[F, Portal[B]]
 
-  object execute {
-    def apply[A <: HList, B](query: PreparedQuery[A, B]) = new Partial(query)
-    class Partial[A, B](query: PreparedQuery[A, B]) extends ProductArgs {
-      def applyProduct(a: A): Stream[F, B] = executeImpl(query, a)
-    }
+  def execute[A](portal: Portal[A], maxRows: Int): F[List[A] ~ Boolean]
 
-    // overload for PreparedCommand
-  }
+  def stream[A, B](query: PreparedQuery[A, B], args: A, chunkSize: Int): Stream[F, B]
 
-  object prepareAndExecute // etc
 
 }
 
 object Session {
 
-  @implicitNotFound("Only simple (non-parameterized) statements are allowed here.")
+  @implicitNotFound("Parameterized statements are not allowed here. Use `prepare` instead.")
   sealed trait NonParameterized[A]
   object NonParameterized {
-    implicit val UnitNonParameterized: NonParameterized[Unit] = new NonParameterized[Unit] {}
-    implicit val HNilNonParameterized: NonParameterized[HNil] = new NonParameterized[HNil] {}
+    implicit val UnitNonParameterized: NonParameterized[Void] = new NonParameterized[Void] {}
   }
 
   /**
@@ -111,7 +102,7 @@ object Session {
     check: Boolean
   ): F[Session[F]] =
     for {
-      nam <- Namer[F]("statement")
+      nam <- Namer[F]
       sem <- Semaphore[F](1)
     } yield new SessionImpl(ams, nam, sem, check)
 
@@ -134,6 +125,45 @@ object Session {
     def parameters: Signal[F, Map[String, String]] = ams.parameters
     def transactionStatus: Signal[F, ReadyForQuery.Status] = ams.transactionStatus
 
+    def bind[A, B](pq: PreparedQuery[A, B], args: A): Resource[F, Portal[B]] =
+      Resource.make {
+        sem.withPermit {
+          for {
+            pn <- nam.nextName("portal")
+            _  <- ams.send(Bind(pn, pq.name, pq.query.encoder.encode(args)))
+            _  <- ams.send(Flush)
+            _  <- ams.expect { case BindComplete => }
+          } yield Portal(pn, pq.query.decoder)
+        }
+      } { p =>
+        sem.withPermit {
+          for {
+            _ <- ams.send(Close.portal(p.name))
+            _ <- ams.send(Flush)
+            _ <- ams.expect { case CloseComplete => }
+          } yield ()
+        }
+      }
+
+    def execute[A](portal: Portal[A], maxRows: Int): F[List[A] ~ Boolean] =
+      sem.withPermit {
+        for {
+          _  <- ams.send(Execute(portal.name, maxRows))
+          _  <- ams.send(Flush)
+          rs <- unroll(portal.decoder)
+        } yield rs
+      }
+
+    def stream[A, B](query: PreparedQuery[A, B], args: A, chunkSize: Int): Stream[F, B] =
+      Stream.resource(bind(query, args)).flatMap { portal =>
+        def chunks: Stream[F, B] =
+          Stream.eval(execute(portal, chunkSize)).flatMap {
+            case (bs, true)  => Stream.chunk(Chunk.seq(bs)) ++ chunks
+            case (bs, false) => Stream.chunk(Chunk.seq(bs))
+          }
+        chunks
+      }
+
     // Execute a query and unroll its rows into a List. If no rows are returned it's an error.
     def quick[A: Session.NonParameterized, B](query: Query[A, B]): F[List[B]] =
       sem.withPermit {
@@ -142,7 +172,7 @@ object Session {
           rd <- ams.expect { case rd @ RowDescription(_) => rd }
           _  <- printStatement(query.sql).whenA(check)
           _  <- checkRowDescription(rd, query.decoder).whenA(check)
-          rs <- unroll(query.decoder)
+          rs <- unroll(query.decoder).map(_._1) // rs._2 will always be true here
           _  <- ams.expect { case ReadyForQuery(_) => }
         } yield rs
       }
@@ -189,11 +219,10 @@ object Session {
     def prepare[A, B](query: Query[A, B]): F[PreparedQuery[A, B]] =
       sem.withPermit {
         for {
-          n <- nam.nextName
+          n <- nam.nextName("query")
           _ <- ams.send(Parse(n, query.sql, query.encoder.oids.toList)) // blergh
-          _ <- ams.send(Sync)
+          _ <- ams.send(Flush)
           _ <- ams.expect { case ParseComplete => }
-          _ <- ams.expect { case ReadyForQuery(_) => }
         } yield PreparedQuery(n, query)
       } flatMap { pq => check(pq).whenA(check).as(pq) }
 
@@ -201,20 +230,23 @@ object Session {
     def prepare[A](command: Command[A]): F[PreparedCommand[A]] =
       sem.withPermit {
         for {
-          n <- nam.nextName
+          n <- nam.nextName("command")
           _ <- ams.send(Parse(n, command.sql, command.encoder.oids.toList)) // blergh
-          _ <- ams.send(Sync)
+          _ <- ams.send(Flush)
           _ <- ams.expect { case ParseComplete => }
-          _ <- ams.expect { case ReadyForQuery(_) => }
         } yield new PreparedCommand(n, command)
       } flatMap { pq => check(pq).whenA(check).as(pq) }
 
     // Unroll a series of RowData messages into a List. Caller must hold the mutex.
-    def unroll[A](dec: Decoder[A], accum: List[A] = Nil): F[List[A]] =
-      ams.receive.flatMap {
-        case rd @ RowData(_)         => unroll(dec, dec.decode(rd.fields) :: accum)
-        case      CommandComplete(_) => accum.reverse.pure[F]
-      }
+    def unroll[A](dec: Decoder[A]): F[List[A] ~ Boolean] = {
+      def go(accum: List[A]): F[List[A] ~ Boolean] =
+        ams.receive.flatMap {
+          case rd @ RowData(_)         => go(dec.decode(rd.fields) :: accum)
+          case      CommandComplete(_) => (accum.reverse ~ false).pure[F]
+          case      PortalSuspended    => (accum.reverse ~ true).pure[F]
+        }
+      go(Nil)
+    }
 
     // Register on the given channel. Caller must hold the mutex. TODO: escape the channel name
     def registerListen(channel: String): F[Unit] =
@@ -229,10 +261,9 @@ object Session {
       sem.withPermit {
         for {
           _  <- ams.send(Describe.statement(stmt.name))
-          _  <- ams.send(Sync)
+          _  <- ams.send(Flush)
           pd <- ams.expect { case pd @ ParameterDescription(_) => pd }
           fs <- ams.expect { case rd @ RowDescription(_) => rd }
-          _  <- ams.expect { case ReadyForQuery(_) => }
           _  <- printStatement(stmt.query.sql)
           _  <- checkParameterDescription(pd, stmt.query.encoder)
           _  <- checkRowDescription(fs, stmt.query.decoder)
@@ -244,10 +275,9 @@ object Session {
       sem.withPermit {
         for {
           _  <- ams.send(Describe.statement(stmt.name))
-          _  <- ams.send(Sync)
+          _  <- ams.send(Flush)
           pd <- ams.expect { case pd @ ParameterDescription(_) => pd }
           _  <- ams.expect { case NoData => }
-          _  <- ams.expect { case ReadyForQuery(_) => }
           _  <- printStatement(stmt.command.sql)
           _  <- checkParameterDescription(pd, stmt.command.encoder)
         } yield ()

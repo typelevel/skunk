@@ -24,7 +24,7 @@ trait Encoder[A] { outer =>
       val oids = outer.oids ++ fb.oids
     }
 
-  def ~[B](fb: Encoder[B]): Encoder[(A, B)] =
+  def ~[B](fb: Encoder[B]): Encoder[A ~ B] =
     product(fb)
 
   override def toString =
@@ -46,6 +46,12 @@ object Encoder {
     new ContravariantSemigroupal[Encoder] {
       def contramap[A, B](fa: Encoder[A])(f: B => A) = fa contramap f
       def product[A, B](fa: Encoder[A],fb: Encoder[B]) = fa product fb
+    }
+
+  val void: Encoder[Void] =
+    new Encoder[Void] {
+      def encode(a: Void) = sys.error("impossible: Void is uninhabited")
+      val oids = Nil
     }
 
 }

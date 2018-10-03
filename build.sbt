@@ -70,7 +70,7 @@ lazy val scalacSettings = Seq(
           "-Ywarn-unused:imports",             // Warn if an import selector is not referenced.
           "-Ywarn-unused:locals",              // Warn if a local definition is unused.
           "-Ywarn-unused:params",              // Warn if a value parameter is unused.
-          "-Ywarn-unused:patvars",             // Warn if a variable bound in a pattern is unused.
+          // "-Ywarn-unused:patvars",             // Warn if a variable bound in a pattern is unused.
           "-Ywarn-unused:privates",            // Warn if a private member is unused.
           // "-Ywarn-value-discard"               // Warn when non-Unit expression results are unused.
           "-Ywarn-macros:before", // via som
@@ -200,6 +200,12 @@ lazy val core = project
 
     )
   )
+
+lazy val example = project
+  .in(file("modules/example"))
+  .dependsOn(core)
+  .settings(commonSettings)
+  .settings(noPublishSettings)
 
 lazy val bench = project
   .in(file("modules/bench"))

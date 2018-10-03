@@ -1,8 +1,7 @@
-package skunk
-package proto
-package message
+package skunk.proto.message
 
 import scodec.codecs._
+import skunk.Type
 
 // String
 // The name of the destination prepared statement (an empty string selects the unnamed prepared statement).

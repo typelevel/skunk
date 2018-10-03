@@ -1,69 +1,45 @@
 package skunk
 
-import cats.data.Chain
+import cats.data._
 import cats.implicits._
-import shapeless._
+import scala.language.experimental.macros
+import scala.reflect.macros.whitebox
 
-class StringOps(sc: StringContext) {
+class StringOps private[skunk] (sc: StringContext) {
 
-  object sql extends ProductArgs {
-    def applyProduct[H <: HList](h: H)(
-      implicit ev: Shuffle[H]
-    ): Fragment[ev.Out] = {
-      val (ts, e) = ev(h)
-      Fragment(Chain(sc.parts: _*), ts, e)
-    }
+  def sql(): Fragment[Void] =
+    Fragment[Void](sc.parts(0), Encoder.void)
+
+  // Encoder[A], Encoder[B], ... => Fragment[A ~ B ~ ...]
+  def sql(h: Encoder[_], t: Encoder[_]*): Any =
+    macro StringOpsMacros.sql_impl
+
+}
+
+class StringOpsMacros(val c: whitebox.Context) {
+  import c.universe._
+  def sql_impl(h: Tree, t: Tree*): Tree = {
+    val Apply(_, List(Apply(_, parts))) = c.prefix.tree
+    val enc  = t.foldLeft(h) { case (a, b) => q"$a.product($b)" }
+    val lens = (h +: t).map(t => q"$t.oids.length")
+    val sql  = q"skunk.StringOps.mkSql($parts, scala.collection.immutable.List(..$lens, 0))"
+    q"skunk.Fragment($sql, $enc)"
   }
+}
+
+object StringOps {
+
+  def placeholders(n: Int, i: Int): String =
+    List.fill(n)(State((x: Int) => (x + 1, s"$$$x"))).sequence.runA(i).value.mkString(", ")
+
+  def mkSql(parts: List[String], placeholderCounts: List[Int]): String =
+    (parts zip placeholderCounts).traverse { case (s, n) =>
+      State((i: Int) => (i + n, s + placeholders(n, i)))
+    } .runA(1).value.mkString
 
 }
 
 trait ToStringOps {
   implicit def toStringOps(sc: StringContext): StringOps =
     new StringOps(sc)
-}
-
-// H   is like Encoder[A] :: Encoder[B] :: ... :: HNil
-// Out is like A :: B :: ... :: HNil
-trait Shuffle[H <: HList] {
-  type Out <: HList
-  def apply(h: H): (List[List[Type]], Encoder[Out])
-}
-object Shuffle {
-
-  type Aux[H <: HList, O <: HList] = Shuffle[H] { type Out = O }
-
-  implicit val hnil: Aux[HNil, HNil] =
-    new Shuffle[HNil] {
-      type Out = HNil
-      def apply(h: HNil) = (
-        Nil,
-        new Encoder[HNil] {
-          def encode(a: HNil) = Nil
-          def oids = Nil
-        }
-      )
-    }
-
-  implicit def hcons[H, T <: HList](
-    implicit ev: Shuffle[T]
-  ): Aux[Encoder[H] :: T, H :: ev.Out] =
-    new Shuffle[Encoder[H] :: T] {
-      type Out = H :: ev.Out
-      def apply(h: Encoder[H] :: T) = {
-        val (ts, et) = ev(h.tail)
-        (h.head.oids.toList :: ts, (h.head, et).contramapN(hl => (hl.head, hl.tail)))
-      }
-    }
-
-  implicit def hcons2[H, T <: HList](
-    implicit ev: Shuffle[T]
-  ): Aux[Codec[H] :: T, H :: ev.Out] =
-    new Shuffle[Codec[H] :: T] {
-      type Out = H :: ev.Out
-      def apply(h: Codec[H] :: T) = {
-        val (ts, et) = ev(h.tail)
-        (h.head.oids.toList :: ts, (h.head, et).contramapN(hl => (hl.head, hl.tail)))
-      }
-    }
-
 }

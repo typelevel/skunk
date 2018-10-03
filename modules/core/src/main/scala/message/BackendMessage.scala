@@ -29,6 +29,9 @@ object BackendMessage {
        case ParseComplete.Tag         => ParseComplete.decoder
        case ParameterDescription.Tag  => ParameterDescription.decoder
        case NoData.Tag                => NoData.decoder
+       case BindComplete.Tag          => BindComplete.decoder
+       case CloseComplete.Tag         => CloseComplete.decoder
+       case PortalSuspended.Tag       => PortalSuspended.decoder
        case _                         => UnknownMessage.decoder(tag)
     }
 

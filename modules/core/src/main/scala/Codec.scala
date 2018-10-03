@@ -16,7 +16,7 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
       def oids = outer.oids ++ fb.oids
     }
 
-  def ~[B](fb: Codec[B]): Codec[(A, B)] =
+  def ~[B](fb: Codec[B]): Codec[A ~ B] =
     product(fb)
 
   def imap[B](f: A => B)(g: B => A): Codec[B] =

@@ -1,6 +1,4 @@
-package skunk
-package proto
-package message
+package skunk.proto.message
 
 import scodec.codecs._
 
