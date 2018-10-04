@@ -1,4 +1,4 @@
-package skunk.proto.message
+package skunk.message
 
 import scodec.codecs._
 import skunk.Type

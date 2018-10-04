@@ -1,4 +1,4 @@
-package skunk.proto.message
+package skunk.message
 
 import scodec.codecs._
 
@@ -15,7 +15,9 @@ import scodec.codecs._
 // The name of the prepared statement or portal to close (an empty string selects the unnamed prepared statement or portal).
 
 
-sealed abstract case class Close(variant: Byte, name: String)
+sealed abstract case class Close(variant: Byte, name: String) {
+  override def toString = s"Close(${variant.toChar},$name)"
+}
 
 object Close {
 

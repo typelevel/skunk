@@ -1,5 +1,5 @@
 package skunk
-package proto
+
 package message
 
 import scodec.codecs._

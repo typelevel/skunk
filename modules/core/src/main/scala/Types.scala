@@ -4,7 +4,7 @@ package skunk
  * Enumerated type of *built-in* schema types. These are defined as constants in the Postgres source
  * and we can safely assume they will never change, heh-heh.
  */
-sealed abstract class Type(val oid: Int, val name: String)
+sealed abstract class Type(val oid: Int, val name: String) extends Product with Serializable
 object Type {
 
   case object _abstime            extends Type(1023, "_abstime")

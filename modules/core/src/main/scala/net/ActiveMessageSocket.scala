@@ -7,7 +7,7 @@ import cats.implicits._
 import fs2.concurrent._
 import fs2.Stream
 import java.nio.channels.AsynchronousCloseException
-import skunk.proto.message._
+import skunk.message._
 import skunk.SqlException
 
 // name??

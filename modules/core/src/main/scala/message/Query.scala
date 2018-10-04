@@ -1,6 +1,4 @@
-package skunk
-package proto
-package message
+package skunk.message
 
 import java.util.Arrays
 import scodec.Attempt

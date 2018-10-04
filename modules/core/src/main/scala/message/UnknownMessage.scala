@@ -1,4 +1,4 @@
-package skunk.proto.message
+package skunk.message
 
 import scodec.bits.ByteVector
 import scodec.codecs.bytes

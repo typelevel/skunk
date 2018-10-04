@@ -1,5 +1,4 @@
-package object skunk
-  extends ToStringOps {
+package object skunk {
 
   private[skunk] def void(a: Any): Unit = (a, ())._2
 
@@ -12,6 +11,9 @@ package object skunk
   }
 
   type Void
+
+  object implicits
+    extends ToStringOps
 
 }
 

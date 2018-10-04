@@ -4,10 +4,10 @@ import cats.effect.{ Concurrent, ConcurrentEffect, Resource }
 import cats.effect.concurrent.Semaphore
 import cats.implicits._
 import fs2.concurrent.Signal
-import fs2.{ Chunk, Stream }
+import fs2.Stream
 import scala.annotation.implicitNotFound
 import skunk.net._
-import skunk.proto.message. { Query => QueryMessage, _ }
+import skunk.message. { Query => QueryMessage, _ }
 import skunk.util.Namer
 
 /**
@@ -18,55 +18,42 @@ import skunk.util.Namer
  */
 trait Session[F[_]] {
 
-  // When we prepare a statement the result is dependent on its session. Really they should
-  // depend on the *transaction* but we dont have transactions modeled yet.
-  case class PreparedQuery[A, B](name: String, query: Query[A, B])
-  case class PreparedCommand[A](name: String, command: Command[A])
-  case class Portal[A](name: String, decoder: Decoder[A])
+  /** Prepared statement yielding rows, dependently scoped to this `Session`. */
+  sealed abstract case class PreparedQuery[A, B](name: String, query: Query[A, B]) {
+    def dimap[C, D](f: C => A)(g: B => D): PreparedQuery[C,D] =
+      new PreparedQuery(name, query.dimap(f)(g)) {}
+  }
 
+  /** Prepared statement yielding no rows, dependently scoped to this `Session`. */
+  sealed abstract case class PreparedCommand[A](name: String, command: Command[A]) {
+    def contramap[B](f: B => A): PreparedCommand[B] =
+      new PreparedCommand(name, command.contramap(f)) {}
+  }
+
+  /** Portal with associated decoder, dependently scoped to this `Session`. */
+  sealed abstract case class Portal[A](name: String, decoder: Decoder[A]) {
+    def map[B](f: A => B): Portal[B] =
+      new Portal[B](name, decoder.map(f)) {}
+  }
+
+  def notifications(maxQueued: Int): Stream[F, NotificationResponse]
   def startup(user: String, database: String): F[Unit]
-
   def parameters: Signal[F, Map[String, String]]
   def transactionStatus: Signal[F, ReadyForQuery.Status]
-
-  def parameter(key: String): Stream[F, String] =
-    parameters.discrete.map(_.get(key)).unNone.changes
-
-  /**
-   * Execute a non-parameterized query and yield all results. This is convenient for queries that
-   * will only return a handful of rows. If the extent is unknown it's best to use `prepare` and
-   * `excute` which provides constant-memory streaming.
-   */
   def quick[A: Session.NonParameterized, B](query: Query[A, B]): F[List[B]]
-
-  /** Execute a non-paramaterized command and yield its result. */
   def quick[A: Session.NonParameterized](command: Command[A]): F[CommandComplete]
-
-  /**
-   * A stream that initiates listening on `channel` with the specified maximum queue size. Once
-   * this stream starts execution it is important to consume values in a timely fashion, otherwise
-   * it will [semantically] block other operations on this session. Typically this stream will be
-   * consumed asynchronously via `.to(some sink).compile.drain.start`.
-   */
-  def listen(channel: String, maxQueued: Int): Stream[F, NotificationResponse]
-
-  /** Send a notification to `channel`. */
+  def listen(channel: String): F[Unit]
+  def unlisten(channel: String): F[Unit]
   def notify(channel: String, message: String): F[Unit]
-
   def prepare[A, B](query: Query[A, B]): F[PreparedQuery[A, B]]
-
   def prepare[A](command: Command[A]): F[PreparedCommand[A]]
-
   def check[A, B](query: PreparedQuery[A, B]): F[Unit]
-
   def check[A](command: PreparedCommand[A]): F[Unit]
-
-  def bind[A, B](query: PreparedQuery[A, B], args: A): Resource[F, Portal[B]]
-
+  def bind[A, B](pq: PreparedQuery[A, B], args: A): F[Portal[B]]
+  def close(p: Portal[_]): F[Unit]
+  def close(p: PreparedCommand[_]): F[Unit]
+  def close(p: PreparedQuery[_, _]): F[Unit]
   def execute[A](portal: Portal[A], maxRows: Int): F[List[A] ~ Boolean]
-
-  def stream[A, B](query: PreparedQuery[A, B], args: A, chunkSize: Int): Stream[F, B]
-
 
 }
 
@@ -114,7 +101,7 @@ object Session {
    *   must be conducted while holding the mutex because we may have interleaved streams.
    * @param check Check all `prepare` and `quick` statements for consistency with the schema.
    */
-  private class SessionImpl[F[_]: Concurrent](
+  private final class SessionImpl[F[_]: Concurrent](
     ams:   ActiveMessageSocket[F],
     nam:   Namer[F],
     sem:   Semaphore[F],
@@ -124,25 +111,43 @@ object Session {
     // Parameters and Transaction Status are freebies
     def parameters: Signal[F, Map[String, String]] = ams.parameters
     def transactionStatus: Signal[F, ReadyForQuery.Status] = ams.transactionStatus
+    def notifications(maxQueued: Int): Stream[F, NotificationResponse] = ams.notifications(maxQueued)
 
-    def bind[A, B](pq: PreparedQuery[A, B], args: A): Resource[F, Portal[B]] =
-      Resource.make {
-        sem.withPermit {
-          for {
-            pn <- nam.nextName("portal")
-            _  <- ams.send(Bind(pn, pq.name, pq.query.encoder.encode(args)))
-            _  <- ams.send(Flush)
-            _  <- ams.expect { case BindComplete => }
-          } yield Portal(pn, pq.query.decoder)
-        }
-      } { p =>
-        sem.withPermit {
-          for {
-            _ <- ams.send(Close.portal(p.name))
-            _ <- ams.send(Flush)
-            _ <- ams.expect { case CloseComplete => }
-          } yield ()
-        }
+    def close(p: Portal[_]): F[Unit] =
+      sem.withPermit {
+        for {
+          _ <- ams.send(Close.portal(p.name))
+          _ <- ams.send(Flush)
+          _ <- ams.expect { case CloseComplete => }
+        } yield ()
+      }
+
+    def close(p: PreparedCommand[_]): F[Unit] =
+      sem.withPermit {
+        for {
+          _ <- ams.send(Close.statement(p.name))
+          _ <- ams.send(Flush)
+          _ <- ams.expect { case CloseComplete => }
+        } yield ()
+      }
+
+    def close(p: PreparedQuery[_, _]): F[Unit] =
+      sem.withPermit {
+        for {
+          _ <- ams.send(Close.statement(p.name))
+          _ <- ams.send(Flush)
+          _ <- ams.expect { case CloseComplete => }
+        } yield ()
+      }
+
+    def bind[A, B](pq: PreparedQuery[A, B], args: A): F[Portal[B]] =
+      sem.withPermit {
+        for {
+          pn <- nam.nextName("portal")
+          _  <- ams.send(Bind(pn, pq.name, pq.query.encoder.encode(args)))
+          _  <- ams.send(Flush)
+          _  <- ams.expect { case BindComplete => }
+        } yield new Portal(pn, pq.query.decoder) {}
       }
 
     def execute[A](portal: Portal[A], maxRows: Int): F[List[A] ~ Boolean] =
@@ -152,16 +157,6 @@ object Session {
           _  <- ams.send(Flush)
           rs <- unroll(portal.decoder)
         } yield rs
-      }
-
-    def stream[A, B](query: PreparedQuery[A, B], args: A, chunkSize: Int): Stream[F, B] =
-      Stream.resource(bind(query, args)).flatMap { portal =>
-        def chunks: Stream[F, B] =
-          Stream.eval(execute(portal, chunkSize)).flatMap {
-            case (bs, true)  => Stream.chunk(Chunk.seq(bs)) ++ chunks
-            case (bs, false) => Stream.chunk(Chunk.seq(bs))
-          }
-        chunks
       }
 
     // Execute a query and unroll its rows into a List. If no rows are returned it's an error.
@@ -197,15 +192,6 @@ object Session {
         } yield ()
       }
 
-    // A stream that registers for notifications and returns the resulting stream.
-    // TODO: bracket listem/unlisten so we stop receiving messages when the stream terminates.
-    def listen(channel: String, maxQueued: Int): Stream[F, NotificationResponse] =
-      for {
-        _ <- Stream.eval(sem.withPermit(registerListen(channel)))
-        n <- ams.notifications(maxQueued).filter(_.channel === channel)
-      } yield n
-
-    // Send a notification. TODO: the channel and message are not escaped but they should be.
     def notify(channel: String, message: String): F[Unit] =
       sem.withPermit {
         for {
@@ -215,7 +201,6 @@ object Session {
         } yield ()
       }
 
-    // Parse a statement and construct a PreparedQuery for later execution
     def prepare[A, B](query: Query[A, B]): F[PreparedQuery[A, B]] =
       sem.withPermit {
         for {
@@ -223,10 +208,9 @@ object Session {
           _ <- ams.send(Parse(n, query.sql, query.encoder.oids.toList)) // blergh
           _ <- ams.send(Flush)
           _ <- ams.expect { case ParseComplete => }
-        } yield PreparedQuery(n, query)
+        } yield new PreparedQuery(n, query) {}
       } flatMap { pq => check(pq).whenA(check).as(pq) }
 
-    // Parse a command and construct a PreparedCommand for later execution
     def prepare[A](command: Command[A]): F[PreparedCommand[A]] =
       sem.withPermit {
         for {
@@ -234,11 +218,10 @@ object Session {
           _ <- ams.send(Parse(n, command.sql, command.encoder.oids.toList)) // blergh
           _ <- ams.send(Flush)
           _ <- ams.expect { case ParseComplete => }
-        } yield new PreparedCommand(n, command)
+        } yield new PreparedCommand(n, command) {}
       } flatMap { pq => check(pq).whenA(check).as(pq) }
 
-    // Unroll a series of RowData messages into a List. Caller must hold the mutex.
-    def unroll[A](dec: Decoder[A]): F[List[A] ~ Boolean] = {
+    private def unroll[A](dec: Decoder[A]): F[List[A] ~ Boolean] = {
       def go(accum: List[A]): F[List[A] ~ Boolean] =
         ams.receive.flatMap {
           case rd @ RowData(_)         => go(dec.decode(rd.fields) :: accum)
@@ -248,13 +231,23 @@ object Session {
       go(Nil)
     }
 
-    // Register on the given channel. Caller must hold the mutex. TODO: escape the channel name
-    def registerListen(channel: String): F[Unit] =
-      for {
-        _ <- ams.send(QueryMessage(s"LISTEN $channel"))
-        _ <- ams.expect { case CommandComplete("LISTEN") => }
-        _ <- ams.expect { case ReadyForQuery(_) => }
-      } yield ()
+    def listen(channel: String): F[Unit] =
+      sem.withPermit {
+        for {
+          _ <- ams.send(QueryMessage(s"LISTEN $channel"))
+          _ <- ams.expect { case CommandComplete("LISTEN") => }
+          _ <- ams.expect { case ReadyForQuery(_) => }
+        } yield ()
+      }
+
+    def unlisten(channel: String): F[Unit] =
+      sem.withPermit {
+        for {
+          _ <- ams.send(QueryMessage(s"UNLISTEN $channel"))
+          _ <- ams.expect { case CommandComplete("UNLISTEN") => }
+          _ <- ams.expect { case ReadyForQuery(_) => }
+        } yield ()
+      }
 
     // Analyze a prepared statement and ensure that the asserted types are correct.
     def check[A, B](stmt: PreparedQuery[A, B]): F[Unit] =

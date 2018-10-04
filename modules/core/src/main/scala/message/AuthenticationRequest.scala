@@ -1,4 +1,4 @@
-package skunk.proto.message
+package skunk.message
 
 import scala.annotation.switch
 import scodec.Decoder

@@ -1,4 +1,4 @@
-package skunk.proto.message
+package skunk.message
 
 import cats.implicits._
 import scodec._

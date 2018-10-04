@@ -1,16 +1,16 @@
-package skunk.proto
+package skunk
 
 import cats.implicits._
 import cats.Semigroup
-import scodec._
+import scodec.{ Attempt, Codec => SCodec }
 import scodec.bits._
 import scodec.codecs._
 import scodec.interop.cats._
 
 package object message { module =>
 
-  implicit class CodecOps[A](val self: Codec[A]) extends AnyVal {
-    def applied(a: A): Codec[Unit] =
+  implicit class CodecOps[A](val self: SCodec[A]) extends AnyVal {
+    def applied(a: A): SCodec[Unit] =
       self.encode(a).fold(fail(_), constant(_))
   }
 
@@ -19,7 +19,7 @@ package object message { module =>
       def combine(a: Attempt[A], b: Attempt[A]) = (a, b).mapN(_ |+| _)
     }
 
-  def utf8z: Codec[String] =
+  def utf8z: SCodec[String] =
     (utf8 ~ constant(ByteVector(0))).xmap(_._1, (_, ()))
 
 }

@@ -1,6 +1,9 @@
-package skunk
+package example
+
+import skunk._, skunk.implicits._
 
 import cats.effect._
+// import cats.effect.implicits._
 import cats.implicits._
 import fs2._
 import fs2.Sink.showLinesStdOut
@@ -12,7 +15,7 @@ object Main extends IOApp {
   def putStrLn(a: Any): IO[Unit] =
     IO(println(a))
 
-  val anyLinesStdOut: Sink[IO, Any] =
+  def anyLinesStdOut[F[_]: Sync]: Sink[F, Any] =
     _.map(_.toString).to(showLinesStdOut)
 
   case class Country(name: String, code: String, indepyear: Option[Short], population: Int)
@@ -29,15 +32,22 @@ object Main extends IOApp {
   def clientEncodingChanged(enc: String): IO[Unit] =
     putStrLn(s">>>> CLIENT ENCODING IS NOW: $enc")
 
+  def hmm[F[_]: ConcurrentEffect](s: SessionPlus[F])(ps: s.PreparedQuery[Int, _]): F[Unit] =
+    s.stream(ps, 100000, 4).take(25)
+      .either(s.stream(ps, 10000, 5))
+      .to(anyLinesStdOut)
+      .compile
+      .drain
+
   def run(args: List[String]): IO[ExitCode] =
-    Session[IO]("localhost", 5432).use { s =>
+    SessionPlus[IO]("localhost", 5432).use { s =>
       for {
         _   <- s.startup("postgres", "world")
         _   <- s.parameter("client_encoding").evalMap(clientEncodingChanged).compile.drain.start
         st  <- s.transactionStatus.get
         enc <- s.parameters.get.map(_.get("client_encoding"))
         _   <- putStrLn(s"Logged in! Transaction status is $st and client_encoding is $enc")
-        _   <- s.listen("foo", 10).to(anyLinesStdOut).compile.drain.start
+        f   <- s.listen("foo", 10).to(anyLinesStdOut).compile.drain.start
         rs  <- s.quick(sql"select name, code, indepyear, population from country limit 20".query(country))
         _   <- rs.traverse(putStrLn)
         _   <- s.quick(sql"set seed = 0.123".command)
@@ -45,12 +55,9 @@ object Main extends IOApp {
         _   <- s.quick(sql"set client_encoding = 'UTF8'".command)
         _   <- s.notify("foo", "here is a message")
         _   <- s.quick(sql"select current_user".query(name))
-        _   <- s.prepare(sql"delete from country where population < $int2".command)
-        ps  <- s.prepare(q)
-        f1  <- s.stream(ps, 100000, 10).take(25).to(anyLinesStdOut).compile.drain.start
-        f2  <- s.stream(ps, 10000, 5).to(anyLinesStdOut).compile.drain.start
-        _   <- f1.join
-        _   <- f2.join
+        _   <- s.prepare(q).use(hmm(s))
+        // _   <- IO.sleep(1.second)
+        _   <- f.cancel // n.b. this does cancel the resource but join hangs
         _   <- putStrLn("Done.")
       } yield ExitCode.Success
     }
