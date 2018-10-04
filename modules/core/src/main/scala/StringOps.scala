@@ -14,10 +14,14 @@ class StringOps private[skunk] (sc: StringContext) {
   def sql(h: Encoder[_], t: Encoder[_]*): Any =
     macro StringOpsMacros.sql_impl
 
+  def id(): Identifier =
+    macro StringOpsMacros.identifier_impl
+
 }
 
 class StringOpsMacros(val c: whitebox.Context) {
   import c.universe._
+
   def sql_impl(h: Tree, t: Tree*): Tree = {
     val Apply(_, List(Apply(_, parts))) = c.prefix.tree
     val enc  = t.foldLeft(h) { case (a, b) => q"$a.product($b)" }
@@ -25,6 +29,15 @@ class StringOpsMacros(val c: whitebox.Context) {
     val sql  = q"skunk.StringOps.mkSql($parts, scala.collection.immutable.List(..$lens, 0))"
     q"skunk.Fragment($sql, $enc)"
   }
+
+  def identifier_impl(): Tree = {
+    val Apply(_, List(Apply(_, List(s @ Literal(Constant(part: String)))))) = c.prefix.tree
+    Identifier.fromString(part) match {
+      case Left(s) => c.abort(c.enclosingPosition, s)
+      case Right(Identifier(s)) => q"skunk.Identifier.unsafeFromString($s)"
+    }
+  }
+
 }
 
 object StringOps {

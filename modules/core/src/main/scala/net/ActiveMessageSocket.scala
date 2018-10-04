@@ -8,7 +8,7 @@ import fs2.concurrent._
 import fs2.Stream
 import java.nio.channels.AsynchronousCloseException
 import skunk.message._
-import skunk.SqlException
+import skunk.{ Identifier, SqlException }
 
 // name??
 trait ActiveMessageSocket[F[_]] {
@@ -60,7 +60,7 @@ object ActiveMessageSocket {
       xaSig <- SignallingRef[F, ReadyForQuery.Status](ReadyForQuery.Status.Idle)
       paSig <- SignallingRef[F, Map[String, String]](Map.empty)
       bkSig <- Deferred[F, BackendKeyData]
-      noTop <- Topic[F, NotificationResponse](NotificationResponse(-1, "", "")) // lame, we filter this out on subscribe below
+      noTop <- Topic[F, NotificationResponse](NotificationResponse(-1, Identifier.unsafeFromString("x"), "")) // lame, we filter this out on subscribe below
       _     <- scatter(ms, xaSig, paSig, bkSig, noTop).repeat.to(queue.enqueue).compile.drain.attempt.flatMap {
                  case Left(e: AsynchronousCloseException) => throw e // TODO: handle better … we  want to ignore this but may want to enqueue a Terminated message or something
                  case Left(e)  => Concurrent[F].delay(e.printStackTrace)

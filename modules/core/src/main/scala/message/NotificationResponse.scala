@@ -1,6 +1,7 @@
 package skunk.message
 
 import scodec.codecs._
+import skunk.Identifier
 
 // NotificationResponse (B)
 // Byte1('A')
@@ -17,9 +18,9 @@ import scodec.codecs._
 
 // String
 // The “payload” string passed from the notifying process.
-case class NotificationResponse(pid: Int, channel: String, payload: String) extends BackendMessage
+case class NotificationResponse(pid: Int, channel: Identifier, payload: String) extends BackendMessage
 
 object NotificationResponse {
   final val Tag = 'A'
-  val decoder = (int32 ~ cstring ~ cstring).map(NotificationResponse(_, _, _))
+  val decoder = (int32 ~ identifier ~ cstring).map(NotificationResponse(_, _, _))
 }

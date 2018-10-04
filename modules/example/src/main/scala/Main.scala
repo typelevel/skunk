@@ -33,8 +33,7 @@ object Main extends IOApp {
     putStrLn(s">>>> CLIENT ENCODING IS NOW: $enc")
 
   def hmm[F[_]: ConcurrentEffect](s: SessionPlus[F])(ps: s.PreparedQuery[Int, _]): F[Unit] =
-    s.stream(ps, 100000, 4).take(25)
-      .either(s.stream(ps, 10000, 5))
+    (s.stream(ps, 100000, 4).take(25) either s.stream(ps, 10000, 5))
       .to(anyLinesStdOut)
       .compile
       .drain
@@ -47,13 +46,13 @@ object Main extends IOApp {
         st  <- s.transactionStatus.get
         enc <- s.parameters.get.map(_.get("client_encoding"))
         _   <- putStrLn(s"Logged in! Transaction status is $st and client_encoding is $enc")
-        f   <- s.listen("foo", 10).to(anyLinesStdOut).compile.drain.start
+        f   <- s.listen(id"foo", 10).to(anyLinesStdOut).compile.drain.start
         rs  <- s.quick(sql"select name, code, indepyear, population from country limit 20".query(country))
         _   <- rs.traverse(putStrLn)
         _   <- s.quick(sql"set seed = 0.123".command)
-        _   <- s.quick(sql"set client_encoding = 'ISO8859_1'".command)
-        _   <- s.quick(sql"set client_encoding = 'UTF8'".command)
-        _   <- s.notify("foo", "here is a message")
+        _   <- s.quick(sql"set client_encoding = ISO8859_1".command)
+        _   <- s.quick(sql"set client_encoding = UTF8".command)
+        _   <- s.notify(id"foo", "here is a message")
         _   <- s.quick(sql"select current_user".query(name))
         _   <- s.prepare(q).use(hmm(s))
         // _   <- IO.sleep(1.second)

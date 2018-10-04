@@ -22,7 +22,7 @@ abstract class SessionPlus[F[_]](val s: Session[F]) {
   def startup(user: String, database: String): F[Unit] = s.startup(user, database)
   def parameters: Signal[F, Map[String, String]] = s.parameters
   def transactionStatus: Signal[F, ReadyForQuery.Status] = s.transactionStatus
-  def notify(channel: String, message: String): F[Unit] = s.notify(channel, message)
+  def notify(channel: Identifier, message: String): F[Unit] = s.notify(channel, message)
   def quick[A: Session.NonParameterized, B](query: Query[A, B]): F[List[B]] = s.quick(query)
   def quick[A: Session.NonParameterized](command: Command[A]): F[CommandComplete] = s.quick(command)
   def execute[A](portal: Portal[A], maxRows: Int): F[List[A] ~ Boolean] = s.execute(portal, maxRows)
@@ -38,7 +38,7 @@ abstract class SessionPlus[F[_]](val s: Session[F]) {
 
   def bind[A, B](pq: PreparedQuery[A, B], args: A): Resource[F, s.Portal[B]]
   def prepare[A, B](query: Query[A, B]): Resource[F, s.PreparedQuery[A, B]]
-  def listen(channel: String, maxQueued: Int): Stream[F, NotificationResponse]
+  def listen(channel: Identifier, maxQueued: Int): Stream[F, NotificationResponse]
 
   /**
    * Stream that calls `execute` repeatedly and emits chunks until none remain. Note that each
@@ -87,7 +87,7 @@ object SessionPlus {
           chunks
         }
 
-      def listen(channel: String, maxQueued: Int): Stream[F, NotificationResponse] =
+      def listen(channel: Identifier, maxQueued: Int): Stream[F, NotificationResponse] =
         for {
           _ <- Stream.resource(Resource.make(s.listen(channel))(_ => s.unlisten(channel)))
           n <- s.notifications(maxQueued).filter(_.channel === channel)

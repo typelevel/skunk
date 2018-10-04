@@ -42,9 +42,9 @@ trait Session[F[_]] {
   def transactionStatus: Signal[F, ReadyForQuery.Status]
   def quick[A: Session.NonParameterized, B](query: Query[A, B]): F[List[B]]
   def quick[A: Session.NonParameterized](command: Command[A]): F[CommandComplete]
-  def listen(channel: String): F[Unit]
-  def unlisten(channel: String): F[Unit]
-  def notify(channel: String, message: String): F[Unit]
+  def listen(channel: Identifier): F[Unit]
+  def unlisten(channel: Identifier): F[Unit]
+  def notify(channel: Identifier, message: String): F[Unit]
   def prepare[A, B](query: Query[A, B]): F[PreparedQuery[A, B]]
   def prepare[A](command: Command[A]): F[PreparedCommand[A]]
   def check[A, B](query: PreparedQuery[A, B]): F[Unit]
@@ -192,10 +192,10 @@ object Session {
         } yield ()
       }
 
-    def notify(channel: String, message: String): F[Unit] =
+    def notify(channel: Identifier, message: String): F[Unit] =
       sem.withPermit {
         for {
-          _ <- ams.send(QueryMessage(s"NOTIFY $channel, '$message'"))
+          _ <- ams.send(QueryMessage(s"NOTIFY ${channel.value}, '$message'"))
           _ <- ams.expect { case CommandComplete("NOTIFY") => }
           _ <- ams.expect { case ReadyForQuery(_) => }
         } yield ()
@@ -231,19 +231,19 @@ object Session {
       go(Nil)
     }
 
-    def listen(channel: String): F[Unit] =
+    def listen(channel: Identifier): F[Unit] =
       sem.withPermit {
         for {
-          _ <- ams.send(QueryMessage(s"LISTEN $channel"))
+          _ <- ams.send(QueryMessage(s"LISTEN ${channel.value}"))
           _ <- ams.expect { case CommandComplete("LISTEN") => }
           _ <- ams.expect { case ReadyForQuery(_) => }
         } yield ()
       }
 
-    def unlisten(channel: String): F[Unit] =
+    def unlisten(channel: Identifier): F[Unit] =
       sem.withPermit {
         for {
-          _ <- ams.send(QueryMessage(s"UNLISTEN $channel"))
+          _ <- ams.send(QueryMessage(s"UNLISTEN ${channel.value}"))
           _ <- ams.expect { case CommandComplete("UNLISTEN") => }
           _ <- ams.expect { case ReadyForQuery(_) => }
         } yield ()

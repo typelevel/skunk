@@ -19,7 +19,10 @@ package object message { module =>
       def combine(a: Attempt[A], b: Attempt[A]) = (a, b).mapN(_ |+| _)
     }
 
-  def utf8z: SCodec[String] =
+  val utf8z: SCodec[String] =
     (utf8 ~ constant(ByteVector(0))).xmap(_._1, (_, ()))
+
+  val identifier: SCodec[Identifier] =
+    cstring.xmap(Identifier.unsafeFromString, _.value) // cstring?
 
 }
