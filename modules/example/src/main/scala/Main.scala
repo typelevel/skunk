@@ -22,18 +22,22 @@ object Main extends IOApp {
   val country: Codec[Country] =
     (varchar, bpchar, int2.opt, int4).imapN(Country.apply)(Country.unapply(_).get)
 
-  val q: Query[Int, Country] =
+  val q: Query[Int ~ String, Country] = {
+    val table = "country"
     sql"""
       SELECT name, code, indepyear, population
-      FROM   country
+      FROM   #$table
       WHERE  population < $int4
+      AND    code LIKE $bpchar
+      -- and a comment at the end
     """.query(country)
+  }
 
   def clientEncodingChanged(enc: String): IO[Unit] =
     putStrLn(s">>>> CLIENT ENCODING IS NOW: $enc")
 
-  def hmm[F[_]: ConcurrentEffect](s: SessionPlus[F])(ps: s.PreparedQuery[Int, _]): F[Unit] =
-    (s.stream(ps, 100000, 4).take(25) either s.stream(ps, 10000, 5))
+  def hmm[F[_]: ConcurrentEffect](s: SessionPlus[F])(ps: s.PreparedQuery[Int ~ String, _]): F[Unit] =
+    (s.stream(ps, 100000 ~ "U%", 4).take(25) either s.stream(ps, 10000 ~ "U%", 5))
       .to(anyLinesStdOut)
       .compile
       .drain
