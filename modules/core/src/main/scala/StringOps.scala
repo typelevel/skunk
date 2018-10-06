@@ -1,14 +1,11 @@
 package skunk
 
-// import cats.Semigroup
-import cats.data._
+// import cats.data._
 import cats.implicits._
 import scala.language.experimental.macros
 import scala.reflect.macros.whitebox
-// import skunk.util.Interleaved
 
 class StringOps private[skunk] (sc: StringContext) {
-
   void(sc)
 
   // Encoder[A], Encoder[B], ... => Fragment[A ~ B ~ ...]
@@ -38,17 +35,18 @@ class StringOpsMacros(val c: whitebox.Context) {
     val args = argSeq.toList
 
     // Every arg must conform with Encoder[_] or String
-    val EncoderType = typeOf[Encoder[_]]
-    val StringType  = typeOf[String]
+    val EncoderType  = typeOf[Encoder[_]]
+    val StringType   = typeOf[String]
 
-    // Assemble a single list of Either[string tree, encoder tree] by interleaving the stringy parts
-    // and the args. If the arg is an interpolated string we reinterpret it as a stringy part.
-    val stuff: List[Either[Tree /* of string */, Tree /* of Encoder */]] =
-      (parts zip args).foldRight(List(parts.last.asLeft[Tree])) {
+    // Assemble a single list of Either[string tree, encoder int] by interleaving the stringy parts
+    // and the args' lengths, as well as a list of the args. If the arg is an interpolated string
+    // we reinterpret it as a stringy part. If the arg is a fragment we splice it in.
+    val (finalParts, preliminaryEncoders) : (List[Either[Tree /* of string */, Tree /* of int */]], List[Tree] /* encoder */) =
+      (parts zip args).foldRight((List(parts.last.asLeft[Tree]), List.empty[Tree])) {
 
         // The stringy part had better be a string literal. If we got here via the interpolator it
         // always will be. If not we punt (below).
-        case ((part @ Literal(Constant(str: String)), arg), tail) =>
+        case ((part @ Literal(Constant(str: String)), arg), (tail, es)) =>
 
           // The arg had better have a type conforming with Encoder[_] or String
           val argType = c.typecheck(arg, c.TYPEmode).tpe
@@ -58,19 +56,15 @@ class StringOpsMacros(val c: whitebox.Context) {
             // The stringy part ends in a `#` so the following arg must typecheck as a String.
             // Assuming it does, turn it into a string and "emit" two `Left`s.
             if (argType <:< StringType)
-              Left(Literal(Constant(str.init))) :: Left(arg) :: tail
+              (Left(Literal(Constant(str.init))) :: Left(arg) :: tail, es)
             else
               c.abort(arg.pos, s"type mismatch;\n  found   : $argType\n  required: $StringType")
 
           } else {
-
-            // We have a "normal" part + arg so "emit" them as a `Left` and a `Right`, assuming the
-            // arg typechecks as an Encoder.
             if (argType <:< EncoderType)
-              Left(part) :: Right(arg) :: tail
+              (Left(part) :: Right(q"$arg.oids.length") :: tail, arg :: es)
             else
-              c.abort(arg.pos, s"type mismatch;\n  found   : $argType\n  required: $EncoderType")
-
+              c.abort(arg.pos, s"type mismatch;\n  found   : $argType\n  required: $EncoderType") // or $FragmentType")
           }
 
         // Otherwise the stringy part isn't a string literal, which means someone has gotten here
@@ -81,21 +75,12 @@ class StringOpsMacros(val c: whitebox.Context) {
       }
 
     // The final encoder is either `Encoder.void` or `a ~ b ~ ...`
-    val finalEncoder: Tree = {
-      val trees = stuff.collect { case Right(t) => t }
-      if (trees.isEmpty) q"skunk.Encoder.void"
-      else trees.reduceLeft((a, b) => q"$a ~ $b") // note: must be left-associated
-    }
-
-    // The final parts are a List[Either[tree of string, tree of int]] where the int is the number
-    // of placeholders to insert.
-    val finalParts: List[Either[Tree, Tree]] = stuff.map {
-      case Left(a)  => Left(a)
-      case Right(t) => Right(q"$t.oids.length")
-    }
+    val finalEncoder: Tree =
+      if (preliminaryEncoders.isEmpty) q"skunk.Encoder.void"
+      else preliminaryEncoders.reduceLeft((a, b) => q"$a ~ $b") // note: must be left-associated
 
     // We now have what we need to construct a fragment.
-    q"skunk.StringOps.mkFragment($finalParts, $finalEncoder)"
+    q"skunk.Fragment($finalParts, $finalEncoder)"
 
   }
 
@@ -111,21 +96,15 @@ class StringOpsMacros(val c: whitebox.Context) {
 
 object StringOps {
 
-  def mkFragment[A](parts: List[Either[String, Int]], enc: Encoder[A]): Fragment[A] = {
-    val sql: String = parts.traverse {
-      case Left(s)  => s.pure[State[Int, ?]]
-      case Right(n) => State((i: Int) => (i + n, (i until i + n).map(j => s"$$${ j + 1 }").mkString(", ") ))
-    } .runEmptyA.value.combineAll
-    Fragment(sql, enc)
-  }
 
-  def placeholders(n: Int, i: Int): String =
-    List.fill(n)(State((x: Int) => (x + 1, s"$$$x"))).sequence.runA(i).value.mkString(", ")
-
-  def mkSql(parts: List[String], placeholderCounts: List[Int]): String =
-    (parts zip placeholderCounts).traverse { case (s, n) =>
-      State((i: Int) => (i + n, s + placeholders(n, i)))
-    } .runA(1).value.mkString
+  // def mkFragment[A](parts: List[Either[String, Int]], enc: Encoder[A]): Fragment[A] =
+  //   Fragment(
+  //     parts.traverse {
+  //       case Left(s)  => s.pure[State[Int, ?]]
+  //       case Right(n) => State((i: Int) => (i + n, (i until i + n).map("$" + _).mkString(", ")))
+  //     } .runA(1).value.combineAll,
+  //     enc
+  //   )
 
 }
 

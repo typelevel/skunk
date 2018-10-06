@@ -22,6 +22,8 @@ object Main extends IOApp {
   val country: Codec[Country] =
     (varchar, bpchar, int2.opt, int4).imapN(Country.apply)(Country.unapply(_).get)
 
+  // val frag = sql"population < $int4"
+
   val q: Query[Int ~ String, Country] = {
     val table = "country"
     sql"""
@@ -37,7 +39,7 @@ object Main extends IOApp {
     putStrLn(s">>>> CLIENT ENCODING IS NOW: $enc")
 
   def hmm[F[_]: ConcurrentEffect](s: SessionPlus[F])(ps: s.PreparedQuery[Int ~ String, _]): F[Unit] =
-    (s.stream(ps, 100000 ~ "U%", 4).take(25) either s.stream(ps, 10000 ~ "U%", 5))
+    (s.stream(ps, 100000 ~ "%", 4).take(25) either s.stream(ps, 10000 ~ "%", 5))
       .to(anyLinesStdOut)
       .compile
       .drain
@@ -59,8 +61,7 @@ object Main extends IOApp {
         _   <- s.notify(id"foo", "here is a message")
         _   <- s.quick(sql"select current_user".query(name))
         _   <- s.prepare(q).use(hmm(s))
-        // _   <- IO.sleep(1.second)
-        _   <- f.cancel // n.b. this does cancel the resource but join hangs
+        _   <- f.cancel // we do this instead of joining since it will never finish
         _   <- putStrLn("Done.")
       } yield ExitCode.Success
     }
