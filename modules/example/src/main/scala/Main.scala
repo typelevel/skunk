@@ -22,14 +22,16 @@ object Main extends IOApp {
   val country: Codec[Country] =
     (varchar, bpchar, int2.opt, int4).imapN(Country.apply)(Country.unapply(_).get)
 
-  // val frag = sql"population < $int4"
+  val fra0 = sql"true"
+
+  val frag = sql"population < $int4 AND $fra0"
 
   val q: Query[Int ~ String, Country] = {
     val table = "country"
     sql"""
       SELECT name, code, indepyear, population
       FROM   #$table
-      WHERE  population < $int4
+      WHERE  $frag
       AND    code LIKE $bpchar
       -- and a comment at the end
     """.query(country)
