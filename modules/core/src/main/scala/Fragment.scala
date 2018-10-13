@@ -7,10 +7,10 @@ import cats.implicits._
 case class Fragment[A](parts: List[Either[String, Int]], encoder: Encoder[A]) {
 
   lazy val sql: String =
-      parts.traverse {
-        case Left(s)  => s.pure[State[Int, ?]]
-        case Right(n) => State((i: Int) => (i + n, (i until i + n).map("$" + _).mkString(", ")))
-      } .runA(1).value.combineAll
+    parts.traverse {
+      case Left(s)  => s.pure[State[Int, ?]]
+      case Right(n) => State((i: Int) => (i + n, (i until i + n).map("$" + _).mkString(", ")))
+    } .runA(1).value.combineAll
 
   def query[B](decoder: Decoder[B]): Query[A, B] =
     Query(sql, encoder, decoder)

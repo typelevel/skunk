@@ -74,4 +74,7 @@ trait Codecs { this: Codec.type =>
   val name:    Codec[String] = simple(_.toString, _.toString, Type.name)
   val bpchar:  Codec[String] = simple(_.toString, _.toString, Type.bpchar)
 
+// maybe?
+// val name:    Codec[Identifier] = simple(_.toString, Identifier.unsafeFromString, Type.name)
+
 }

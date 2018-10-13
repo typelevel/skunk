@@ -16,7 +16,10 @@ import scodec.codecs._
 // The name of the prepared statement or portal to describe (an empty string selects the unnamed prepared statement or portal).
 
 
-sealed abstract case class Describe(variant: Byte, name: String)
+sealed abstract case class Describe(variant: Byte, name: String) {
+  override def toString =
+    s"Describe(${variant.toChar}, $name)"
+}
 
 object Describe {
 

@@ -12,6 +12,9 @@ package object skunk {
 
   type Void
 
+  type Pool[F[_], A] = skunk.util.Pool[F, A]
+  val  Pool          = skunk.util.Pool
+
   object implicits
     extends ToStringOps
 

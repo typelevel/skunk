@@ -1,11 +1,10 @@
 package skunk
 
-
 import cats._
 
 trait Encoder[A] { outer =>
 
-  lazy val empty: List[Option[String]] =
+  protected lazy val empty: List[Option[String]] =
     oids.map(_ => None)
 
   def encode(a: A): List[Option[String]]
@@ -27,9 +26,6 @@ trait Encoder[A] { outer =>
   def ~[B](fb: Encoder[B]): Encoder[A ~ B] =
     product(fb)
 
-  override def toString =
-    s"Encoder(${oids.toList.mkString(", ")})"
-
   // todo: implicit evidence that it's not already an option .. can be circumvented but prevents
   // dumb errors
   def opt: Encoder[Option[A]] =
@@ -37,6 +33,16 @@ trait Encoder[A] { outer =>
       def encode(a: Option[A]) = a.fold(empty)(outer.encode)
       val oids = outer.oids
     }
+
+  // TODO: decoder, codec
+  def list(n: Int): Encoder[List[A]] =
+    new Encoder[List[A]] {
+      def encode(as: List[A]) = as.flatMap(outer.encode)
+      val oids = (0 until n).toList.flatMap(_ => outer.oids)
+    }
+
+  override def toString =
+    s"Encoder(${oids.toList.mkString(", ")})"
 
 }
 

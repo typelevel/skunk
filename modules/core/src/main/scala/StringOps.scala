@@ -40,7 +40,7 @@ class StringOpsMacros(val c: whitebox.Context) {
     // Assemble a single list of Either[string tree, encoder int] by interleaving the stringy parts
     // and the args' lengths, as well as a list of the args. If the arg is an interpolated string
     // we reinterpret it as a stringy part. If the arg is a fragment we splice it in.
-    val (finalParts, preliminaryEncoders) : (List[Tree /* part */], List[Tree] /* encoder */) =
+    val (finalParts, encoders) : (List[Tree /* part */], List[Tree] /* encoder */) =
       (parts zip args).foldRight((List(q"skunk.StringOps.Str(${parts.last})"), List.empty[Tree])) {
 
         // The stringy part had better be a string literal. If we got here via the interpolator it
@@ -55,7 +55,7 @@ class StringOpsMacros(val c: whitebox.Context) {
             // The stringy part ends in a `#` so the following arg must typecheck as a String.
             // Assuming it does, turn it into a string and "emit" two `Left`s.
             if (argType <:< StringType) {
-              val p1 = q"skunk.StringOps.Str(${Literal(Constant(str.init))} concat $arg)"
+              val p1 = q"skunk.StringOps.Str(${str.init}.concat($arg))"
               (p1 :: tail, es)
             } else
               c.abort(arg.pos, s"type mismatch;\n  found   : $argType\n  required: $StringType")
@@ -93,12 +93,10 @@ class StringOpsMacros(val c: whitebox.Context) {
 
     // The final encoder is either `Encoder.void` or `a ~ b ~ ...`
     val finalEncoder: Tree =
-      if (preliminaryEncoders.isEmpty) q"skunk.Encoder.void"
-      else preliminaryEncoders.reduceLeft((a, b) => q"$a ~ $b") // note: must be left-associated
+      encoders.reduceLeftOption((a, b) => q"$a ~ $b").getOrElse(q"skunk.Encoder.void")
 
     // We now have what we need to construct a fragment.
     q"skunk.StringOps.fragmentFromParts($finalParts, $finalEncoder)"
-    // q"skunk.Fragment($finalParts, $finalEncoder)"
 
   }
 
