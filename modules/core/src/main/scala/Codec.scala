@@ -1,6 +1,7 @@
 package skunk
 
 import cats._
+import skunk.data.Type
 
 trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
 

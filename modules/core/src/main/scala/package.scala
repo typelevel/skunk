@@ -16,7 +16,7 @@ package object skunk {
   val  Pool          = skunk.util.Pool
 
   object implicits
-    extends ToStringOps
+    extends syntax.ToStringOps
 
 }
 

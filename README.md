@@ -1,8 +1,24 @@
-[![Travis CI](https://travis-ci.org/tpolecat/skunk.svg?branch=series%2F0.5.x)](https://travis-ci.org/tpolecat/skunk)
-[![Join the chat at https://gitter.im/tpolecat/skunk](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/tpolecat/skunk?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Maven Central](https://img.shields.io/maven-central/v/org.tpolecat/skunk-core_2.12.svg)](https://maven-badges.herokuapp.com/maven-central/org.tpolecat/skunk-core_2.12)
-[![Javadocs](https://javadoc.io/badge/org.tpolecat/skunk-core_2.12.svg)](https://javadoc.io/doc/org.tpolecat/skunk-core_2.12)
+# Skunk
 
-**skunk** - Mystery Project
+Skunk is an **experimental** Postgres client for Scala.
 
-Please continue to the [**microsite**](http://tpolecat.github.io/skunk/) for documentation and information on the current release.
+- Skunk is non-blocking.
+- Skunk is functional. It is written with cats-effect, scodec, and fs2.
+- Skunk speaks the wire protocol. It does not use JDBC.
+- Skunk is written in tagless style.
+
+## Quick Start
+
+There is no quick start.
+
+- You must build from source.
+- Password negotiation and SSL are not implemented yet, so you must be able to connect without a password; i.e., `psql -U <user> -d <database>` should connect you without a password prompt.
+
+Import stuff. You will probably needs bits and pieces of cats and fs2 as well. I assume you know what you need.
+
+```scala
+import skunk._, skunk.implicits._
+```
+
+## Connecting
+

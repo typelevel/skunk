@@ -4,7 +4,8 @@ import cats.effect._
 import cats.implicits._
 import fs2.{ Chunk, Stream }
 import fs2.concurrent.Signal
-import skunk.message.{ CommandComplete, ReadyForQuery, NotificationResponse }
+import skunk.data._
+import skunk.net.ProtoSession
 
 /**
  * Refinement of `ProtoSession` that exposes lifetime-managed objects as resources and streams that can
@@ -20,10 +21,10 @@ abstract class Session[F[_]](val s: ProtoSession[F]) {
 
   def startup(user: String, database: String): F[Unit] = s.startup(user, database)
   def parameters: Signal[F, Map[String, String]] = s.parameters
-  def transactionStatus: Signal[F, ReadyForQuery.Status] = s.transactionStatus
+  def transactionStatus: Signal[F, TransactionStatus] = s.transactionStatus
   def notify(channel: Identifier, message: String): F[Unit] = s.notify(channel, message)
   def quick[A: ProtoSession.NonParameterized, B](query: Query[A, B]): F[List[B]] = s.quick(query)
-  def quick[A: ProtoSession.NonParameterized](command: Command[A]): F[CommandComplete] = s.quick(command)
+  def quick[A: ProtoSession.NonParameterized](command: Command[A]): F[Completion] = s.quick(command)
   def execute[A](portal: Portal[A], maxRows: Int): F[List[A] ~ Boolean] = s.execute(portal, maxRows)
   def check[A, B](query: PreparedQuery[A, B]): F[Unit] = s.check(query)
   def check[A](command: PreparedCommand[A]): F[Unit] = s.check(command)
@@ -37,7 +38,7 @@ abstract class Session[F[_]](val s: ProtoSession[F]) {
 
   def bind[A, B](pq: PreparedQuery[A, B], args: A): Resource[F, s.Portal[B]]
   def prepare[A, B](query: Query[A, B]): Resource[F, s.PreparedQuery[A, B]]
-  def listen(channel: Identifier, maxQueued: Int): Stream[F, NotificationResponse]
+  def listen(channel: Identifier, maxQueued: Int): Stream[F, Notification]
 
   /**
    * Stream that calls `execute` repeatedly and emits chunks until none remain. Note that each
@@ -53,7 +54,7 @@ abstract class Session[F[_]](val s: ProtoSession[F]) {
 
 }
 
-object Session extends ToStringOps {
+object Session {
 
   def pool[F[_]: ConcurrentEffect](
     host:     String,
@@ -74,7 +75,7 @@ object Session extends ToStringOps {
       for {
         // todo: unsubscribe all
         // todo: sync, rollback if necessary
-        _ <- s.quick(sql"RESET ALL".command)
+        _ <- s.quick(Command("RESET ALL", Encoder.void))
       } yield true
 
     Pool.of(connection, max, reset)
@@ -134,7 +135,7 @@ object Session extends ToStringOps {
           }
         }
 
-      def listen(channel: Identifier, maxQueued: Int): Stream[F, NotificationResponse] =
+      def listen(channel: Identifier, maxQueued: Int): Stream[F, Notification] =
         for {
           _ <- Stream.resource(Resource.make(s.listen(channel))(_ => s.unlisten(channel)))
           n <- s.notifications(maxQueued).filter(_.channel === channel)

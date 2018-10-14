@@ -1,6 +1,7 @@
 package skunk
 
 import cats._
+import skunk.data.Type
 
 trait Encoder[A] { outer =>
 

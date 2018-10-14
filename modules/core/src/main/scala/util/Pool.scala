@@ -4,8 +4,17 @@ import cats.effect._
 import cats.effect.concurrent._
 import cats.implicits._
 
+
 object Pool {
 
+  /**
+   * Resource that yields a non-blocking **pooled** version of `rsrc`, with up to `maxInstances`
+   * live instances permitted, constructed lazily. A released instance is returned to the pool if
+   * `reset` yields `true` (the typical case), otherwise it is discarded. This gives the pool a
+   * chance to verify that an instance is valid, and reset it to a "clean" state if necessary. All
+   * instances are released when the pool is released, in an undefined order (i.e., don't use this
+   * if `rsrc` yields instances that depend on each other).
+   */
   def of[F[_]: Concurrent, A](
     rsrc: Resource[F, A],
     maxInstances: Long,
@@ -15,14 +24,14 @@ object Pool {
 
   /**
    * Internal state used by a pool. We need an underlying resource, a counting semaphore to limit
-   * concurrent instances, and a cache to store instances for reuse. This thing itself needs to be
-   * controlled by a Resource because it must be closed to free up temporarily leaked resources.
+   * concurrent instances, a cache to store instances for reuse, and a reset program constructor
+   * for checking validity (and arbitrary cleanup) of returned instances.
    */
   private final class PoolData[F[_]: Concurrent, A](
     underlying: Resource[F, A],
     semaphore:  Semaphore[F],
     cache:      MVar[F, List[Leak[F, A]]],
-    reset:    A => F[Boolean]
+    reset:      A => F[Boolean]
   ) {
 
     // Take a permit and yield a leaked resource from the queue, or leak a new one if necessary
@@ -39,7 +48,6 @@ object Pool {
       } yield lfa
 
     // Add a leaked resource to the pool and release a permit
-    // TODO: some kind of health check A => F[Boolean] on release
     private def release(leak: Leak[F, A]): F[Unit] =
       cache.take.flatMap { q =>
         reset(leak.value).attempt.flatMap {
@@ -75,43 +83,5 @@ object Pool {
       } yield new PoolData(rsrc, sem, cache, reset)
 
   }
-
-}
-
-
-
-
-
-
-object PoolExample extends IOApp {
-
-  def rsrc: IO[Resource[IO, Int]] =
-    MVar[IO].of(1).map { mv =>
-      val alloc: IO[Int] =
-        for {
-          n <- mv.take
-          _ <- printAny(s"alloc $n")
-          _ <- IO.raiseError(new RuntimeException(s"failing at $n")).whenA(n > 4)
-          _ <- mv.put(n + 1)
-        } yield n
-      Resource.make(alloc)(a => printAny(s"free $a"))
-    }
-
-  def printAny(a: Any): IO[Unit] =
-    IO(println(s"${Thread.currentThread.getId} - $a")) *> IO.shift
-
-  def run(args: List[String]): IO[ExitCode] =
-    rsrc.flatMap { r =>
-      Pool.of(r, 5, (n: Int) => IO(println(s"resetting $n")).as(true)).use { p =>
-        for {
-          // _ <- p.use(printAny)
-          // _ <- p.use(printAny)
-          // _ <- p.use(printAny)
-          f <- List.fill(10)(p.use(printAny)).parSequence.start
-          _ <- p.use(a => printAny(a) *> p.use(printAny))
-          _ <- f.join
-        } yield ExitCode.Success
-      }
-    }
 
 }

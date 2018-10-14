@@ -7,17 +7,17 @@ import cats.implicits._
 import fs2.concurrent._
 import fs2.Stream
 import java.nio.channels.AsynchronousCloseException
-import skunk.message._
-import skunk.{ Identifier, SqlException }
+import skunk.data._
+import skunk.net.message._
 
 // name??
 trait ActiveMessageSocket[F[_]] {
   def receive: F[BackendMessage]
   def send[A: FrontendMessage](a: A): F[Unit]
-  def transactionStatus: Signal[F, ReadyForQuery.Status]
+  def transactionStatus: Signal[F, TransactionStatus]
   def parameters: Signal[F, Map[String, String]]
   def backendKeyData: Deferred[F, BackendKeyData]
-  def notifications(maxQueued: Int): Stream[F, NotificationResponse]
+  def notifications(maxQueued: Int): Stream[F, Notification]
   def expect[B](f: PartialFunction[BackendMessage, B]): F[B]
 }
 
@@ -26,10 +26,10 @@ object ActiveMessageSocket {
   // A stream that reads one message and might emit it
   private def scatter[F[_]: Sync](
     ms:    MessageSocket[F],
-    xaSig: Ref[F, ReadyForQuery.Status],
+    xaSig: Ref[F, TransactionStatus],
     paSig: Ref[F, Map[String, String]],
     bkDef: Deferred[F, BackendKeyData],
-    noTop: Topic[F, NotificationResponse]
+    noTop: Topic[F, Notification]
   ): Stream[F, BackendMessage] =
     Stream.eval(ms.receive).flatMap {
 
@@ -37,9 +37,9 @@ object ActiveMessageSocket {
       case m @ ReadyForQuery(s)       => Stream.eval(xaSig.set(s).as(m))
 
       // These messages are handled here and are never seen by higher-level code
-      case     ParameterStatus(k, v)         => Stream.eval_(paSig.update(_ + (k -> v)))
-      case n @ NotificationResponse(_, _, _) => Stream.eval_(noTop.publish1(n))
-      case m @ BackendKeyData(_, _)          => Stream.eval_(bkDef.complete(m))
+      case     ParameterStatus(k, v)   => Stream.eval_(paSig.update(_ + (k -> v)))
+      case     NotificationResponse(n) => Stream.eval_(noTop.publish1(n))
+      case m @ BackendKeyData(_, _)    => Stream.eval_(bkDef.complete(m))
    // case     NoticeResponse(info) => publish these too, or maybe just log them? not a lot you can do with them
 
       // TODO: we should log and swallow Unknown messages but for now let them propagate because
@@ -57,10 +57,10 @@ object ActiveMessageSocket {
   def fromMessageSocket[F[_]: Concurrent](ms: MessageSocket[F], maxSize: Int): F[ActiveMessageSocket[F]] =
     for {
       queue <- Queue.bounded[F, BackendMessage](maxSize)
-      xaSig <- SignallingRef[F, ReadyForQuery.Status](ReadyForQuery.Status.Idle)
+      xaSig <- SignallingRef[F, TransactionStatus](TransactionStatus.Idle)
       paSig <- SignallingRef[F, Map[String, String]](Map.empty)
       bkSig <- Deferred[F, BackendKeyData]
-      noTop <- Topic[F, NotificationResponse](NotificationResponse(-1, Identifier.unsafeFromString("x"), "")) // lame, we filter this out on subscribe below
+      noTop <- Topic[F, Notification](Notification(-1, Identifier.unsafeFromString("x"), "")) // lame, we filter this out on subscribe below
       _     <- scatter(ms, xaSig, paSig, bkSig, noTop).repeat.to(queue.enqueue).compile.drain.attempt.flatMap {
                  case Left(e: AsynchronousCloseException) => throw e // TODO: handle better … we  want to ignore this but may want to enqueue a Terminated message or something
                  case Left(e)  => Concurrent[F].delay(e.printStackTrace)

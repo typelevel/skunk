@@ -3,7 +3,7 @@ package skunk.net
 import cats.effect._
 import cats.implicits._
 import scodec.codecs._
-import skunk.message.{ Sync => _, _ }
+import skunk.net.message.{ Sync => _, _ }
 
 /** A higher-level socket interface defined in terms of `Message`. */
 trait MessageSocket[F[_]] {
