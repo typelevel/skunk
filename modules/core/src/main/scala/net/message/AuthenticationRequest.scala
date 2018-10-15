@@ -11,10 +11,7 @@ import scodec.codecs.int32
 trait AuthenticationRequest extends BackendMessage
 
 object AuthenticationRequest {
-
-  // Byte1('R') - Identifies the message as an authentication request.
-  val Tag = 'R'
-
+  final val Tag = 'R'
   val decoder: Decoder[AuthenticationRequest] =
     int32.flatMap { a =>
       (a: @switch) match {
@@ -31,7 +28,6 @@ object AuthenticationRequest {
         case AuthenticationSASLFinal.Tagʹ => AuthenticationSASLFinal.decoderʹ
       }
     }
-
 }
 
 

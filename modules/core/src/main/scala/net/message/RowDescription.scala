@@ -14,7 +14,7 @@ case class RowDescription(fields: List[RowDescription.Field]) extends BackendMes
 object RowDescription {
 
   // Byte1('T') - Identifies the message as a row description.
-  val Tag = 'T'
+  final val Tag = 'T'
 
   // Int16 - Specifies the number of fields in a row (can be zero).
   // Then, a list of fields (see `Field` below).

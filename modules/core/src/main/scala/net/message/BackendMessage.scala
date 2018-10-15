@@ -1,5 +1,6 @@
 package skunk.net.message
 
+import scala.annotation.switch
 import scodec.Decoder
 
 /**
@@ -16,22 +17,22 @@ object BackendMessage {
    * payload will be decoded as an `UnknownMessage`.
    */
   def decoder(tag: Byte): Decoder[BackendMessage] =
-    tag match {
-       case RowData.Tag               => RowData.decoder
+    (tag: @switch) match { // N.B. `final val Tag = <char>` req'd for case switch here
        case AuthenticationRequest.Tag => AuthenticationRequest.decoder
-       case ParameterStatus.Tag       => ParameterStatus.decoder
        case BackendKeyData.Tag        => BackendKeyData.decoder
-       case ReadyForQuery.Tag         => ReadyForQuery.decoder
-       case ErrorResponse.Tag         => ErrorResponse.decoder
-       case RowDescription.Tag        => RowDescription.decoder
-       case CommandComplete.Tag       => CommandComplete.decoder
-       case NotificationResponse.Tag  => NotificationResponse.decoder
-       case ParseComplete.Tag         => ParseComplete.decoder
-       case ParameterDescription.Tag  => ParameterDescription.decoder
-       case NoData.Tag                => NoData.decoder
        case BindComplete.Tag          => BindComplete.decoder
        case CloseComplete.Tag         => CloseComplete.decoder
+       case CommandComplete.Tag       => CommandComplete.decoder
+       case ErrorResponse.Tag         => ErrorResponse.decoder
+       case NoData.Tag                => NoData.decoder
+       case NotificationResponse.Tag  => NotificationResponse.decoder
+       case ParameterDescription.Tag  => ParameterDescription.decoder
+       case ParameterStatus.Tag       => ParameterStatus.decoder
+       case ParseComplete.Tag         => ParseComplete.decoder
        case PortalSuspended.Tag       => PortalSuspended.decoder
+       case ReadyForQuery.Tag         => ReadyForQuery.decoder
+       case RowData.Tag               => RowData.decoder
+       case RowDescription.Tag        => RowDescription.decoder
        case _                         => UnknownMessage.decoder(tag)
     }
 

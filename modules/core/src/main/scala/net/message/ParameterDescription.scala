@@ -27,7 +27,7 @@ case class ParameterDescription(oids: List[Int]) extends BackendMessage
 object ParameterDescription {
 
   // Byte1('T') - Identifies the message as a Parameter description.
-  val Tag = 't'
+  final val Tag = 't'
 
   val decoder: Decoder[ParameterDescription] =
     int16.flatMap { n =>

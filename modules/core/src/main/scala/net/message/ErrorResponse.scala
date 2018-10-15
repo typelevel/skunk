@@ -8,7 +8,7 @@ final case class ErrorResponse(info: Map[Char, String]) extends BackendMessage
 object ErrorResponse {
 
   // ErrorResponse (B)
-  val Tag = 'E'
+  final val Tag = 'E'
 
   // The message body consists of one or more identified fields, followed by a zero byte as a
   // terminator. Fields can appear in any order. For each field there is the following:

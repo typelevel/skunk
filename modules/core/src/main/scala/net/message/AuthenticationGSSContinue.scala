@@ -4,7 +4,7 @@ import scodec.codecs.bytes
 
 /**
  * Specifies that this message contains GSSAPI or SSPI data.
- * @param GSSAPI or SSPI authentication data.
+ * @param data GSSAPI or SSPI authentication data.
  */
 final case class AuthenticationGSSContinue(data: Array[Byte]) extends AuthenticationRequest
 
