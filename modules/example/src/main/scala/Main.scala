@@ -1,7 +1,7 @@
 package example
 
-import skunk._, skunk.implicits._
-
+import skunk._
+import skunk.implicits._
 import cats.effect._
 import cats.implicits._
 import fs2._
@@ -50,8 +50,14 @@ object Main extends IOApp {
       .compile
       .drain
 
-  val pool: Pool[IO, Session[IO]] =
-    Session.pool[IO]("localhost", 5432, "postgres", "world", 10)
+  val pool: SessionPool[IO] =
+    Session.pool(
+      host     = "localhost",
+      port     = 5432,
+      user     = "postgres",
+      database = "world",
+      max      = 10,
+    )
 
   def run(args: List[String]): IO[ExitCode] =
     pool.use { p =>

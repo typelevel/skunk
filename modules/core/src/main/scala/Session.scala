@@ -6,10 +6,11 @@ import fs2.{ Chunk, Stream }
 import fs2.concurrent.Signal
 import skunk.data._
 import skunk.net.ProtoSession
+import skunk.util.Pool
 
 /**
- * Refinement of `ProtoSession` that exposes lifetime-managed objects as resources and streams that can
- * safely be used concurrently, as long as the session is active.
+ * Refinement of `ProtoSession` that exposes lifetime-managed objects as resources and streams that
+ * can safely be used concurrently, as long as the session is active.
  */
 abstract class Session[F[_]](val s: ProtoSession[F]) {
 
@@ -63,13 +64,7 @@ object Session {
     database: String,
     max:      Long,
     check:    Boolean = true
-  ): Resource[F, Resource[F, Session[F]]] = {
-
-    val connection: Resource[F, Session[F]] =
-      for {
-        s <- Session[F](host, port, check)
-        _ <- Resource.liftF(s.startup(user, database))
-      } yield s
+  ): SessionPool[F] = {
 
     val reset: Session[F] => F[Boolean] = s =>
       for {
@@ -78,9 +73,22 @@ object Session {
         _ <- s.quick(Command("RESET ALL", Encoder.void))
       } yield true
 
-    Pool.of(connection, max, reset)
+    Pool.of(once(host, port, user, database, check), max, reset)
 
   }
+
+  def once[F[_]: ConcurrentEffect](
+    host:     String,
+    port:     Int,
+    user:     String,
+    database: String,
+    check:    Boolean = true
+  ): Resource[F, Session[F]] =
+    for {
+      s <- Session[F](host, port, check)
+      _ <- Resource.liftF(s.startup(user, database))
+      // TODO: password negotiation, SASL, etc.
+    } yield s
 
   /**
    * Resource yielding a new `Session` with the given `host`, `port`, and statement checking policy.
@@ -90,10 +98,10 @@ object Session {
    *   is true by default and is recommended for development work. You may wish to turn this off in
    *   production but honestly it's really cheap and probably worth keeping.
    */
-  def apply[F[_]: ConcurrentEffect](
+  private def apply[F[_]: ConcurrentEffect](
     host:  String,
-    port:  Int     = 5432,
-    check: Boolean = true
+    port:  Int,
+    check: Boolean
   ): Resource[F, Session[F]] =
     ProtoSession[F](host, port, check).map(fromSession(_))
 

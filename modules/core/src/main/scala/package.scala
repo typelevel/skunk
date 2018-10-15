@@ -1,3 +1,5 @@
+import cats.effect.Resource
+
 package object skunk {
 
   private[skunk] def void(a: Any): Unit = (a, ())._2
@@ -11,9 +13,7 @@ package object skunk {
   }
 
   type Void
-
-  type Pool[F[_], A] = skunk.util.Pool[F, A]
-  val  Pool          = skunk.util.Pool
+  type SessionPool[F[_]] = Resource[F, Resource[F, Session[F]]]
 
   object implicits
     extends syntax.ToStringOps
