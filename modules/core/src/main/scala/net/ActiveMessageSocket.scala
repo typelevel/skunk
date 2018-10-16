@@ -6,7 +6,7 @@ import cats.effect.implicits._
 import cats.implicits._
 import fs2.concurrent._
 import fs2.Stream
-import java.nio.channels.AsynchronousCloseException
+// import java.nio.channels.AsynchronousCloseException
 import skunk.data._
 import skunk.net.message._
 
@@ -19,12 +19,19 @@ trait ActiveMessageSocket[F[_]] {
   def backendKeyData: Deferred[F, BackendKeyData]
   def notifications(maxQueued: Int): Stream[F, Notification]
   def expect[B](f: PartialFunction[BackendMessage, B]): F[B]
+
+  // ??? can we use this to catch errors that shut down the queue?
+  protected def terminate: F[Unit]
 }
 
 object ActiveMessageSocket {
 
-  // A stream that reads one message and might emit it
-  private def scatter[F[_]: Sync](
+  /**
+   * Read one message and handle it if we can, otherwise emit it to the user. This is how we deal
+   * with asynchronous messages, and messages that require us to record a bit of information that
+   * the user might ask for later.
+   */
+  private def next[F[_]: Sync](
     ms:    MessageSocket[F],
     xaSig: Ref[F, TransactionStatus],
     paSig: Ref[F, Map[String, String]],
@@ -33,39 +40,33 @@ object ActiveMessageSocket {
   ): Stream[F, BackendMessage] =
     Stream.eval(ms.receive).flatMap {
 
-      // This message is passed on but we update the transaction status first.
-      case m @ ReadyForQuery(s)       => Stream.eval(xaSig.set(s).as(m))
+      // RowData is really the only hot spot so we special-case it to avoid the linear search. This
+      // may be premature … need to benchmark and see if it matters.
+      case m @ RowData(_)              => Stream.emit(m)
 
-      // These messages are handled here and are never seen by higher-level code
+      // This one is observed and then emitted.
+      case m @ ReadyForQuery(s)        => Stream.eval(xaSig.set(s).as(m)) // observe and then emit
+
+      // These are handled here and are never seen by the higher-level API.
       case     ParameterStatus(k, v)   => Stream.eval_(paSig.update(_ + (k -> v)))
       case     NotificationResponse(n) => Stream.eval_(noTop.publish1(n))
       case m @ BackendKeyData(_, _)    => Stream.eval_(bkDef.complete(m))
-   // case     NoticeResponse(info) => publish these too, or maybe just log them? not a lot you can do with them
 
-      // TODO: we should log and swallow Unknown messages but for now let them propagate because
-      // it's easier to catch.
-
-      // Anothing else gets passed on.
-      case m => Stream.emit(m)
-
+      // Everything else is passed through.
+      case m                           => Stream.emit(m)
     }
 
   // Here we read messages as they arrive, rather than waiting for the user to ask. This allows us
   // to handle asynchronous messages, which are dealt with here and not passed on. Other messages
-  // are queued up and are typically consumed immediately, so the queue need not be large … a queue
-  // of size 1 is probably fine most of the time.
-  def fromMessageSocket[F[_]: Concurrent](ms: MessageSocket[F], maxSize: Int): F[ActiveMessageSocket[F]] =
+  // are queued up and are typically consumed immediately, so a small queue size is probably fine.
+  private def fromMessageSocket[F[_]: Concurrent](ms: MessageSocket[F], maxSize: Int): F[ActiveMessageSocket[F]] =
     for {
       queue <- Queue.bounded[F, BackendMessage](maxSize)
-      xaSig <- SignallingRef[F, TransactionStatus](TransactionStatus.Idle)
+      xaSig <- SignallingRef[F, TransactionStatus](TransactionStatus.Idle) // initial state (ok)
       paSig <- SignallingRef[F, Map[String, String]](Map.empty)
       bkSig <- Deferred[F, BackendKeyData]
-      noTop <- Topic[F, Notification](Notification(-1, Identifier.unsafeFromString("x"), "")) // lame, we filter this out on subscribe below
-      _     <- scatter(ms, xaSig, paSig, bkSig, noTop).repeat.to(queue.enqueue).compile.drain.attempt.flatMap {
-                 case Left(e: AsynchronousCloseException) => throw e // TODO: handle better … we  want to ignore this but may want to enqueue a Terminated message or something
-                 case Left(e)  => Concurrent[F].delay(e.printStackTrace)
-                 case Right(a) => a.pure[F]
-               } .start
+      noTop <- Topic[F, Notification](Notification(-1, Identifier.unsafeFromString("x"), "")) // lame, we drop this message on subscribe below
+      fib   <- next(ms, xaSig, paSig, bkSig, noTop).repeat.to(queue.enqueue).compile.drain.start // we cancel after sending Terminate
     } yield
       new ActiveMessageSocket[F] {
 
@@ -75,6 +76,10 @@ object ActiveMessageSocket {
         def parameters = paSig
         def backendKeyData = bkSig
         def notifications(maxQueued: Int) = noTop.subscribe(maxQueued).filter(_.pid > 0) // filter out the bogus initial value
+
+        protected def terminate: F[Unit] =
+          fib.cancel *>      // stop processing incoming messages
+          ms.send(Terminate) // server will close the socket when it sees this
 
         // Like flatMap but raises an error if a case isn't handled. This makes writing protocol
         // handlers much easier.
@@ -87,12 +92,11 @@ object ActiveMessageSocket {
 
       }
 
-    def apply[F[_]: ConcurrentEffect](host: String, port: Int): Resource[F, ActiveMessageSocket[F]] =
-      MessageSocket(host, port).flatMap { ms =>
-        val alloc = ActiveMessageSocket.fromMessageSocket[F](ms, 256)
-        val free  = (_: ActiveMessageSocket[F]) => ms.send(Terminate)
-        Resource.make(alloc)(free)
-      }
+  def apply[F[_]: ConcurrentEffect](host: String, port: Int): Resource[F, ActiveMessageSocket[F]] =
+    for {
+      ms  <- MessageSocket(host, port)
+      ams <- Resource.make(ActiveMessageSocket.fromMessageSocket[F](ms, 256))(_.terminate)
+    } yield ams
 
 }
 
