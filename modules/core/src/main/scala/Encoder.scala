@@ -55,10 +55,4 @@ object Encoder {
       def product[A, B](fa: Encoder[A],fb: Encoder[B]) = fa product fb
     }
 
-  val void: Encoder[Void] =
-    new Encoder[Void] {
-      def encode(a: Void) = sys.error("impossible: Void is uninhabited")
-      val oids = Nil
-    }
-
 }

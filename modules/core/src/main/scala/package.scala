@@ -12,7 +12,6 @@ package object skunk {
     def ~[B](b: B): (A, B) = (a, b)
   }
 
-  type Void
   type SessionPool[F[_]] = Resource[F, Resource[F, Session[F]]]
 
   object implicits

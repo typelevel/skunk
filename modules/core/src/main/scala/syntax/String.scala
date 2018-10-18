@@ -5,7 +5,7 @@ import skunk.data.Identifier
 import scala.language.experimental.macros
 import scala.reflect.macros.whitebox
 
-class StringOps private[skunk] (sc: StringContext) {
+class StringOps private[skunk](sc: StringContext) {
   void(sc)
 
   def sql(argSeq: Any*): Any =
@@ -93,9 +93,9 @@ class StringOpsMacros(val c: whitebox.Context) {
 
       }
 
-    // The final encoder is either `Encoder.void` or `a ~ b ~ ...`
+    // The final encoder is either `Void.codec` or `a ~ b ~ ...`
     val finalEncoder: Tree =
-      encoders.reduceLeftOption((a, b) => q"$a ~ $b").getOrElse(q"skunk.Encoder.void")
+      encoders.reduceLeftOption((a, b) => q"$a ~ $b").getOrElse(q"skunk.Void.codec")
 
     // We now have what we need to construct a fragment.
     q"skunk.syntax.StringOps.fragmentFromParts($finalParts, $finalEncoder)"

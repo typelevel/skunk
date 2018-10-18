@@ -8,7 +8,6 @@ import cats.effect.concurrent.Semaphore
 import cats.implicits._
 import fs2.concurrent.Signal
 import fs2.Stream
-import scala.annotation.implicitNotFound
 import skunk.data._
 import skunk.net.message. { Query => QueryMessage, _ }
 import skunk.util.Namer
@@ -54,18 +53,18 @@ trait ProtoSession[F[_]] {
       new PreparedCommand(name, command.contramap(f)) {}
   }
 
-  /** Portal with associated decoder, dependently scoped to this `ProtoSession`. */
-  sealed abstract case class Portal[A](name: String, decoder: Decoder[A]) {
-    def map[B](f: A => B): Portal[B] =
-      new Portal[B](name, decoder.map(f)) {}
+  /** QueryPortal with associated decoder, dependently scoped to this `ProtoSession`. */
+  sealed abstract case class QueryPortal[A](name: String, decoder: Decoder[A]) {
+    def map[B](f: A => B): QueryPortal[B] =
+      new QueryPortal[B](name, decoder.map(f)) {}
   }
 
   def notifications(maxQueued: Int): Stream[F, Notification]
   def startup(user: String, database: String): F[Unit]
   def parameters: Signal[F, Map[String, String]]
   def transactionStatus: Signal[F, TransactionStatus]
-  def quick[A: ProtoSession.NonParameterized, B](query: Query[A, B]): F[List[B]]
-  def quick[A: ProtoSession.NonParameterized](command: Command[A]): F[Completion]
+  def quick[A](query: Query[Void, A]): F[List[A]]
+  def quick(command: Command[Void]): F[Completion]
   def listen(channel: Identifier): F[Unit]
   def unlisten(channel: Identifier): F[Unit]
   def notify(channel: Identifier, message: String): F[Unit]
@@ -73,21 +72,17 @@ trait ProtoSession[F[_]] {
   def prepare[A](command: Command[A]): F[PreparedCommand[A]]
   def check[A, B](query: PreparedQuery[A, B]): F[Unit]
   def check[A](command: PreparedCommand[A]): F[Unit]
-  def bind[A, B](pq: PreparedQuery[A, B], args: A): F[Portal[B]]
-  def close(p: Portal[_]): F[Unit]
+
+  def bind[A, B](pq: PreparedQuery[A, B], args: A): F[QueryPortal[B]]
+
+  def close(p: QueryPortal[_]): F[Unit]
   def close(p: PreparedCommand[_]): F[Unit]
   def close(p: PreparedQuery[_, _]): F[Unit]
-  def execute[A](portal: Portal[A], maxRows: Int): F[List[A] ~ Boolean]
+  def execute[A](portal: QueryPortal[A], maxRows: Int): F[List[A] ~ Boolean]
 
 }
 
 object ProtoSession {
-
-  @implicitNotFound("Parameterized statements are not allowed here. Use `prepare` instead.")
-  sealed trait NonParameterized[A]
-  object NonParameterized {
-    implicit val UnitNonParameterized: NonParameterized[Void] = new NonParameterized[Void] {}
-  }
 
   /**
    * Resource yielding a new `ProtoSession` with the given `host`, `port`, and statement checking policy.
@@ -137,7 +132,7 @@ object ProtoSession {
     def transactionStatus: Signal[F, TransactionStatus] = ams.transactionStatus
     def notifications(maxQueued: Int): Stream[F, Notification] = ams.notifications(maxQueued)
 
-    def close(p: Portal[_]): F[Unit] =
+    def close(p: QueryPortal[_]): F[Unit] =
       sem.withPermit {
         for {
           _ <- ams.send(Close.portal(p.name))
@@ -164,17 +159,17 @@ object ProtoSession {
         } yield ()
       }
 
-    def bind[A, B](pq: PreparedQuery[A, B], args: A): F[Portal[B]] =
+    def bind[A, B](pq: PreparedQuery[A, B], args: A): F[QueryPortal[B]] =
       sem.withPermit {
         for {
           pn <- nam.nextName("portal")
           _  <- ams.send(Bind(pn, pq.name, pq.query.encoder.encode(args)))
           _  <- ams.send(Flush)
           _  <- ams.expect { case BindComplete => }
-        } yield new Portal(pn, pq.query.decoder) {}
+        } yield new QueryPortal(pn, pq.query.decoder) {}
       }
 
-    def execute[A](portal: Portal[A], maxRows: Int): F[List[A] ~ Boolean] =
+    def execute[A](portal: QueryPortal[A], maxRows: Int): F[List[A] ~ Boolean] =
       sem.withPermit {
         for {
           _  <- ams.send(Execute(portal.name, maxRows))
@@ -184,7 +179,7 @@ object ProtoSession {
       }
 
     // Execute a query and unroll its rows into a List. If no rows are returned it's an error.
-    def quick[A: ProtoSession.NonParameterized, B](query: Query[A, B]): F[List[B]] =
+    def quick[B](query: Query[Void, B]): F[List[B]] =
       sem.withPermit {
         for {
           _  <- ams.send(QueryMessage(query.sql))
@@ -196,7 +191,7 @@ object ProtoSession {
         } yield rs
       }
 
-    def quick[A: ProtoSession.NonParameterized](command: Command[A]): F[Completion] =
+    def quick(command: Command[Void]): F[Completion] =
       sem.withPermit {
         for {
           _ <- ams.send(QueryMessage(command.sql))

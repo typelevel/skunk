@@ -9,36 +9,65 @@ import skunk.net.ProtoSession
 import skunk.util.Pool
 
 /**
- * Refinement of `ProtoSession` that exposes lifetime-managed objects as resources and streams that
- * can safely be used concurrently, as long as the session is active.
+ * Represents a live connection to a Postgres database. This is a lifetime-managed resource and as
+ * such is invalid outside the scope of its owning `Resource`, as are any streams yielded here. If
+ * you construct a stream and never run it, no problem. But if you do run it you must do so while
+ * the session is valid, and you must consume all input as it arrives.
  */
-abstract class Session[F[_]](val s: ProtoSession[F]) {
+abstract class Session[F[_]](val protoSession: ProtoSession[F]) {
 
-  // Direct Delegates
+  /** A prepared query, executable on this `Session` only. */
+  type PreparedQuery[A, B] = protoSession.PreparedQuery[A, B]
 
-  type PreparedQuery[A, B] = s.PreparedQuery[A, B]
-  type PreparedCommand[A]  = s.PreparedCommand[A]
-  type Portal[A]           = s.Portal[A]
+  /** A prepared command, executable on this `Session` only. */
+  type PreparedCommand[A] = protoSession.PreparedCommand[A]
 
-  def startup(user: String, database: String): F[Unit] = s.startup(user, database)
-  def parameters: Signal[F, Map[String, String]] = s.parameters
-  def transactionStatus: Signal[F, TransactionStatus] = s.transactionStatus
-  def notify(channel: Identifier, message: String): F[Unit] = s.notify(channel, message)
-  def quick[A: ProtoSession.NonParameterized, B](query: Query[A, B]): F[List[B]] = s.quick(query)
-  def quick[A: ProtoSession.NonParameterized](command: Command[A]): F[Completion] = s.quick(command)
-  def execute[A](portal: Portal[A], maxRows: Int): F[List[A] ~ Boolean] = s.execute(portal, maxRows)
-  def check[A, B](query: PreparedQuery[A, B]): F[Unit] = s.check(query)
-  def check[A](command: PreparedCommand[A]): F[Unit] = s.check(command)
+  /** A query portal, readable on this `Session` only. */
+  type QueryPortal[A] = protoSession.QueryPortal[A]
 
-  // Trivial derivations
+  // do we need QueryPortal[A] and CommandPortal?
+  // seems like that would make sense
 
+  /** Signal broadcasting changes to the session configuration, which may happen at any time.  */
+  def parameters: Signal[F, Map[String, String]] = protoSession.parameters
+
+  /** Signal broadcasting changes for a single configuration key, which may happen at any time.  */
   def parameter(key: String): Stream[F, String] =
     parameters.discrete.map(_.get(key)).unNone.changes
 
-  // Abstract members
+  /** Signal representing the current transaction status. */
+  def transactionStatus: Signal[F, TransactionStatus] = protoSession.transactionStatus
 
-  def bind[A, B](pq: PreparedQuery[A, B], args: A): Resource[F, s.Portal[B]]
-  def prepare[A, B](query: Query[A, B]): Resource[F, s.PreparedQuery[A, B]]
+  /** Send a notification on the given channel. */
+  def notify(channel: Identifier, message: String): F[Unit] = protoSession.notify(channel, message)
+
+  /**
+   * Excute a non-parameterized query and yield all results. If you have parameters or wish to limit
+   * returned rows use `bind`/`execute` or `stream`.
+   */
+  def quick[A](query: Query[Void, A]): F[List[A]] = protoSession.quick(query)
+
+  /**
+   * Excute a non-parameterized command and yield a `Completion`. If you have parameters use
+   * `bind`/`execute`.
+   */
+  def quick(command: Command[Void]): F[Completion] = protoSession.quick(command)
+
+  /**
+   * Fetch the next `maxRows` from `portal`, yielding a list of values and a boolean, `true` if
+   * more rows are available, `false` otherwise.
+   */
+  def execute[A](portal: QueryPortal[A], maxRows: Int): F[List[A] ~ Boolean] = protoSession.execute(portal, maxRows)
+
+  /** Execute the command `portal`, yielding a `Completion`. */
+  // def execute(portal: QueryPortal[Void]): F[Completion]
+
+  def check[A, B](query: PreparedQuery[A, B]): F[Unit] = protoSession.check(query)
+  def check[A](command: PreparedCommand[A]): F[Unit] = protoSession.check(command)
+
+  def bind[A, B](pq: PreparedQuery[A, B], args: A = Void): Resource[F, QueryPortal[B]]
+
+  def prepare[A, B](query: Query[A, B]): Resource[F, PreparedQuery[A, B]]
   def listen(channel: Identifier, maxQueued: Int): Stream[F, Notification]
 
   /**
@@ -47,11 +76,11 @@ abstract class Session[F[_]](val s: ProtoSession[F]) {
    * will achieve better fairness with smaller chunks but greater overall throughput with larger
    * chunks. So it's important to consider the use case when specifying `chunkSize`.
    */
-  def stream[A, B](query: PreparedQuery[A, B], args: A, chunkSize: Int): Stream[F, B]
+  def stream[A, B](query: PreparedQuery[A, B], chunkSize: Int, args: A = Void): Stream[F, B]
 
-  def option[A, B](query: PreparedQuery[A, B], args: A): F[Option[B]]
+  def option[A, B](query: PreparedQuery[A, B], args: A = Void): F[Option[B]]
 
-  def first[A, B](query: PreparedQuery[A, B], args: A): F[B]
+  def first[A, B](query: PreparedQuery[A, B], args: A = Void): F[B]
 
 }
 
@@ -70,7 +99,7 @@ object Session {
       for {
         // todo: unsubscribe all
         // todo: sync, rollback if necessary
-        _ <- s.quick(Command("RESET ALL", Encoder.void))
+        _ <- s.quick(Command("RESET ALL", Void.codec))
       } yield true
 
     Pool.of(once(host, port, user, database, check), max, reset)
@@ -86,7 +115,7 @@ object Session {
   ): Resource[F, Session[F]] =
     for {
       s <- Session[F](host, port, check)
-      _ <- Resource.liftF(s.startup(user, database))
+      _ <- Resource.liftF(s.protoSession.startup(user, database))
       // TODO: password negotiation, SASL, etc.
     } yield s
 
@@ -108,17 +137,17 @@ object Session {
   def fromSession[F[_]: Sync](session: ProtoSession[F]): Session[F] =
     new Session[F](session) {
 
-      def bind[A, B](pq: PreparedQuery[A, B], args: A): Resource[F, Portal[B]] =
-        Resource.make(s.bind(pq, args))(s.close)
+      def bind[A, B](pq: PreparedQuery[A, B], args: A): Resource[F, QueryPortal[B]] =
+        Resource.make(protoSession.bind(pq, args))(protoSession.close)
 
       // we could probably cache these
       def prepare[A, B](query: Query[A, B]): Resource[F, PreparedQuery[A, B]] =
-        Resource.make(s.prepare(query))(s.close)
+        Resource.make(protoSession.prepare(query))(protoSession.close)
 
-      def stream[A, B](query: PreparedQuery[A, B], args: A, chunkSize: Int): Stream[F, B] =
+      def stream[A, B](query: PreparedQuery[A, B], chunkSize: Int, args: A): Stream[F, B] =
         Stream.resource(bind(query, args)).flatMap { portal =>
           def chunks: Stream[F, B] =
-            Stream.eval(s.execute(portal, chunkSize)).flatMap { case (bs, more) =>
+            Stream.eval(protoSession.execute(portal, chunkSize)).flatMap { case (bs, more) =>
               val s = Stream.chunk(Chunk.seq(bs))
               if (more) s ++ chunks
               else s
@@ -145,8 +174,8 @@ object Session {
 
       def listen(channel: Identifier, maxQueued: Int): Stream[F, Notification] =
         for {
-          _ <- Stream.resource(Resource.make(s.listen(channel))(_ => s.unlisten(channel)))
-          n <- s.notifications(maxQueued).filter(_.channel === channel)
+          _ <- Stream.resource(Resource.make(protoSession.listen(channel))(_ => protoSession.unlisten(channel)))
+          n <- protoSession.notifications(maxQueued).filter(_.channel === channel)
         } yield n
 
     }

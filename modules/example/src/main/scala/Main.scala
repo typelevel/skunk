@@ -45,7 +45,7 @@ object Main extends IOApp {
     putStrLn(s">>>> CLIENT ENCODING IS NOW: $enc")
 
   def hmm[F[_]: ConcurrentEffect](s: Session[F])(ps: s.PreparedQuery[Int ~ String, _]): F[Unit] =
-    (s.stream(ps, 100000 ~ "%", 4).take(25) either s.stream(ps, 10000 ~ "%", 5))
+    (s.stream(ps, 4, 100000 ~ "%").take(25) either s.stream(ps, 5, 10000 ~ "%"))
       .to(anyLinesStdOut)
       .compile
       .drain
@@ -75,10 +75,11 @@ object Main extends IOApp {
           _   <- s.notify(id"foo", "here is a message")
           _   <- s.quick(sql"select current_user".query(name))
           _   <- s.prepare(q).use(hmm(s))
-          _   <- s.prepare(in(3)).use { s.stream(_, List("FRA", "USA", "GAB"), 100).to(anyLinesStdOut).compile.drain }
+          _   <- s.prepare(in(3)).use { s.stream(_, 100, List("FRA", "USA", "GAB")).to(anyLinesStdOut).compile.drain }
           _   <- f2.cancel // otherwise it will run forever
           _   <- f1.cancel // otherwise it will run forever
           _   <- s.quick(sql"select 'x'::char(10)".query(varchar))
+          _   <- s.prepare(sql"select 1".query(int4)).use { ps => s.stream(ps, 10).to(anyLinesStdOut).compile.drain }
           _   <- putStrLn("Done.")
         } yield ExitCode.Success
       } *>

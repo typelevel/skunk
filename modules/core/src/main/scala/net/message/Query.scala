@@ -5,10 +5,6 @@ import scodec.Attempt
 import scodec.bits._
 import scodec._
 
-/**
- * Simple query.
- * @param sql a SQL command.
- */
 case class Query(sql: String)
 
 object Query {

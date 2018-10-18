@@ -6,7 +6,6 @@ import cats.effect.implicits._
 import cats.implicits._
 import fs2.concurrent._
 import fs2.Stream
-// import java.nio.channels.AsynchronousCloseException
 import skunk.data._
 import skunk.net.message._
 
@@ -20,11 +19,21 @@ trait ActiveMessageSocket[F[_]] {
   def notifications(maxQueued: Int): Stream[F, Notification]
   def expect[B](f: PartialFunction[BackendMessage, B]): F[B]
 
-  // ??? can we use this to catch errors that shut down the queue?
+  // TODO: this is an implementation leakage, fold into the factory below
   protected def terminate: F[Unit]
 }
 
 object ActiveMessageSocket {
+
+  def apply[F[_]: ConcurrentEffect](
+    host:      String,
+    port:      Int,
+    queueSize: Int = 256
+  ): Resource[F, ActiveMessageSocket[F]] =
+    for {
+      ms  <- MessageSocket(host, port)
+      ams <- Resource.make(ActiveMessageSocket.fromMessageSocket[F](ms, queueSize))(_.terminate)
+    } yield ams
 
   /**
    * Read one message and handle it if we can, otherwise emit it to the user. This is how we deal
@@ -52,6 +61,9 @@ object ActiveMessageSocket {
       case     NotificationResponse(n) => Stream.eval_(noTop.publish1(n))
       case m @ BackendKeyData(_, _)    => Stream.eval_(bkDef.complete(m))
 
+      // Lift this to an exception .. sensible?
+      case      ErrorResponse(map)     => Stream.raiseError[F](new SqlException(map))
+
       // Everything else is passed through.
       case m                           => Stream.emit(m)
     }
@@ -59,14 +71,17 @@ object ActiveMessageSocket {
   // Here we read messages as they arrive, rather than waiting for the user to ask. This allows us
   // to handle asynchronous messages, which are dealt with here and not passed on. Other messages
   // are queued up and are typically consumed immediately, so a small queue size is probably fine.
-  private def fromMessageSocket[F[_]: Concurrent](ms: MessageSocket[F], maxSize: Int): F[ActiveMessageSocket[F]] =
+  private def fromMessageSocket[F[_]: Concurrent](
+    ms:       MessageSocket[F],
+    queueSize: Int
+  ): F[ActiveMessageSocket[F]] =
     for {
-      queue <- Queue.bounded[F, BackendMessage](maxSize)
+      queue <- Queue.bounded[F, BackendMessage](queueSize)
       xaSig <- SignallingRef[F, TransactionStatus](TransactionStatus.Idle) // initial state (ok)
       paSig <- SignallingRef[F, Map[String, String]](Map.empty)
       bkSig <- Deferred[F, BackendKeyData]
-      noTop <- Topic[F, Notification](Notification(-1, Identifier.unsafeFromString("x"), "")) // lame, we drop this message on subscribe below
-      fib   <- next(ms, xaSig, paSig, bkSig, noTop).repeat.to(queue.enqueue).compile.drain.start // we cancel after sending Terminate
+      noTop <- Topic[F, Notification](Notification(-1, Identifier.unsafeFromString("x"), "")) // blech
+      fib   <- next(ms, xaSig, paSig, bkSig, noTop).repeat.to(queue.enqueue).compile.drain.start
     } yield
       new ActiveMessageSocket[F] {
 
@@ -75,7 +90,9 @@ object ActiveMessageSocket {
         def transactionStatus = xaSig
         def parameters = paSig
         def backendKeyData = bkSig
-        def notifications(maxQueued: Int) = noTop.subscribe(maxQueued).filter(_.pid > 0) // filter out the bogus initial value
+
+        def notifications(maxQueued: Int) =
+          noTop.subscribe(maxQueued).filter(_.pid > 0) // filter out the bogus initial value
 
         protected def terminate: F[Unit] =
           fib.cancel *>      // stop processing incoming messages
@@ -86,17 +103,11 @@ object ActiveMessageSocket {
         def expect[B](f: PartialFunction[BackendMessage, B]): F[B] =
           receive.flatMap {
             case m if f.isDefinedAt(m) => f(m).pure[F]
-            case ErrorResponse(map)    => Concurrent[F].raiseError(new SqlException(map))
             case m                     => Concurrent[F].raiseError(new RuntimeException(s"Unhandled: $m"))
           }
 
       }
 
-  def apply[F[_]: ConcurrentEffect](host: String, port: Int): Resource[F, ActiveMessageSocket[F]] =
-    for {
-      ms  <- MessageSocket(host, port)
-      ams <- Resource.make(ActiveMessageSocket.fromMessageSocket[F](ms, 256))(_.terminate)
-    } yield ams
 
 }
 

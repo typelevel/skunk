@@ -56,12 +56,12 @@ object Bind {
         )
 
       (utf8z ~ utf8z ~ int16 ~ int16 ~ list(arg) ~ int16).contramap[Bind] { b =>
-        b.portal ~  // The name of the destination portal
-        b.statement ~ // The name of the source prepared statement
-         0 ~ // The number of parameter format codes
-          b.args.length ~ // The number of parameter values
-          b.args ~ // args
-          0 // The number of result-column format codes
+        b.portal      ~  // The name of the destination portal
+        b.statement   ~ // The name of the source prepared statement
+        0             ~ // The number of parameter format codes
+        b.args.length ~ // The number of parameter values
+        b.args ~        // args
+        0               // The number of result-column format codes
       }
 
     }

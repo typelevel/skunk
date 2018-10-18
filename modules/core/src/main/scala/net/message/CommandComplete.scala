@@ -40,6 +40,7 @@ object CommandComplete {
     case "RESET"            => apply(Completion.Reset)
     case "NOTIFY"           => apply(Completion.Notify)
     case Patterns.Select(s) => apply(Completion.Select(s.toInt))
+    // more .. fill in as we hit them
   }
 
 }
