@@ -53,11 +53,18 @@ trait ProtoSession[F[_]] {
       new PreparedCommand(name, command.contramap(f)) {}
   }
 
-  /** QueryPortal with associated decoder, dependently scoped to this `ProtoSession`. */
-  sealed abstract case class QueryPortal[A](name: String, decoder: Decoder[A]) {
+  sealed trait Portal {
+    def name: String
+  }
+
+  /** Query portal with associated decoder, dependently scoped to this `ProtoSession`. */
+  sealed abstract case class QueryPortal[A](name: String, decoder: Decoder[A]) extends Portal {
     def map[B](f: A => B): QueryPortal[B] =
       new QueryPortal[B](name, decoder.map(f)) {}
   }
+
+  /** Command portal, dependently scoped to this `ProtoSession`. */
+  sealed abstract case class CommandPortal(name: String) extends Portal
 
   def notifications(maxQueued: Int): Stream[F, Notification]
   def startup(user: String, database: String): F[Unit]
@@ -75,10 +82,14 @@ trait ProtoSession[F[_]] {
 
   def bind[A, B](pq: PreparedQuery[A, B], args: A): F[QueryPortal[B]]
 
-  def close(p: QueryPortal[_]): F[Unit]
+  def bind[A](pq: PreparedCommand[A], args: A): F[CommandPortal]
+
+  def close(p: Portal): F[Unit]
   def close(p: PreparedCommand[_]): F[Unit]
   def close(p: PreparedQuery[_, _]): F[Unit]
+
   def execute[A](portal: QueryPortal[A], maxRows: Int): F[List[A] ~ Boolean]
+  def execute(portal: CommandPortal): F[Completion]
 
 }
 
@@ -132,7 +143,7 @@ object ProtoSession {
     def transactionStatus: Signal[F, TransactionStatus] = ams.transactionStatus
     def notifications(maxQueued: Int): Stream[F, Notification] = ams.notifications(maxQueued)
 
-    def close(p: QueryPortal[_]): F[Unit] =
+    def close(p: Portal): F[Unit] =
       sem.withPermit {
         for {
           _ <- ams.send(Close.portal(p.name))
@@ -162,11 +173,30 @@ object ProtoSession {
     def bind[A, B](pq: PreparedQuery[A, B], args: A): F[QueryPortal[B]] =
       sem.withPermit {
         for {
-          pn <- nam.nextName("portal")
+          pn <- nam.nextName("query-portal")
           _  <- ams.send(Bind(pn, pq.name, pq.query.encoder.encode(args)))
           _  <- ams.send(Flush)
           _  <- ams.expect { case BindComplete => }
         } yield new QueryPortal(pn, pq.query.decoder) {}
+      }
+
+    def bind[A](pq: PreparedCommand[A], args: A): F[CommandPortal] =
+      sem.withPermit {
+        for {
+          pn <- nam.nextName("command-portal")
+          _  <- ams.send(Bind(pn, pq.name, pq.command.encoder.encode(args)))
+          _  <- ams.send(Flush)
+          _  <- ams.expect { case BindComplete => }
+        } yield new CommandPortal(pn) {}
+      }
+
+    def execute(portal: CommandPortal): F[Completion] =
+      sem.withPermit {
+        for {
+          _  <- ams.send(Execute(portal.name, 0))
+          _  <- ams.send(Flush)
+          c  <- ams.expect { case CommandComplete(c) => c }
+        } yield c
       }
 
     def execute[A](portal: QueryPortal[A], maxRows: Int): F[List[A] ~ Boolean] =
@@ -214,7 +244,7 @@ object ProtoSession {
     def notify(channel: Identifier, message: String): F[Unit] =
       sem.withPermit {
         for {
-          _ <- ams.send(QueryMessage(s"NOTIFY ${channel.value}, '$message'"))
+          _ <- ams.send(QueryMessage(s"NOTIFY ${channel.value}, '$message'")) // TODO: escape!
           _ <- ams.expect { case CommandComplete(Completion.Notify) => }
           _ <- ams.expect { case ReadyForQuery(_) => }
         } yield ()

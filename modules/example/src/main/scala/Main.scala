@@ -45,13 +45,13 @@ object Main extends IOApp {
     putStrLn(s">>>> CLIENT ENCODING IS NOW: $enc")
 
   def hmm[F[_]: ConcurrentEffect](s: Session[F])(ps: s.PreparedQuery[Int ~ String, _]): F[Unit] =
-    (s.stream(ps, 4, 100000 ~ "%").take(25) either s.stream(ps, 5, 10000 ~ "%"))
+    (s.stream(ps, 4, 100000 ~ "%").take(25) either s.stream(ps, 4, 10000 ~ "%"))
       .to(anyLinesStdOut)
       .compile
       .drain
 
   val pool: SessionPool[IO] =
-    Session.pool(
+    Session.pooled(
       host     = "localhost",
       port     = 5432,
       user     = "postgres",

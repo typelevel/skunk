@@ -9,7 +9,7 @@ import skunk.Codec._
 object HelloWorld extends IOApp {
 
   val session: Resource[IO, Session[IO]] =
-    Session.once(
+    Session.single(
       host     = "localhost",
       port     = 5432,
       user     = "postgres",
