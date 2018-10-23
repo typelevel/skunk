@@ -11,6 +11,7 @@ import fs2.Stream
 import skunk.data._
 import skunk.net.message. { Query => QueryMessage, _ }
 import skunk.util.Namer
+import skunk.syntax.id._
 
 /**
  * Represents a live connection to a Postgres database. This is a lifetime-managed resource and as

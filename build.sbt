@@ -162,16 +162,16 @@ lazy val skunk = project.in(file("."))
     releaseCrossBuild := true,
     releaseProcess := Seq[ReleaseStep](
       checkSnapshotDependencies,
+      // releaseStepCommand("mimaReportBinaryIssues"),
       inquireVersions,
       runClean,
       runTest,
-      releaseStepCommand("docs/tut"), // annoying that we have to do this twice
+      // releaseStepCommand("docs/tut"), // annoying that we have to do this twice
       setReleaseVersion,
       commitReleaseVersion,
       tagRelease,
       publishArtifacts,
       releaseStepCommand("sonatypeReleaseAll"),
-      // Doesn't work, rats. See https://github.com/47deg/sbt-microsites/issues/210
       // releaseStepCommand("docs/publishMicrosite"),
       setNextVersion,
       commitNextVersion,

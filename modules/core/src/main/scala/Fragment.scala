@@ -4,6 +4,12 @@ import cats.Contravariant
 import cats.data.State
 import cats.implicits._
 
+/**
+ * A composable, embeddable hunk of SQL and typed parameters (common precursor to `Command` and
+ * `Query`). Although it is possible to construct a `Fragment` directly it is more typical to use
+ * the `sql` interpolator.
+ * @group Commands and Queries
+ */
 case class Fragment[A](parts: List[Either[String, Int]], encoder: Encoder[A]) {
 
   lazy val sql: String =
@@ -26,6 +32,9 @@ case class Fragment[A](parts: List[Either[String, Int]], encoder: Encoder[A]) {
 
 }
 
+/**
+ * @group Commands and Queries
+ */
 object Fragment {
 
   implicit val FragmentContravariant: Contravariant[Fragment] =

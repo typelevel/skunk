@@ -13,6 +13,14 @@ import skunk.util.Pool
  * concurrently. Note that this is a lifetime-managed resource and as such is invalid outside the
  * scope of its owning `Resource`, as are any streams constructed here. If you `start` an operation
  * be sure to `join` its `Fiber` before releasing the resource.
+ *
+ * ==Obtaining an Instance==
+ * See the [[skunk.Session$ companion object]] for information on obtaining a pooled or single-use
+ * instance.
+ *
+ * @groupname Notifications Asynchronous Channel Notifications
+ * @groupdesc Notifications Here is the description.
+ * @groupprio Notifications -10
  */
 trait Session[F[_]] {
 
@@ -85,10 +93,10 @@ trait Session[F[_]] {
   def fetch[A](cursor: Cursor[A], maxRows: Int): F[(List[A], Boolean)]
 
   /**
-   * Stream that calls `fetch` repeatedly and emits chunks until none remain. Note that each
-   * chunk is read atomically while holding the session mutex, which means interleaved streams
-   * will achieve better fairness with smaller chunks but greater overall throughput with larger
-   * chunks. So it's important to consider the use case when specifying `chunkSize`.
+   * Construct a stream that calls `fetch` repeatedly and emits chunks until none remain. Note
+   * that each chunk is read atomically while holding the session mutex, which means interleaved
+   * streams will achieve better fairness with smaller chunks but greater overall throughput with
+   * larger chunks. So it's important to consider the use case when specifying `chunkSize`.
    * @group Queries
    */
   def stream[A, B](query: PreparedQuery[A, B], chunkSize: Int, args: A = Void): Stream[F, B]
@@ -97,13 +105,25 @@ trait Session[F[_]] {
    * Fetch and return at most one row, raising an exception if more rows are available.
    * @group Queries
    */
-  def option[A, B](query: PreparedQuery[A, B], args: A = Void): F[Option[B]]
+  def option[A, B](query: PreparedQuery[A, B], args: A): F[Option[B]]
 
   /**
    * Fetch and return exactly one row, raising an exception if there are more or fewer.
    * @group Queries
    */
-  def unique[A, B](query: PreparedQuery[A, B], args: A = Void): F[B]
+  def unique[A, B](query: PreparedQuery[A, B], args: A): F[B]
+  def unique[B](query: PreparedQuery[Void, B]): F[B] = unique(query, Void)
+
+  def unique[A, B](query: Query[A, B], args: A)(
+    implicit ev: Sync[F]
+  ): F[B] =
+    prepare(query).use(unique(_, args))
+
+  def unique[B](query: Query[Void, B])(
+    implicit ev: Sync[F]
+  ): F[B] =
+    prepare(query).use(unique(_, Void))
+
 
   /**
    * Excute a non-parameterized command and yield a `Completion`. If you have parameters use
@@ -135,12 +155,13 @@ trait Session[F[_]] {
   def execute[A](pq: PreparedCommand[A], args: A = Void): F[Completion]
 
   /**
-   * A `Stream` that subscribes to notifications for `channel`, emits any notifications that arrive
-   * (this can happen at any time), then unsubscribes when the stream is terminated. Note that once
-   * such a stream is started it is important to consume all notifications as quickly as possible
-   * to avoid blocking message processing for other operations on the `Session` (although typically
-   * a dedicated `Session` will receive channel notifications so this won't be an issue).
-   * @group Asynchronous Channel Notifications
+   * Construct a `Stream` that subscribes to notifications for `channel`, emits any notifications
+   * that arrive (this can happen at any time), then unsubscribes when the stream is terminated.
+   * Note that once such a stream is started it is important to consume all notifications as quickly
+   * as possible to avoid blocking message processing for other operations on the `Session`
+   * (although typically a dedicated `Session` will receive channel notifications so this won't be
+   * an issue).
+   * @group Notifications
    * @see [[https://www.postgresql.org/docs/10/static/sql-listen.html LISTEN]]
    * @see [[https://www.postgresql.org/docs/10/static/sql-notify.html NOTIFY]]
    */
@@ -148,7 +169,7 @@ trait Session[F[_]] {
 
   /**
    * Send a notification on the given channel.
-   * @group Asynchronous Channel Notifications
+   * @group Notifications
    * @see [[https://www.postgresql.org/docs/10/static/sql-notify.html NOTIFY]]
    */
   def notify(channel: Identifier, message: String): F[Unit]
@@ -263,18 +284,23 @@ object Session {
 
       def option[A, B](query: PreparedQuery[A, B], args: A): F[Option[B]] =
         open(query, args).use { p =>
-          fetch(p, 1).flatMap {
-            case bs ~ false => bs.headOption.pure[F]
-            case _  ~ true  => Sync[F].raiseError(new RuntimeException("More than one value returned."))
+          fetch(p, 2).flatMap { case (bs, _) =>
+            bs match {
+              case b :: Nil => b.some.pure[F]
+              case Nil      => none[B].pure[F]
+              case _        => Sync[F].raiseError(new RuntimeException("Expected exactly one result, more returned."))
+            }
           }
         }
 
       def unique[A, B](query: PreparedQuery[A, B], args: A): F[B] =
         open(query, args).use { p =>
-          fetch(p, 1).flatMap {
-            case List(b) ~ false => b.pure[F]
-            case Nil     ~ false => Sync[F].raiseError(new RuntimeException("Expected exactly one result, none returned."))
-            case _               => Sync[F].raiseError(new RuntimeException("Expected exactly one result, more returned."))
+          fetch(p, 2).flatMap { case (bs, _) =>
+            bs match {
+              case b :: Nil => b.pure[F]
+              case Nil      => Sync[F].raiseError(new RuntimeException("Expected exactly one result, none returned."))
+              case _        => Sync[F].raiseError(new RuntimeException("Expected exactly one result, more returned."))
+            }
           }
         }
 

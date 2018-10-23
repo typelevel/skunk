@@ -3,6 +3,10 @@ package skunk
 import cats._
 import skunk.data.Type
 
+/**
+ * Encoder of Postgres text-format data from Scala types.
+ * @group Codecs
+ */
 trait Encoder[A] { outer =>
 
   protected lazy val empty: List[Option[String]] =
@@ -47,6 +51,7 @@ trait Encoder[A] { outer =>
 
 }
 
+/** @group Codecs */
 object Encoder {
 
   implicit val ContravariantSemigroupalEncoder: ContravariantSemigroupal[Encoder] =

@@ -1,10 +1,9 @@
 package example
 
 import cats.effect._
-import cats.implicits._
 import skunk._
 import skunk.implicits._
-import skunk.Codec._
+import skunk.codec.numeric._
 
 object HelloWorld extends IOApp {
 
@@ -19,8 +18,8 @@ object HelloWorld extends IOApp {
   def run(args: List[String]): IO[ExitCode] =
     session.use { s =>
       for {
-        rs <- s.quick(sql"select 42".query(int4))
-        _  <- rs.traverse(s => IO(println(s)))
+        n <- s.unique(sql"select 42".query(int4))
+        _ <- IO(println(s"The answer was $n"))
       } yield ExitCode.Success
     }
 

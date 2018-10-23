@@ -3,6 +3,10 @@ package skunk
 import cats._
 import skunk.data.Type
 
+/**
+ * Decoder of Postgres text-format data into Scala types.
+ * @group Codecs
+ */
 trait Decoder[A] { outer =>
 
   def oids: List[Type]
@@ -39,6 +43,7 @@ trait Decoder[A] { outer =>
 
 }
 
+/** @group Codecs */
 object Decoder {
 
   implicit val ApplyDecoder: Apply[Decoder] =

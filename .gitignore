@@ -12,6 +12,7 @@ lib_managed/
 src_managed/
 project/boot/
 project/plugins/project/
+project/hydra.sbt
 
 # Scala-IDE specific
 .scala_dependencies
