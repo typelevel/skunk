@@ -9,10 +9,10 @@ import skunk.data.Type
  */
 trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
 
-  /** Forget this valus is a `Codec` and treat it as an `Encoder`. */
+  /** Forget this value is a `Codec` and treat it as an `Encoder`. */
   def asEncoder: Encoder[A] = this
 
-  /** Forget this valus is a `Codec` and treat it as a `Decoder`. */
+  /** Forget this value is a `Codec` and treat it as a `Decoder`. */
   def asDecoder: Decoder[A] = this
 
   /** `Codec` is semigroupal. */

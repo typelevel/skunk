@@ -50,6 +50,14 @@ final case class Query[A, B](sql: String, encoder: Encoder[A], decoder: Decoder[
   def map[D](g: B => D): Query[A, D] =
     dimap[A, D](identity)(g)
 
+  import cats.effect.Sync
+
+  def unique[F[_]: Sync](s: Session[F], args: A): F[B] =
+    s.unique(this, args)
+
+  def unique[F[_]: Sync](s: Session[F])(implicit ev: Void =:= A): F[B] =
+    unique(s, ev(Void))
+
 }
 
 /**

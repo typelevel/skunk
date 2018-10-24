@@ -51,9 +51,9 @@ object Pool {
     private def release(leak: Leak[F, A]): F[Unit] =
       cache.take.flatMap { q =>
         reset(leak.value).attempt.flatMap {
-          case Right(true) => cache.put(leak :: q) *> semaphore.release
-          case Right(left) => cache.put(q) *> semaphore.release
-          case Left(e) => cache.put(q) *> semaphore.release *> Concurrent[F].raiseError(e)
+          case Right(true)  => cache.put(leak :: q) *> semaphore.release
+          case Right(false) => cache.put(q)         *> semaphore.release
+          case Left(e)      => cache.put(q)         *> semaphore.release *> Concurrent[F].raiseError(e)
         }
       }
 
