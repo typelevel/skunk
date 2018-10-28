@@ -34,6 +34,12 @@ import cats.effect.Resource
  *   row data is specified via a `Decoder`. In some cases encoders and decoders are symmetric and
  *   are defined together, as a `Codec`. This pattern is similar but less general than the one
  *   adopted by scodec.
+ *
+ * @groupdesc Commands A command is any SQL statement that cannot return rows, such as `INSERT`
+ *   or `UPDATE`.
+ *
+ * @groupdesc Queries A query is any SQL statement that can returns rows, such as `SELECT` or
+ *   `INSERT ... RETURNING`.
  */
 package object skunk {
 

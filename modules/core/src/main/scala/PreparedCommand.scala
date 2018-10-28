@@ -17,6 +17,9 @@ trait PreparedCommand[F[_], A] {
 
 }
 
+/**
+ * @group Commands
+ */
 object PreparedCommand {
 
   /** `PreparedCommand[F, ?]` is a contravariant functor for all `F`. */
