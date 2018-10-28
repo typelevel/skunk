@@ -2,7 +2,7 @@ package skunk
 
 import cats.effect._
 import cats.implicits._
-import fs2.{ Chunk, Stream }
+import fs2.Stream
 import fs2.concurrent.Signal
 import skunk.data._
 import skunk.net.ProtoSession
@@ -23,20 +23,6 @@ import skunk.util.Pool
  * @groupprio Notifications -10
  */
 trait Session[F[_]] {
-
-  val protoSession: ProtoSession[F]
-
-  /**
-   * A prepared query, executable on this `Session` only.
-   * @group Queries
-   */
-  type PreparedQuery[A, B] = protoSession.PreparedQuery[A, B]
-
-  /**
-   * A cursor from which rows can be fetched, usable on this `Session` only.
-   * @group Queries
-   */
-  type Cursor[A] = protoSession.QueryPortal[A]
 
   /**
    * Signal broadcasting changes to the session configuration.
@@ -64,68 +50,6 @@ trait Session[F[_]] {
   def quick[A](query: Query[Void, A]): F[List[A]]
 
   /**
-   * Prepare a `Query` for execution by parsing its SQL statement. The resulting `PreparedQuery` can
-   * be executed multiple times with different arguments.
-   * @group Queries
-   */
-  def prepare[A, B](query: Query[A, B]): Resource[F, PreparedQuery[A, B]]
-
-  /**
-   * Check that a `PreparedQuery`'s asserted argument and result types align correctly with the
-   * schema. In case of misalignment an exception is raised with a description of the problem.
-   * @group Queries
-   */
-  def check[A, B](query: PreparedQuery[A, B]): F[Unit]
-
-  /**
-   * Resource that binds the supplied arguments to a `PreparedQuery`, yielding a `Cursor` from which
-   * rows can be `fetch`ed. Note that higher-level operations like `stream`, `option`, and `unique`
-   * are usually what you want.
-   * @group Queries
-   */
-  def open[A, B](pq: PreparedQuery[A, B], args: A = Void): Resource[F, Cursor[B]]
-
-  /**
-   * Fetch the next `maxRows` from `cursor`, yielding a list of values and a boolean, `true` if
-   * more rows are available, `false` otherwise.
-   * @group Queries
-   */
-  def fetch[A](cursor: Cursor[A], maxRows: Int): F[(List[A], Boolean)]
-
-  /**
-   * Construct a stream that calls `fetch` repeatedly and emits chunks until none remain. Note
-   * that each chunk is read atomically while holding the session mutex, which means interleaved
-   * streams will achieve better fairness with smaller chunks but greater overall throughput with
-   * larger chunks. So it's important to consider the use case when specifying `chunkSize`.
-   * @group Queries
-   */
-  def stream[A, B](query: PreparedQuery[A, B], chunkSize: Int, args: A = Void): Stream[F, B]
-
-  /**
-   * Fetch and return at most one row, raising an exception if more rows are available.
-   * @group Queries
-   */
-  def option[A, B](query: PreparedQuery[A, B], args: A): F[Option[B]]
-
-  /**
-   * Fetch and return exactly one row, raising an exception if there are more or fewer.
-   * @group Queries
-   */
-  def unique[A, B](query: PreparedQuery[A, B], args: A): F[B]
-  def unique[B](query: PreparedQuery[Void, B]): F[B] = unique(query, Void)
-
-  def unique[A, B](query: Query[A, B], args: A)(
-    implicit ev: Sync[F]
-  ): F[B] =
-    prepare(query).use(unique(_, args))
-
-  def unique[B](query: Query[Void, B])(
-    implicit ev: Sync[F]
-  ): F[B] =
-    prepare(query).use(unique(_, Void))
-
-
-  /**
    * Excute a non-parameterized command and yield a `Completion`. If you have parameters use
    * `execute`.
    * @group Commands
@@ -133,26 +57,17 @@ trait Session[F[_]] {
   def quick(command: Command[Void]): F[Completion]
 
   /**
-   * A prepared command, executable on this `Session` only.
-   * @group Commands
+   * Prepare a `Query` for execution by parsing its SQL statement. The resulting `PreparedQuery` can
+   * be executed multiple times with different arguments.
+   * @group Queries
    */
-  type PreparedCommand[A] = protoSession.PreparedCommand[A]
+  def prepare[A, B](query: Query[A, B]): F[PreparedQuery[F, A, B]]
 
   /**
    * Prepare a statement that returns no rows.
    * @group Commands
    */
-  def prepare[A](command: Command[A]): Resource[F, PreparedCommand[A]]
-
-  /**
-   * @group Commands
-   */
-  def check[A](command: PreparedCommand[A]): F[Unit]
-
-  /**
-   * @group Commands
-   */
-  def execute[A](pq: PreparedCommand[A], args: A = Void): F[Completion]
+  def prepare[A](command: Command[A]): F[PreparedCommand[F, A]]
 
   /**
    * Construct a `Stream` that subscribes to notifications for `channel`, emits any notifications
@@ -179,7 +94,6 @@ trait Session[F[_]] {
 
 
 object Session {
-
 
   /**
    * Resource yielding a `SessionPool` managing up to `max` concurrent `Session`s.
@@ -243,71 +157,37 @@ object Session {
    * started up. This should probably be pushed down a layer.
    * @group Constructors
    */
-  def fromProtoSession[F[_]: Sync](ps: ProtoSession[F]): Session[F] =
+  def fromProtoSession[F[_]: Sync](proto: ProtoSession[F]): Session[F] =
     new Session[F] {
 
-      val protoSession = ps
+      def quick(command: Command[Void]) =
+        proto.quick(command)
 
-      // Trivial delegates
-      def quick(command: Command[Void]) = protoSession.quick(command)
-      def check[A](command: PreparedCommand[A]) = protoSession.check(command)
-      def notify(channel: Identifier, message: String) = protoSession.notify(channel, message)
-      def check[A, B](query: PreparedQuery[A, B]) = protoSession.check(query)
-      def fetch[A](cursor: Cursor[A], maxRows: Int) = protoSession.execute(cursor, maxRows)
-      def parameters = protoSession.parameters
-      def parameter(key: String) = parameters.discrete.map(_.get(key)).unNone.changes
-      def transactionStatus = protoSession.transactionStatus
-      def quick[A](query: Query[Void, A]) = protoSession.quick(query)
+      def notify(channel: Identifier, message: String) =
+        proto.notify(channel, message)
 
-      def open[A, B](pq: PreparedQuery[A, B], args: A): Resource[F, Cursor[B]] =
-        Resource.make(protoSession.bind(pq, args))(protoSession.close)
+      def parameters =
+        proto.parameters
 
-      def execute[A](pq: PreparedCommand[A], args: A): F[Completion] =
-        Resource.make(protoSession.bind(pq, args))(protoSession.close).use(protoSession.execute)
+      def parameter(key: String) =
+        parameters.discrete.map(_.get(key)).unNone.changes
 
-      def prepare[A, B](query: Query[A, B]): Resource[F, PreparedQuery[A, B]] =
-        Resource.make(protoSession.prepare(query))(protoSession.close)
+      def transactionStatus =
+        proto.transactionStatus
 
-      def prepare[A](command: Command[A]): Resource[F, PreparedCommand[A]] =
-        Resource.make(protoSession.prepare(command))(protoSession.close)
+      def quick[A](query: Query[Void, A]) =
+        proto.quick(query)
 
-     def stream[A, B](query: PreparedQuery[A, B], chunkSize: Int, args: A = Void): Stream[F, B] =
-        Stream.resource(open(query, args)).flatMap { cursor =>
-          def chunks: Stream[F, B] =
-            Stream.eval(protoSession.execute(cursor, chunkSize)).flatMap { case (bs, more) =>
-              val s = Stream.chunk(Chunk.seq(bs))
-              if (more) s ++ chunks
-              else s
-            }
-          chunks
-        }
+      def prepare[A, B](query: Query[A, B]) =
+        PreparedQuery.fromQueryAndProtoSession(query, proto)
 
-      def option[A, B](query: PreparedQuery[A, B], args: A): F[Option[B]] =
-        open(query, args).use { p =>
-          fetch(p, 2).flatMap { case (bs, _) =>
-            bs match {
-              case b :: Nil => b.some.pure[F]
-              case Nil      => none[B].pure[F]
-              case _        => Sync[F].raiseError(new RuntimeException("Expected exactly one result, more returned."))
-            }
-          }
-        }
+      def prepare[A](command: Command[A]) =
+        PreparedCommand.fromCommandAndProtoSession(command, proto)
 
-      def unique[A, B](query: PreparedQuery[A, B], args: A): F[B] =
-        open(query, args).use { p =>
-          fetch(p, 2).flatMap { case (bs, _) =>
-            bs match {
-              case b :: Nil => b.pure[F]
-              case Nil      => Sync[F].raiseError(new RuntimeException("Expected exactly one result, none returned."))
-              case _        => Sync[F].raiseError(new RuntimeException("Expected exactly one result, more returned."))
-            }
-          }
-        }
-
-      def listen(channel: Identifier, maxQueued: Int): Stream[F, Notification] =
+      def listen(channel: Identifier, maxQueued: Int) =
         for {
-          _ <- Stream.resource(Resource.make(protoSession.listen(channel))(_ => protoSession.unlisten(channel)))
-          n <- protoSession.notifications(maxQueued).filter(_.channel === channel)
+          _ <- Stream.resource(Resource.make(proto.listen(channel))(_ => proto.unlisten(channel)))
+          n <- proto.notifications(maxQueued).filter(_.channel === channel)
         } yield n
 
     }

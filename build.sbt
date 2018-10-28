@@ -191,7 +191,7 @@ lazy val core = project
       // "org.typelevel"        %% "cats-free"     % catsVersion,
       "org.typelevel"        %% "cats-effect"   % catsEffectVersion,
       // "org.typelevel"        %% "cats-mtl-core" % catsMtlVersion,
-      // "org.typelevel"        %% "cats-tagless-macros" % catsTaglessVersion,
+      // "org.typelevel"        %% "cats-tagless-core" % catsTaglessVersion,
       "co.fs2"               %% "fs2-core"      % fs2Version,
       "co.fs2"               %% "fs2-io"        % fs2Version,
       "org.scodec"           %% "scodec-core"   % scodecCoreVersion,

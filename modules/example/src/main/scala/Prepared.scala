@@ -33,12 +33,12 @@ object Prepared extends IOApp {
   val math: Resource[IO, Math[IO]] =
     for {
       sess  <- session
-      pAdd  <- sess.prepare(MathStatements.add)
-      pSqrt <- sess.prepare(MathStatements.sqrt)
+      pAdd  <- Resource.liftF(sess.prepare(MathStatements.add))
+      pSqrt <- Resource.liftF(sess.prepare(MathStatements.sqrt))
     } yield
       new Math[IO] {
-        def add(a: Int, b: Int) = sess.unique(pAdd, a ~ b)
-        def sqrt(d: Double)     = sess.unique(pSqrt, d)
+        def add(a: Int, b: Int) = pAdd.unique(a ~ b)
+        def sqrt(d: Double)     = pSqrt.unique(d)
       }
 
   def run(args: List[String]): IO[ExitCode] =

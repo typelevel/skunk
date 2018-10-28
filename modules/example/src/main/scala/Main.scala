@@ -11,14 +11,16 @@ import fs2.Sink.showLinesStdOut
 object Main extends IOApp {
   import Codec._
 
+  case class Country(name: String, code: String, indepyear: Option[Short], population: Int)
+
+  val country: Codec[Country] =
+    (varchar, bpchar, int2.opt, int4).imapN(Country.apply)(Country.unapply(_).get)
+
   def putStrLn(a: Any): IO[Unit] =
     IO(println(a))
 
   def anyLinesStdOut[F[_]: Sync]: Sink[F, Any] =
     _.map(_.toString).to(showLinesStdOut)
-
-  val country: Codec[Country] =
-    (varchar, bpchar, int2.opt, int4).imapN(Country.apply)(Country.unapply(_).get)
 
   val fra0 = sql"true"
 
@@ -45,8 +47,8 @@ object Main extends IOApp {
   def clientEncodingChanged(enc: String): IO[Unit] =
     putStrLn(s">>>> CLIENT ENCODING IS NOW: $enc")
 
-  def hmm[F[_]: ConcurrentEffect](s: Session[F])(ps: s.PreparedQuery[Int ~ String, _]): F[Unit] =
-    (s.stream(ps, 4, 100000 ~ "%").take(25) either s.stream(ps, 4, 10000 ~ "%"))
+  def hmm[F[_]: ConcurrentEffect](ps: PreparedQuery[F, Int ~ String, _]): F[Unit] =
+    (ps.stream(100000 ~ "%", 4).take(25) either ps.stream(10000 ~ "%", 4))
       .to(anyLinesStdOut)
       .compile
       .drain
@@ -75,12 +77,12 @@ object Main extends IOApp {
           _   <- s.quick(sql"set client_encoding = ISO8859_1".command)
           _   <- s.notify(id"foo", "here is a message")
           _   <- s.quick(sql"select current_user".query(name))
-          _   <- s.prepare(q).use(hmm(s))
-          _   <- s.prepare(in(3)).use { s.stream(_, 100, List("FRA", "USA", "GAB")).to(anyLinesStdOut).compile.drain }
+          _   <- s.prepare(q).flatMap(hmm(_))
+          _   <- s.prepare(in(3)).flatMap { _.stream(List("FRA", "USA", "GAB"), 100).to(anyLinesStdOut).compile.drain }
           _   <- f2.cancel // otherwise it will run forever
           _   <- f1.cancel // otherwise it will run forever
           _   <- s.quick(sql"select 'x'::char(10)".query(varchar))
-          _   <- s.prepare(sql"select 1".query(int4)).use { ps => s.stream(ps, 10).to(anyLinesStdOut).compile.drain }
+          _   <- s.prepare(sql"select 1".query(int4)).flatMap { _.stream(Void, 10).to(anyLinesStdOut).compile.drain }
           _   <- putStrLn("Done.")
         } yield ExitCode.Success
       } *>
@@ -96,70 +98,3 @@ object Main extends IOApp {
 }
 
 
-case class Country(name: String, code: String, indepyear: Option[Short], population: Int)
-
-
-
-class CountryOps[F[_]: Sync](s: Session[F]) {
-
-  import Codec._
-  import Codecs._
-
-  def lookupByCode(code: String): F[Option[Country]] =
-    s.prepare(Statements.lookupByCode).use { s.option(_, code) }
-
-  object Codecs {
-
-    val country: Codec[Country] =
-      (varchar, bpchar, int2.opt, int4).imapN(Country.apply)(Country.unapply(_).get)
-
-  }
-
-  object Statements {
-
-    def lookupByCode: Query[String, Country] =
-      sql"""
-        SELECT name, code, indepyear, population
-        FROM   country
-        WHERE  code = $bpchar
-      """.query(country)
-
-  }
-
-}
-
-trait CountryOps2[F[_]] {
-  def lookupByCode(code: String): F[Option[Country]]
-}
-
-object CountryOps2 {
-  import Codec._
-  import Codecs._
-
-  def apply[F[_]: Bracket[?[_], Throwable]](s: Session[F]): Resource[F, CountryOps2[F]] =
-    for {
-      ps1 <- s.prepare(Statements.lookupByCode)
-    } yield
-      new CountryOps2[F] {
-        def lookupByCode(code: String): F[Option[Country]] =
-          s.option(ps1, code)
-      }
-
-   object Codecs {
-
-    val country: Codec[Country] =
-      (varchar, bpchar, int2.opt, int4).imapN(Country.apply)(Country.unapply(_).get)
-
-  }
-
-  object Statements {
-
-    def lookupByCode: Query[String, Country] =
-      sql"""
-        SELECT name, code, indepyear, population
-        FROM   country
-        WHERE  code = $bpchar
-      """.query(country)
-
-  }
-}
