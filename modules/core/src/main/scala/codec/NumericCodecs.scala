@@ -16,6 +16,8 @@ trait NumericCodecs {
   val int4: Codec[Int]   = Codec.simple(_.toString, _.toInt,   Type.int4)
   val int8: Codec[Long]  = Codec.simple(_.toString, _.toLong,  Type.int8)
 
+  val float8: Codec[Double]  = Codec.simple(_.toString, _.toDouble, Type.float8)
+
 }
 
 object numeric extends NumericCodecs
