@@ -56,6 +56,12 @@ trait Session[F[_]] {
    */
   def quick(command: Command[Void]): F[Completion]
 
+  // I think we went too far here. If we're reclaiming sessions and reusing them we can't count on
+  // eventual cleanup … we may exhaust resources. So our choices are for the session itself to
+  // track prepared statements and cursors (we could potentially let prepared statements hang
+  // around, which would be a nice efficiency thing) or to expose them as resources so the lifetime
+  // is in the user's face. I think the former is probably a better user experience ...
+
   /**
    * Prepare a `Query` for execution by parsing its SQL statement. The resulting `PreparedQuery` can
    * be executed multiple times with different arguments.
@@ -69,25 +75,7 @@ trait Session[F[_]] {
    */
   def prepare[A](command: Command[A]): F[PreparedCommand[F, A]]
 
-  /**
-   * Construct a `Stream` that subscribes to notifications for `channel`, emits any notifications
-   * that arrive (this can happen at any time), then unsubscribes when the stream is terminated.
-   * Note that once such a stream is started it is important to consume all notifications as quickly
-   * as possible to avoid blocking message processing for other operations on the `Session`
-   * (although typically a dedicated `Session` will receive channel notifications so this won't be
-   * an issue).
-   * @group Notifications
-   * @see [[https://www.postgresql.org/docs/10/static/sql-listen.html LISTEN]]
-   * @see [[https://www.postgresql.org/docs/10/static/sql-notify.html NOTIFY]]
-   */
-  def listen(channel: Identifier, maxQueued: Int): Stream[F, Notification]
-
-  /**
-   * Send a notification on the given channel.
-   * @group Notifications
-   * @see [[https://www.postgresql.org/docs/10/static/sql-notify.html NOTIFY]]
-   */
-  def notify(channel: Identifier, message: String): F[Unit]
+  def channel(name: Identifier): Channel[F]
 
 }
 
@@ -163,8 +151,8 @@ object Session {
       def quick(command: Command[Void]) =
         proto.quick(command)
 
-      def notify(channel: Identifier, message: String) =
-        proto.notify(channel, message)
+      def channel(name: Identifier): Channel[F] =
+        Channel.fromNameAndProtoSession(name, proto)
 
       def parameters =
         proto.parameters
@@ -183,12 +171,6 @@ object Session {
 
       def prepare[A](command: Command[A]) =
         PreparedCommand.fromCommandAndProtoSession(command, proto)
-
-      def listen(channel: Identifier, maxQueued: Int) =
-        for {
-          _ <- Stream.resource(Resource.make(proto.listen(channel))(_ => proto.unlisten(channel)))
-          n <- proto.notifications(maxQueued).filter(_.channel === channel)
-        } yield n
 
     }
 

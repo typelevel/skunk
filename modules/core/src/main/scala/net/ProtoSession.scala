@@ -1,8 +1,6 @@
 package skunk
 package net
 
-import cats.{ Contravariant, Functor }
-import cats.arrow.Profunctor
 import cats.effect.{ Concurrent, ConcurrentEffect, Resource }
 import cats.effect.concurrent.Semaphore
 import cats.implicits._
@@ -13,6 +11,34 @@ import skunk.net.message. { Query => QueryMessage, _ }
 import skunk.util.Namer
 import skunk.syntax.id._
 
+trait ProtoServerResource[F[_]] {
+  def close: F[Unit]
+}
+
+trait ProtoPreparedStatement[F[_]] extends ProtoServerResource[F] {
+  def check: F[Unit]
+}
+
+trait ProtoPreparedCommand[F[_], A] extends ProtoPreparedStatement[F] {
+  def bind(args: A): F[ProtoCommandPortal[F, A]]
+}
+
+trait Portal[F[_]] extends ProtoServerResource[F]
+
+trait ProtoCommandPortal[F[_], A] extends Portal[F] {
+  def execute: F[Completion]
+}
+
+trait ProtoQueryPortal[F[_], A] extends Portal[F] {
+  def execute(maxRows: Int): F[List[A] ~ Boolean]
+}
+
+trait ProtoPreparedQuery[F[_], A, B] extends ProtoPreparedStatement[F] {
+  def bind(args: A): F[ProtoQueryPortal[F, B]]
+}
+
+
+
 /**
  * Represents a live connection to a Postgres database. This is a lifetime-managed resource and as
  * such is invalid outside the scope of its owning `Resource`, as are any streams yielded here. If
@@ -22,47 +48,17 @@ import skunk.syntax.id._
 trait ProtoSession[F[_]] {
 
   /** Prepared statement yielding rows, dependently scoped to this `ProtoSession`. */
-  sealed abstract case class PreparedQuery[A, B](name: String, query: Query[A, B]) {
-    def dimap[C, D](f: C => A)(g: B => D): PreparedQuery[C,D] =
-      new PreparedQuery(name, query.dimap(f)(g)) {}
-  }
-  object PreparedQuery {
-
-    implicit val ProfunctorPreparedQuery: Profunctor[PreparedQuery] =
-      new Profunctor[PreparedQuery] {
-        def dimap[A, B, C, D](fab: PreparedQuery[A,B])(f: C => A)(g: B => D) =
-          fab.dimap(f)(g)
-      }
-
-    // why don't we get these for free?
-
-    implicit def functorPreparedQuery[T]: Functor[PreparedQuery[T, ?]] =
-      new Functor[PreparedQuery[T, ?]] {
-        def map[A, B](fa: PreparedQuery[T, A])(f: A => B) = fa.rmap(f)
-      }
-
-    implicit def contravariantPreparedQuery[T]: Contravariant[PreparedQuery[?, T]] =
-      new Contravariant[PreparedQuery[?, T]] {
-        def contramap[A, B](fa: PreparedQuery[A, T])(f: B => A) = fa.lmap(f)
-      }
-
-  }
+  sealed abstract case class PreparedQuery[A, B](name: String, query: Query[A, B])
 
   /** Prepared statement yielding no rows, dependently scoped to this `ProtoSession`. */
-  sealed abstract case class PreparedCommand[A](name: String, command: Command[A]) {
-    def contramap[B](f: B => A): PreparedCommand[B] =
-      new PreparedCommand(name, command.contramap(f)) {}
-  }
+  sealed abstract case class PreparedCommand[A](name: String, command: Command[A])
 
-  sealed trait Portal {
+  sealed trait Portal extends Product with Serializable {
     def name: String
   }
 
   /** Query portal with associated decoder, dependently scoped to this `ProtoSession`. */
-  sealed abstract case class QueryPortal[A](name: String, decoder: Decoder[A]) extends Portal {
-    def map[B](f: A => B): QueryPortal[B] =
-      new QueryPortal[B](name, decoder.map(f)) {}
-  }
+  sealed abstract case class QueryPortal[A](name: String, decoder: Decoder[A]) extends Portal
 
   /** Command portal, dependently scoped to this `ProtoSession`. */
   sealed abstract case class CommandPortal(name: String) extends Portal
@@ -77,6 +73,7 @@ trait ProtoSession[F[_]] {
   def unlisten(channel: Identifier): F[Unit]
   def notify(channel: Identifier, message: String): F[Unit]
   def prepare[A, B](query: Query[A, B]): F[PreparedQuery[A, B]]
+
   def prepare[A](command: Command[A]): F[PreparedCommand[A]]
   def check[A, B](query: PreparedQuery[A, B]): F[Unit]
   def check[A](command: PreparedCommand[A]): F[Unit]
@@ -137,6 +134,15 @@ object ProtoSession {
     nam:   Namer[F],
     sem:   Semaphore[F],
     check: Boolean
+    // what if here we had statement pools? there's probably no reason not to cache prepared
+    // statements "forever". we map strings to names, which lets us use the same statement even
+    // if it has different associated encoders and decoders … it's all the same on the PG side.
+    //  statementCache: MVar[Map[Sql, Name]]
+    //
+    // we also need to track the portals we open because they need to be cleaned up when the
+    // session is returned to the pool.
+    //  portalCache: MVar[Set[String]]
+    // and def closePortals: close all the cursors
   ) extends ProtoSession[F] {
 
     // Parameters and Transaction Status are freebies

@@ -1,6 +1,7 @@
 package skunk
 
-import cats.{ Contravariant, FlatMap }
+import cats.Contravariant
+import cats.effect.Bracket
 import cats.implicits._
 import skunk.data.Completion
 import skunk.net.ProtoSession
@@ -32,11 +33,16 @@ object PreparedCommand {
         }
     }
 
-  def fromCommandAndProtoSession[F[_]: FlatMap, A](command: Command[A], proto: ProtoSession[F]) =
+  def fromCommandAndProtoSession[F[_]: Bracket[?[_], Throwable], A](command: Command[A], proto: ProtoSession[F]) =
     proto.prepare(command).map { pc =>
       new PreparedCommand[F, A] {
         def check = proto.check(pc)
-        def execute(args: A) = proto.bind(pc, args).flatMap(proto.execute)
+        def execute(args: A) =
+          Bracket[F, Throwable].bracket(
+            proto.bind(pc, args))(
+            proto.execute)(
+            proto.close
+          )
       }
     }
 
