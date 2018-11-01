@@ -13,56 +13,117 @@ import skunk.util.Namer
 import skunk.syntax.id._
 
 /**
- * Represents a live connection to a Postgres database. This is a lifetime-managed resource and as
- * such is invalid outside the scope of its owning `Resource`, as are any streams yielded here. If
- * you construct a stream and never run it, no problem. But if you do run it you must do so while
- * the session is valid, and you must consume all input as it arrives. This interface provides
- * access to operations that are defined in terms of message exchange, without much higher-level
- * abstraction.
+ * Interface for a Postgres database, expressed through high-level operations that rely on exchange
+ * of multiple messages. Operations here can be executed concurrently. Note that resource safety
+ * is not guaranteed here: statements and portals must be closed explicitly.
  */
-trait ProtoSession[F[_]] {
-  def notifications(maxQueued: Int): Stream[F, Notification]
-  def parameters: Signal[F, Map[String, String]]
-  def prepareCommand[A](command: Command[A]): F[ProtoPreparedCommand[F, A]]
-  def prepareQuery[A, B](query: Query[A, B]): F[ProtoPreparedQuery[F, A, B]]
-  def quick(command: Command[Void]): F[Completion]
-  def quick[A](query: Query[Void, A]): F[List[A]]
-  def startup(user: String, database: String): F[Unit]
-  def transactionStatus: Signal[F, TransactionStatus]
-}
-
-object ProtoSession {
+trait Protocol[F[_]] {
 
   /**
-   * Resource yielding a new `ProtoSession` with the given `host`, `port`, and statement checking policy.
+   * Unfiltered stream of all asynchronous channel notifications sent to this session. In general
+   * this stream is consumed asynchronously and the associated fiber is canceled before the
+   * session ends.
+   * @see [[https://www.postgresql.org/docs/10/static/sql-listen.html LISTEN]]
+   * @see [[https://www.postgresql.org/docs/10/static/sql-notify.html NOTIFY]]
+   */
+  def notifications(maxQueued: Int): Stream[F, Notification]
+
+  /**
+   * Signal representing the current state of all Postgres configuration variables announced to this
+   * session. These are sent after authentication and are updated asynchronously if the runtime
+   * environment changes. The current keys are as follows (with example values), but these may
+   * change with future releases so you should be prepared to handle unexpected ones.
+   *
+   * {{{
+   * Map(
+   *   "application_name"            -> "",
+   *   "client_encoding"             -> "UTF8",
+   *   "DateStyle"                   -> "ISO, MDY",
+   *   "integer_datetimes"           -> "on",       // cannot change after startup
+   *   "IntervalStyle"               -> "postgres",
+   *   "is_superuser"                -> "on",
+   *   "server_encoding"             -> "UTF8",     // cannot change after startup
+   *   "server_version"              -> "9.5.3",    // cannot change after startup
+   *   "session_authorization"       -> "postgres",
+   *   "standard_conforming_strings" -> "on",
+   *   "TimeZone"                    -> "US/Pacific",
+   * )
+   * }}}
+   *
+   */
+  def parameters: Signal[F, Map[String, String]]
+
+  /**
+   * Prepare a command (a statement that produces no rows), yielding a `ProtoPreparedCommand` which
+   * must be closed by the caller. Higher-level APIs may wish to encapsulate this in a `Resource`.
+   */
+  def prepareCommand[A](command: Command[A]): F[ProtoPreparedCommand[F, A]]
+
+  /**
+   * Prepare a query (a statement that produces rows), yielding a `ProtoPreparedCommand` which
+   * must be closed by the caller. Higher-level APIs may wish to encapsulate this in a `Resource`.
+   */
+  def prepareQuery[A, B](query: Query[A, B]): F[ProtoPreparedQuery[F, A, B]]
+
+  /**
+   * Execute a non-parameterized command (a statement that produces no rows), yielding a
+   * `Completion`. This is equivalent to `prepare` + `bind` + `execute` but it uses the "simple"
+   * query protocol which requires fewer message exchanges.
+   */
+  def quick(command: Command[Void]): F[Completion]
+
+  /**
+   * Execute a non-parameterized query (a statement that produces rows), yielding all rows. This is
+   * equivalent to `prepare` + `bind` + `execute` but it uses the "simple" query protocol which
+   * requires fewer message exchanges. If you wish to page or stream results you need to use the
+   * general protocol instead.
+   */
+  def quick[A](query: Query[Void, A]): F[List[A]]
+
+  /**
+   * Initiate the session. This must be the first thing you do. This is very basic at the momemnt.
+   */
+  def startup(user: String, database: String): F[Unit]
+
+  /**
+   * Signal representing the current transaction status as reported by `ReadyForQuery`. It's not
+   * clear that this is a useful thing to expose.
+   */
+  def transactionStatus: Signal[F, TransactionStatus]
+
+}
+
+object Protocol {
+
+  /**
+   * Resource yielding a new `Protocol` with the given `host`, `port`, and statement checking policy.
    * @param host  Postgres server host
    * @param port  Postgres port, default 5432
    * @param check Check all `prepare` and `quick` statements for consistency with the schema. This
-   *   is true by default and is recommended for development work. You may wish to turn this off in
-   *   production but honestly it's really cheap and probably worth keeping.
+   *   is true by default and is recommended for development work.
    */
   def apply[F[_]: ConcurrentEffect](
     host:  String,
     port:  Int     = 5432,
     check: Boolean = true
-  ): Resource[F, ProtoSession[F]] =
+  ): Resource[F, Protocol[F]] =
     for {
       ams <- ActiveMessageSocket[F](host, port)
-      ses <- Resource.liftF(ProtoSession.fromActiveMessageSocket(ams, check))
+      ses <- Resource.liftF(Protocol.fromActiveMessageSocket(ams, check))
     } yield ses
 
-  /** Construct a `ProtoSession` by wrapping an `ActiveMessageSocket`. */
+  /** Construct a `Protocol` by wrapping an `ActiveMessageSocket`. */
   private def fromActiveMessageSocket[F[_]: Concurrent](
     ams:   ActiveMessageSocket[F],
     check: Boolean
-  ): F[ProtoSession[F]] =
+  ): F[Protocol[F]] =
     for {
       nam <- Namer[F]
       sem <- Semaphore[F](1)
     } yield new SessionImpl(ams, nam, sem, check)
 
   /**
-   * `ProtoSession` implementation.
+   * `Protocol` implementation.
    * @param ams `ActiveMessageSocket` that manages message exchange.
    * @param nam `Namer` for giving unique (per session) names for prepared statements and portals.
    * @param sem Single-key `Semaphore` used as a mutex for message exchanges. Every "conversation"
@@ -74,16 +135,7 @@ object ProtoSession {
     nam:   Namer[F],
     sem:   Semaphore[F],
     check: Boolean
-    // what if here we had statement pools? there's probably no reason not to cache prepared
-    // statements "forever". we map strings to names, which lets us use the same statement even
-    // if it has different associated encoders and decoders … it's all the same on the PG side.
-    //  statementCache: MVar[Map[Sql, Name]]
-    //
-    // we also need to track the portals we open because they need to be cleaned up when the
-    // session is returned to the pool.
-    //  portalCache: MVar[Set[String]]
-    // and def closePortals: close all the cursors
-  ) extends ProtoSession[F] {
+  ) extends Protocol[F] {
 
     def notifications(maxQueued: Int): Stream[F, Notification] =
       ams.notifications(maxQueued)

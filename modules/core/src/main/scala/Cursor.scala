@@ -5,7 +5,7 @@ import cats.implicits._
 
 /**
  * A cursor from which rows can be fetched, valid within its defining `Session`.
- * @group Queries
+ * @group Session
  */
 trait Cursor[F[_], A] { outer =>
 
@@ -18,6 +18,7 @@ trait Cursor[F[_], A] { outer =>
 
 }
 
+/** @group Companions */
 object Cursor {
 
   /**

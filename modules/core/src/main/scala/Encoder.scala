@@ -16,18 +16,21 @@ trait Encoder[A] { outer =>
 
   def oids: List[Type]
 
+  /** Contramap inputs from a new type `B`, yielding an `Encoder[B]`. */
   def contramap[B](f: B => A): Encoder[B] =
     new Encoder[B] {
       def encode(b: B) = outer.encode(f(b))
       val oids = outer.oids
     }
 
+  /** `Encoder` is semigroupal: a pair of encoders make a encoder for a pair. */
   def product[B](fb: Encoder[B]): Encoder[(A, B)] =
     new Encoder[(A, B)] {
       def encode(ab: (A, B)) = outer.encode(ab._1) ++ fb.encode(ab._2)
       val oids = outer.oids ++ fb.oids
     }
 
+  /** Shorthand for `product`. */
   def ~[B](fb: Encoder[B]): Encoder[A ~ B] =
     product(fb)
 
@@ -51,7 +54,7 @@ trait Encoder[A] { outer =>
 
 }
 
-/** @group Codecs */
+/** @group Companions */
 object Encoder {
 
   implicit val ContravariantSemigroupalEncoder: ContravariantSemigroupal[Encoder] =

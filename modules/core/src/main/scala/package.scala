@@ -1,7 +1,7 @@
 import cats.effect.Resource
 
 /**
- * ==Skunk is a functional data access layer for Postgres.==
+ * '''Skunk''' is a functional data access layer for Postgres.
  *
  * Skunk differs from [[https://tpolecat.github.io/doobie/ doobie]] in a number of important ways:
  *
@@ -9,8 +9,8 @@ import cats.effect.Resource
  *   - Skunk is asynchronous all the way down, via cats-effect, fs2, and ultimately nio.
  *   - Data mapping is simpler, explicit, and does not involve implicit derivation.
  *
- * @groupdesc HLists This idea was borrowed from scodec. We use `~` to build left-associated HLists
- *   of values and types, and can destructure with `~` the same way.
+ * @groupdesc HLists This idea was borrowed from scodec. We use `~` to build left-associated nested
+ *   pairs of values and types, and can destructure with `~` the same way.
  *   {{{
  *   val a: Int ~ String ~ Boolean =
  *     1 ~ "foo" ~ true
@@ -40,6 +40,10 @@ import cats.effect.Resource
  *
  * @groupdesc Queries A query is any SQL statement that can returns rows, such as `SELECT` or
  *   `INSERT ... RETURNING`.
+ *
+ * @groupdesc Companions Companion objects for the traits and classes above.
+ * @groupname Companions Companion Objects
+ * @groupprio Companions 999
  */
 package object skunk {
 

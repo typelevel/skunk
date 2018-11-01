@@ -15,7 +15,7 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
   /** Forget this value is a `Codec` and treat it as a `Decoder`. */
   def asDecoder: Decoder[A] = this
 
-  /** `Codec` is semigroupal. */
+  /** `Codec` is semigroupal: a pair of codecs make a codec for a pair. */
   def product[B](fb: Codec[B]): Codec[(A, B)] =
     new Codec[(A, B)] {
       val pe = outer.asEncoder product fb.asEncoder
@@ -29,11 +29,11 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
   def ~[B](fb: Codec[B]): Codec[A ~ B] =
     product(fb)
 
-  /** `Codec` is an invariant functor. */
+  /** Contramap inputs from, and map outputs to, a new type `B`, yielding a `Codec[B]`. */
   def imap[B](f: A => B)(g: B => A): Codec[B] =
     Codec(b => encode(g(b)), ss => f(decode(ss)), oids)
 
-  /** Lift this `Codec` into `Option`. */
+  /** Lift this `Codec` into `Option`, where `NONE` is mapped to and from a vector of `NULL`. */
   override def opt: Codec[Option[A]] =
     new Codec[Option[A]] {
       def encode(oa: Option[A]) = oa.fold(empty)(outer.encode)
@@ -46,7 +46,7 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
 
 }
 
-/** @group Codecs */
+/** @group Companions */
 object Codec {
 
   /** @group Constructors */

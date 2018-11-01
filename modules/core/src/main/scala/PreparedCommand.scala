@@ -2,25 +2,19 @@ package skunk
 
 import cats.Contravariant
 import cats.effect.Bracket
-import cats.implicits._
 import skunk.data.Completion
-import skunk.net.ProtoSession
+import skunk.proto.ProtoPreparedCommand
 
 /**
  * A prepared command, valid for the life of its defining `Session`.
- * @group Commands
+ * @group Session
  */
 trait PreparedCommand[F[_], A] {
-
   def check: F[Unit]
-
   def execute(args: A): F[Completion]
-
 }
 
-/**
- * @group Commands
- */
+/** @group Companions */
 object PreparedCommand {
 
   /** `PreparedCommand[F, ?]` is a contravariant functor for all `F`. */
@@ -33,17 +27,20 @@ object PreparedCommand {
         }
     }
 
-  def fromCommandAndProtoSession[F[_]: Bracket[?[_], Throwable], A](command: Command[A], proto: ProtoSession[F]) =
-    proto.prepare(command).map { pc =>
-      new PreparedCommand[F, A] {
-        def check = proto.check(pc)
-        def execute(args: A) =
-          Bracket[F, Throwable].bracket(
-            proto.bind(pc, args))(
-            proto.execute)(
-            proto.close
-          )
-      }
+  def fromProto[F[_]: Bracket[?[_], Throwable], A](pc: ProtoPreparedCommand[F, A]) =
+    new PreparedCommand[F, A] {
+      def check = pc.check
+      def execute(args: A) =
+        Bracket[F, Throwable].bracket(pc.bind(args))(_.execute)(_.close)
     }
 
+}
+
+@annotation.implicitNotFound("This statement takes an argument of type ${A}.")
+sealed trait IsVoid[A] extends (Void => A)
+object IsVoid {
+  implicit def instance[A](implicit ev: Void =:= A): IsVoid[A] =
+    new IsVoid[A] {
+      def apply(v: Void) = ev(v)
+    }
 }

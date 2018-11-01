@@ -12,12 +12,14 @@ trait Decoder[A] { outer =>
   def oids: List[Type]
   def decode(ss: List[Option[String]]): A
 
+  /** Map decoded results to a new type `B`, yielding a `Decoder[B]`. */
   def map[B](f: A => B): Decoder[B] =
     new Decoder[B] {
       def decode(ss: List[Option[String]]) = f(outer.decode(ss))
       val oids = outer.oids
     }
 
+  /** `Decoder` is semigroupal: a pair of decoders make a decoder for a pair. */
   def product[B](fb: Decoder[B]): Decoder[(A, B)] =
     new Decoder[(A, B)] {
       def decode(ss: List[Option[String]]) = {
@@ -27,9 +29,11 @@ trait Decoder[A] { outer =>
       val oids = outer.oids ++ fb.oids
     }
 
+  /** Shorthand for `product`. */
   def ~[B](fb: Decoder[B]): Decoder[A ~ B] =
     product(fb)
 
+  /** Lift this `Decoder` into `Option`. */
   def opt: Decoder[Option[A]] =
     new Decoder[Option[A]] {
       val oids = outer.oids
@@ -43,7 +47,7 @@ trait Decoder[A] { outer =>
 
 }
 
-/** @group Codecs */
+/** @group Companions */
 object Decoder {
 
   implicit val ApplyDecoder: Apply[Decoder] =

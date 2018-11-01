@@ -25,7 +25,7 @@ import cats.arrow.Profunctor
  *   interpolator.
  * @see [[skunk.Session Session]] for information on executing a `Query`.
  *
- * @group Commands and Queries
+ * @group Statements
  */
 final case class Query[A, B](sql: String, encoder: Encoder[A], decoder: Decoder[B]) {
 
@@ -52,9 +52,7 @@ final case class Query[A, B](sql: String, encoder: Encoder[A], decoder: Decoder[
 
 }
 
-/**
- * @group Commands and Queries
- */
+/** @group Companions */
 object Query {
 
   implicit val ProfunctorQuery: Profunctor[Query] =

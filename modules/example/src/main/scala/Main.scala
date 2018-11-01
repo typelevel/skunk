@@ -77,12 +77,12 @@ object Main extends IOApp {
           _   <- s.quick(sql"set client_encoding = ISO8859_1".command)
           _   <- s.channel(id"foo").notify("here is a message")
           _   <- s.quick(sql"select current_user".query(name))
-          _   <- s.prepare(q).flatMap(hmm(_))
-          _   <- s.prepare(in(3)).flatMap { _.stream(List("FRA", "USA", "GAB"), 100).to(anyLinesStdOut).compile.drain }
+          _   <- s.prepare(q).use(hmm(_))
+          _   <- s.prepare(in(3)).use { _.stream(List("FRA", "USA", "GAB"), 100).to(anyLinesStdOut).compile.drain }
           _   <- f2.cancel // otherwise it will run forever
           _   <- f1.cancel // otherwise it will run forever
           _   <- s.quick(sql"select 'x'::char(10)".query(varchar))
-          _   <- s.prepare(sql"select 1".query(int4)).flatMap { _.stream(Void, 10).to(anyLinesStdOut).compile.drain }
+          _   <- s.prepare(sql"select 1".query(int4)).use { _.stream(Void, 10).to(anyLinesStdOut).compile.drain }
           _   <- putStrLn("Done.")
         } yield ExitCode.Success
       } *>

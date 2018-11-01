@@ -20,8 +20,8 @@ object HelloWorld extends IOApp {
 
   def mathSession[F[_]: Bracket[?[_], Throwable]](s: Session[F]): Math[F] =
     new Math[F] {
-      def add(a: Int, b: Int) = s.prepare(Statements.add).flatMap(_.unique(a ~ b))
-      def sqrt(d: Double)     = s.prepare(Statements.sqrt).flatMap(_.unique(d))
+      def add(a: Int, b: Int) = s.prepare(Statements.add).use(_.unique(a ~ b))
+      def sqrt(d: Double)     = s.prepare(Statements.sqrt).use(_.unique(d))
     }
 
   def session[F[_]: ConcurrentEffect]: Resource[F, Session[F]] =

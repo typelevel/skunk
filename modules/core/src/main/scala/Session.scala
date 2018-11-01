@@ -5,7 +5,7 @@ import cats.implicits._
 import fs2.Stream
 import fs2.concurrent.Signal
 import skunk.data._
-import skunk.net.ProtoSession
+import skunk.proto.Protocol
 import skunk.util.Pool
 
 /**
@@ -18,9 +18,7 @@ import skunk.util.Pool
  * See the [[skunk.Session$ companion object]] for information on obtaining a pooled or single-use
  * instance.
  *
- * @groupname Notifications Asynchronous Channel Notifications
- * @groupdesc Notifications Here is the description.
- * @groupprio Notifications -10
+ * @group Session
  */
 trait Session[F[_]] {
 
@@ -56,31 +54,28 @@ trait Session[F[_]] {
    */
   def quick(command: Command[Void]): F[Completion]
 
-  // I think we went too far here. If we're reclaiming sessions and reusing them we can't count on
-  // eventual cleanup … we may exhaust resources. So our choices are for the session itself to
-  // track prepared statements and cursors (we could potentially let prepared statements hang
-  // around, which would be a nice efficiency thing) or to expose them as resources so the lifetime
-  // is in the user's face. I think the former is probably a better user experience ...
-
   /**
-   * Prepare a `Query` for execution by parsing its SQL statement. The resulting `PreparedQuery` can
-   * be executed multiple times with different arguments.
+   * Prepare a `SELECT` or `VALUES` query; or an `INSERT`, `UPDATE`, or `DELETE` command that
+   * returns rows via `RETURNING`. The resulting `PreparedQuery` can be executed multiple times with
+   * different arguments.
    * @group Queries
    */
-  def prepare[A, B](query: Query[A, B]): F[PreparedQuery[F, A, B]]
+  def prepare[A, B](query: Query[A, B]): Resource[F, PreparedQuery[F, A, B]]
 
   /**
-   * Prepare a statement that returns no rows.
+   * Prepare an `INSERT`, `UPDATE`, or `DELETE` command that returns no rows. The resulting
+   * `PreparedCommand` can be executed multiple times with different arguments.
    * @group Commands
    */
-  def prepare[A](command: Command[A]): F[PreparedCommand[F, A]]
+  def prepare[A](command: Command[A]): Resource[F, PreparedCommand[F, A]]
 
-  def channel(name: Identifier): Channel[F]
+  def channel(name: Identifier): Channel[F, String, Notification]
 
 }
 
 
 
+/** @group Companions */
 object Session {
 
   /**
@@ -135,24 +130,24 @@ object Session {
     check:    Boolean = true
   ): Resource[F, Session[F]] =
     for {
-      ps <- ProtoSession[F](host, port, check)
+      ps <- Protocol[F](host, port, check)
       _  <- Resource.liftF(ps.startup(user, database))
       // TODO: password negotiation, SASL, etc.
-    } yield fromProtoSession(ps)
+    } yield fromProtocol(ps)
 
   /**
-   * Construct a `Session` by wrapping an existing `ProtoSession`, which we assume has already been
+   * Construct a `Session` by wrapping an existing `Protocol`, which we assume has already been
    * started up. This should probably be pushed down a layer.
    * @group Constructors
    */
-  def fromProtoSession[F[_]: Sync](proto: ProtoSession[F]): Session[F] =
+  def fromProtocol[F[_]: Sync](proto: Protocol[F]): Session[F] =
     new Session[F] {
 
       def quick(command: Command[Void]) =
         proto.quick(command)
 
-      def channel(name: Identifier): Channel[F] =
-        Channel.fromNameAndProtoSession(name, proto)
+      def channel(name: Identifier) =
+        Channel.fromNameAndProtocol(name, proto)
 
       def parameters =
         proto.parameters
@@ -167,10 +162,10 @@ object Session {
         proto.quick(query)
 
       def prepare[A, B](query: Query[A, B]) =
-        PreparedQuery.fromQueryAndProtoSession(query, proto)
+        Resource.make(proto.prepareQuery(query))(_.close).map(PreparedQuery.fromProto(_))
 
       def prepare[A](command: Command[A]) =
-        PreparedCommand.fromCommandAndProtoSession(command, proto)
+        Resource.make(proto.prepareCommand(command))(_.close).map(PreparedCommand.fromProto(_))
 
     }
 

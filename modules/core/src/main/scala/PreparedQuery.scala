@@ -1,15 +1,15 @@
 package skunk
 
-import cats.{ Contravariant, Functor, MonadError }
+import cats._
 import cats.arrow.Profunctor
-import cats.effect.Resource
+import cats.effect._
 import cats.implicits._
 import fs2.{ Chunk, Stream }
-import skunk.net.ProtoSession
+import skunk.proto.ProtoPreparedQuery
 
 /**
  * A prepared query, valid for the life of its originating `Session`.
- * @group Queries
+ * @group Session
  */
 trait PreparedQuery[F[_], A, B] {
 
@@ -26,7 +26,7 @@ trait PreparedQuery[F[_], A, B] {
    * are usually what you want.
    * @group Queries
    */
-  def open(args: A): F[Cursor[F, B]]
+  def open(args: A): Resource[F, Cursor[F, B]]
 
   /**
    * Construct a stream that calls `fetch` repeatedly and emits chunks until none remain. Note
@@ -57,13 +57,14 @@ trait PreparedQuery[F[_], A, B] {
 
 }
 
+/** @group Companions */
 object PreparedQuery {
 
   /**
-   * `PreparedQuery[F, ?, B]` is a contravariant functor for all `F`.
+   * `PreparedQuery[F, ?, B]` is a covariant functor when `F` is a monad.
    * @group Typeclass Instances
    */
-  implicit def functorPreparedQuery[F[_]: Functor, A]: Functor[PreparedQuery[F, A, ?]] =
+  implicit def functorPreparedQuery[F[_]: Monad, A]: Functor[PreparedQuery[F, A, ?]] =
     new Functor[PreparedQuery[F, A, ?]] {
       def map[T, U](fa: PreparedQuery[F, A, T])(f: T => U) =
         new PreparedQuery[F, A, U] {
@@ -94,10 +95,10 @@ object PreparedQuery {
     }
 
   /**
-   * `PreparedQuery[F, ?, ?]` is a profunctor if `F` is a covariant functor.
+   * `PreparedQuery[F, ?, ?]` is a profunctor if `F` is a monad.
    * @group Typeclass Instances
    */
-  implicit def profunctorPreparedQuery[F[_]: Functor]: Profunctor[PreparedQuery[F, ?, ?]] =
+  implicit def profunctorPreparedQuery[F[_]: Monad]: Profunctor[PreparedQuery[F, ?, ?]] =
     new Profunctor[PreparedQuery[F, ?, ?]] {
       def dimap[A, B, C, D](fab: PreparedQuery[F, A, B])(f: (C) ⇒ A)(g: (B) ⇒ D) =
         contravariantPreparedQuery[F, B].contramap(fab)(f).map(g) // y u no work contravariant syntax
@@ -106,61 +107,58 @@ object PreparedQuery {
       override def rmap[A, B, C](fab: PreparedQuery[F, A, B])(f: (B) ⇒ C) = fab.map(f)
     }
 
-  def fromQueryAndProtoSession[F[_]: MonadError[?[_], Throwable], A, B](query: Query[A, B], proto: ProtoSession[F]) =
-    proto.prepare(query).map { pq =>
-      new PreparedQuery[F, A, B] {
+  def fromProto[F[_]: Bracket[?[_], Throwable], A, B](proto: ProtoPreparedQuery[F, A, B]) =
+    new PreparedQuery[F, A, B] {
 
-        def check =
-          proto.check(pq)
+      def check =
+        proto.check
 
-        def open(args: A) =
-          proto.bind(pq, args).map { p =>
-            new Cursor[F, B] {
-              def fetch(maxRows: Int) =
-                proto.execute(p, maxRows)
-            }
-          }
-
-        def stream(args: A, chunkSize: Int) = {
-          val rsrc = Resource.make(proto.bind(pq, args))(proto.close)
-          Stream.resource(rsrc).flatMap { cursor =>
-            def chunks: Stream[F, B] =
-              Stream.eval(proto.execute(cursor, chunkSize)).flatMap { case (bs, more) =>
-                val s = Stream.chunk(Chunk.seq(bs))
-                if (more) s ++ chunks
-                else s
-              }
-            chunks
+      def open(args: A) =
+        Resource.make(proto.bind(args))(_.close).map { p =>
+          new Cursor[F, B] {
+            def fetch(maxRows: Int) =
+              p.execute(maxRows)
           }
         }
 
-        // We have a few operations that only want the first row. In order to do this AND
-        // know if there are more we need to ask for 2 rows.
-        private def fetch2(args: A): F[(List[B], Boolean)] =
-          open(args).flatMap(_.fetch(2))
-
-        def option(args: A) =
-          fetch2(args).flatMap { case (bs, _) =>
-            bs match {
-              case b :: Nil => b.some.pure[F]
-              case Nil      => none[B].pure[F]
-              case _        => MonadError[F, Throwable].raiseError(new RuntimeException("Expected exactly one result, more returned."))
+      def stream(args: A, chunkSize: Int) = {
+        val rsrc = Resource.make(proto.bind(args))(_.close)
+        Stream.resource(rsrc).flatMap { cursor =>
+          def chunks: Stream[F, B] =
+            Stream.eval(cursor.execute(chunkSize)).flatMap { case (bs, more) =>
+              val s = Stream.chunk(Chunk.seq(bs))
+              if (more) s ++ chunks
+              else s
             }
-          }
-
-        def headOption(args: A) =
-          fetch2(args).map(_._1.headOption)
-
-        def unique(args: A) =
-          fetch2(args).flatMap { case (bs, _) =>
-            bs match {
-              case b :: Nil => b.pure[F]
-              case Nil      => MonadError[F, Throwable].raiseError(new RuntimeException("Expected exactly one result, none returned."))
-              case _        => MonadError[F, Throwable].raiseError(new RuntimeException("Expected exactly one result, more returned."))
-            }
-          }
-
+          chunks
+        }
       }
+
+      // We have a few operations that only want the first row. In order to do this AND
+      // know if there are more we need to ask for 2 rows.
+      private def fetch2(args: A): F[(List[B], Boolean)] =
+        open(args).use(_.fetch(2))
+
+      def option(args: A) =
+        fetch2(args).flatMap { case (bs, _) =>
+          bs match {
+            case b :: Nil => b.some.pure[F]
+            case Nil      => none[B].pure[F]
+            case _        => MonadError[F, Throwable].raiseError(new RuntimeException("Expected exactly one result, more returned."))
+          }
+        }
+
+      def headOption(args: A) =
+        fetch2(args).map(_._1.headOption)
+
+      def unique(args: A) =
+        fetch2(args).flatMap { case (bs, _) =>
+          bs match {
+            case b :: Nil => b.pure[F]
+            case Nil      => MonadError[F, Throwable].raiseError(new RuntimeException("Expected exactly one result, none returned."))
+            case _        => MonadError[F, Throwable].raiseError(new RuntimeException("Expected exactly one result, more returned."))
+          }
+        }
 
     }
 

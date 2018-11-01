@@ -2,13 +2,11 @@ package skunk
 
 /**
  * A singly-inhabited type representing arguments to a parameterless statement.
- * @group Commands and Queries
+ * @group Codecs
  */
 sealed trait Void
 
-/**
- * @group Commands and Queries
- */
+/** @group Companions */
 case object Void extends Void {
 
   val codec: Codec[Void] =

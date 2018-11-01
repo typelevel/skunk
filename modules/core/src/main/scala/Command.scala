@@ -22,7 +22,7 @@ import cats.Contravariant
  *   interpolator.
  * @see [[skunk.Session Session]] for information on executing a `Command`.
  *
- * @group Commands
+ * @group Statements
  */
 final case class Command[A](sql: String, encoder: Encoder[A]) {
 
@@ -36,10 +36,7 @@ final case class Command[A](sql: String, encoder: Encoder[A]) {
 
 }
 
-/**
- * Companion object for [[skunk.Command Command]].
- * @group Commands
- */
+/** @group Companions */
 object Command {
 
   /**

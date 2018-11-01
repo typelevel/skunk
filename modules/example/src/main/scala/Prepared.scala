@@ -33,8 +33,8 @@ object Prepared extends IOApp {
   val math: Resource[IO, Math[IO]] =
     for {
       sess  <- session
-      pAdd  <- Resource.liftF(sess.prepare(MathStatements.add))
-      pSqrt <- Resource.liftF(sess.prepare(MathStatements.sqrt))
+      pAdd  <- sess.prepare(MathStatements.add)
+      pSqrt <- sess.prepare(MathStatements.sqrt)
     } yield
       new Math[IO] {
         def add(a: Int, b: Int) = pAdd.unique(a ~ b)
