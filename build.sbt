@@ -78,19 +78,19 @@ lazy val scalacSettings = Seq(
         )
     }
   ),
-  scalacOptions in (Test, compile) --= (
-    CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((2, n)) if n <= 11 =>
-        Seq("-Yno-imports")
-      case _ =>
-        Seq(
-          "-Ywarn-unused:privates",
-          "-Ywarn-unused:locals",
-          "-Ywarn-unused:imports",
-          "-Yno-imports"
-        )
-    }
-  ),
+  // scalacOptions in (Test, compile) --= (
+  //   CrossVersion.partialVersion(scalaVersion.value) match {
+  //     case Some((2, n)) if n <= 11 =>
+  //       Seq("-Yno-imports")
+  //     case _ =>
+  //       Seq(
+  //         "-Ywarn-unused:privates",
+  //         "-Ywarn-unused:locals",
+  //         "-Ywarn-unused:imports",
+  //         "-Yno-imports"
+  //       )
+  //   }
+  // ),
   scalacOptions in (Compile, console) --= Seq("-Xfatal-warnings", "-Ywarn-unused:imports", "-Yno-imports"),
   scalacOptions in (Compile, doc)     --= Seq("-Xfatal-warnings", "-Ywarn-unused:imports", "-Yno-imports")
 )
@@ -204,8 +204,8 @@ lazy val tests = project
   .settings(
     libraryDependencies += "com.lihaoyi" %% "utest" % "0.6.5" % "test",
     testFrameworks += new TestFramework("utest.runner.Framework"),
-    test / fork := true,
-    Global / cancelable := true
+    Test / fork := true,
+    Test / cancelable := true
   )
 
 lazy val example = project

@@ -254,7 +254,14 @@ object Protocol {
         for {
           _ <- ams.send(QueryMessage(command.sql))
           _ <- printStatement(command.sql).whenA(check)
-          c <- ams.expect { case CommandComplete(c) => c }
+          c <- ams.flatExpect {
+                 case CommandComplete(c) => c.pure[F]
+                 case ErrorResponse(e)   =>
+                   for {
+                     _  <- ams.expect { case ReadyForQuery(_) => }
+                     cʹ <- Concurrent[F].raiseError[Completion](new SqlException(e))
+                   } yield cʹ
+               }
           _ <- ams.expect { case ReadyForQuery(_) => }
         } yield c
       }
@@ -263,7 +270,14 @@ object Protocol {
       sem.withPermit {
         for {
           _  <- ams.send(QueryMessage(query.sql))
-          rd <- ams.expect { case rd @ RowDescription(_) => rd }
+          rd <- ams.flatExpect {
+                  case rd @ RowDescription(_) => rd.pure[F]
+                  case ErrorResponse(e)   =>
+                   for {
+                     _   <- ams.expect { case ReadyForQuery(_) => }
+                     rdʹ <- Concurrent[F].raiseError[RowDescription](new SqlException(e))
+                   } yield rdʹ
+                }
           _  <- printStatement(query.sql).whenA(check)
           _  <- checkRowDescription(rd, query.decoder).whenA(check)
           rs <- unroll(query.decoder).map(_._1) // rs._2 will always be true here

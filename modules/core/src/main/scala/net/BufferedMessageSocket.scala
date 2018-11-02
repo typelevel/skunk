@@ -62,6 +62,7 @@ trait BufferedMessageSocket[F[_]] extends MessageSocket[F] {
   def notifications(maxQueued: Int): Stream[F, Notification]
 
   def expect[B](f: PartialFunction[BackendMessage, B]): F[B]
+  def flatExpect[B](f: PartialFunction[BackendMessage, F[B]]): F[B]
 
   // TODO: this is an implementation leakage, fold into the factory below
   protected def terminate: F[Unit]
@@ -105,9 +106,6 @@ object BufferedMessageSocket {
       case     NotificationResponse(n) => Stream.eval_(noTop.publish1(n))
       case m @ BackendKeyData(_, _)    => Stream.eval_(bkDef.complete(m))
 
-      // Lift this to an exception .. sensible?
-      // case      ErrorResponse(map)     => Stream.raiseError[F](new SqlException(map))
-
       // Everything else is passed through.
       case m                           => Stream.emit(m)
     }
@@ -132,11 +130,7 @@ object BufferedMessageSocket {
     } yield
       new BufferedMessageSocket[F] {
 
-        def receive = queue.dequeue1.flatMap {
-          case ErrorResponse(map) => Concurrent[F].raiseError(new SqlException(map)) // TODO: sync and then throw
-          case a                  => a.pure[F]
-        }
-
+        def receive = queue.dequeue1
         def send[A: FrontendMessage](a: A) = ms.send(a)
         def transactionStatus = xaSig
         def parameters = paSig
@@ -154,8 +148,12 @@ object BufferedMessageSocket {
         def expect[B](f: PartialFunction[BackendMessage, B]): F[B] =
           receive.flatMap {
             case m if f.isDefinedAt(m) => f(m).pure[F]
-            case m                     => Concurrent[F].raiseError(new RuntimeException(s"Unhandled: $m"))
+            case m                     => Concurrent[F].raiseError(new RuntimeException(s"expect: unhandled: $m"))
           }
+
+        def flatExpect[B](f: PartialFunction[BackendMessage, F[B]]): F[B] =
+          expect(f).flatten
+
 
       }
 

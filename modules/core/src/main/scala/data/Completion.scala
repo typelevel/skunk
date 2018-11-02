@@ -10,5 +10,6 @@ object Completion {
   case class  Select(count: Int) extends Completion
   case object Begin              extends Completion
   case object Commit             extends Completion
+  case object Rollback           extends Completion
   // more ...
 }

@@ -41,6 +41,7 @@ object CommandComplete {
     case "RESET"            => apply(Completion.Reset)
     case "SET"              => apply(Completion.Set)
     case "UNLISTEN"         => apply(Completion.Unlisten)
+    case "ROLLBACK"         => apply(Completion.Rollback)
     case Patterns.Select(s) => apply(Completion.Select(s.toInt))
     // more .. fill in as we hit them
   }
