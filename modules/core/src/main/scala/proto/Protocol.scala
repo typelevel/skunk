@@ -49,7 +49,6 @@ trait Protocol[F[_]] {
    *   "TimeZone"                    -> "US/Pacific",
    * )
    * }}}
-   *
    */
   def parameters: Signal[F, Map[String, String]]
 
@@ -286,7 +285,7 @@ object Protocol {
       sem.withPermit {
         for {
           n <- nam.nextName("stmt")
-          _ <- ams.send(Parse(n, sql, enc.oids.toList))
+          _ <- ams.send(Parse(n, sql, enc.types.toList))
           _ <- ams.send(Flush)
           _ <- ams.expect { case ParseComplete => }
         } yield n
@@ -323,7 +322,7 @@ object Protocol {
 
     private def checkRowDescription(rd: RowDescription, dec: Decoder[_]): F[Unit] = {
       def print(a: Any) = Concurrent[F].delay(println(a))
-      val assertedFieldTypes = dec.oids
+      val assertedFieldTypes = dec.types
       val fs = rd.oids
       for {
         _  <- print("** Fields:     asserted: " + assertedFieldTypes.map(_.name).mkString(", "))
@@ -334,7 +333,7 @@ object Protocol {
 
     private def checkParameterDescription(pd: ParameterDescription, enc: Encoder[_]): F[Unit] = {
       def print(a: Any) = Concurrent[F].delay(println(a))
-      val assertedParameterTypes = enc.oids
+      val assertedParameterTypes = enc.types
       val ps = pd.oids
       for {
         _  <- print("** Parameters: asserted: " + assertedParameterTypes.map(_.name).mkString(", "))

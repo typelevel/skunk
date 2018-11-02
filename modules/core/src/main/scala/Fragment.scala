@@ -10,7 +10,7 @@ import cats.implicits._
  * the `sql` interpolator.
  * @group Statements
  */
-case class Fragment[A](parts: List[Either[String, Int]], encoder: Encoder[A]) {
+final case class Fragment[A](parts: List[Either[String, Int]], encoder: Encoder[A]) {
 
   lazy val sql: String =
     parts.traverse {

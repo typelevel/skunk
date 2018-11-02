@@ -4,13 +4,15 @@ import cats.Functor
 import cats.implicits._
 
 /**
- * A cursor from which rows can be fetched, valid within its defining `Session`.
+ * An open cursor from which rows can be fetched, valid during the lifetime its defining `Session`.
+ * You can use this mechanism to implement chunked reads and paged results, although it is ofen
+ * more pleasant to use a `Cursor`-backed `Stream`, as produced by [[PreparedQuery#stream]].
  * @group Session
  */
 trait Cursor[F[_], A] { outer =>
 
   /**
-   * Fetch the next `maxRows` from this `cursor`, yielding a list of values and a boolean, `true`
+   * Fetch up to `maxRows` from this `cursor`, yielding a list of values and a boolean, `true`
    * if more rows are available, `false` otherwise.
    * @group Queries
    */

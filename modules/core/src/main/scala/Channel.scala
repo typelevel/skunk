@@ -9,6 +9,12 @@ import skunk.data.{ Identifier, Notification }
 import skunk.proto.Protocol
 
 /**
+ * A '''channel''' that can be used for inter-process communication, implemented in terms of
+ * `LISTEN` and `NOTIFY`. All instances start life as a `Channel[F, String, Notification]` but can
+ * be mapped out to different input and output types. See the linked documentation for more
+ * information on the transactional semantics of these operations.
+ * @see [[https://www.postgresql.org/docs/10/static/sql-listen.html LISTEN]]
+ * @see [[https://www.postgresql.org/docs/10/static/sql-notify.html NOTIFY]]
  * @group Session
  */
 trait Channel[F[_], A, B] { outer =>
@@ -20,31 +26,41 @@ trait Channel[F[_], A, B] { outer =>
    * as possible to avoid blocking message processing for other operations on the `Session`
    * (although typically a dedicated `Session` will receive channel notifications so this won't be
    * an issue).
+   * @param maxQueued the maximum number of notifications to hold in a queue before [semantically]
+   *   blocking message exchange on the controlling `Session`.
    * @group Notifications
    * @see [[https://www.postgresql.org/docs/10/static/sql-listen.html LISTEN]]
-   * @see [[https://www.postgresql.org/docs/10/static/sql-notify.html NOTIFY]]
    */
   def listen(maxQueued: Int): Stream[F, B]
 
   /**
-   * Send a notification on the given channel.
+   * Send a notification on the given channel. Note that if the session is in an active transaction
+   * the notification will only be sent if the transaction is committed. See the linked
+   * documentation for more information.
    * @group Notifications
    * @see [[https://www.postgresql.org/docs/10/static/sql-notify.html NOTIFY]]
    */
   def notify(message: A): F[Unit]
 
+  /**
+   * Map notifications to a new type `D`, yielding an `Channel[D, A, D]`.
+   * @group Transformations
+   */
   def map[D](f: B => D): Channel[F, A, D] =
-    new Channel[F, A, D] {
-      def listen(maxQueued: Int) = outer.listen(maxQueued).map(f)
-      def notify(message: A) = outer.notify(message)
-    }
+    dimap(identity[A])(f)
 
+  /**
+   * Contramap messages from a new type `C`, yielding an `Channel[D, C, B]`.
+   * @group Transformations
+   */
   def contramap[C](f: C => A): Channel[F, C, B] =
-    new Channel[F, C, B] {
-      def listen(maxQueued: Int) = outer.listen(maxQueued)
-      def notify(message: C) = outer.notify(f(message))
-    }
+    dimap(f)(identity[B])
 
+  /**
+   * Contramap inputs from a new type `C` and map outputs to a new type `D`, yielding a
+   * `Channel[F, C, D]`.
+   * @group Transformations
+   */
   def dimap[C, D](f: C => A)(g: B => D): Channel[F, C, D] =
     new Channel[F, C, D] {
       def listen(maxQueued: Int) = outer.listen(maxQueued).map(g)
@@ -56,7 +72,11 @@ trait Channel[F[_], A, B] { outer =>
 /** @group Companions */
 object Channel {
 
-  /** @group Constructors */
+  /**
+   * Construct a `Channel` given a name and an underlying `Protocol` (note that this is atypical;
+   * normally a `Channel` is obtained from a `Session`).
+   * @group Constructors
+   */
   def fromNameAndProtocol[F[_]: Functor](name: Identifier, proto: Protocol[F]): Channel[F, String, Notification] =
     new Channel[F, String, Notification] {
 

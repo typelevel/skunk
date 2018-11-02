@@ -9,24 +9,24 @@ import skunk.data.Type
  */
 trait Decoder[A] { outer =>
 
-  def oids: List[Type]
+  def types: List[Type]
   def decode(ss: List[Option[String]]): A
 
   /** Map decoded results to a new type `B`, yielding a `Decoder[B]`. */
   def map[B](f: A => B): Decoder[B] =
     new Decoder[B] {
       def decode(ss: List[Option[String]]) = f(outer.decode(ss))
-      val oids = outer.oids
+      val types = outer.types
     }
 
   /** `Decoder` is semigroupal: a pair of decoders make a decoder for a pair. */
   def product[B](fb: Decoder[B]): Decoder[(A, B)] =
     new Decoder[(A, B)] {
       def decode(ss: List[Option[String]]) = {
-        val (sa, sb) = ss.splitAt(outer.oids.length)
+        val (sa, sb) = ss.splitAt(outer.types.length)
         (outer.decode(sa), fb.decode(sb))
       }
-      val oids = outer.oids ++ fb.oids
+      val types = outer.types ++ fb.types
     }
 
   /** Shorthand for `product`. */
@@ -36,14 +36,14 @@ trait Decoder[A] { outer =>
   /** Lift this `Decoder` into `Option`. */
   def opt: Decoder[Option[A]] =
     new Decoder[Option[A]] {
-      val oids = outer.oids
+      val types = outer.types
       def decode(ss: List[Option[String]]) =
         if (ss.forall(_.isEmpty)) None
         else Some(outer.decode(ss))
     }
 
   override def toString =
-    s"Decoder(${oids.toList.mkString(", ")})"
+    s"Decoder(${types.toList.mkString(", ")})"
 
 }
 

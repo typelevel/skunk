@@ -22,7 +22,7 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
       val pd = outer.asDecoder product fb.asDecoder
       def encode(ab: (A, B)) = pe.encode(ab)
       def decode(ss: List[Option[String]]) = pd.decode(ss)
-      def oids = outer.oids ++ fb.oids
+      def types = outer.types ++ fb.types
     }
 
   /** Shorthand for `product`. */
@@ -31,18 +31,18 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
 
   /** Contramap inputs from, and map outputs to, a new type `B`, yielding a `Codec[B]`. */
   def imap[B](f: A => B)(g: B => A): Codec[B] =
-    Codec(b => encode(g(b)), ss => f(decode(ss)), oids)
+    Codec(b => encode(g(b)), ss => f(decode(ss)), types)
 
   /** Lift this `Codec` into `Option`, where `NONE` is mapped to and from a vector of `NULL`. */
   override def opt: Codec[Option[A]] =
     new Codec[Option[A]] {
       def encode(oa: Option[A]) = oa.fold(empty)(outer.encode)
       def decode(ss: List[Option[String]]) = if (ss.forall(_.isEmpty)) None else Some(outer.decode(ss))
-      def oids = outer.oids
+      def types = outer.types
     }
 
   override def toString =
-    s"Codec(${oids.toList.mkString(", ")})"
+    s"Codec(${types.toList.mkString(", ")})"
 
 }
 
@@ -54,7 +54,7 @@ object Codec {
     new Codec[A] {
       def encode(a: A) = encode0(a)
       def decode(ss: List[Option[String]]) = decode0(ss)
-      def oids = oids0
+      def types = oids0
     }
 
   // TODO: mechanism for better error reporting … should report a null at a column index so we can

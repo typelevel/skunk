@@ -13,7 +13,7 @@ case object Void extends Void {
     new Codec[Void] {
       def encode(a: Void) = Nil
       def decode(ss: List[Option[String]]) = Void
-      val oids = Nil
+      val types = Nil
     }
 
 }

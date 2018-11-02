@@ -10,24 +10,29 @@ import skunk.data.Type
 trait Encoder[A] { outer =>
 
   protected lazy val empty: List[Option[String]] =
-    oids.map(_ => None)
+    types.map(_ => None)
 
+  /**
+   * Encode a value of type `A`, yielding a list of Postgres text-formatted strings, lifted to
+   * `Option` to handle `NULL` values. Encoding failures raise unrecoverable errors.
+   */
   def encode(a: A): List[Option[String]]
 
-  def oids: List[Type]
+  /** Types of encoded fields, in order. */
+  def types: List[Type]
 
   /** Contramap inputs from a new type `B`, yielding an `Encoder[B]`. */
   def contramap[B](f: B => A): Encoder[B] =
     new Encoder[B] {
       def encode(b: B) = outer.encode(f(b))
-      val oids = outer.oids
+      val types = outer.types
     }
 
   /** `Encoder` is semigroupal: a pair of encoders make a encoder for a pair. */
   def product[B](fb: Encoder[B]): Encoder[(A, B)] =
     new Encoder[(A, B)] {
       def encode(ab: (A, B)) = outer.encode(ab._1) ++ fb.encode(ab._2)
-      val oids = outer.oids ++ fb.oids
+      val types = outer.types ++ fb.types
     }
 
   /** Shorthand for `product`. */
@@ -39,18 +44,18 @@ trait Encoder[A] { outer =>
   def opt: Encoder[Option[A]] =
     new Encoder[Option[A]] {
       def encode(a: Option[A]) = a.fold(empty)(outer.encode)
-      val oids = outer.oids
+      val types = outer.types
     }
 
   // TODO: decoder, codec
   def list(n: Int): Encoder[List[A]] =
     new Encoder[List[A]] {
       def encode(as: List[A]) = as.flatMap(outer.encode)
-      val oids = (0 until n).toList.flatMap(_ => outer.oids)
+      val types = (0 until n).toList.flatMap(_ => outer.types)
     }
 
   override def toString =
-    s"Encoder(${oids.toList.mkString(", ")})"
+    s"Encoder(${types.toList.mkString(", ")})"
 
 }
 

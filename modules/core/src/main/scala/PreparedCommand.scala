@@ -35,12 +35,3 @@ object PreparedCommand {
     }
 
 }
-
-@annotation.implicitNotFound("This statement takes an argument of type ${A}.")
-sealed trait IsVoid[A] extends (Void => A)
-object IsVoid {
-  implicit def instance[A](implicit ev: Void =:= A): IsVoid[A] =
-    new IsVoid[A] {
-      def apply(v: Void) = ev(v)
-    }
-}
