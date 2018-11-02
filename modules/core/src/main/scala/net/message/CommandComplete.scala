@@ -34,11 +34,13 @@ object CommandComplete {
   }
 
   def decoder = cstring.map {
+    case "BEGIN"            => apply(Completion.Begin)
+    case "COMMIT"           => apply(Completion.Commit)
     case "LISTEN"           => apply(Completion.Listen)
-    case "UNLISTEN"         => apply(Completion.Unlisten)
-    case "SET"              => apply(Completion.Set)
-    case "RESET"            => apply(Completion.Reset)
     case "NOTIFY"           => apply(Completion.Notify)
+    case "RESET"            => apply(Completion.Reset)
+    case "SET"              => apply(Completion.Set)
+    case "UNLISTEN"         => apply(Completion.Unlisten)
     case Patterns.Select(s) => apply(Completion.Select(s.toInt))
     // more .. fill in as we hit them
   }

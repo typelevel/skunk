@@ -188,17 +188,24 @@ lazy val core = project
     description := "Mystery Project",
     libraryDependencies ++= Seq(
       "org.typelevel"        %% "cats-core"     % catsVersion,
-      // "org.typelevel"        %% "cats-free"     % catsVersion,
       "org.typelevel"        %% "cats-effect"   % catsEffectVersion,
-      // "org.typelevel"        %% "cats-mtl-core" % catsMtlVersion,
-      // "org.typelevel"        %% "cats-tagless-core" % catsTaglessVersion,
       "co.fs2"               %% "fs2-core"      % fs2Version,
       "co.fs2"               %% "fs2-io"        % fs2Version,
       "org.scodec"           %% "scodec-core"   % scodecCoreVersion,
       "org.scodec"           %% "scodec-cats"   % scodecCatsVersion,
-      "org.typelevel"        %% "cats-testkit"  % catsVersion % "test",
-
     )
+  )
+
+lazy val tests = project
+  .in(file("modules/tests"))
+  .dependsOn(core)
+  .settings(commonSettings)
+  .settings(noPublishSettings)
+  .settings(
+    libraryDependencies += "com.lihaoyi" %% "utest" % "0.6.5" % "test",
+    testFrameworks += new TestFramework("utest.runner.Framework"),
+    test / fork := true,
+    Global / cancelable := true
   )
 
 lazy val example = project

@@ -106,7 +106,7 @@ object BufferedMessageSocket {
       case m @ BackendKeyData(_, _)    => Stream.eval_(bkDef.complete(m))
 
       // Lift this to an exception .. sensible?
-      case      ErrorResponse(map)     => Stream.raiseError[F](new SqlException(map))
+      // case      ErrorResponse(map)     => Stream.raiseError[F](new SqlException(map))
 
       // Everything else is passed through.
       case m                           => Stream.emit(m)
@@ -125,11 +125,18 @@ object BufferedMessageSocket {
       paSig <- SignallingRef[F, Map[String, String]](Map.empty)
       bkSig <- Deferred[F, BackendKeyData]
       noTop <- Topic[F, Notification](Notification(-1, Identifier.unsafeFromString("x"), "")) // blech
-      fib   <- next(ms, xaSig, paSig, bkSig, noTop).repeat.to(queue.enqueue).compile.drain.start
+      fib   <- next(ms, xaSig, paSig, bkSig, noTop).repeat.to(queue.enqueue).compile.drain.attempt.flatMap {
+        case Left(e)  => Concurrent[F].delay(e.printStackTrace)
+        case Right(a) => a.pure[F]
+      } .start
     } yield
       new BufferedMessageSocket[F] {
 
-        def receive = queue.dequeue1
+        def receive = queue.dequeue1.flatMap {
+          case ErrorResponse(map) => Concurrent[F].raiseError(new SqlException(map)) // TODO: sync and then throw
+          case a                  => a.pure[F]
+        }
+
         def send[A: FrontendMessage](a: A) = ms.send(a)
         def transactionStatus = xaSig
         def parameters = paSig
