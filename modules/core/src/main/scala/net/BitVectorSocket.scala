@@ -12,9 +12,16 @@ import java.nio.channels._
 import java.util.concurrent.Executors
 import scala.concurrent.duration._
 
-/** A higher-level socket interface defined in terms of `BitVector`. */
+/** A higher-level `Socket` interface defined in terms of `BitVector`. */
 trait BitVectorSocket[F[_]] {
+
+  /** Write the specified bits to the socket. */
   def write(bits: BitVector): F[Unit]
+
+  /**
+   * Read `nBytes` bytes (not bits!) from the socket, or fail with an exception if EOF is reached
+   * before `nBytes` bytes are received.
+   */
   def read(nBytes: Int): F[BitVector]
 }
 

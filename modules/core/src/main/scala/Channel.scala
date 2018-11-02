@@ -6,7 +6,7 @@ import cats.effect.Resource
 import cats.implicits._
 import fs2.Stream
 import skunk.data.{ Identifier, Notification }
-import skunk.proto.Protocol
+import skunk.net.Protocol
 
 /**
  * A '''channel''' that can be used for inter-process communication, implemented in terms of

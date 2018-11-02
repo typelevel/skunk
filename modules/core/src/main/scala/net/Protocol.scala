@@ -1,13 +1,12 @@
-package skunk
-package proto
+package skunk.net
 
 import cats.effect.{ Concurrent, ConcurrentEffect, Resource }
 import cats.effect.concurrent.Semaphore
 import cats.implicits._
 import fs2.concurrent.Signal
 import fs2.Stream
+import skunk.{ Command, Query, ~, Encoder, Decoder, Void }
 import skunk.data._
-import skunk.net.ActiveMessageSocket
 import skunk.net.message. { Query => QueryMessage, _ }
 import skunk.util.Namer
 import skunk.syntax.id._
@@ -53,16 +52,16 @@ trait Protocol[F[_]] {
   def parameters: Signal[F, Map[String, String]]
 
   /**
-   * Prepare a command (a statement that produces no rows), yielding a `ProtoPreparedCommand` which
+   * Prepare a command (a statement that produces no rows), yielding a `Protocol.PreparedCommand` which
    * must be closed by the caller. Higher-level APIs may wish to encapsulate this in a `Resource`.
    */
-  def prepareCommand[A](command: Command[A]): F[ProtoPreparedCommand[F, A]]
+  def prepareCommand[A](command: Command[A]): F[Protocol.PreparedCommand[F, A]]
 
   /**
-   * Prepare a query (a statement that produces rows), yielding a `ProtoPreparedCommand` which
+   * Prepare a query (a statement that produces rows), yielding a `Protocol.PreparedCommand` which
    * must be closed by the caller. Higher-level APIs may wish to encapsulate this in a `Resource`.
    */
-  def prepareQuery[A, B](query: Query[A, B]): F[ProtoPreparedQuery[F, A, B]]
+  def prepareQuery[A, B](query: Query[A, B]): F[Protocol.PreparedQuery[F, A, B]]
 
   /**
    * Execute a non-parameterized command (a statement that produces no rows), yielding a
@@ -94,6 +93,31 @@ trait Protocol[F[_]] {
 
 object Protocol {
 
+  trait CommandPortal[F[_]] {
+    def close: F[Unit]
+    def execute: F[Completion]
+  }
+
+  trait PreparedCommand[F[_], A] {
+    def bind(args: A): F[Protocol.CommandPortal[F]]
+    def check: F[Unit]
+    def close: F[Unit]
+  }
+
+
+  trait PreparedQuery[F[_], A, B] {
+    def close: F[Unit]
+    def check: F[Unit]
+    def bind(args: A): F[Protocol.QueryPortal[F, B]]
+  }
+
+
+  trait QueryPortal[F[_], A] {
+    def close: F[Unit]
+    def execute(maxRows: Int): F[List[A] ~ Boolean]
+  }
+
+
   /**
    * Resource yielding a new `Protocol` with the given `host`, `port`, and statement checking policy.
    * @param host  Postgres server host
@@ -107,13 +131,13 @@ object Protocol {
     check: Boolean = true
   ): Resource[F, Protocol[F]] =
     for {
-      ams <- ActiveMessageSocket[F](host, port)
-      ses <- Resource.liftF(Protocol.fromActiveMessageSocket(ams, check))
+      ams <- BufferedMessageSocket[F](host, port)
+      ses <- Resource.liftF(Protocol.fromBufferedMessageSocket(ams, check))
     } yield ses
 
-  /** Construct a `Protocol` by wrapping an `ActiveMessageSocket`. */
-  private def fromActiveMessageSocket[F[_]: Concurrent](
-    ams:   ActiveMessageSocket[F],
+  /** Construct a `Protocol` by wrapping an `BufferedMessageSocket`. */
+  private def fromBufferedMessageSocket[F[_]: Concurrent](
+    ams:   BufferedMessageSocket[F],
     check: Boolean
   ): F[Protocol[F]] =
     for {
@@ -123,14 +147,14 @@ object Protocol {
 
   /**
    * `Protocol` implementation.
-   * @param ams `ActiveMessageSocket` that manages message exchange.
+   * @param ams `BufferedMessageSocket` that manages message exchange.
    * @param nam `Namer` for giving unique (per session) names for prepared statements and portals.
    * @param sem Single-key `Semaphore` used as a mutex for message exchanges. Every "conversation"
    *   must be conducted while holding the mutex because we may have interleaved streams.
    * @param check Check all `prepare` and `quick` statements for consistency with the schema.
    */
   private final class SessionImpl[F[_]: Concurrent](
-    ams:   ActiveMessageSocket[F],
+    ams:   BufferedMessageSocket[F],
     nam:   Namer[F],
     sem:   Semaphore[F],
     check: Boolean
@@ -142,13 +166,13 @@ object Protocol {
     def parameters: Signal[F, Map[String, String]] =
       ams.parameters
 
-    def prepareCommand[A](command: Command[A]): F[ProtoPreparedCommand[F, A]] =
+    def prepareCommand[A](command: Command[A]): F[Protocol.PreparedCommand[F, A]] =
       parse(command.sql, command.encoder).map { stmt =>
-        new ProtoPreparedCommand[F, A] {
+        new Protocol.PreparedCommand[F, A] {
 
-          def bind(args: A): F[ProtoCommandPortal[F]] =
+          def bind(args: A): F[Protocol.CommandPortal[F]] =
             bindStmt(stmt, command.encoder, args).map { portal =>
-              new ProtoCommandPortal[F] {
+              new Protocol.CommandPortal[F] {
 
                 def close: F[Unit] =
                   closePortal(portal)
@@ -183,13 +207,13 @@ object Protocol {
         }
       } .flatMap { ps => ps.check.whenA(check).as(ps) }
 
-    def prepareQuery[A, B](query: Query[A, B]): F[ProtoPreparedQuery[F, A, B]] =
+    def prepareQuery[A, B](query: Query[A, B]): F[Protocol.PreparedQuery[F, A, B]] =
       parse(query.sql, query.encoder).map { stmt =>
-        new ProtoPreparedQuery[F, A, B] {
+        new Protocol.PreparedQuery[F, A, B] {
 
-          def bind(args: A): F[ProtoQueryPortal[F, B]] =
+          def bind(args: A): F[Protocol.QueryPortal[F, B]] =
             bindStmt(stmt, query.encoder, args).map { portal =>
-              new ProtoQueryPortal[F, B] {
+              new Protocol.QueryPortal[F, B] {
 
                 def close: F[Unit] =
                   closePortal(portal)

@@ -9,30 +9,74 @@ import fs2.Stream
 import skunk.data._
 import skunk.net.message._
 
-// name??
-trait ActiveMessageSocket[F[_]] {
-  def receive: F[BackendMessage]
-  def send[A: FrontendMessage](a: A): F[Unit]
+/**
+ * A `MessageSocket` that buffers incoming messages, removing and handling asynchronous back-end
+ * messages. This splits the protocol into a [logically] synchronous message exchange plus a set of
+ * out-of-band broadcast channels that can be observed or ignored at the user's discretion.
+ */
+trait BufferedMessageSocket[F[_]] extends MessageSocket[F] {
+
+  /**
+   * `Signal` broadcasting the current `TransactionStatus` which is reported after each completed
+   * message exchange. Note that this value may be stale in the case of a raised exception, which
+   * should prompt the front end to send a `Sync` message but currently does not.
+   */
   def transactionStatus: Signal[F, TransactionStatus]
+
+  /**
+   * Signal representing the current state of all Postgres configuration variables announced to this
+   * session. These are sent after authentication and are updated asynchronously if the runtime
+   * environment changes. The current keys are as follows (with example values), but these may
+   * change with future releases so you should be prepared to handle unexpected ones.
+   *
+   * {{{
+   * Map(
+   *   "application_name"            -> "",
+   *   "client_encoding"             -> "UTF8",
+   *   "DateStyle"                   -> "ISO, MDY",
+   *   "integer_datetimes"           -> "on",       // cannot change after startup
+   *   "IntervalStyle"               -> "postgres",
+   *   "is_superuser"                -> "on",
+   *   "server_encoding"             -> "UTF8",     // cannot change after startup
+   *   "server_version"              -> "9.5.3",    // cannot change after startup
+   *   "session_authorization"       -> "postgres",
+   *   "standard_conforming_strings" -> "on",
+   *   "TimeZone"                    -> "US/Pacific",
+   * )
+   * }}}
+   */
   def parameters: Signal[F, Map[String, String]]
+
+
   def backendKeyData: Deferred[F, BackendKeyData]
+
+  /**
+   * `Stream` of all channel notifications that this `Session` is subscribed to. Note that once
+   * such a stream is started it is important to consume all notifications as quickly as possible to
+   * avoid blocking message processing for other operations on the `Session` (although typically a
+   * dedicated `Session` will receive channel notifications so this won't be an issue).
+   * @param maxQueued the maximum number of notifications to hold in a queue before [semantically]
+   *   blocking message exchange on the controlling `Session`.
+   * @see [[https://www.postgresql.org/docs/10/static/sql-listen.html LISTEN]]
+   */
   def notifications(maxQueued: Int): Stream[F, Notification]
+
   def expect[B](f: PartialFunction[BackendMessage, B]): F[B]
 
   // TODO: this is an implementation leakage, fold into the factory below
   protected def terminate: F[Unit]
 }
 
-object ActiveMessageSocket {
+object BufferedMessageSocket {
 
   def apply[F[_]: ConcurrentEffect](
     host:      String,
     port:      Int,
     queueSize: Int = 256
-  ): Resource[F, ActiveMessageSocket[F]] =
+  ): Resource[F, BufferedMessageSocket[F]] =
     for {
       ms  <- MessageSocket(host, port)
-      ams <- Resource.make(ActiveMessageSocket.fromMessageSocket[F](ms, queueSize))(_.terminate)
+      ams <- Resource.make(BufferedMessageSocket.fromMessageSocket[F](ms, queueSize))(_.terminate)
     } yield ams
 
   /**
@@ -74,7 +118,7 @@ object ActiveMessageSocket {
   private def fromMessageSocket[F[_]: Concurrent](
     ms:       MessageSocket[F],
     queueSize: Int
-  ): F[ActiveMessageSocket[F]] =
+  ): F[BufferedMessageSocket[F]] =
     for {
       queue <- Queue.bounded[F, BackendMessage](queueSize)
       xaSig <- SignallingRef[F, TransactionStatus](TransactionStatus.Idle) // initial state (ok)
@@ -83,7 +127,7 @@ object ActiveMessageSocket {
       noTop <- Topic[F, Notification](Notification(-1, Identifier.unsafeFromString("x"), "")) // blech
       fib   <- next(ms, xaSig, paSig, bkSig, noTop).repeat.to(queue.enqueue).compile.drain.start
     } yield
-      new ActiveMessageSocket[F] {
+      new BufferedMessageSocket[F] {
 
         def receive = queue.dequeue1
         def send[A: FrontendMessage](a: A) = ms.send(a)

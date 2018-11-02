@@ -3,7 +3,7 @@ package skunk
 import cats.Contravariant
 import cats.effect.Bracket
 import skunk.data.Completion
-import skunk.proto.ProtoPreparedCommand
+import skunk.net.Protocol
 
 /**
  * A prepared command, valid for the life of its defining `Session`.
@@ -27,7 +27,7 @@ object PreparedCommand {
         }
     }
 
-  def fromProto[F[_]: Bracket[?[_], Throwable], A](pc: ProtoPreparedCommand[F, A]) =
+  def fromProto[F[_]: Bracket[?[_], Throwable], A](pc: Protocol.PreparedCommand[F, A]) =
     new PreparedCommand[F, A] {
       def check = pc.check
       def execute(args: A) =

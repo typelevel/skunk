@@ -5,7 +5,7 @@ import cats.arrow.Profunctor
 import cats.effect._
 import cats.implicits._
 import fs2.{ Chunk, Stream }
-import skunk.proto.ProtoPreparedQuery
+import skunk.net.Protocol
 
 /**
  * A prepared query, valid for the life of its originating `Session`.
@@ -104,7 +104,7 @@ object PreparedQuery {
       override def rmap[A, B, C](fab: PreparedQuery[F, A, B])(f: (B) ⇒ C) = fab.map(f)
     }
 
-  def fromProto[F[_]: Bracket[?[_], Throwable], A, B](proto: ProtoPreparedQuery[F, A, B]) =
+  def fromProto[F[_]: Bracket[?[_], Throwable], A, B](proto: Protocol.PreparedQuery[F, A, B]) =
     new PreparedQuery[F, A, B] {
 
       def check =

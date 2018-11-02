@@ -7,16 +7,15 @@ import cats.effect.Resource
  *
  *   - Skunk doesn't use JDBC. It speaks the Postgres wire protocol. It will not work with any other
  *     database back end.
- *   - Skunk is asynchronous all the way down, via cats-effect, fs2, and ultimately nio.
+ *   - Skunk is asynchronous all the way down, via cats-effect, fs2, and ultimately nio. The
+ *     high-level network layers (`Protocol` and `Session`) are safe to use concurrently.
  *   - Serialization to and from schema types is not typeclass-based, so there are no implicit
  *     derivations. Codecs are explicit, like parser combinators.
  *   - I'm not sweating arity abstraction that much. Pass `a ~ b ~ c` for three args and `Void` if
- *     there are no args. This may change in the future, at the cost of some near-duplication.
- *   - Skunk uses `Resource` for lifetime-managed objects, which means it's possible to leak
- *     resources. It will be interesting to see if this ends up being a common error, especially
- *     in concurrent code (any fibers that close over a managed value must be joined or canceled
- *     before the owning resource is released).
- *   - I'm trying to write good Scaladoc this time. We'll see if it works.
+ *     there are no args. This may change in the future but it's fine for now.
+ *   - Skunk uses `Resource` for lifetime-managed objects, which means it takes some discipline to
+ *     avoid leaks, especially when working concurrently. May or may not end up being problematic.
+ *   - I'm trying to write good Scaladoc this time.
  *
  * A minimal example follows. We construct a `Resource` that yields a `Session`, then use it.
  *

@@ -5,7 +5,7 @@ import cats.implicits._
 import fs2.Stream
 import fs2.concurrent.Signal
 import skunk.data._
-import skunk.proto.Protocol
+import skunk.net.Protocol
 import skunk.util.Pool
 
 /**

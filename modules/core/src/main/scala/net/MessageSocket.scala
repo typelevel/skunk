@@ -5,9 +5,16 @@ import cats.implicits._
 import scodec.codecs._
 import skunk.net.message.{ Sync => _, _ }
 
-/** A higher-level socket interface defined in terms of `Message`. */
+/** A higher-level `BitVectorSocket` that speaks in terms of `Message`. */
 trait MessageSocket[F[_]] {
+
+  /**
+   * Receive the next `BackendMessage`, or raise an exception if EOF is reached before a complete
+   * message arrives.
+   */
   def receive: F[BackendMessage]
+
+  /** Send the specified message. */
   def send[A: FrontendMessage](a: A): F[Unit]
 }
 
