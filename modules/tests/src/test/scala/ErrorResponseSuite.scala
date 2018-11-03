@@ -4,6 +4,10 @@ import skunk.codec.all._
 import skunk.implicits._
 import utest.{ assert => _, _ }
 
+/**
+ * There are a bunch of places where an `ErrorResponse` might occur, and we need to ensure that we
+ * handle all of them and return to an healthy state.
+ */
 object ErrorResponseSuite extends SkunkSuite {
   val tests = Tests {
 
@@ -24,6 +28,11 @@ object ErrorResponseSuite extends SkunkSuite {
       }
 
     }
+
+    // more … prepare and bind for queries and commands
+    // using a closed statement or portal
+    // committing with no active transaction
+    // etc.
 
   }
 }

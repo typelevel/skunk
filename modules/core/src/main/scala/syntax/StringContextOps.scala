@@ -82,7 +82,7 @@ object StringContextOps {
             } else if (argType <:< EncoderType) {
 
                 val p1 = q"skunk.syntax.StringContextOps.Str($part)"
-                val p2 = q"skunk.syntax.StringContextOps.Par($arg.oids.length)"
+                val p2 = q"skunk.syntax.StringContextOps.Par($arg.types.length)"
                 (p1 :: p2 :: tail, arg :: es)
 
             } else if (argType <:< VoidFragmentType) {

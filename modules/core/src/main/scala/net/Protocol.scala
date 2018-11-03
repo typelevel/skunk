@@ -251,38 +251,42 @@ object Protocol {
 
     def quick(command: Command[Void]): F[Completion] =
       sem.withPermit {
-        for {
-          _ <- ams.send(QueryMessage(command.sql))
-          _ <- printStatement(command.sql).whenA(check)
-          c <- ams.flatExpect {
-                 case CommandComplete(c) => c.pure[F]
-                 case ErrorResponse(e)   =>
-                   for {
-                     _  <- ams.expect { case ReadyForQuery(_) => }
-                     cʹ <- Concurrent[F].raiseError[Completion](new SqlException(e))
-                   } yield cʹ
-               }
-          _ <- ams.expect { case ReadyForQuery(_) => }
-        } yield c
+        ams.send(QueryMessage(command.sql)) *> ams.flatExpect {
+
+          case CommandComplete(c) =>
+            for {
+              _ <- printStatement(command.sql).whenA(check)
+              _ <- ams.expect { case ReadyForQuery(_) => }
+            } yield c
+
+           case ErrorResponse(e) =>
+            for {
+              _ <- ams.expect { case ReadyForQuery(_) => }
+              c <- Concurrent[F].raiseError[Completion](new SqlException(e))
+            } yield c
+
+        }
       }
 
     def quick[B](query: Query[Void, B]): F[List[B]] =
       sem.withPermit {
-        for {
-          _  <- ams.send(QueryMessage(query.sql))
-          rd <- ams.flatExpect {
-                  case rd @ RowDescription(_) => rd.pure[F]
-                  case ErrorResponse(e)   =>
-                   for {
-                     _   <- ams.expect { case ReadyForQuery(_) => }
-                     rdʹ <- Concurrent[F].raiseError[RowDescription](new SqlException(e))
-                   } yield rdʹ
-                }
-          _  <- printStatement(query.sql).whenA(check)
-          _  <- checkRowDescription(rd, query.decoder).whenA(check)
-          rs <- unroll(query.decoder).map(_._1) // rs._2 will always be true here
-          _  <- ams.expect { case ReadyForQuery(_) => }
-        } yield rs
+        ams.send(QueryMessage(query.sql)) *> ams.flatExpect {
+
+          case rd @ RowDescription(_) =>
+            for {
+              _  <- printStatement(query.sql).whenA(check)
+              _  <- checkRowDescription(rd, query.decoder).whenA(check)
+              rs <- unroll(query.decoder).map(_._1) // rs._2 will always be true here
+              _  <- ams.expect { case ReadyForQuery(_) => }
+            } yield rs
+
+          case ErrorResponse(e) =>
+            for {
+              _  <- ams.expect { case ReadyForQuery(_) => }
+              rs <- Concurrent[F].raiseError[List[B]](new SqlException(e))
+            } yield rs
+          }
+
       }
 
 
