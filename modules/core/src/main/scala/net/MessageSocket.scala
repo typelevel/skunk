@@ -39,12 +39,12 @@ object MessageSocket {
       val receive: F[BackendMessage] =
         for {
           msg <- receiveImpl
-          _   <- Sync[F].delay(println(s"${Console.GREEN}$msg${Console.RESET}"))
+          // _   <- Sync[F].delay(println(s"${Console.GREEN}$msg${Console.RESET}"))
         } yield msg
 
       def send[A](a: A)(implicit ev: FrontendMessage[A]): F[Unit] =
         for {
-          _ <- Sync[F].delay(println(s"${Console.YELLOW}$a${Console.RESET}"))
+          // _ <- Sync[F].delay(println(s"${Console.YELLOW}$a${Console.RESET}"))
           _ <- bvs.write(ev.fullEncoder.encode(a).require)
         } yield ()
 

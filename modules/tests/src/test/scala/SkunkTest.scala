@@ -1,21 +1,13 @@
 package tests
 
-import cats.effect._
+import cats.effect.{ IO, Resource }
 import cats.implicits._
-import scala.concurrent.ExecutionContext
-import skunk._
+import skunk.Session
+import skunk.data._
 import skunk.codec.all._
 import skunk.implicits._
-import skunk.data._
-import utest.{ assert => _, _ }
 
-trait SkunkSuite extends TestSuite {
-
-  implicit val ioContextShift: ContextShift[IO] =
-    IO.contextShift(ExecutionContext.global)
-
-  implicit val ioTimer: Timer[IO] =
-    IO.timer(ExecutionContext.global)
+trait SkunkTest extends ffstest.FTest {
 
   val session: Resource[IO, Session[IO]] =
     Session.single(
@@ -25,14 +17,7 @@ trait SkunkSuite extends TestSuite {
       database = "world",
     )
 
-  def unsafeRunSession[A](f: Session[IO] => IO[A]): A =
-    session.use(f).unsafeRunSync
-
-  def assert(msg: => String, b: => Boolean): IO[Unit] =
-    if (b) IO.pure(())
-    else IO.raiseError(new RuntimeException(s"Assertion failed: $msg"))
-
-  implicit class SessionOps(s: Session[IO]) {
+  implicit class SkunkSuiteSessionOps(s: Session[IO]) {
 
     def assertTransactionStatus(msg: String, xas: TransactionStatus): IO[Unit] =
       s.transactionStatus.get.flatMap(a => assert(s"$msg (expected $xas, got $a)", a === xas))
@@ -44,10 +29,9 @@ trait SkunkSuite extends TestSuite {
         _ <- assert("sanity check", n === List(42))
       } yield ()
 
-
   }
 
-  implicit class ErrorResponseSuiteIOOps(fa: IO[_]) {
+  implicit class SkunkSuiteIOOps(fa: IO[_]) {
     def assertFailsWithSqlException: IO[Unit] =
       fa.attempt.flatMap {
         case Left(_: SqlException) => IO.unit
@@ -56,5 +40,7 @@ trait SkunkSuite extends TestSuite {
       }
   }
 
+  def sessionTest[A](name: String)(fa: Session[IO] => IO[A]): Unit =
+    test(name)(session.use(fa))
 
 }

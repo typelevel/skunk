@@ -202,8 +202,8 @@ lazy val tests = project
   .settings(commonSettings)
   .settings(noPublishSettings)
   .settings(
-    libraryDependencies += "com.lihaoyi" %% "utest" % "0.6.5" % "test",
-    testFrameworks += new TestFramework("utest.runner.Framework"),
+    libraryDependencies += "org.scala-sbt" % "test-interface" % "1.0",
+    testFrameworks += new TestFramework("ffstest.FFramework"),
     Test / fork := true,
     Test / cancelable := true
   )

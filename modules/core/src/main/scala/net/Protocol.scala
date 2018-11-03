@@ -205,7 +205,7 @@ object Protocol {
             closeStmt(stmt)
 
         }
-      } .flatMap { ps => ps.check.whenA(check).as(ps) }
+      } //.flatMap { ps => ps.check.whenA(check).as(ps) }
 
     def prepareQuery[A, B](query: Query[A, B]): F[Protocol.PreparedQuery[F, A, B]] =
       parse(query.sql, query.encoder).map { stmt =>
@@ -255,7 +255,7 @@ object Protocol {
 
           case CommandComplete(c) =>
             for {
-              _ <- printStatement(command.sql).whenA(check)
+              // _ <- printStatement(command.sql).whenA(check)
               _ <- ams.expect { case ReadyForQuery(_) => }
             } yield c
 
@@ -274,8 +274,8 @@ object Protocol {
 
           case rd @ RowDescription(_) =>
             for {
-              _  <- printStatement(query.sql).whenA(check)
-              _  <- checkRowDescription(rd, query.decoder).whenA(check)
+              // _  <- printStatement(query.sql).whenA(check)
+              // _  <- checkRowDescription(rd, query.decoder).whenA(check)
               rs <- unroll(query.decoder).map(_._1) // rs._2 will always be true here
               _  <- ams.expect { case ReadyForQuery(_) => }
             } yield rs
