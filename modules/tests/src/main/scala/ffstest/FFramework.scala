@@ -3,42 +3,30 @@ package ffstest
 import cats.effect._
 import cats.implicits._
 import sbt.testing.{ Framework, _ }
+import sbt.testing.Status._
 import scala.concurrent.ExecutionContext
+import scala.Console._
 
 trait FTest {
-
-  protected[ffstest] var tests =
-    List.empty[(String, IO[_])]
-
-  implicit val ioContextShift: ContextShift[IO] =
-    IO.contextShift(ExecutionContext.global)
-
-  implicit val ioTimer: Timer[IO] =
-    IO.timer(ExecutionContext.global)
-
-  def test[A](name: String)(f: IO[A]) =
-    tests = tests :+ ((name, f))
-
+  protected[ffstest] var tests = List.empty[(String, IO[_])]
+  implicit val ioContextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
+  implicit val ioTimer: Timer[IO] = IO.timer(ExecutionContext.global)
+  def test[A](name: String)(f: IO[A]) = tests = tests :+ ((name, f))
   def assert(msg: => String, b: => Boolean): IO[Unit] =
-    if (b) IO.pure(())
-    else IO.raiseError(new AssertionError(msg))
-
+    if (b) IO.pure(()) else IO.raiseError(new AssertionError(msg))
 }
 
 class FFramework extends Framework {
   val name = "ffstest"
-  val fingerprints = Array(FFramework.fingerprint)
+  val fingerprints = Array(FFingerprint : Fingerprint)
   def runner(args: Array[String], remoteArgs: Array[String], testClassLoader: ClassLoader): Runner =
     new FRunner(args, remoteArgs, testClassLoader)
 }
 
-object FFramework {
-  val fingerprint: Fingerprint =
-    new SubclassFingerprint {
-      val isModule = true
-      def requireNoArgConstructor = true
-      def superclassName = classOf[FTest].getName
-    }
+object FFingerprint extends SubclassFingerprint {
+  val isModule                = true
+  val requireNoArgConstructor = true
+  val superclassName          = classOf[FTest].getName
 }
 
 final case class FRunner(
@@ -51,67 +39,51 @@ final case class FRunner(
 }
 
 case class FTask(taskDef: TaskDef, testClassLoader: ClassLoader) extends Task {
-  def tags = Array.empty
+
+  implicit def throwableToOptionThrowable(t: Throwable): OptionalThrowable =
+    new OptionalThrowable(t)
+
+  case class FEvent(
+    status:             Status,
+    duration:           Long              = -1L,
+    throwable:          OptionalThrowable = new OptionalThrowable() ,
+    fingerprint:        Fingerprint       = taskDef.fingerprint,
+    fullyQualifiedName: String            = taskDef.fullyQualifiedName,
+    selector:           Selector          = taskDef.selectors.head
+  ) extends Event
+
   def execute(eventHandler: EventHandler, loggers: Array[Logger]): Array[Task] = {
 
-    loggers.foreach(_.info(Console.YELLOW + "🍋  " + taskDef.fullyQualifiedName + Console.RESET))
+    loggers.foreach(_.info(s"$YELLOW🍋  ${taskDef.fullyQualifiedName}$RESET"))
 
-    val cls = Class.forName(taskDef.fullyQualifiedName + "$", true, testClassLoader)
-    val obj = cls.getField("MODULE$").get(null).asInstanceOf[FTest]
+    val obj = Class.forName(taskDef.fullyQualifiedName + "$", true, testClassLoader)
+      .getField("MODULE$").get(null).asInstanceOf[FTest]
+
+    def report(color: String, message: String, event: Event) = {
+      loggers.foreach(_.info(s"$color   $message$RESET"))
+      eventHandler.handle(event)
+    }
+
 
     obj.tests.foreach { case (name, fa) =>
+      type AE = AssertionError // to make the lines shorter below :-\
       FTask.timed(obj.ioContextShift.shift *> fa).attempt.unsafeRunSync match {
-
-        case Left(e: AssertionError) =>
-          loggers.foreach(_.info(s"${Console.RED}   ✗ $name (${e.getMessage})${Console.RESET}"))
-          eventHandler.handle(new Event {
-            val duration: Long = -1L
-            val fingerprint: Fingerprint = taskDef.fingerprint
-            val fullyQualifiedName: String = taskDef.fullyQualifiedName
-            val selector: Selector =  taskDef.selectors.head // doesn't seem to do anything
-            val status: Status = Status.Failure
-            val throwable: OptionalThrowable = new OptionalThrowable()
-          })
-
-        case Left(e) =>
-          loggers.foreach(_.info(s"${Console.RED}   ? $name (${e.getMessage})${Console.RESET}"))
-          eventHandler.handle(new Event {
-            val duration: Long = -1L
-            val fingerprint: Fingerprint = taskDef.fingerprint
-            val fullyQualifiedName: String = taskDef.fullyQualifiedName
-            val selector: Selector = taskDef.selectors.head // doesn't seem to do anything
-            val status: Status = Status.Error
-            val throwable: OptionalThrowable = new OptionalThrowable(e)
-          })
-
-        case Right((ms, a)) =>
-          loggers.foreach(_.info(s"${Console.GREEN}   ✓ $name ($ms ms)${Console.RESET}"))
-          eventHandler.handle(new Event {
-            val duration: Long = ms
-            val fingerprint: Fingerprint = taskDef.fingerprint
-            val fullyQualifiedName: String = taskDef.fullyQualifiedName
-            val selector: Selector = taskDef.selectors.head // doesn't seem to do anything
-            val status: Status = Status.Success
-            val throwable: OptionalThrowable = new OptionalThrowable()
-          })
-
+        case Right((ms, a)) => report(GREEN, s"✓ $name ($ms ms)",          FEvent(Success, duration = ms))
+        case Left(e: AE)    => report(RED,   s"✗ $name (${e.getMessage})", FEvent(Failure))
+        case Left(e)        => report(RED,   s"? $name (${e.getMessage})", FEvent(Error, throwable = e))
       }
-
     }
 
     // maybe we're supposed to return new tasks with new taskdefs?
     Array.empty
   }
 
+  def tags = Array.empty // unused
+
 }
 
 object FTask {
-  val now = IO(System.currentTimeMillis)
-  def timed[A](fa: IO[A]): IO[(Long, A)] =
-    for {
-      t0 <- now
-      a  <- fa
-      t1 <- now
-    } yield (t1 - t0, a)
+  private val now = IO(System.currentTimeMillis)
+  def timed[A](fa: IO[A]): IO[(Long, A)] = (now, fa, now).mapN((t0, a, t1) => (t1 - t0, a))
 }
 
