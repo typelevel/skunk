@@ -92,12 +92,6 @@ lazy val commonSettings = scalacSettings ++ Seq(
   ),
 
   addCompilerPlugin("org.spire-math" %% "kind-projector" % kindProjectorVersion),
-
-)
-
-lazy val publishSettings = Seq(
-  useGpg := false,
-  publishMavenStyle := true,
   publishTo := {
     val nexus = "https://oss.sonatype.org/"
     if (isSnapshot.value)
@@ -105,23 +99,26 @@ lazy val publishSettings = Seq(
     else
       Some("releases"  at nexus + "service/local/staging/deploy/maven2")
   },
+  releaseProcess := Nil
+)
+
+lazy val publishSettings = Seq(
+  useGpg := false,
+  publishMavenStyle := true,
   publishArtifact in Test := false,
   homepage := Some(url("https://github.com/tpolecat/skunk")),
   pomIncludeRepository := Function.const(false),
   pomExtra := (
-    <scm>
-      <url>git@github.com:tpolecat/doobie.git</url>
-      <connection>scm:git:git@github.com:tpolecat/doobie.git</connection>
-    </scm>
     <developers>
       <developer>
         <id>tpolecat</id>
         <name>Rob Norris</name>
+        <url>http://tpolecat.org</url>
       </developer>
     </developers>
   ),
-  releaseProcess := Nil,
-  releasePublishArtifactsAction := PgpKeys.publishSigned.value
+  releasePublishArtifactsAction := PgpKeys.publishSigned.value,
+  mappings in (Compile, packageSrc) ++= (managedSources in Compile).value pair sbt.io.Path.relativeTo(sourceManaged.value / "main" / "scala")
 )
 
 lazy val noPublishSettings = Seq(
