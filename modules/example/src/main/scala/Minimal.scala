@@ -3,7 +3,7 @@ package example
 import cats.effect._
 import skunk._
 import skunk.implicits._
-import skunk.codec.numeric._
+import skunk.codec.text._
 
 object Minimal extends IOApp {
 
@@ -18,8 +18,8 @@ object Minimal extends IOApp {
   def run(args: List[String]): IO[ExitCode] =
     session.use { s =>
       for {
-        n <- s.execute(sql"select 42".query(int4))
-        _ <- IO(println(s"The answer is $n."))
+        s <- s.unique(sql"select 'hello world'".query(varchar))
+        _ <- IO(println(s"The answer is '$s'."))
       } yield ExitCode.Success
     }
 

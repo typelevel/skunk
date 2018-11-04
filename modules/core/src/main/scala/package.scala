@@ -40,7 +40,7 @@ import cats.effect.Resource
  *   def run(args: List[String]): IO[ExitCode] =
  *     session.use { s =>
  *       for {
- *         n <- s.execute(sql"select 42".query(int4))
+ *         n <- s.unique(sql"select 42".query(int4))
  *         _ <- IO(println(s"The answer is $n."))
  *       } yield ExitCode.Success
  *     }

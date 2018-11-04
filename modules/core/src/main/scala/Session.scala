@@ -18,9 +18,10 @@ import skunk.util.Pool
  * instance.
  *
  * @groupprio Queries 10
- * @groupdesc Queries A query is any SQL statement that can returns rows. Parameterized
- *   queries must first be prepared, then can be executed many times with different arguments.
- *   Queries without parameters can be executed directly.
+ * @groupdesc Queries A query is any SQL statement that returns rows; i.e., any `SELECT` or
+ * `VALUES` query, or an `INSERT`, `UPDATE`, or `DELETE` command that returns rows via `RETURNING`.
+ *  Parameterized queries must first be prepared, then can be executed many times with different
+ *  arguments. Non-parameterized queries can be executed directly.
 
  * @groupprio Commands 20
  * @groupdesc Commands A command is any SQL statement that cannot return rows. Parameterized
@@ -79,22 +80,35 @@ trait Session[F[_]] {
 
   /**
    * Excute a non-parameterized query and yield all results. If you have parameters or wish to limit
-   * returned rows use `bind`/`execute` or `stream`.
+   * returned rows use `prepare` instead.
    * @group Queries
    */
   def execute[A](query: Query[Void, A]): F[List[A]]
 
   /**
+   * Excute a non-parameterized query and yield exactly one row, raising an exception if there are
+   * more or fewer. If you have parameters use `prepare` instead.
+   * @group Queries
+   */
+  def unique[A](query: Query[Void, A]): F[A]
+
+  /**
+   * Excute a non-parameterized query and yield at most one row, raising an exception if there are
+   * more. If you have parameters use `prepare` instead.
+   * @group Queries
+   */
+  def option[A](query: Query[Void, A]): F[Option[A]]
+
+  /**
    * Excute a non-parameterized command and yield a `Completion`. If you have parameters use
-   * `execute`.
+   * `prepare` instead.
    * @group Commands
    */
   def execute(command: Command[Void]): F[Completion]
 
   /**
-   * Prepare a `SELECT` or `VALUES` query; or an `INSERT`, `UPDATE`, or `DELETE` command that
-   * returns rows via `RETURNING`. The resulting `PreparedQuery` can be executed multiple times with
-   * different arguments.
+   * Resource that prepares a query, yielding a `PreparedQuery` which can be executed multiple
+   * times with different arguments.
    * @group Queries
    */
   def prepare[A, B](query: Query[A, B]): Resource[F, PreparedQuery[F, A, B]]
@@ -201,6 +215,20 @@ object Session {
 
       def execute[A](query: Query[Void, A]) =
         proto.quick(query)
+
+      def unique[A](query: Query[Void, A]): F[A] =
+        execute(query).flatMap {
+            case b :: Nil => b.pure[F]
+            case Nil      => Sync[F].raiseError(new RuntimeException("Expected exactly one result, none returned."))
+            case _        => Sync[F].raiseError(new RuntimeException("Expected exactly one result, more returned."))
+          }
+
+      def option[A](query: Query[Void, A]): F[Option[A]] =
+        execute(query).flatMap {
+          case b :: Nil => b.some.pure[F]
+          case Nil      => none[A].pure[F]
+          case _        => Sync[F].raiseError(new RuntimeException("Expected exactly one result, more returned."))
+        }
 
       def prepare[A, B](query: Query[A, B]) =
         Resource.make(proto.prepareQuery(query))(_.close).map(PreparedQuery.fromProto(_))

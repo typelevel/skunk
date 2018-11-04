@@ -41,13 +41,6 @@ trait PreparedQuery[F[_], A, B] {
   def option(args: A): F[Option[B]]
 
   /**
-   * Fetch and return at most one row, disregarding additional rows. This is occasionally useful
-   * but it's often nicer to add a `LIMIT` clause on the database side and then use `option` or
-   * `unique` instead.
-   */
-  def headOption(args: A): F[Option[B]]
-
-  /**
    * Fetch and return exactly one row, raising an exception if there are more or fewer.
    */
   def unique(args: A): F[B]
@@ -69,7 +62,6 @@ object PreparedQuery {
             def cursor(args: A) = fa.cursor(args).map(_.map(f))
             def stream(args: A, chunkSize: Int) = fa.stream(args, chunkSize).map(f)
             def option(args: A) = fa.option(args).map(_.map(f))
-            def headOption(args: A) = fa.headOption(args).map(_.map(f))
             def unique(args: A) = fa.unique(args).map(f)
         }
     }
@@ -86,7 +78,6 @@ object PreparedQuery {
             def cursor(args: U) = fa.cursor(f(args))
             def stream(args: U, chunkSize: Int) = fa.stream(f(args), chunkSize)
             def option(args: U) = fa.option(f(args))
-            def headOption(args: U) = fa.headOption(f(args))
             def unique(args: U) = fa.unique(f(args))
         }
     }
@@ -144,9 +135,6 @@ object PreparedQuery {
             case _        => MonadError[F, Throwable].raiseError(new RuntimeException("Expected exactly one result, more returned."))
           }
         }
-
-      def headOption(args: A) =
-        fetch2(args).map(_._1.headOption)
 
       def unique(args: A) =
         fetch2(args).flatMap { case (bs, _) =>
