@@ -12,13 +12,14 @@ trait FTest {
   implicit val ioContextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
   implicit val ioTimer: Timer[IO] = IO.timer(ExecutionContext.global)
   def test[A](name: String)(f: IO[A]) = tests = tests :+ ((name, f))
-  def assert(msg: => String, b: => Boolean): IO[Unit] =
-    if (b) IO.pure(()) else IO.raiseError(new AssertionError(msg))
+  def fail(msg: String): IO[Unit] = IO.raiseError(new AssertionError(msg))
+  def fail(msg: String, cause: Throwable): IO[Unit] = IO.raiseError(new AssertionError(msg, cause))
+  def assert(msg: => String, b: => Boolean): IO[Unit] = if (b) IO.pure(()) else fail(msg)
 }
 
 class FFramework extends Framework {
   val name = "ffstest"
-  val fingerprints = Array(FFingerprint : Fingerprint)
+  val fingerprints = Array(FFingerprint: Fingerprint)
   def runner(args: Array[String], remoteArgs: Array[String], testClassLoader: ClassLoader): Runner =
     new FRunner(args, remoteArgs, testClassLoader)
 }
@@ -70,7 +71,7 @@ case class FTask(taskDef: TaskDef, testClassLoader: ClassLoader) extends Task {
       FTask.timed(obj.ioContextShift.shift *> fa).attempt.unsafeRunSync match {
         case Right((ms, a)) => report(GREEN, s"✓ $name ($ms ms)",          FEvent(Success, duration = ms))
         case Left(e: AE)    => report(RED,   s"✗ $name (${e.getMessage})", FEvent(Failure))
-        case Left(e)        => report(RED,   s"? $name (${e.getMessage})", FEvent(Error, throwable = e))
+        case Left(e)        => report(RED,   s"? $name (${e.getMessage})", FEvent(Error, throwable = e)) // todo: stacktrace
       }
     }
 

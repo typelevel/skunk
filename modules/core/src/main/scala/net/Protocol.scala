@@ -323,13 +323,23 @@ object Protocol {
         } yield ()
       }
 
+    private def recover[A](t: Throwable): F[A] =
+      for {
+        _ <- ams.send(Sync)
+        _ <- ams.expect { case ReadyForQuery(_) => }
+        a <- Concurrent[F].raiseError[A](t)
+      } yield a
+
     private def parse[A](sql: String, enc: Encoder[A]): F[String] =
       sem.withPermit {
         for {
           n <- nam.nextName("stmt")
           _ <- ams.send(Parse(n, sql, enc.types.toList))
           _ <- ams.send(Flush)
-          _ <- ams.expect { case ParseComplete => }
+          _ <- ams.flatExpect {
+                 case ParseComplete    => ().pure[F]
+                 case ErrorResponse(e) => recover[Unit](new SqlException(e))
+               }
         } yield n
       }
 

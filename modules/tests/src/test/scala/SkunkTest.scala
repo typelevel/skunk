@@ -15,9 +15,13 @@ trait SkunkTest extends ffstest.FTest {
       port     = 5432,
       user     = "postgres",
       database = "world",
+      check    = false
     )
 
-  implicit class SkunkSuiteSessionOps(s: Session[IO]) {
+  def sessionTest[A](name: String)(fa: Session[IO] => IO[A]): Unit =
+    test(name)(session.use(fa))
+
+  implicit class SkunkTestSessionOps(s: Session[IO]) {
 
     def assertTransactionStatus(msg: String, xas: TransactionStatus): IO[Unit] =
       s.transactionStatus.get.flatMap(a => assert(s"$msg (expected $xas, got $a)", a === xas))
@@ -31,16 +35,15 @@ trait SkunkTest extends ffstest.FTest {
 
   }
 
-  implicit class SkunkSuiteIOOps(fa: IO[_]) {
+  implicit class SkunkTestIOOps[A](fa: IO[A]) {
+    type SE = SqlException
     def assertFailsWithSqlException: IO[Unit] =
       fa.attempt.flatMap {
-        case Left(_: SqlException) => IO.unit
-        case Left(e)               => IO.raiseError(new RuntimeException("Expected SqlException, got another exception (see cause).", e))
-        case Right(a)              => IO.raiseError(new RuntimeException(s"Expected SqlException, got $a"))
+        case Left(_: SE) => IO.unit
+        case Left(e)     => IO.raiseError(e)
+        case Right(a)    => fail(s"Expected SqlException, got $a")
       }
   }
 
-  def sessionTest[A](name: String)(fa: Session[IO] => IO[A]): Unit =
-    test(name)(session.use(fa))
 
 }

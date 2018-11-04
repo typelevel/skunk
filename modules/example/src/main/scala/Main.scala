@@ -8,6 +8,8 @@ import cats.implicits._
 import fs2._
 import fs2.Sink.showLinesStdOut
 
+// This does a lot of stuff and is mostly just to test features as they're being added. This class
+// will probably go away.
 object Main extends IOApp {
   import Codec._
 

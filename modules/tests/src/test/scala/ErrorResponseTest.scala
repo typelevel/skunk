@@ -1,5 +1,6 @@
 package tests
 
+import cats.effect.IO
 import skunk.codec.all._
 import skunk.implicits._
 
@@ -9,22 +10,40 @@ import skunk.implicits._
  */
 case object ErrorResponseTest extends SkunkTest {
 
-  sessionTest("simple command") { s =>
+  sessionTest("simple command, syntax error") { s =>
     for {
       _ <- s.execute(sql"foo?".command).assertFailsWithSqlException
       _ <- s.assertHealthy
     } yield "ok"
   }
 
-  sessionTest("simple query") { s =>
+  sessionTest("simple query, syntax error") { s =>
     for {
       _ <- s.execute(sql"foo?".query(int4)).assertFailsWithSqlException
       _ <- s.assertHealthy
     } yield "ok"
   }
 
-  // more … prepare and bind for queries and commands
-  // using a closed statement or portal
-  // committing with no active transaction
-  // etc.
+  sessionTest("prepared query, syntax error") { s =>
+    for {
+      _ <- s.prepare(sql"foo?".query(int4)).use(_ => IO.unit).assertFailsWithSqlException
+      _ <- s.assertHealthy
+    } yield "ok"
+  }
+
+  sessionTest("prepared command, syntax error") { s =>
+    for {
+      _ <- s.prepare(sql"foo?".command).use(_ => IO.unit).assertFailsWithSqlException
+      _ <- s.assertHealthy
+    } yield "ok"
+  }
+
+  // test("prepared query, bind error") {
+  //   fail("Not implemented.")
+  // }
+
+  // test("prepared query, bind error") {
+  //   fail("Not implemented.")
+  // }
+
 }
