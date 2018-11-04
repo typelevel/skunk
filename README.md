@@ -13,6 +13,6 @@ libraryDependencies += "org.tpolecat" %% "skunk-core" % "0.0.1"
 For more information see:
 
 - The [documentation](), such as it is.
-- The [example](modules/example) project.
+- The [examples](modules/example/src/main/scala).
 
 Please drop a :star: if this project interests you. I need encouragement.

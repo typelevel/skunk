@@ -108,6 +108,8 @@ lazy val publishSettings = Seq(
   publishArtifact in Test := false,
   homepage := Some(url("https://github.com/tpolecat/skunk")),
   pomIncludeRepository := Function.const(false),
+  // WHY DON'T I NEED SCMINFO IN MY OTHER PROJECTS?
+  scmInfo := Some(ScmInfo(url("https://github.com/tpolecat/skunk"), "scm:git@github.com:tpolecat/skunk.git")),
   pomExtra := (
     <developers>
       <developer>
