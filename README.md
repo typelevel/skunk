@@ -7,7 +7,7 @@ This library is experimental and is changing rapidly. Do not use it.
 Still here? Ok.
 
 ```scala
-libraryDependencies += "org.tpolecat" %% "skunk-core" % "0.0.1"
+libraryDependencies += "org.tpolecat" %% "skunk-core" % "0.0.2"
 ```
 
 For more information see:
