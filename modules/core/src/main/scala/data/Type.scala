@@ -1,3 +1,7 @@
+// Copyright (c) 2018 by Rob Norris
+// This software is licensed under the MIT License (MIT).
+// For more information see LICENSE or https://opensource.org/licenses/MIT
+
 package skunk.data
 
 /**
@@ -210,7 +214,7 @@ object Type {
       timestamptz,    timetz,           tinterval,    trigger,          tsm_handler,
       tsquery,        tsrange,          tstzrange,    tsvector,         txid_snapshot,
       unknown,        uuid,             varbit,       varchar,          void,
-      xid,            xml,
+      xid,            xml
     )
 
   val forOid: Int => Option[Type] =
