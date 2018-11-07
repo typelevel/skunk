@@ -1,5 +1,7 @@
 # Skunk
 
+[![Join the chat at https://gitter.im/skunk-pg/Lobby](https://badges.gitter.im/skunk-pg/Lobby.svg)](https://gitter.im/skunk-pg/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 Skunk is a data access library for Scala + Postgres.
 
 This library is experimental and is changing rapidly. Do not use it.
