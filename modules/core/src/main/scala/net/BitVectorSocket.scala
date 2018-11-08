@@ -15,6 +15,8 @@ import java.net.InetSocketAddress
 import java.nio.channels._
 import java.util.concurrent.Executors
 import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext
+import skunk.syntax.resource._
 
 /** A higher-level `Socket` interface defined in terms of `BitVector`. */
 trait BitVectorSocket[F[_]] {
@@ -31,16 +33,24 @@ trait BitVectorSocket[F[_]] {
 
 object BitVectorSocket {
 
-  def fromSocket[F[_]](socket: Socket[F], readTimeout: FiniteDuration, writeTimeout: FiniteDuration)(
+  // N.B. we need to fix `socket` to `IO` otherwise we end up with a `ConcurrentEffect` constraint
+  // which is too strong (it prevents us from implementing `ApplicativeAsk` for instance). This is
+  // a design compromise that we may be able to fix at some point.
+
+  def fromSocket[F[_]: LiftIO](
+    socket:       Socket[IO],
+    readTimeout:  FiniteDuration,
+    writeTimeout: FiniteDuration
+  )(
     implicit ev: MonadError[F, Throwable]
   ): BitVectorSocket[F] =
     new BitVectorSocket[F] {
 
       def readBytes(n: Int): F[Array[Byte]] =
-        socket.readN(n, Some(readTimeout)).flatMap {
+        socket.readN(n, Some(readTimeout)).to[F].flatMap {
           case None => ev.raiseError(new Exception("Fatal: EOF"))
           case Some(c) =>
-            if (c.size == n) ev.pure(c.toArray)
+            if (c.size == n) c.toArray.pure[F]
             else ev.raiseError(new Exception(s"Fatal: EOF before $n bytes could be read.Bytes"))
         }
 
@@ -48,24 +58,27 @@ object BitVectorSocket {
         readBytes(nBytes).map(BitVector(_))
 
       def write(bits: BitVector): F[Unit] =
-        socket.write(Chunk.array(bits.toByteArray), Some(writeTimeout))
+        socket.write(Chunk.array(bits.toByteArray), Some(writeTimeout)).to[F]
 
     }
 
-  def apply[F[_]: ConcurrentEffect](host: String, port: Int): Resource[F, BitVectorSocket[F]] = {
+  def apply[F[_]: LiftIO: MonadError[?[_], Throwable]](host: String, port: Int): Resource[F, BitVectorSocket[F]] = {
 
-    val acg: Resource[F, AsynchronousChannelGroup] = {
-      val alloc = Sync[F].delay(AsynchronousChannelGroup.withThreadPool(Executors.newCachedThreadPool()))
-      val free  = (acg: AsynchronousChannelGroup) => Sync[F].delay(acg.shutdown())
+    implicit val ioContextShift: ContextShift[IO] =
+      IO.contextShift(ExecutionContext.global)
+
+    val acg: Resource[IO, AsynchronousChannelGroup] = {
+      val alloc = IO.delay(AsynchronousChannelGroup.withThreadPool(Executors.newCachedThreadPool()))
+      val free  = (acg: AsynchronousChannelGroup) => IO.delay(acg.shutdown())
       Resource.make(alloc)(free)
     }
 
-    val sock: Resource[F, Socket[F]] =
+    val sock: Resource[IO, Socket[IO]] =
       acg.flatMap { implicit acg =>
-        fs2.io.tcp.client(new InetSocketAddress(host, port))
+        fs2.io.tcp.client[IO](new InetSocketAddress(host, port))
       }
 
-    sock.map(fromSocket(_, 1.day, 5.seconds))
+    sock.map(fromSocket(_, 1.day, 5.seconds)).mapK(λ[IO ~> F](_.to))
 
   }
 

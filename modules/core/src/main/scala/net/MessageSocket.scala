@@ -43,18 +43,18 @@ object MessageSocket {
       val receive: F[BackendMessage] =
         for {
           msg <- receiveImpl
-          // _   <- Sync[F].delay(println(s"${Console.GREEN}$msg${Console.RESET}"))
+          _   <- Sync[F].delay(println(s"${Console.GREEN}$msg${Console.RESET}"))
         } yield msg
 
       def send[A](a: A)(implicit ev: FrontendMessage[A]): F[Unit] =
         for {
-          // _ <- Sync[F].delay(println(s"${Console.YELLOW}$a${Console.RESET}"))
+          _ <- Sync[F].delay(println(s"${Console.YELLOW}$a${Console.RESET}"))
           _ <- bvs.write(ev.fullEncoder.encode(a).require)
         } yield ()
 
     }
 
-  def apply[F[_]: ConcurrentEffect](host: String, port: Int): Resource[F, MessageSocket[F]] =
+  def apply[F[_]: LiftIO: Sync](host: String, port: Int): Resource[F, MessageSocket[F]] =
     BitVectorSocket(host, port).map(fromBitVectorSocket[F])
 
 

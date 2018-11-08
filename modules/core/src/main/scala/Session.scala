@@ -149,7 +149,7 @@ object Session {
    *   production but honestly it's really cheap and probably worth keeping.
    * @group Constructors
    */
-  def pooled[F[_]: ConcurrentEffect](
+  def pooled[F[_]: Concurrent](
     host:     String,
     port:     Int,
     user:     String,
@@ -181,7 +181,7 @@ object Session {
    *   production but honestly it's really cheap and probably worth keeping.
    * @group Constructors
    */
-  def single[F[_]: ConcurrentEffect](
+  def single[F[_]: Concurrent](
     host:     String,
     port:     Int,
     user:     String,

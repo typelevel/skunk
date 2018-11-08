@@ -4,6 +4,7 @@
 
 package skunk.net
 
+import cats._
 import cats.effect._
 import cats.effect.concurrent._
 import cats.effect.implicits._
@@ -74,7 +75,7 @@ trait BufferedMessageSocket[F[_]] extends MessageSocket[F] {
 
 object BufferedMessageSocket {
 
-  def apply[F[_]: ConcurrentEffect](
+  def apply[F[_]: Concurrent](
     host:      String,
     port:      Int,
     queueSize: Int = 256
@@ -89,7 +90,7 @@ object BufferedMessageSocket {
    * with asynchronous messages, and messages that require us to record a bit of information that
    * the user might ask for later.
    */
-  private def next[F[_]: Sync](
+  private def next[F[_]: Functor](
     ms:    MessageSocket[F],
     xaSig: Ref[F, TransactionStatus],
     paSig: Ref[F, Map[String, String]],

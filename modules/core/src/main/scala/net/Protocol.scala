@@ -4,7 +4,7 @@
 
 package skunk.net
 
-import cats.effect.{ Concurrent, ConcurrentEffect, Resource }
+import cats.effect.{ Concurrent, Resource }
 import cats.effect.concurrent.Semaphore
 import cats.implicits._
 import fs2.concurrent.Signal
@@ -129,7 +129,7 @@ object Protocol {
    * @param check Check all `prepare` and `quick` statements for consistency with the schema. This
    *   is true by default and is recommended for development work.
    */
-  def apply[F[_]: ConcurrentEffect](
+  def apply[F[_]: Concurrent](
     host:  String,
     port:  Int     = 5432,
     check: Boolean = true
