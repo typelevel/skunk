@@ -7,7 +7,10 @@ package skunk.net.message
 import scodec.Decoder
 import scodec.codecs._
 
-final case class ErrorResponse(info: Map[Char, String]) extends BackendMessage
+final case class ErrorResponse(info: Map[Char, String]) extends BackendMessage {
+  override def toString =
+    info.map { case (k, v) => s"$k -> $v" } .mkString("ErrorResponse(", ", ", "")
+}
 
 object ErrorResponse {
 

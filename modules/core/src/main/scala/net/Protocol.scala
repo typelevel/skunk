@@ -103,6 +103,7 @@ object Protocol {
   }
 
   trait PreparedCommand[F[_], A] {
+    def command: Command[A]
     def bind(args: A): F[Protocol.CommandPortal[F]]
     def check: F[Unit]
     def close: F[Unit]
@@ -110,6 +111,7 @@ object Protocol {
 
 
   trait PreparedQuery[F[_], A, B] {
+    def query: Query[A, B]
     def close: F[Unit]
     def check: F[Unit]
     def bind(args: A): F[Protocol.QueryPortal[F, B]]
@@ -170,12 +172,14 @@ object Protocol {
     def parameters: Signal[F, Map[String, String]] =
       ams.parameters
 
-    def prepareCommand[A](command: Command[A]): F[Protocol.PreparedCommand[F, A]] =
-      parse(command.sql, command.encoder).map { stmt =>
+    def prepareCommand[A](command0: Command[A]): F[Protocol.PreparedCommand[F, A]] =
+      parse(command0.sql, command0.encoder).map { stmt =>
         new Protocol.PreparedCommand[F, A] {
 
+          def command = command0
+
           def bind(args: A): F[Protocol.CommandPortal[F]] =
-            bindStmt(stmt, command.encoder, args).map { portal =>
+            bindStmt(command0.sql, stmt, command0.encoder, args).map { portal =>
               new Protocol.CommandPortal[F] {
 
                 def close: F[Unit] =
@@ -200,7 +204,7 @@ object Protocol {
                 _  <- ams.send(Flush)
                 pd <- ams.expect { case pd @ ParameterDescription(_) => pd }
                 _  <- ams.expect { case NoData => }
-                _  <- printStatement(command.sql)
+                _  <- printStatement(command0.sql)
                 _  <- checkParameterDescription(pd, command.encoder)
               } yield ()
             }
@@ -211,12 +215,14 @@ object Protocol {
         }
       } //.flatMap { ps => ps.check.whenA(check).as(ps) }
 
-    def prepareQuery[A, B](query: Query[A, B]): F[Protocol.PreparedQuery[F, A, B]] =
-      parse(query.sql, query.encoder).map { stmt =>
+    def prepareQuery[A, B](query0: Query[A, B]): F[Protocol.PreparedQuery[F, A, B]] =
+      parse(query0.sql, query0.encoder).map { stmt =>
         new Protocol.PreparedQuery[F, A, B] {
 
+          def query = query0
+
           def bind(args: A): F[Protocol.QueryPortal[F, B]] =
-            bindStmt(stmt, query.encoder, args).map { portal =>
+            bindStmt(query0.sql, stmt, query0.encoder, args).map { portal =>
               new Protocol.QueryPortal[F, B] {
 
                 def close: F[Unit] =
@@ -227,7 +233,7 @@ object Protocol {
                     for {
                       _  <- ams.send(Execute(portal, maxRows))
                       _  <- ams.send(Flush)
-                      rs <- unroll(query.decoder)
+                      rs <- unroll(query0.decoder)
                     } yield rs
                   }
 
@@ -241,9 +247,9 @@ object Protocol {
                 _  <- ams.send(Flush)
                 pd <- ams.expect { case pd @ ParameterDescription(_) => pd }
                 fs <- ams.expect { case rd @ RowDescription(_) => rd }
-                _  <- printStatement(query.sql)
-                _  <- checkParameterDescription(pd, query.encoder)
-                _  <- checkRowDescription(fs, query.decoder)
+                _  <- printStatement(query0.sql)
+                _  <- checkParameterDescription(pd, query0.encoder)
+                _  <- checkRowDescription(fs, query0.decoder)
               } yield ()
             }
 
@@ -266,7 +272,8 @@ object Protocol {
            case ErrorResponse(e) =>
             for {
               _ <- ams.expect { case ReadyForQuery(_) => }
-              c <- Concurrent[F].raiseError[Completion](new SqlException(e))
+              h <- ams.history(Int.MaxValue)
+              c <- Concurrent[F].raiseError[Completion](new SqlException(command.sql, e, h, Nil))
             } yield c
 
         }
@@ -287,7 +294,8 @@ object Protocol {
           case ErrorResponse(e) =>
             for {
               _  <- ams.expect { case ReadyForQuery(_) => }
-              rs <- Concurrent[F].raiseError[List[B]](new SqlException(e))
+              h  <- ams.history(Int.MaxValue)
+              rs <- Concurrent[F].raiseError[List[B]](new SqlException(query.sql, e, h, Nil))
             } yield rs
           }
 
@@ -342,18 +350,29 @@ object Protocol {
           _ <- ams.send(Flush)
           _ <- ams.flatExpect {
                  case ParseComplete    => ().pure[F]
-                 case ErrorResponse(e) => recover[Unit](new SqlException(e))
+                 case ErrorResponse(e) =>
+                  for {
+                    h <- ams.history(Int.MaxValue)
+                    a <- recover[Unit](new SqlException(sql, e, h, Nil))
+                  } yield a
                }
         } yield n
       }
 
-    private def bindStmt[A](stmt: String, enc: Encoder[A], args: A): F[String] =
+    private def bindStmt[A](sql: String, stmt: String, enc: Encoder[A], args: A): F[String] =
       sem.withPermit {
         for {
           pn <- nam.nextName("portal")
           _  <- ams.send(Bind(pn, stmt, enc.encode(args)))
           _  <- ams.send(Flush)
-          _  <- ams.expect { case BindComplete => }
+          _  <- ams.flatExpect {
+            case BindComplete => ().pure[F]
+            case ErrorResponse(e) =>
+                  for {
+                    h <- ams.history(Int.MaxValue)
+                    a <- recover[Unit](new SqlException(sql, e, h, enc.types.zip(enc.encode(args))))
+                  } yield a
+            }
         } yield pn
       }
 

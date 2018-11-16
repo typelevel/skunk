@@ -9,7 +9,9 @@ import cats.arrow.Profunctor
 import cats.effect._
 import cats.implicits._
 import fs2.{ Chunk, Stream }
+import skunk.data.SkunkException
 import skunk.net.Protocol
+import skunk.util.Origin
 
 /**
  * A prepared query, valid for the life of its originating `Session`.
@@ -47,7 +49,7 @@ trait PreparedQuery[F[_], A, B] {
   /**
    * Fetch and return exactly one row, raising an exception if there are more or fewer.
    */
-  def unique(args: A): F[B]
+  def unique(args: A)(implicit or: Origin): F[B]
 
 }
 
@@ -66,7 +68,7 @@ object PreparedQuery {
             def cursor(args: A) = fa.cursor(args).map(_.map(f))
             def stream(args: A, chunkSize: Int) = fa.stream(args, chunkSize).map(f)
             def option(args: A) = fa.option(args).map(_.map(f))
-            def unique(args: A) = fa.unique(args).map(f)
+            def unique(args: A)(implicit or: Origin) = fa.unique(args).map(f)
         }
     }
 
@@ -82,7 +84,7 @@ object PreparedQuery {
             def cursor(args: U) = fa.cursor(f(args))
             def stream(args: U, chunkSize: Int) = fa.stream(f(args), chunkSize)
             def option(args: U) = fa.option(f(args))
-            def unique(args: U) = fa.unique(f(args))
+            def unique(args: U)(implicit or: Origin) = fa.unique(f(args))
         }
     }
 
@@ -136,15 +138,29 @@ object PreparedQuery {
           bs match {
             case b :: Nil => b.some.pure[F]
             case Nil      => none[B].pure[F]
-            case _        => MonadError[F, Throwable].raiseError(new RuntimeException("Expected exactly one result, more returned."))
+            case _        => MonadError[F, Throwable].raiseError(new SkunkException(
+              sql = proto.query.sql,
+              message = "Expected at most one result, more returned."
+            ))
           }
         }
 
-      def unique(args: A) =
+      def framed(s: String) =
+        "\u001B[4m" + s + "\u001B[24m"
+
+      def unique(args: A)(implicit or: Origin) =
         fetch2(args).flatMap { case (bs, _) =>
           bs match {
             case b :: Nil => b.pure[F]
-            case Nil      => MonadError[F, Throwable].raiseError(new RuntimeException("Expected exactly one result, none returned."))
+            case Nil      => MonadError[F, Throwable].raiseError(new SkunkException(
+              sql       = proto.query.sql,
+              message   = "Exactly one row was expected, but none were returned.",
+              hint      = Some(s"You used ${framed("unique")}. Did you mean to use ${framed("option")}?"),
+              arguments = proto.query.encoder.types zip proto.query.encoder.encode(args)
+            ) {
+              override def title =
+                s"Skunk encountered a problem related to use of ${framed("unique")}\n  at $or"
+            })
             case _        => MonadError[F, Throwable].raiseError(new RuntimeException("Expected exactly one result, more returned."))
           }
         }

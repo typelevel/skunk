@@ -159,6 +159,9 @@ object BufferedMessageSocket {
         def flatExpect[B](f: PartialFunction[BackendMessage, F[B]]): F[B] =
           expect(f).flatten
 
+        def history(max: Int) =
+          ms.history(max)
+
 
       }
 

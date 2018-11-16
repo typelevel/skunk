@@ -6,6 +6,7 @@ package skunk.net
 
 import cats.effect._
 import cats.implicits._
+import fs2.concurrent.InspectableQueue
 import scodec.codecs._
 import skunk.net.message.{ Sync => _, _ }
 
@@ -20,42 +21,56 @@ trait MessageSocket[F[_]] {
 
   /** Send the specified message. */
   def send[A: FrontendMessage](a: A): F[Unit]
+
+  /** Destructively read the last `n` messages from the circular buffer. */
+  def history(max: Int): F[List[Either[Any, Any]]]
+
 }
 
 object MessageSocket {
 
-  def fromBitVectorSocket[F[_]: Sync](bvs: BitVectorSocket[F]): MessageSocket[F] =
-    new MessageSocket[F] {
+  def fromBitVectorSocket[F[_]: Concurrent](bvs: BitVectorSocket[F]): F[MessageSocket[F]] =
+    InspectableQueue.circularBuffer[F, Either[Any, Any]](10).map { cb =>
+      new MessageSocket[F] {
 
-      /**
-       * Messages are prefixed with a 5-byte header consisting of a tag (byte) and a length (int32,
-       * total including self but not including the tag) in network order.
-       */
-      val receiveImpl: F[BackendMessage] = {
-        val header = byte ~ int32
-        bvs.read(5).flatMap { bits =>
-          val (tag, len) = header.decodeValue(bits).require
-          val decoder    = BackendMessage.decoder(tag)
-          bvs.read(len - 4).map(decoder.decodeValue(_).require)
+        /**
+        * Messages are prefixed with a 5-byte header consisting of a tag (byte) and a length (int32,
+        * total including self but not including the tag) in network order.
+        */
+        val receiveImpl: F[BackendMessage] = {
+          val header = byte ~ int32
+          bvs.read(5).flatMap { bits =>
+            val (tag, len) = header.decodeValue(bits).require
+            val decoder    = BackendMessage.decoder(tag)
+            bvs.read(len - 4).map(decoder.decodeValue(_).require)
+          }
         }
+
+        val receive: F[BackendMessage] =
+          for {
+            msg <- receiveImpl
+            _   <- cb.enqueue1(Right(msg))
+            // _   <- Sync[F].delay(println(s" ← $msg"))
+          } yield msg
+
+        def send[A](a: A)(implicit ev: FrontendMessage[A]): F[Unit] =
+          for {
+            // _ <- Sync[F].delay(println(s" → ${Console.BOLD}$a${Console.RESET}"))
+            _ <- bvs.write(ev.fullEncoder.encode(a).require)
+            _ <- cb.enqueue1(Left(a))
+          } yield ()
+
+        def history(max: Int) =
+          cb.dequeueChunk1(max: Int).map(_.toList)
+
       }
-
-      val receive: F[BackendMessage] =
-        for {
-          msg <- receiveImpl
-          _   <- Sync[F].delay(println(s"${Console.GREEN}$msg${Console.RESET}"))
-        } yield msg
-
-      def send[A](a: A)(implicit ev: FrontendMessage[A]): F[Unit] =
-        for {
-          _ <- Sync[F].delay(println(s"${Console.YELLOW}$a${Console.RESET}"))
-          _ <- bvs.write(ev.fullEncoder.encode(a).require)
-        } yield ()
-
     }
 
-  def apply[F[_]: LiftIO: Sync](host: String, port: Int): Resource[F, MessageSocket[F]] =
-    BitVectorSocket(host, port).map(fromBitVectorSocket[F])
+  def apply[F[_]: Concurrent](host: String, port: Int): Resource[F, MessageSocket[F]] =
+    for {
+      bvs <- BitVectorSocket(host, port)
+      ms  <- Resource.liftF(fromBitVectorSocket(bvs))
+    } yield ms
 
 
 }

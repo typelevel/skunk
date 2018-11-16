@@ -5,11 +5,13 @@ lazy val catsVersion          = "1.4.0"
 lazy val catsEffectVersion    = "1.1.0"
 lazy val catsMtlVersion       = "0.3.0"
 lazy val catsTaglessVersion   = "0.1.0"
-lazy val kindProjectorVersion = "0.9.8"
+lazy val catsVersion          = "1.4.0"
 lazy val fs2Version           = "1.0.0"
-lazy val scodecCoreVersion    = "1.10.3"
-lazy val scodecCatsVersion    = "0.8.0"
+lazy val kindProjectorVersion = "0.9.8"
 lazy val scala12Version       = "2.12.7"
+lazy val scodecCatsVersion    = "0.8.0"
+lazy val scodecCoreVersion    = "1.10.3"
+lazy val sourcecodeVersion    = "0.1.4"
 
 // run dependencyUpdates whenever we [re]load.
 // onLoad in Global := { s => "dependencyUpdates" :: s }
@@ -168,6 +170,7 @@ lazy val core = project
       "co.fs2"               %% "fs2-io"        % fs2Version,
       "org.scodec"           %% "scodec-core"   % scodecCoreVersion,
       "org.scodec"           %% "scodec-cats"   % scodecCatsVersion,
+      "com.lihaoyi"          %% "sourcecode"    % sourcecodeVersion
     )
   )
 
