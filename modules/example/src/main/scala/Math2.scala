@@ -34,8 +34,6 @@ object Math2 extends IOApp {
       val sqrt = sql"select sqrt($float8)".query(float8)
     }
 
-    // `Math` implementation that delegates its work to Postgres. We prepare the statements up front
-    // so users can call them as much as they like and never have to pay the preparation cost again.
     def fromSession[F[_]: Monad](sess: Session[F]): Resource[F, Math[F]] =
       for {
         pAdd  <- sess.prepare(Statements.add)
