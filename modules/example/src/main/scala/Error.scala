@@ -24,12 +24,12 @@ object Error extends IOApp {
   def prog[F[_]: Bracket[?[_], Throwable]](s: Session[F]): F[ExitCode] =
     s.prepare {
       sql"""
-        SELECT name, population
+        SELECT name, popsulation
         FROM   country
-        WHERE  population > $varchar::int4
+        WHERE  population > $varchar
         AND    population < ${int4.opt}
       """.query(varchar)
-    }.use(_.unique("42" ~ None)).as(ExitCode.Success)
+    }.use(_.unique("foo" ~ None)).as(ExitCode.Success)
 
   def run(args: List[String]): IO[ExitCode] =
     session.use(prog(_))
