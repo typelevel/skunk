@@ -125,7 +125,7 @@ import cats.effect.Resource
 package object skunk {
 
   // we can use this to defeat value discarding warnings for erasable proof terms
-  private[skunk] def void(a: Any*): Unit = (a, ())._2
+  private[skunk] def void(@deprecated("unused", "") a: Any*): Unit = ()
 
   /**
    * Infix alias for `(A, B)` that provides convenient syntax for left-associated HLists.
