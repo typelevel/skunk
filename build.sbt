@@ -131,8 +131,8 @@ lazy val noPublishSettings = Seq(
 lazy val skunk = project.in(file("."))
   .settings(commonSettings)
   .settings(noPublishSettings)
-  .dependsOn(macros, core, tests, example)
-  .aggregate(macros, core, tests, example)
+  .dependsOn(core, tests, example)
+  .aggregate(core, tests, example)
   .settings(
     releaseCrossBuild := true,
     releaseProcess := Seq[ReleaseStep](
@@ -154,28 +154,8 @@ lazy val skunk = project.in(file("."))
     )
   )
 
-lazy val macros = project
-  .in(file("modules/macros"))
-  .enablePlugins(AutomateHeaderPlugin)
-  .settings(commonSettings)
-  .settings(publishSettings)
-  .settings(
-    name := "skunk-macros",
-    description := "Macros for Skunk.",
-    libraryDependencies ++= Seq(
-      "org.typelevel"        %% "cats-core"     % catsVersion,
-    //   "org.typelevel"        %% "cats-effect"   % catsEffectVersion,
-    //   "co.fs2"               %% "fs2-core"      % fs2Version,
-    //   "co.fs2"               %% "fs2-io"        % fs2Version,
-    //   "org.scodec"           %% "scodec-core"   % scodecCoreVersion,
-    //   "org.scodec"           %% "scodec-cats"   % scodecCatsVersion,
-    )
-  )
-
-
 lazy val core = project
   .in(file("modules/core"))
-  .dependsOn(macros)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(commonSettings)
   .settings(publishSettings)
