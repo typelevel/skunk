@@ -10,7 +10,7 @@ import fs2.Stream
 import fs2.concurrent.Signal
 import skunk.data._
 import skunk.net.Protocol
-import skunk.util.Pool
+import skunk.util.{ CallSite, Origin, Pool }
 
 /**
  * Represents a live connection to a Postgres database. Operations provided here are safe to use
@@ -115,7 +115,7 @@ trait Session[F[_]] {
    * times with different arguments.
    * @group Queries
    */
-  def prepare[A, B](query: Query[A, B]): Resource[F, PreparedQuery[F, A, B]]
+  def prepare[A, B](query: Query[A, B])(implicit or: Origin): Resource[F, PreparedQuery[F, A, B]]
 
   /**
    * Prepare an `INSERT`, `UPDATE`, or `DELETE` command that returns no rows. The resulting
@@ -149,7 +149,7 @@ object Session {
    *   production but honestly it's really cheap and probably worth keeping.
    * @group Constructors
    */
-  def pooled[F[_]: Concurrent](
+  def pooled[F[_]: Concurrent: ContextShift](
     host:     String,
     port:     Int,
     user:     String,
@@ -181,7 +181,7 @@ object Session {
    *   production but honestly it's really cheap and probably worth keeping.
    * @group Constructors
    */
-  def single[F[_]: Concurrent](
+  def single[F[_]: Concurrent: ContextShift](
     host:     String,
     port:     Int,
     user:     String,
@@ -234,8 +234,8 @@ object Session {
           case _        => Sync[F].raiseError(new RuntimeException("Expected exactly one result, more returned."))
         }
 
-      def prepare[A, B](query: Query[A, B]) =
-        Resource.make(proto.prepareQuery(query))(_.close).map(PreparedQuery.fromProto(_))
+      def prepare[A, B](query: Query[A, B])(implicit or: Origin) =
+        Resource.make(proto.prepareQuery(query, Some(CallSite("prepare", or))))(_.close).map(PreparedQuery.fromProto(_))
 
       def prepare[A](command: Command[A]) =
         Resource.make(proto.prepareCommand(command))(_.close).map(PreparedCommand.fromProto(_))

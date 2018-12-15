@@ -7,6 +7,7 @@ package skunk
 import cats.Contravariant
 import cats.data.State
 import cats.implicits._
+import skunk.util.Origin
 
 /**
  * A composable, embeddable hunk of SQL and typed parameters (common precursor to `Command` and
@@ -14,7 +15,11 @@ import cats.implicits._
  * the `sql` interpolator.
  * @group Statements
  */
-final case class Fragment[A](parts: List[Either[String, Int]], encoder: Encoder[A]) {
+final case class Fragment[A](
+  parts:   List[Either[String, Int]],
+  encoder: Encoder[A],
+  origin:  Option[Origin]
+) {
 
   lazy val sql: String =
     parts.traverse {
@@ -23,13 +28,13 @@ final case class Fragment[A](parts: List[Either[String, Int]], encoder: Encoder[
     } .runA(1).value.combineAll
 
   def query[B](decoder: Decoder[B]): Query[A, B] =
-    Query(sql, encoder, decoder)
+    Query(sql, origin, encoder, decoder)
 
   def command: Command[A] =
     Command(sql, encoder)
 
   def contramap[B](f: B => A): Fragment[B] =
-    Fragment(parts, encoder.contramap(f))
+    Fragment(parts, encoder.contramap(f), origin)
 
   override def toString =
     s"Fragment($sql, $encoder)"

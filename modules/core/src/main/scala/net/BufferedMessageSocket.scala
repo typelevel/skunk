@@ -75,7 +75,7 @@ trait BufferedMessageSocket[F[_]] extends MessageSocket[F] {
 
 object BufferedMessageSocket {
 
-  def apply[F[_]: Concurrent](
+  def apply[F[_]: Concurrent: ContextShift](
     host:      String,
     port:      Int,
     queueSize: Int = 256

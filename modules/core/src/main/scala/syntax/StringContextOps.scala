@@ -5,9 +5,10 @@
 package skunk
 package syntax
 
-import skunk.data.Identifier
 import scala.language.experimental.macros
 import scala.reflect.macros.whitebox
+import skunk.data.Identifier
+import skunk.util.Origin
 
 class StringContextOps private[skunk](sc: StringContext) {
   void(sc)
@@ -27,20 +28,26 @@ object StringContextOps {
   case class Par(n: Int)                        extends Part
   case class Emb(ps: List[Either[String, Int]]) extends Part
 
-  def fragmentFromParts[A](ps: List[Part], enc: Encoder[A]): Fragment[A] =
+  def fragmentFromParts[A](ps: List[Part], enc: Encoder[A], or: Origin): Fragment[A] =
     Fragment(
       ps.flatMap {
         case Str(s)  => List(Left(s))
         case Par(n)  => List(Right(n))
         case Emb(ps) => ps
       },
-      enc
+      enc,
+      Some(or)
     )
 
   class StringOpsMacros(val c: whitebox.Context) {
     import c.universe._
 
     def sql_impl(argSeq: Tree*): Tree = {
+
+      // Ok we want to construct an Origin here
+      val file   = c.enclosingPosition.source.path
+      val line   = c.enclosingPosition.line
+      val origin = q"skunk.util.Origin($file, $line)"
 
       // Our prefix looks like this, and the stringy parts of the interpolation will be a non-empty
       // list of string literal trees. We just know this because of the way interpolator desugaring
@@ -119,7 +126,7 @@ object StringContextOps {
         encoders.reduceLeftOption((a, b) => q"$a ~ $b").getOrElse(q"skunk.Void.codec")
 
       // We now have what we need to construct a fragment.
-      q"skunk.syntax.StringContextOps.fragmentFromParts($finalParts, $finalEncoder)"
+      q"skunk.syntax.StringContextOps.fragmentFromParts($finalParts, $finalEncoder, $origin)"
 
     }
 

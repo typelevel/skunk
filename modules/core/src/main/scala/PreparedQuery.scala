@@ -11,7 +11,7 @@ import cats.implicits._
 import fs2.{ Chunk, Stream }
 import skunk.data.SkunkException
 import skunk.net.Protocol
-import skunk.util.Origin
+import skunk.util.{ CallSite, Origin }
 
 /**
  * A prepared query, valid for the life of its originating `Session`.
@@ -30,7 +30,7 @@ trait PreparedQuery[F[_], A, B] {
    * which rows can be `fetch`ed. Note that higher-level operations like `stream`, `option`, and
    * `unique` are usually what you want.
    */
-  def cursor(args: A): Resource[F, Cursor[F, B]]
+  def cursor(args: A)(implicit or: Origin): Resource[F, Cursor[F, B]]
 
   /**
    * Construct a `Cursor`-backed stream that calls `fetch` repeatedly and emits chunks until none
@@ -39,12 +39,12 @@ trait PreparedQuery[F[_], A, B] {
    * throughput with larger chunks. So it's important to consider the use case when specifying
    * `chunkSize`.
    */
-  def stream(args: A, chunkSize: Int): Stream[F, B]
+  def stream(args: A, chunkSize: Int)(implicit or: Origin): Stream[F, B]
 
   /**
    * Fetch and return at most one row, raising an exception if more rows are available.
    */
-  def option(args: A): F[Option[B]]
+  def option(args: A)(implicit or: Origin): F[Option[B]]
 
   /**
    * Fetch and return exactly one row, raising an exception if there are more or fewer.
@@ -65,9 +65,9 @@ object PreparedQuery {
       def map[T, U](fa: PreparedQuery[F, A, T])(f: T => U) =
         new PreparedQuery[F, A, U] {
             def check = fa.check
-            def cursor(args: A) = fa.cursor(args).map(_.map(f))
-            def stream(args: A, chunkSize: Int) = fa.stream(args, chunkSize).map(f)
-            def option(args: A) = fa.option(args).map(_.map(f))
+            def cursor(args: A)(implicit or: Origin) = fa.cursor(args).map(_.map(f))
+            def stream(args: A, chunkSize: Int)(implicit or: Origin) = fa.stream(args, chunkSize).map(f)
+            def option(args: A)(implicit or: Origin) = fa.option(args).map(_.map(f))
             def unique(args: A)(implicit or: Origin) = fa.unique(args).map(f)
         }
     }
@@ -81,9 +81,9 @@ object PreparedQuery {
       def contramap[T, U](fa: PreparedQuery[F, T, B])(f: U => T) =
         new PreparedQuery[F, U, B] {
             def check = fa.check
-            def cursor(args: U) = fa.cursor(f(args))
-            def stream(args: U, chunkSize: Int) = fa.stream(f(args), chunkSize)
-            def option(args: U) = fa.option(f(args))
+            def cursor(args: U)(implicit or: Origin) = fa.cursor(f(args))
+            def stream(args: U, chunkSize: Int)(implicit or: Origin) = fa.stream(f(args), chunkSize)
+            def option(args: U)(implicit or: Origin) = fa.option(f(args))
             def unique(args: U)(implicit or: Origin) = fa.unique(f(args))
         }
     }
@@ -107,7 +107,7 @@ object PreparedQuery {
       def check =
         proto.check
 
-      def cursor(args: A) =
+      def cursor(args: A)(implicit or: Origin) =
         Resource.make(proto.bind(args))(_.close).map { p =>
           new Cursor[F, B] {
             def fetch(maxRows: Int) =
@@ -115,7 +115,7 @@ object PreparedQuery {
           }
         }
 
-      def stream(args: A, chunkSize: Int) = {
+      def stream(args: A, chunkSize: Int)(implicit or: Origin) = {
         val rsrc = Resource.make(proto.bind(args))(_.close)
         Stream.resource(rsrc).flatMap { cursor =>
           def chunks: Stream[F, B] =
@@ -130,10 +130,10 @@ object PreparedQuery {
 
       // We have a few operations that only want the first row. In order to do this AND
       // know if there are more we need to ask for 2 rows.
-      private def fetch2(args: A): F[(List[B], Boolean)] =
+      private def fetch2(args: A)(implicit or: Origin): F[(List[B], Boolean)] =
         cursor(args).use(_.fetch(2))
 
-      def option(args: A) =
+      def option(args: A)(implicit or: Origin) =
         fetch2(args).flatMap { case (bs, _) =>
           bs match {
             case b :: Nil => b.some.pure[F]
@@ -148,22 +148,31 @@ object PreparedQuery {
       def framed(s: String) =
         "\u001B[4m" + s + "\u001B[24m"
 
-      def unique(args: A)(implicit or: Origin) =
-        fetch2(args).flatMap { case (bs, _) =>
+      def unique(args0: A)(implicit or: Origin) =
+        fetch2(args0).flatMap { case (bs, _) =>
+
+          def fail(m: String, h: String): F[B] =
+           MonadError[F, Throwable].raiseError {
+              SkunkException.fromQueryAndArguments(
+                message    = m,
+                query      = proto.query,
+                args       = args0,
+                callSite0  = Some(CallSite("unique", or)),
+                hint0      = Some(h),
+                argsOrigin = Some(or)
+              )
+            }
+
           bs match {
             case b :: Nil => b.pure[F]
-            case Nil      => MonadError[F, Throwable].raiseError(new SkunkException(
-              sql       = proto.query.sql,
-              message   = "Exactly one row was expected, but none were returned.",
-              hint      = Some(s"You used ${framed("unique")}. Did you mean to use ${framed("option")}?"),
-              arguments = proto.query.encoder.types zip proto.query.encoder.encode(args)
-            ) {
-              override def title =
-                s"Skunk encountered a problem related to use of ${framed("unique")}\n  at $or"
-            })
-            case _        => MonadError[F, Throwable].raiseError(new RuntimeException("Expected exactly one result, more returned."))
+            case Nil      =>
+              fail("Exactly one row was expected, but none were returned.",
+                s"You used ${framed("unique")}. Did you mean to use ${framed("option")}?")
+            case _        =>
+              fail("Exactly one row was expected, but more were returned.",
+                s"You used ${framed("unique")}. Did you mean to use ${framed("stream")}?")
+            }
           }
-        }
 
     }
 

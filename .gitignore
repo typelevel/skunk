@@ -38,3 +38,7 @@ bin/
 
 # Mill
 out/
+
+# Bloop/Metals
+.bloop/
+.metals/

@@ -4,15 +4,16 @@
 
 package skunk.net
 
-import cats.effect.{ Concurrent, Resource }
+import cats.effect.{ Concurrent, ContextShift, Resource }
 import cats.effect.concurrent.Semaphore
+import cats.effect.implicits._
 import cats.implicits._
 import fs2.concurrent.Signal
 import fs2.Stream
 import skunk.{ Command, Query, ~, Encoder, Decoder, Void }
 import skunk.data._
 import skunk.net.message. { Query => QueryMessage, _ }
-import skunk.util.Namer
+import skunk.util.{ CallSite, Namer, Origin }
 import skunk.syntax.id._
 
 /**
@@ -65,7 +66,7 @@ trait Protocol[F[_]] {
    * Prepare a query (a statement that produces rows), yielding a `Protocol.PreparedCommand` which
    * must be closed by the caller. Higher-level APIs may wish to encapsulate this in a `Resource`.
    */
-  def prepareQuery[A, B](query: Query[A, B]): F[Protocol.PreparedQuery[F, A, B]]
+  def prepareQuery[A, B](query: Query[A, B], callSite: Option[CallSite]): F[Protocol.PreparedQuery[F, A, B]]
 
   /**
    * Execute a non-parameterized command (a statement that produces no rows), yielding a
@@ -109,14 +110,12 @@ object Protocol {
     def close: F[Unit]
   }
 
-
   trait PreparedQuery[F[_], A, B] {
     def query: Query[A, B]
     def close: F[Unit]
     def check: F[Unit]
     def bind(args: A): F[Protocol.QueryPortal[F, B]]
   }
-
 
   trait QueryPortal[F[_], A] {
     def close: F[Unit]
@@ -131,7 +130,7 @@ object Protocol {
    * @param check Check all `prepare` and `quick` statements for consistency with the schema. This
    *   is true by default and is recommended for development work.
    */
-  def apply[F[_]: Concurrent](
+  def apply[F[_]: Concurrent: ContextShift](
     host:  String,
     port:  Int     = 5432,
     check: Boolean = true
@@ -166,27 +165,36 @@ object Protocol {
     check: Boolean
   ) extends Protocol[F] {
 
+    // It's possible to break the protocol via concurrency and cancellation so let's ensure that
+    // any protocol step executes in its entirety. An exception here is `execute` which needs a
+    // special cancellation handler to connect on another socket and actually attempt server-side
+    // cancellation (todo). Another possibility would be to do guaranteeCase and try to recover by
+    // re-syncing and rolling back if necessary. but there are a lot of cases to consider. It's
+    // simpler to treat protocol exchanges as atomic.
+    def atomically[A](fa: F[A]): F[A] =
+      sem.withPermit(fa).uncancelable
+
     def notifications(maxQueued: Int): Stream[F, Notification] =
       ams.notifications(maxQueued)
 
     def parameters: Signal[F, Map[String, String]] =
       ams.parameters
 
-    def prepareCommand[A](command0: Command[A]): F[Protocol.PreparedCommand[F, A]] =
-      parse(command0.sql, command0.encoder).map { stmt =>
+    def prepareCommand[A](cmd: Command[A]): F[Protocol.PreparedCommand[F, A]] =
+      parse(cmd.sql, None, cmd.encoder).map { stmt =>
         new Protocol.PreparedCommand[F, A] {
 
-          def command = command0
+          def command = cmd
 
           def bind(args: A): F[Protocol.CommandPortal[F]] =
-            bindStmt(command0.sql, stmt, command0.encoder, args).map { portal =>
+            bindStmt(cmd.sql, None, stmt, cmd.encoder, args, None).map { portal =>
               new Protocol.CommandPortal[F] {
 
                 def close: F[Unit] =
                   closePortal(portal)
 
                 def execute: F[Completion] =
-                  sem.withPermit {
+                  atomically {
                     for {
                       _  <- ams.send(Execute(portal, 0))
                       _  <- ams.send(Flush)
@@ -198,13 +206,13 @@ object Protocol {
             }
 
           def check: F[Unit] =
-            sem.withPermit {
+            atomically {
               for {
                 _  <- ams.send(Describe.statement(stmt))
                 _  <- ams.send(Flush)
                 pd <- ams.expect { case pd @ ParameterDescription(_) => pd }
                 _  <- ams.expect { case NoData => }
-                _  <- printStatement(command0.sql)
+                _  <- printStatement(cmd.sql)
                 _  <- checkParameterDescription(pd, command.encoder)
               } yield ()
             }
@@ -215,21 +223,21 @@ object Protocol {
         }
       } //.flatMap { ps => ps.check.whenA(check).as(ps) }
 
-    def prepareQuery[A, B](query0: Query[A, B]): F[Protocol.PreparedQuery[F, A, B]] =
-      parse(query0.sql, query0.encoder).map { stmt =>
+    def prepareQuery[A, B](query0: Query[A, B], callSite: Option[CallSite]): F[Protocol.PreparedQuery[F, A, B]] =
+      parse(query0.sql, query0.sqlOrigin, query0.encoder).map { stmt =>
         new Protocol.PreparedQuery[F, A, B] {
 
           def query = query0
 
           def bind(args: A): F[Protocol.QueryPortal[F, B]] =
-            bindStmt(query0.sql, stmt, query0.encoder, args).map { portal =>
+            bindStmt(query0.sql, query0.sqlOrigin, stmt, query0.encoder, args, None).map { portal =>
               new Protocol.QueryPortal[F, B] {
 
                 def close: F[Unit] =
                   closePortal(portal)
 
                 def execute(maxRows: Int): F[List[B] ~ Boolean] =
-                  sem.withPermit {
+                  atomically {
                     for {
                       _  <- ams.send(Execute(portal, maxRows))
                       _  <- ams.send(Flush)
@@ -241,7 +249,7 @@ object Protocol {
             }
 
           def check: F[Unit] =
-            sem.withPermit {
+            atomically {
               for {
                 _  <- ams.send(Describe.statement(stmt))
                 _  <- ams.send(Flush)
@@ -260,7 +268,7 @@ object Protocol {
       } .flatMap { ps => ps.check.whenA(check).as(ps) }
 
     def quick(command: Command[Void]): F[Completion] =
-      sem.withPermit {
+      atomically {
         ams.send(QueryMessage(command.sql)) *> ams.flatExpect {
 
           case CommandComplete(c) =>
@@ -273,14 +281,14 @@ object Protocol {
             for {
               _ <- ams.expect { case ReadyForQuery(_) => }
               h <- ams.history(Int.MaxValue)
-              c <- Concurrent[F].raiseError[Completion](new SqlException(command.sql, e, h, Nil))
+              c <- Concurrent[F].raiseError[Completion](new SqlException(command.sql, None, e, h, Nil, None))
             } yield c
 
         }
       }
 
     def quick[B](query: Query[Void, B]): F[List[B]] =
-      sem.withPermit {
+      atomically {
         ams.send(QueryMessage(query.sql)) *> ams.flatExpect {
 
           case rd @ RowDescription(_) =>
@@ -295,7 +303,7 @@ object Protocol {
             for {
               _  <- ams.expect { case ReadyForQuery(_) => }
               h  <- ams.history(Int.MaxValue)
-              rs <- Concurrent[F].raiseError[List[B]](new SqlException(query.sql, e, h, Nil))
+              rs <- Concurrent[F].raiseError[List[B]](new SqlException(query.sql, query.sqlOrigin, e, h, Nil, None))
             } yield rs
           }
 
@@ -304,7 +312,7 @@ object Protocol {
 
     // Startup negotiation. Very basic right now.
     def startup(user: String, database: String): F[Unit] =
-      sem.withPermit {
+      atomically {
         for {
           _ <- ams.send(StartupMessage(user, database))
           _ <- ams.expect { case AuthenticationOk => }
@@ -318,7 +326,7 @@ object Protocol {
     // HELPERS
 
     private def closePortal(name: String): F[Unit] =
-      sem.withPermit {
+      atomically {
         for {
           _ <- ams.send(Close.portal(name))
           _ <- ams.send(Flush)
@@ -327,7 +335,7 @@ object Protocol {
       }
 
     private def closeStmt(name: String): F[Unit] =
-      sem.withPermit {
+      atomically {
         for {
           _ <- ams.send(Close.statement(name))
           _ <- ams.send(Flush)
@@ -342,8 +350,8 @@ object Protocol {
         a <- Concurrent[F].raiseError[A](t)
       } yield a
 
-    private def parse[A](sql: String, enc: Encoder[A]): F[String] =
-      sem.withPermit {
+    private def parse[A](sql: String, sqlOrigin: Option[Origin], enc: Encoder[A]): F[String] =
+      atomically {
         for {
           n <- nam.nextName("stmt")
           _ <- ams.send(Parse(n, sql, enc.types.toList))
@@ -353,14 +361,14 @@ object Protocol {
                  case ErrorResponse(e) =>
                   for {
                     h <- ams.history(Int.MaxValue)
-                    a <- recover[Unit](new SqlException(sql, e, h, Nil))
+                    a <- recover[Unit](new SqlException(sql, sqlOrigin, e, h, Nil, None))
                   } yield a
                }
         } yield n
       }
 
-    private def bindStmt[A](sql: String, stmt: String, enc: Encoder[A], args: A): F[String] =
-      sem.withPermit {
+    private def bindStmt[A](sql: String, sqlOrigin: Option[Origin], stmt: String, enc: Encoder[A], args: A, argsOrigin: Option[Origin]): F[String] =
+      atomically {
         for {
           pn <- nam.nextName("portal")
           _  <- ams.send(Bind(pn, stmt, enc.encode(args)))
@@ -370,7 +378,7 @@ object Protocol {
             case ErrorResponse(e) =>
                   for {
                     h <- ams.history(Int.MaxValue)
-                    a <- recover[Unit](new SqlException(sql, e, h, enc.types.zip(enc.encode(args))))
+                    a <- recover[Unit](new SqlException(sql, sqlOrigin, e, h, enc.types.zip(enc.encode(args)), argsOrigin ))
                   } yield a
             }
         } yield pn

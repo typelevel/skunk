@@ -5,7 +5,13 @@
 package skunk.data
 
 import cats.implicits._
-import skunk.util.Pretty
+import skunk.Query
+import skunk.util.{ CallSite, Origin, Pretty }
+
+// Ok we want
+// the statement and its origin, if known
+// the arguments and their binding origin
+// the logical call in prograss and its callsite, if known
 
 class SkunkException protected[skunk](
   sql:       String,
@@ -14,11 +20,20 @@ class SkunkException protected[skunk](
   detail:    Option[String]               = None,
   hint:      Option[String]               = None,
   history:   List[Either[Any, Any]]       = Nil,
-  arguments: List[(Type, Option[String])] = Nil
+  arguments: List[(Type, Option[String])] = Nil,
+  sqlOrigin: Option[Origin]               = None,
+  argumentsOrigin: Option[Origin]         = None,
+  callSite: Option[CallSite]              = None
 ) extends Exception(message) {
 
+  protected def framed(s: String) =
+    "\u001B[4m" + s + "\u001B[24m"
+
+
   protected def title: String =
-    getClass.getSimpleName
+    callSite.fold(getClass.getSimpleName) { case CallSite(name, origin) =>
+      s"Skunk encountered a problem related to use of ${framed(name)}\n  at $origin"
+    }
 
   protected def width = 80 // wrap here
 
@@ -40,7 +55,7 @@ class SkunkException protected[skunk](
 
   final protected def statement: String = {
     val stmt = Pretty.formatMessageAtPosition(sql, message, position.getOrElse(0))
-    s"""|The statement under consideration is
+    s"""|The statement under consideration ${sqlOrigin.fold("is")(or => s"was defined\n  at $or")}
         |
         |$stmt
         |
@@ -61,7 +76,7 @@ class SkunkException protected[skunk](
       s"${Console.GREEN}$s${Console.RESET}"
 
     if (arguments.isEmpty) "" else
-    s"""|and the arguments were
+    s"""|and the arguments ${argumentsOrigin.fold("were")(or => s"were provided\n  at $or")}
         |
         |  ${arguments.zipWithIndex.map { case ((t, s), n) => f"$$${n+1} $t%-10s ${s.fold("NULL")(formatValue)}" } .mkString("\n|  ") }
         |
@@ -77,5 +92,28 @@ class SkunkException protected[skunk](
       .lines
       .map("🔥  " + _)
       .mkString("\n", "\n", s"\n\n${getClass.getName}: $message")
+
+}
+
+
+object SkunkException {
+
+  def fromQueryAndArguments[A](
+    message: String,
+    query: Query[A, _],
+    args: A,
+    callSite0: Option[CallSite],
+    hint0: Option[String] = None,
+    argsOrigin: Option[Origin] = None
+  ) =
+    new SkunkException(
+      query.sql,
+      message,
+      sqlOrigin = query.sqlOrigin,
+      callSite = callSite0,
+      hint = hint0,
+      arguments = query.encoder.types zip query.encoder.encode(args),
+      argumentsOrigin = argsOrigin
+    )
 
 }

@@ -3,15 +3,14 @@ import ReleaseTransformations._
 // Library versions all in one place, for convenience and sanity.
 lazy val catsVersion          = "1.4.0"
 lazy val catsEffectVersion    = "1.1.0"
-lazy val catsMtlVersion       = "0.3.0"
+lazy val catsMtlVersion       = "0.4.0"
 lazy val catsTaglessVersion   = "0.1.0"
-lazy val catsVersion          = "1.4.0"
-lazy val fs2Version           = "1.0.0"
-lazy val kindProjectorVersion = "0.9.8"
-lazy val scala12Version       = "2.12.7"
+lazy val catsVersion          = "1.5.0"
+lazy val fs2Version           = "1.0.2"
+lazy val kindProjectorVersion = "0.9.9"
+lazy val scala12Version       = "2.12.8"
 lazy val scodecCatsVersion    = "0.8.0"
 lazy val scodecCoreVersion    = "1.10.3"
-lazy val sourcecodeVersion    = "0.1.4"
 
 // run dependencyUpdates whenever we [re]load.
 // onLoad in Global := { s => "dependencyUpdates" :: s }
@@ -132,8 +131,8 @@ lazy val noPublishSettings = Seq(
 lazy val skunk = project.in(file("."))
   .settings(commonSettings)
   .settings(noPublishSettings)
-  .dependsOn(core, tests, example)
-  .aggregate(core, tests, example)
+  .dependsOn(macros, core, tests, example)
+  .aggregate(macros, core, tests, example)
   .settings(
     releaseCrossBuild := true,
     releaseProcess := Seq[ReleaseStep](
@@ -155,8 +154,28 @@ lazy val skunk = project.in(file("."))
     )
   )
 
+lazy val macros = project
+  .in(file("modules/macros"))
+  .enablePlugins(AutomateHeaderPlugin)
+  .settings(commonSettings)
+  .settings(publishSettings)
+  .settings(
+    name := "skunk-macros",
+    description := "Macros for Skunk.",
+    libraryDependencies ++= Seq(
+      "org.typelevel"        %% "cats-core"     % catsVersion,
+    //   "org.typelevel"        %% "cats-effect"   % catsEffectVersion,
+    //   "co.fs2"               %% "fs2-core"      % fs2Version,
+    //   "co.fs2"               %% "fs2-io"        % fs2Version,
+    //   "org.scodec"           %% "scodec-core"   % scodecCoreVersion,
+    //   "org.scodec"           %% "scodec-cats"   % scodecCatsVersion,
+    )
+  )
+
+
 lazy val core = project
   .in(file("modules/core"))
+  .dependsOn(macros)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(commonSettings)
   .settings(publishSettings)
@@ -170,7 +189,6 @@ lazy val core = project
       "co.fs2"               %% "fs2-io"        % fs2Version,
       "org.scodec"           %% "scodec-core"   % scodecCoreVersion,
       "org.scodec"           %% "scodec-cats"   % scodecCatsVersion,
-      "com.lihaoyi"          %% "sourcecode"    % sourcecodeVersion
     )
   )
 
