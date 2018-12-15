@@ -64,11 +64,11 @@ object PreparedQuery {
     new Functor[PreparedQuery[F, A, ?]] {
       def map[T, U](fa: PreparedQuery[F, A, T])(f: T => U) =
         new PreparedQuery[F, A, U] {
-            def check = fa.check
-            def cursor(args: A)(implicit or: Origin) = fa.cursor(args).map(_.map(f))
-            def stream(args: A, chunkSize: Int)(implicit or: Origin) = fa.stream(args, chunkSize).map(f)
-            def option(args: A)(implicit or: Origin) = fa.option(args).map(_.map(f))
-            def unique(args: A)(implicit or: Origin) = fa.unique(args).map(f)
+          def check = fa.check
+          def cursor(args: A)(implicit or: Origin) = fa.cursor(args).map(_.map(f))
+          def stream(args: A, chunkSize: Int)(implicit or: Origin) = fa.stream(args, chunkSize).map(f)
+          def option(args: A)(implicit or: Origin) = fa.option(args).map(_.map(f))
+          def unique(args: A)(implicit or: Origin) = fa.unique(args).map(f)
         }
     }
 
@@ -80,11 +80,11 @@ object PreparedQuery {
     new Contravariant[PreparedQuery[F, ?, B]] {
       def contramap[T, U](fa: PreparedQuery[F, T, B])(f: U => T) =
         new PreparedQuery[F, U, B] {
-            def check = fa.check
-            def cursor(args: U)(implicit or: Origin) = fa.cursor(f(args))
-            def stream(args: U, chunkSize: Int)(implicit or: Origin) = fa.stream(f(args), chunkSize)
-            def option(args: U)(implicit or: Origin) = fa.option(f(args))
-            def unique(args: U)(implicit or: Origin) = fa.unique(f(args))
+          def check = fa.check
+          def cursor(args: U)(implicit or: Origin) = fa.cursor(f(args))
+          def stream(args: U, chunkSize: Int)(implicit or: Origin) = fa.stream(f(args), chunkSize)
+          def option(args: U)(implicit or: Origin) = fa.option(f(args))
+          def unique(args: U)(implicit or: Origin) = fa.unique(f(args))
         }
     }
 
@@ -138,41 +138,46 @@ object PreparedQuery {
           bs match {
             case b :: Nil => b.some.pure[F]
             case Nil      => none[B].pure[F]
-            case _        => MonadError[F, Throwable].raiseError(new SkunkException(
-              sql = proto.query.sql,
-              message = "Expected at most one result, more returned."
-            ))
+            case _        =>
+              fail("option", args, or,
+                "Expected at most one result, more returned.",
+                s"Did you mean to use ${framed("stream")}?"
+              )
           }
         }
 
-      def framed(s: String) =
-        "\u001B[4m" + s + "\u001B[24m"
-
-      def unique(args0: A)(implicit or: Origin) =
-        fetch2(args0).flatMap { case (bs, _) =>
-
-          def fail(m: String, h: String): F[B] =
-           MonadError[F, Throwable].raiseError {
-              SkunkException.fromQueryAndArguments(
-                message    = m,
-                query      = proto.query,
-                args       = args0,
-                callSite0  = Some(CallSite("unique", or)),
-                hint0      = Some(h),
-                argsOrigin = Some(or)
-              )
-            }
+      def unique(args: A)(implicit or: Origin) =
+        fetch2(args).flatMap { case (bs, _) =>
 
           bs match {
             case b :: Nil => b.pure[F]
             case Nil      =>
-              fail("Exactly one row was expected, but none were returned.",
-                s"You used ${framed("unique")}. Did you mean to use ${framed("option")}?")
+              fail("unique", args, or,
+                "Exactly one row was expected, but none were returned.",
+                s"You used ${framed("unique")}. Did you mean to use ${framed("option")}?"
+              )
             case _        =>
-              fail("Exactly one row was expected, but more were returned.",
-                s"You used ${framed("unique")}. Did you mean to use ${framed("stream")}?")
+              fail("unique", args, or,
+                "Exactly one row was expected, but more were returned.",
+                s"You used ${framed("unique")}. Did you mean to use ${framed("stream")}?"
+              )
             }
           }
+
+        private def framed(s: String) =
+          "\u001B[4m" + s + "\u001B[24m"
+
+        private def fail[T](method: String, args: A, or: Origin, m: String, h: String): F[T] =
+          MonadError[F, Throwable].raiseError[T] {
+             SkunkException.fromQueryAndArguments(
+               message    = m,
+               query      = proto.query,
+               args       = args,
+               callSite   = Some(CallSite(method, or)),
+               hint       = Some(h),
+               argsOrigin = Some(or)
+             )
+           }
 
     }
 

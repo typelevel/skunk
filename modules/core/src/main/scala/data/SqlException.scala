@@ -9,25 +9,25 @@ import skunk.util.Origin
 
 // TODO: turn this into an ADT of structured error types
 class SqlException private[skunk](
-  sql0: String,
-  sqlOrigin0: Option[Origin],
-  info: Map[Char, String],
-  history0: List[Either[Any, Any]],
-  arguments0: List[(Type, Option[String])],
-  argumentsOrigin0: Option[Origin]
+  sql:             String,
+  sqlOrigin:       Option[Origin],
+  info:            Map[Char, String],
+  history:         List[Either[Any, Any]],
+  arguments:       List[(Type, Option[String])],
+  argumentsOrigin: Option[Origin]
 ) extends SkunkException(
-  sql       = sql0,
+  sql       = sql,
   message   = {
     val m = info.getOrElse('M', sys.error("Invalid ErrorInfo: no message"))
     m.take(1).toUpperCase + m.drop(1) + "."
   },
-  position  = info.get('P').map(_.toInt),
-  detail    = info.get('D'),
-  hint      = info.get('H'),
-  history   = history0,
-  arguments = arguments0,
-  sqlOrigin = sqlOrigin0,
-  argumentsOrigin = argumentsOrigin0,
+  position        = info.get('P').map(_.toInt),
+  detail          = info.get('D'),
+  hint            = info.get('H'),
+  history         = history,
+  arguments       = arguments,
+  sqlOrigin       = sqlOrigin,
+  argumentsOrigin = argumentsOrigin,
 ) {
 
   /**

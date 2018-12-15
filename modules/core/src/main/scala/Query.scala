@@ -23,7 +23,7 @@ import skunk.util.Origin
  * }}}
  *
  * @param sql A SQL statement returning no rows.
- * @param sqlOrigin The `Origin` where the sql was defined, if any.
+ * @param origin  The `Origin` where the sql was defined, if any.
  * @param encoder An encoder for all parameters `$1`, `$2`, etc., in `sql`.
  * @param encoder A decoder for selected columns.
  *
@@ -34,10 +34,10 @@ import skunk.util.Origin
  * @group Statements
  */
 final case class Query[A, B](
-  sql:       String,
-  sqlOrigin: Option[Origin],
-  encoder:   Encoder[A],
-  decoder:   Decoder[B]
+  sql:     String,
+  origin:  Option[Origin],
+  encoder: Encoder[A],
+  decoder: Decoder[B]
 ) {
 
   /**
@@ -45,7 +45,7 @@ final case class Query[A, B](
    * @group Transformations
    */
   def dimap[C, D](f: C => A)(g: B => D): Query[C, D] =
-    Query(sql, sqlOrigin, encoder.contramap(f), decoder.map(g))
+    Query(sql, origin, encoder.contramap(f), decoder.map(g))
 
   /**
    * Query is a contravariant functor in `A`.

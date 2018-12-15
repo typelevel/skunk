@@ -14,16 +14,16 @@ import skunk.util.{ CallSite, Origin, Pretty }
 // the logical call in prograss and its callsite, if known
 
 class SkunkException protected[skunk](
-  sql:       String,
-  message:   String,
-  position:  Option[Int]                  = None,
-  detail:    Option[String]               = None,
-  hint:      Option[String]               = None,
-  history:   List[Either[Any, Any]]       = Nil,
-  arguments: List[(Type, Option[String])] = Nil,
-  sqlOrigin: Option[Origin]               = None,
-  argumentsOrigin: Option[Origin]         = None,
-  callSite: Option[CallSite]              = None
+  sql:             String,
+  message:         String,
+  position:        Option[Int]                  = None,
+  detail:          Option[String]               = None,
+  hint:            Option[String]               = None,
+  history:         List[Either[Any, Any]]       = Nil,
+  arguments:       List[(Type, Option[String])] = Nil,
+  sqlOrigin:       Option[Origin]               = None,
+  argumentsOrigin: Option[Origin]               = None,
+  callSite:        Option[CallSite]             = None
 ) extends Exception(message) {
 
   protected def framed(s: String) =
@@ -99,20 +99,20 @@ class SkunkException protected[skunk](
 object SkunkException {
 
   def fromQueryAndArguments[A](
-    message: String,
-    query: Query[A, _],
-    args: A,
-    callSite0: Option[CallSite],
-    hint0: Option[String] = None,
+    message:    String,
+    query:      Query[A, _],
+    args:       A,
+    callSite:   Option[CallSite],
+    hint:       Option[String] = None,
     argsOrigin: Option[Origin] = None
   ) =
     new SkunkException(
       query.sql,
       message,
-      sqlOrigin = query.sqlOrigin,
-      callSite = callSite0,
-      hint = hint0,
-      arguments = query.encoder.types zip query.encoder.encode(args),
+      sqlOrigin       = query.origin,
+      callSite        = callSite,
+      hint            = hint,
+      arguments       = query.encoder.types zip query.encoder.encode(args),
       argumentsOrigin = argsOrigin
     )
 

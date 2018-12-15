@@ -224,13 +224,13 @@ object Protocol {
       } //.flatMap { ps => ps.check.whenA(check).as(ps) }
 
     def prepareQuery[A, B](query0: Query[A, B], callSite: Option[CallSite]): F[Protocol.PreparedQuery[F, A, B]] =
-      parse(query0.sql, query0.sqlOrigin, query0.encoder).map { stmt =>
+      parse(query0.sql, query0.origin, query0.encoder).map { stmt =>
         new Protocol.PreparedQuery[F, A, B] {
 
           def query = query0
 
           def bind(args: A): F[Protocol.QueryPortal[F, B]] =
-            bindStmt(query0.sql, query0.sqlOrigin, stmt, query0.encoder, args, None).map { portal =>
+            bindStmt(query0.sql, query0.origin, stmt, query0.encoder, args, None).map { portal =>
               new Protocol.QueryPortal[F, B] {
 
                 def close: F[Unit] =
@@ -303,7 +303,7 @@ object Protocol {
             for {
               _  <- ams.expect { case ReadyForQuery(_) => }
               h  <- ams.history(Int.MaxValue)
-              rs <- Concurrent[F].raiseError[List[B]](new SqlException(query.sql, query.sqlOrigin, e, h, Nil, None))
+              rs <- Concurrent[F].raiseError[List[B]](new SqlException(query.sql, query.origin, e, h, Nil, None))
             } yield rs
           }
 
