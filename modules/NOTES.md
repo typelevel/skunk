@@ -12,8 +12,6 @@ Logical callsite for -
   - [ ] execute(query)
   - [ ] unique
   - [ ] option
-  - [ ] prepare(query)
-  - [ ] prepare(command)
 
 - Channel
   - [ ] listen
@@ -31,4 +29,6 @@ Logical callsite for -
 - Cursor
   - [ ] fetch
 
+
+## Transactions
 

@@ -4,6 +4,7 @@
 
 package skunk.net
 
+import cats.ApplicativeError
 import cats.effect.{ Concurrent, ContextShift, Resource }
 import cats.effect.concurrent.Semaphore
 import cats.effect.implicits._
@@ -18,8 +19,9 @@ import skunk.syntax.id._
 
 /**
  * Interface for a Postgres database, expressed through high-level operations that rely on exchange
- * of multiple messages. Operations here can be executed concurrently. Note that resource safety
- * is not guaranteed here: statements and portals must be closed explicitly.
+ * of multiple messages. Operations here can be executed concurrently and are non-cancelable.
+ * Note that resource safety is not guaranteed here: statements and portals must be closed
+ * explicitly.
  */
 trait Protocol[F[_]] {
 
@@ -187,16 +189,16 @@ object Protocol {
           def command = cmd
 
           def bind(args: A): F[Protocol.CommandPortal[F]] =
-            bindStmt(cmd.sql, None, stmt, cmd.encoder, args, None).map { portal =>
+            doBind(cmd.sql, None, stmt, cmd.encoder, args, None).map { portalName =>
               new Protocol.CommandPortal[F] {
 
                 def close: F[Unit] =
-                  closePortal(portal)
+                  closePortal(portalName)
 
                 def execute: F[Completion] =
                   atomically {
                     for {
-                      _  <- ams.send(Execute(portal, 0))
+                      _  <- ams.send(Execute(portalName, 0))
                       _  <- ams.send(Flush)
                       c  <- ams.expect { case CommandComplete(c) => c }
                     } yield c
@@ -230,7 +232,7 @@ object Protocol {
           def query = query0
 
           def bind(args: A): F[Protocol.QueryPortal[F, B]] =
-            bindStmt(query0.sql, query0.origin, stmt, query0.encoder, args, None).map { portal =>
+            doBind(query0.sql, query0.origin, stmt, query0.encoder, args, None).map { portal =>
               new Protocol.QueryPortal[F, B] {
 
                 def close: F[Unit] =
@@ -325,65 +327,89 @@ object Protocol {
 
     // HELPERS
 
-    private def closePortal(name: String): F[Unit] =
+    private def close(message: Close): F[Unit] =
       atomically {
         for {
-          _ <- ams.send(Close.portal(name))
+          _ <- ams.send(message)
           _ <- ams.send(Flush)
           _ <- ams.expect { case CloseComplete => }
         } yield ()
       }
+
+    private def closePortal(name: String): F[Unit] =
+      close(Close.portal(name))
 
     private def closeStmt(name: String): F[Unit] =
-      atomically {
-        for {
-          _ <- ams.send(Close.statement(name))
-          _ <- ams.send(Flush)
-          _ <- ams.expect { case CloseComplete => }
-        } yield ()
-      }
+      close(Close.statement(name))
 
+    /** Re-sync after an error to get the session back to a usable state, then raise the error. */
     private def recover[A](t: Throwable): F[A] =
       for {
         _ <- ams.send(Sync)
         _ <- ams.expect { case ReadyForQuery(_) => }
-        a <- Concurrent[F].raiseError[A](t)
+        a <- ApplicativeError[F, Throwable].raiseError[A](t)
       } yield a
 
-    private def parse[A](sql: String, sqlOrigin: Option[Origin], enc: Encoder[A]): F[String] =
+    /** Parse a statement, yielding [the name of] a statement. */
+    private def parse[A](
+      sql:       String,
+      sqlOrigin: Option[Origin],
+      enc:       Encoder[A]
+    ): F[String] =
       atomically {
         for {
-          n <- nam.nextName("stmt")
+          n <- nam.nextName("statement")
           _ <- ams.send(Parse(n, sql, enc.types.toList))
           _ <- ams.send(Flush)
           _ <- ams.flatExpect {
-                 case ParseComplete    => ().pure[F]
-                 case ErrorResponse(e) =>
-                  for {
-                    h <- ams.history(Int.MaxValue)
-                    a <- recover[Unit](new SqlException(sql, sqlOrigin, e, h, Nil, None))
-                  } yield a
-               }
+            case ParseComplete    => ().pure[F]
+            case ErrorResponse(e) =>
+            for {
+              h <- ams.history(Int.MaxValue)
+              a <- recover[Unit](new SqlException(
+                sql             = sql,
+                sqlOrigin       = sqlOrigin,
+                info            = e,
+                history         = h,
+              ))
+            } yield a
+          }
         } yield n
       }
 
-    private def bindStmt[A](sql: String, sqlOrigin: Option[Origin], stmt: String, enc: Encoder[A], args: A, argsOrigin: Option[Origin]): F[String] =
+    /** Bind a statement to arguments, yielding [the name of] a portal. */
+    private def doBind[A](
+      sql:        String,
+      sqlOrigin:  Option[Origin],
+      stmt:       String,
+      enc:        Encoder[A],
+      args:       A,
+      argsOrigin: Option[Origin]
+    ): F[String] =
       atomically {
         for {
           pn <- nam.nextName("portal")
           _  <- ams.send(Bind(pn, stmt, enc.encode(args)))
           _  <- ams.send(Flush)
           _  <- ams.flatExpect {
-            case BindComplete => ().pure[F]
-            case ErrorResponse(e) =>
-                  for {
-                    h <- ams.history(Int.MaxValue)
-                    a <- recover[Unit](new SqlException(sql, sqlOrigin, e, h, enc.types.zip(enc.encode(args)), argsOrigin ))
-                  } yield a
-            }
+            case BindComplete     => ().pure[F]
+            case ErrorResponse(info) =>
+              for {
+                h <- ams.history(Int.MaxValue)
+                a <- recover[Unit](new SqlException(
+                  sql             = sql,
+                  sqlOrigin       = sqlOrigin,
+                  info            = info,
+                  history         = h,
+                  arguments       = enc.types.zip(enc.encode(args)),
+                  argumentsOrigin = argsOrigin
+                ))
+              } yield a
+          }
         } yield pn
       }
 
+    /** Receive the next batch of rows. */
     private def unroll[A](dec: Decoder[A]): F[List[A] ~ Boolean] = {
       def go(accum: List[A]): F[List[A] ~ Boolean] =
         ams.receive.flatMap {
@@ -393,6 +419,14 @@ object Protocol {
         }
       go(Nil)
     }
+
+
+
+
+
+
+
+    // TODO: move these out
 
     private def printStatement(sql: String): F[Unit] = {
       def print(a: Any) = Concurrent[F].delay(println(a))

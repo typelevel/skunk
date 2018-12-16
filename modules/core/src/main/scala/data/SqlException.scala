@@ -13,8 +13,8 @@ class SqlException private[skunk](
   sqlOrigin:       Option[Origin],
   info:            Map[Char, String],
   history:         List[Either[Any, Any]],
-  arguments:       List[(Type, Option[String])],
-  argumentsOrigin: Option[Origin]
+  arguments:       List[(Type, Option[String])] = Nil,
+  argumentsOrigin: Option[Origin]               = None
 ) extends SkunkException(
   sql       = sql,
   message   = {

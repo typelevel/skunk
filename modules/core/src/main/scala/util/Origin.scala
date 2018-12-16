@@ -22,10 +22,16 @@ object Origin {
     def instance_impl: Tree = {
       val file = c.enclosingPosition.source.path
       val line = c.enclosingPosition.line
-      q"skunk.util.Origin($file, $line)"
+      q"_root_.skunk.util.Origin($file, $line)"
     }
   }
 
 }
 
 final case class CallSite(methodName: String, origin: Origin)
+
+/**
+ * A value, paired with an optional `Origin`. We use this to trace user-supplied values back to
+ * where they were defined or introduced.
+ */
+final case class Located[A](a: A, origin: Option[A] = None)

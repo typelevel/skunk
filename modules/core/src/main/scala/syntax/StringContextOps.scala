@@ -47,7 +47,7 @@ object StringContextOps {
       // Ok we want to construct an Origin here
       val file   = c.enclosingPosition.source.path
       val line   = c.enclosingPosition.line
-      val origin = q"skunk.util.Origin($file, $line)"
+      val origin = q"_root_.skunk.util.Origin($file, $line)"
 
       // Our prefix looks like this, and the stringy parts of the interpolation will be a non-empty
       // list of string literal trees. We just know this because of the way interpolator desugaring
@@ -71,7 +71,7 @@ object StringContextOps {
       // and the args' lengths, as well as a list of the args. If the arg is an interpolated string
       // we reinterpret it as a stringy part. If the arg is a fragment we splice it in.
       val (finalParts, encoders) : (List[Tree /* part */], List[Tree] /* encoder */) =
-        (parts zip args).foldRight((List(q"skunk.syntax.StringContextOps.Str(${parts.last})"), List.empty[Tree])) {
+        (parts zip args).foldRight((List(q"_root_.skunk.syntax.StringContextOps.Str(${parts.last})"), List.empty[Tree])) {
 
           // The stringy part had better be a string literal. If we got here via the interpolator it
           // always will be. If not we punt (below).
@@ -85,27 +85,27 @@ object StringContextOps {
               // The stringy part ends in a `#` so the following arg must typecheck as a String.
               // Assuming it does, turn it into a string and "emit" two `Left`s.
               if (argType <:< StringType) {
-                val p1 = q"skunk.syntax.StringContextOps.Str(${str.init}.concat($arg))"
+                val p1 = q"_root_.skunk.syntax.StringContextOps.Str(${str.init}.concat($arg))"
                 (p1 :: tail, es)
               } else
                 c.abort(arg.pos, s"type mismatch;\n  found   : $argType\n  required: $StringType")
 
             } else if (argType <:< EncoderType) {
 
-                val p1 = q"skunk.syntax.StringContextOps.Str($part)"
-                val p2 = q"skunk.syntax.StringContextOps.Par($arg.types.length)"
+                val p1 = q"_root_.skunk.syntax.StringContextOps.Str($part)"
+                val p2 = q"_root_.skunk.syntax.StringContextOps.Par($arg.types.length)"
                 (p1 :: p2 :: tail, arg :: es)
 
             } else if (argType <:< VoidFragmentType) {
 
-                val p1 = q"skunk.syntax.StringContextOps.Str($part)"
-                val p2 = q"skunk.syntax.StringContextOps.Emb($arg.parts)"
+                val p1 = q"_root_.skunk.syntax.StringContextOps.Str($part)"
+                val p2 = q"_root_.skunk.syntax.StringContextOps.Emb($arg.parts)"
                 (p1 :: p2 :: tail, es)
 
             } else if (argType <:< FragmentType) {
 
-                val p1 = q"skunk.syntax.StringContextOps.Str($part)"
-                val p2 = q"skunk.syntax.StringContextOps.Emb($arg.parts)"
+                val p1 = q"_root_.skunk.syntax.StringContextOps.Str($part)"
+                val p2 = q"_root_.skunk.syntax.StringContextOps.Emb($arg.parts)"
                 (p1 :: p2 :: tail, q"$arg.encoder" :: es)
 
             } else {
@@ -123,10 +123,10 @@ object StringContextOps {
 
       // The final encoder is either `Void.codec` or `a ~ b ~ ...`
       val finalEncoder: Tree =
-        encoders.reduceLeftOption((a, b) => q"$a ~ $b").getOrElse(q"skunk.Void.codec")
+        encoders.reduceLeftOption((a, b) => q"$a ~ $b").getOrElse(q"_root_.skunk.Void.codec")
 
       // We now have what we need to construct a fragment.
-      q"skunk.syntax.StringContextOps.fragmentFromParts($finalParts, $finalEncoder, $origin)"
+      q"_root_.skunk.syntax.StringContextOps.fragmentFromParts($finalParts, $finalEncoder, $origin)"
 
     }
 
@@ -134,7 +134,7 @@ object StringContextOps {
       val Apply(_, List(Apply(_, List(s @ Literal(Constant(part: String)))))) = c.prefix.tree
       Identifier.fromString(part) match {
         case Left(s) => c.abort(c.enclosingPosition, s)
-        case Right(Identifier(s)) => q"skunk.data.Identifier.unsafeFromString($s)"
+        case Right(Identifier(s)) => q"_root_.skunk.data.Identifier.unsafeFromString($s)"
       }
     }
 

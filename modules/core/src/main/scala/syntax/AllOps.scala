@@ -7,6 +7,5 @@ package skunk.syntax
 trait ToAllOps
   extends ToIdOps
      with ToStringContextOps
-     with ToResourceOps
 
 object all extends ToAllOps
