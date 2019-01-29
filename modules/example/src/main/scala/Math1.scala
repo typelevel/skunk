@@ -5,7 +5,6 @@
 package example
 
 import cats.effect.{ Bracket, ExitCode, IO, IOApp, Resource }
-import cats.implicits._
 import skunk.Session
 import skunk.implicits._
 import skunk.codec.numeric.{ int4, float8 }

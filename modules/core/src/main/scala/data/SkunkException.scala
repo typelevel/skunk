@@ -29,7 +29,6 @@ class SkunkException protected[skunk](
   protected def framed(s: String) =
     "\u001B[4m" + s + "\u001B[24m"
 
-
   protected def title: String =
     callSite.fold(getClass.getSimpleName) { case CallSite(name, origin) =>
       s"Skunk encountered a problem related to use of ${framed(name)}\n  at $origin"
