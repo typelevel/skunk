@@ -54,6 +54,14 @@ trait PreparedQuery[F[_], A, B] {
 /** @group Companions */
 object PreparedQuery {
 
+  def mapK[F[_]: Bracket[?[_], Throwable], G[_]: Defer: Applicative, A, B](f: F ~> G)(pq: PreparedQuery[F, A, B]): PreparedQuery[G, A, B] = new PreparedQuery[G, A, B] {
+    override def check: G[Unit] = f(pq.check)
+    override def cursor(args: A): Resource[G, Cursor[G, B]] = pq.cursor(args).map(_.mapK(f)).mapK(f)
+    override def stream(args: A, chunkSize: Int): Stream[G, B] = pq.stream(args, chunkSize).translate(f)
+    override def option(args: A): G[Option[B]] = f(pq.option(args))
+    override def unique(args: A): G[B] = f(pq.unique(args))
+  }
+
   /**
    * `PreparedQuery[F, ?, B]` is a covariant functor when `F` is a monad.
    * @group Typeclass Instances

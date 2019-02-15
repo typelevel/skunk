@@ -4,7 +4,7 @@
 
 package skunk
 
-import cats.Contravariant
+import cats.{Contravariant, ~>}
 import cats.effect.Bracket
 import skunk.data.Completion
 import skunk.net.Protocol
@@ -13,9 +13,14 @@ import skunk.net.Protocol
  * A prepared command, valid for the life of its defining `Session`.
  * @group Session
  */
-trait PreparedCommand[F[_], A] {
+trait PreparedCommand[F[_], A] { outer =>
   def check: F[Unit]
   def execute(args: A): F[Completion]
+
+  def mapK[G[_]](f: F ~> G): PreparedCommand[G, A] = new PreparedCommand[G, A] {
+    override def check: G[Unit] = f(outer.check)
+    override def execute(args: A): G[Completion] = f(outer.execute(args))
+  }
 }
 
 /** @group Companions */

@@ -16,7 +16,6 @@ import java.nio.channels._
 import java.util.concurrent.Executors
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext
-import skunk.syntax.resource._
 
 /** A higher-level `Socket` interface defined in terms of `BitVector`. */
 trait BitVectorSocket[F[_]] {
@@ -62,7 +61,7 @@ object BitVectorSocket {
 
     }
 
-  def apply[F[_]: LiftIO: MonadError[?[_], Throwable]](host: String, port: Int): Resource[F, BitVectorSocket[F]] = {
+  def apply[F[_]: LiftIO: MonadError[?[_], Throwable]: Defer](host: String, port: Int): Resource[F, BitVectorSocket[F]] = {
 
     implicit val ioContextShift: ContextShift[IO] =
       IO.contextShift(ExecutionContext.global)
@@ -75,7 +74,7 @@ object BitVectorSocket {
 
     val sock: Resource[IO, Socket[IO]] =
       acg.flatMap { implicit acg =>
-        fs2.io.tcp.client[IO](new InetSocketAddress(host, port))
+        fs2.io.tcp.Socket.client[IO](new InetSocketAddress(host, port))
       }
 
     sock.map(fromSocket(_, 1.day, 5.seconds)).mapK(λ[IO ~> F](_.to))

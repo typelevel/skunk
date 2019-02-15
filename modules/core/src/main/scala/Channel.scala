@@ -4,12 +4,12 @@
 
 package skunk
 
-import cats.{ Contravariant, Functor }
+import cats.{Contravariant, Functor, ~>}
 import cats.arrow.Profunctor
 import cats.effect.Resource
 import cats.implicits._
 import fs2.Stream
-import skunk.data.{ Identifier, Notification }
+import skunk.data.{Identifier, Notification}
 import skunk.net.Protocol
 
 /**
@@ -67,10 +67,14 @@ trait Channel[F[_], A, B] { outer =>
    */
   def dimap[C, D](f: C => A)(g: B => D): Channel[F, C, D] =
     new Channel[F, C, D] {
-      def listen(maxQueued: Int) = outer.listen(maxQueued).map(g)
-      def notify(message: C) = outer.notify(f(message))
+      def listen(maxQueued: Int): Stream[F, D] = outer.listen(maxQueued).map(g)
+      def notify(message: C): F[Unit] = outer.notify(f(message))
     }
 
+  def mapK[G[_]](f: F ~> G): Channel[G, A, B] = new Channel[G, A, B] {
+    override def listen(maxQueued: Int): Stream[G, B] = outer.listen(maxQueued).translate(f)
+    override def notify(message: A): G[Unit] = f(outer.notify(message))
+  }
 }
 
 /** @group Companions */

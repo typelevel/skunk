@@ -6,6 +6,7 @@ package skunk
 
 import cats.effect._
 import cats.implicits._
+import cats.{Applicative, Defer, ~>}
 import fs2.Stream
 import fs2.concurrent.Signal
 import skunk.data._
@@ -130,12 +131,18 @@ trait Session[F[_]] {
    */
   def channel(name: Identifier): Channel[F, String, Notification]
 
+  def mapK[G[_]: Defer: Applicative](f: F ~> G): Session[G]
 }
 
 
 
 /** @group Companions */
 object Session {
+  private[skunk] def mapKSignal[F[_], G[_], A](signal: Signal[F, A])(f: F ~> G): Signal[G, A] = new Signal[G, A] {
+    override def discrete: Stream[G, A] = signal.discrete.translate(f)
+    override def continuous: Stream[G, A] = signal.continuous.translate(f)
+    override def get: G[A] = f(signal.get)
+  }
 
   /**
    * Resource yielding a `SessionPool` managing up to `max` concurrent `Session`s.
@@ -200,7 +207,7 @@ object Session {
    * @group Constructors
    */
   def fromProtocol[F[_]: Sync](proto: Protocol[F]): Session[F] =
-    new Session[F] {
+    new Session[F] { outer =>
 
       def execute(command: Command[Void]) =
         proto.quick(command)
@@ -240,6 +247,19 @@ object Session {
       def prepare[A](command: Command[A]) =
         Resource.make(proto.prepareCommand(command))(_.close).map(PreparedCommand.fromProto(_))
 
+      def mapK[G[_]: Defer: Applicative](f: F ~> G): Session[G] = new Session[G] {
+        override val parameters: Signal[G, Map[String, String]] = Session.mapKSignal(outer.parameters)(f)
+        override def parameter(key: String): Stream[G, String] = outer.parameter(key).translate(f)
+        override val transactionStatus: Signal[G, TransactionStatus] = Session.mapKSignal(outer.transactionStatus)(f)
+        override def execute[A](query: Query[Void, A]): G[List[A]] = f(outer.execute(query))
+        override def unique[A](query: Query[Void, A]): G[A] = f(outer.unique(query))
+        override def option[A](query: Query[Void, A]): G[Option[A]] = f(outer.option(query))
+        override def execute(command: Command[Void]): G[Completion] = f(outer.execute(command))
+        override def prepare[A, B](query: Query[A, B]): Resource[G, PreparedQuery[G, A, B]] = outer.prepare(query).mapK(f).map(PreparedQuery.mapK(f))
+        override def prepare[A](command: Command[A]): Resource[G, PreparedCommand[G, A]] = outer.prepare(command).mapK(f).map(_.mapK(f))
+        override def channel(name: Identifier): Channel[G, String, Notification] = outer.channel(name).mapK(f)
+        override def mapK[H[_]: Defer: Applicative](g: G ~> H): Session[H] = outer.mapK(f andThen g)
+      }
     }
 
 }

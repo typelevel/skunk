@@ -4,7 +4,7 @@
 
 package skunk
 
-import cats.Functor
+import cats.{Functor, ~>}
 import cats.implicits._
 
 /**
@@ -22,6 +22,9 @@ trait Cursor[F[_], A] { outer =>
    */
   def fetch(maxRows: Int): F[(List[A], Boolean)]
 
+  def mapK[G[_]](f: F ~> G): Cursor[G, A] = new Cursor[G, A] {
+    override def fetch(maxRows: Int): G[(List[A], Boolean)] = f(outer.fetch(maxRows))
+  }
 }
 
 /** @group Companions */
