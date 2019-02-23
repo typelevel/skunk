@@ -25,6 +25,7 @@ case object ErrorResponseTest extends SkunkTest {
     for {
       _ <- s.execute(sql"foo?".query(int4)).assertFailsWithSqlException
       _ <- s.assertHealthy
+      _ <- assert("x", false)
     } yield "ok"
   }
 
