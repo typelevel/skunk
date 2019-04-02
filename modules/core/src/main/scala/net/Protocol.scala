@@ -364,15 +364,15 @@ object Protocol {
           _ <- ams.flatExpect {
             case ParseComplete    => ().pure[F]
             case ErrorResponse(e) =>
-            for {
-              h <- ams.history(Int.MaxValue)
-              a <- recover[Unit](new SqlException(
-                sql             = sql,
-                sqlOrigin       = sqlOrigin,
-                info            = e,
-                history         = h,
-              ))
-            } yield a
+              for {
+                h <- ams.history(Int.MaxValue)
+                a <- recover[Unit](new SqlException(
+                  sql       = sql,
+                  sqlOrigin = sqlOrigin,
+                  info      = e,
+                  history   = h,
+                ))
+              } yield a
           }
         } yield n
       }

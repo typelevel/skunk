@@ -26,11 +26,11 @@ object Error extends IOApp {
       SELECT name, population
       FROM   country
       WHERE  population > $varchar::int4
-      AND    population < ${int4.opt}
+      AND    population < $int4
     """.query(varchar)
 
   def prog[F[_]: Bracket[?[_], Throwable]](s: Session[F]): F[ExitCode] =
-    s.prepare(query).use(_.unique("42" ~ Some(1000000))).as(ExitCode.Success)
+    s.prepare(query).use(_.unique("42" ~ 1000000)).as(ExitCode.Success)
 
   def run(args: List[String]): IO[ExitCode] =
     session.use(prog(_))

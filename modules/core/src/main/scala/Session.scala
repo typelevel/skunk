@@ -222,16 +222,16 @@ object Session {
 
       def unique[A](query: Query[Void, A]): F[A] =
         execute(query).flatMap {
-            case b :: Nil => b.pure[F]
-            case Nil      => Sync[F].raiseError(new RuntimeException("Expected exactly one result, none returned."))
-            case _        => Sync[F].raiseError(new RuntimeException("Expected exactly one result, more returned."))
-          }
+          case a :: Nil => a.pure[F]
+          case Nil      => Sync[F].raiseError(new RuntimeException("Expected exactly one row, none returned."))
+          case _        => Sync[F].raiseError(new RuntimeException("Expected exactly one row, more returned."))
+        }
 
       def option[A](query: Query[Void, A]): F[Option[A]] =
         execute(query).flatMap {
-          case b :: Nil => b.some.pure[F]
+          case a :: Nil => a.some.pure[F]
           case Nil      => none[A].pure[F]
-          case _        => Sync[F].raiseError(new RuntimeException("Expected exactly one result, more returned."))
+          case _        => Sync[F].raiseError(new RuntimeException("Expected at most one row, more returned."))
         }
 
       def prepare[A, B](query: Query[A, B])(implicit or: Origin) =
