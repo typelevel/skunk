@@ -24,7 +24,7 @@ object Channel extends IOApp {
       s.channel(id"foo")
        .listen(42)
        .take(3)
-       .evalMap(n => IO(println(s"⭐️⭐ $n")))
+       .evalMap(n => IO(println(s"⭐️⭐  $n")))
        .compile
        .drain
     } as ExitCode.Success

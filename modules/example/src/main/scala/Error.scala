@@ -27,6 +27,7 @@ object Error extends IOApp {
       FROM   country
       WHERE  population > $varchar::int4
       AND    population < $int4
+      limit 1
     """.query(varchar)
 
   def prog[F[_]: Bracket[?[_], Throwable]](s: Session[F]): F[ExitCode] =

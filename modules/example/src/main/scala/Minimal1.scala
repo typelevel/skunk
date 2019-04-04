@@ -23,7 +23,7 @@ object Minimal1 extends IOApp {
     session.use { s =>
       for {
         s <- s.unique(sql"select 'hello world'".query(varchar))
-        _ <- IO(println(s"⭐️⭐ The answer is '$s'."))
+        _ <- IO(println(s"⭐️⭐  The answer is '$s'."))
       } yield ExitCode.Success
     }
 

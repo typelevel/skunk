@@ -6,11 +6,13 @@ package example
 
 import cats.effect._
 import cats.implicits._
+import fs2._
+import fs2.Stream.resource
 import skunk._
 import skunk.implicits._
 import skunk.codec.all._
 
-object Minimal2 extends IOApp {
+object Minimal3 extends IOApp {
 
   val session: Resource[IO, Session[IO]] =
     Session.single(
@@ -25,21 +27,25 @@ object Minimal2 extends IOApp {
   val country: Decoder[Country] =
     (varchar ~ varchar ~ int8).map { case c ~ n ~ p => Country(c, n, p) }
 
-  val select: Query[String, Country] =
+  val select =
     sql"""
       select code, name, population
       from country
       WHERE name like $varchar
     """.query(country)
 
+  def stream(pattern: String): Stream[IO, Country] =
+    for {
+      s  <- resource(session)
+      pq <- resource(s.prepare(select))
+      c  <- pq.stream(pattern, 8)
+    } yield c
+
   def run(args: List[String]): IO[ExitCode] =
-    session.use { s =>
-      s.prepare(select).use { pq =>
-        pq.stream("A%", 8)
-          .evalMap(c => IO(println(s"⭐️⭐  $c")))
-          .compile
-          .drain
-      }
-    } as ExitCode.Success
+    stream("A%")
+      .evalMap(c => IO(println(s"⭐️⭐  $c")))
+      .compile
+      .drain
+      .as(ExitCode.Success)
 
 }
