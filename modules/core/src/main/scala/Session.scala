@@ -162,7 +162,7 @@ object Session {
       for {
         // todo: unsubscribe all
         // todo: sync, rollback if necessary
-        _ <- s.execute(Command("RESET ALL", Void.codec))
+        _ <- s.execute(Command("RESET ALL", None, Void.codec))
       } yield true
 
     Pool.of(single(host, port, user, database, check), max, reset)

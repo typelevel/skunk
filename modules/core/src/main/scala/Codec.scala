@@ -37,7 +37,7 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
   def imap[B](f: A => B)(g: B => A): Codec[B] =
     Codec(b => encode(g(b)), ss => f(decode(ss)), types)
 
-  /** Lift this `Codec` into `Option`, where `NONE` is mapped to and from a vector of `NULL`. */
+  /** Lift this `Codec` into `Option`, where `None` is mapped to and from a vector of `NULL`. */
   override def opt: Codec[Option[A]] =
     new Codec[Option[A]] {
       def encode(oa: Option[A]) = oa.fold(empty)(outer.encode)

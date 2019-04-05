@@ -2,13 +2,14 @@
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
-package skunk.data
+package skunk.exception
 
 import cats.implicits._
+import skunk.data.Type
 import skunk.util.Origin
 
 // TODO: turn this into an ADT of structured error types
-class SqlException private[skunk](
+class PostgresErrorException private[skunk](
   sql:             String,
   sqlOrigin:       Option[Origin],
   info:            Map[Char, String],
@@ -121,15 +122,15 @@ class SqlException private[skunk](
     s"Postgres ${severity} $code ${pgSource.orEmpty}"
   }
 
-  private def errorResponse: String =
-    if (info.isEmpty) "" else
-    s"""|ErrorResponse map:
-        |
-        |  ${info.toList.map { case (k, v) => s"$k = $v" } .mkString("\n|  ")}
-        |
-        |""".stripMargin
+  // private def errorResponse: String =
+  //   if (info.isEmpty) "" else
+  //   s"""|ErrorResponse map:
+  //       |
+  //       |  ${info.toList.map { case (k, v) => s"$k = $v" } .mkString("\n|  ")}
+  //       |
+  //       |""".stripMargin
 
   override def sections =
-    List(header, statement, args, exchanges, errorResponse)
+    List(header, statement, args) //, exchanges, errorResponse)
 
 }

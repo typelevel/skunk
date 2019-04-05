@@ -2,16 +2,12 @@
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
-package skunk.data
+package skunk.exception
 
 import cats.implicits._
+import skunk.data.Type
 import skunk.Query
 import skunk.util.{ CallSite, Origin, Pretty }
-
-// Ok we want
-// the statement and its origin, if known
-// the arguments and their binding origin
-// the logical call in prograss and its callsite, if known
 
 class SkunkException protected[skunk](
   sql:             String,
@@ -24,10 +20,7 @@ class SkunkException protected[skunk](
   sqlOrigin:       Option[Origin]               = None,
   argumentsOrigin: Option[Origin]               = None,
   callSite:        Option[CallSite]             = None
-) extends Exception(message) {
-
-  protected def framed(s: String) =
-    "\u001B[4m" + s + "\u001B[24m"
+) extends Exception(message) with scala.util.control.NoStackTrace {
 
   protected def title: String =
     callSite.fold(getClass.getSimpleName) { case CallSite(name, origin) =>
@@ -83,7 +76,7 @@ class SkunkException protected[skunk](
   }
 
   protected def sections: List[String] =
-    List(header, statement, args, exchanges)
+    List(header, statement, args) //, exchanges)
 
   final override def toString =
     sections
@@ -113,6 +106,20 @@ object SkunkException {
       hint            = hint,
       arguments       = query.encoder.types zip query.encoder.encode(args),
       argumentsOrigin = argsOrigin
+    )
+
+  def fromQuery[A](
+    message:    String,
+    query:      Query[A, _],
+    callSite:   Option[CallSite],
+    hint:       Option[String] = None,
+  ) =
+    new SkunkException(
+      query.sql,
+      message,
+      sqlOrigin       = query.origin,
+      callSite        = callSite,
+      hint            = hint,
     )
 
 }

@@ -85,10 +85,10 @@ object Channel {
     new Channel[F, String, Notification] {
 
     val listen: F[Unit] =
-      proto.quick(Command(s"LISTEN ${name.value}", Void.codec)).void
+      proto.quick(Command(s"LISTEN ${name.value}", None, Void.codec)).void
 
     val unlisten: F[Unit] =
-      proto.quick(Command(s"UNLISTEN ${name.value}", Void.codec)).void
+      proto.quick(Command(s"UNLISTEN ${name.value}", None, Void.codec)).void
 
     def listen(maxQueued: Int) =
       for {
@@ -98,7 +98,7 @@ object Channel {
 
     def notify(message: String) =
       // TODO: escape the message
-      proto.quick(Command(s"NOTIFY ${name.value}, '$message'", Void.codec)).void
+      proto.quick(Command(s"NOTIFY ${name.value}, '$message'", None, Void.codec)).void
 
   }
 

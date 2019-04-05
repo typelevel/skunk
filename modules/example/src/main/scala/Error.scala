@@ -18,17 +18,16 @@ object Error extends IOApp {
       port     = 5432,
       user     = "postgres",
       database = "world",
-      check    = false
+      check    = true
     )
 
   val query =
     sql"""
-      SELECT name, population
+      SELECT name, null::int4
       FROM   country
       WHERE  population > $varchar::int4
       AND    population < $int4
-      limit 1
-    """.query(varchar)
+    """.query(varchar ~ int4)
 
   def prog[F[_]: Bracket[?[_], Throwable]](s: Session[F]): F[ExitCode] =
     s.prepare(query).use(_.unique("42" ~ 1000000)).as(ExitCode.Success)

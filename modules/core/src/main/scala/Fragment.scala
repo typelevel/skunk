@@ -4,7 +4,7 @@
 
 package skunk
 
-import cats.Contravariant
+import cats.ContravariantSemigroupal
 import cats.data.State
 import cats.implicits._
 import skunk.util.Origin
@@ -31,10 +31,16 @@ final case class Fragment[A](
     Query(sql, origin, encoder, decoder)
 
   def command: Command[A] =
-    Command(sql, encoder)
+    Command(sql, origin, encoder)
 
   def contramap[B](f: B => A): Fragment[B] =
     Fragment(parts, encoder.contramap(f), origin)
+
+  def product[B](fb: Fragment[B]): Fragment[(A, B)] =
+    Fragment(parts <+> fb.parts, encoder ~ fb.encoder, origin <+> fb.origin)
+
+  def ~[B](fb: Fragment[B]): Fragment[A ~ B] =
+    product(fb)
 
   override def toString =
     s"Fragment($sql, $encoder)"
@@ -44,10 +50,10 @@ final case class Fragment[A](
 /** @group Companions */
 object Fragment {
 
-  implicit val FragmentContravariant: Contravariant[Fragment] =
-    new Contravariant[Fragment] {
-      def contramap[A, B](fa: Fragment[A])(f: B => A) =
-        fa.contramap(f)
+  implicit val FragmentContravariantSemigroupal: ContravariantSemigroupal[Fragment] =
+    new ContravariantSemigroupal[Fragment] {
+      def contramap[A, B](fa: Fragment[A])(f: B => A) = fa.contramap(f)
+      def product[A, B](fa: Fragment[A], fb: Fragment[B]) = fa product fb
     }
 
 }

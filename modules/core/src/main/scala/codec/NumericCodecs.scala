@@ -9,11 +9,11 @@ import skunk.data.Type
 
 trait NumericCodecs {
 
-  val bit: Codec[Boolean] =
+  val bool: Codec[Boolean] =
    Codec.simple(
       b => if (b) "t" else "f",
       { case "t" => true ; case "f" => false },
-      Type.bit
+      Type.bool
     )
 
   val int2: Codec[Short] = Codec.simple(_.toString, _.toShort, Type.int2)
