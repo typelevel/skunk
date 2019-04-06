@@ -5,6 +5,7 @@
 package skunk
 package codec
 
+import cats.implicits._
 import skunk.data.Type
 
 trait NumericCodecs {
@@ -12,15 +13,19 @@ trait NumericCodecs {
   val bool: Codec[Boolean] =
    Codec.simple(
       b => if (b) "t" else "f",
-      { case "t" => true ; case "f" => false },
+      {
+        case "t" => Right(true)
+        case "f" => Right(false)
+        case s   => Left(s"Expected 't' or 'f', got $s")
+      },
       Type.bool
     )
 
-  val int2: Codec[Short] = Codec.simple(_.toString, _.toShort, Type.int2)
-  val int4: Codec[Int]   = Codec.simple(_.toString, _.toInt,   Type.int4)
-  val int8: Codec[Long]  = Codec.simple(_.toString, _.toLong,  Type.int8)
+  val int2: Codec[Short] = Codec.simple(_.toString, _.toShort.asRight, Type.int2)// todo: validate
+  val int4: Codec[Int]   = Codec.simple(_.toString, _.toInt.asRight,   Type.int4)// todo: validate
+  val int8: Codec[Long]  = Codec.simple(_.toString, _.toLong.asRight,  Type.int8)// todo: validate
 
-  val float8: Codec[Double]  = Codec.simple(_.toString, _.toDouble, Type.float8)
+  val float8: Codec[Double]  = Codec.simple(_.toString, _.toDouble.asRight, Type.float8)// todo: validate
 
 }
 

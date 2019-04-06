@@ -4,9 +4,10 @@
 
 package skunk
 
-package object exception {
+import skunk.util.Origin
 
-  private[exception] def framed(s: String) =
-    "\u001B[4m" + s + "\u001B[24m"
-
+trait Statement[A] {
+  def sql:     String
+  def origin:  Option[Origin]
+  def encoder: Encoder[A]
 }

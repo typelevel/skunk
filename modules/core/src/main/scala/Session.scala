@@ -115,7 +115,7 @@ trait Session[F[_]] {
    * times with different arguments.
    * @group Queries
    */
-  def prepare[A, B](query: Query[A, B])(implicit or: Origin): Resource[F, PreparedQuery[F, A, B]]
+  def prepare[A, B](query: Query[A, B]): Resource[F, PreparedQuery[F, A, B]]
 
   /**
    * Prepare an `INSERT`, `UPDATE`, or `DELETE` command that returns no rows. The resulting
@@ -155,7 +155,6 @@ object Session {
     user:     String,
     database: String,
     max:      Long,
-    check:    Boolean = true
   ): SessionPool[F] = {
 
     val reset: Session[F] => F[Boolean] = s =>
@@ -165,7 +164,7 @@ object Session {
         _ <- s.execute(Command("RESET ALL", None, Void.codec))
       } yield true
 
-    Pool.of(single(host, port, user, database, check), max, reset)
+    Pool.of(single(host, port, user, database), max, reset)
 
   }
 
@@ -186,10 +185,9 @@ object Session {
     port:     Int,
     user:     String,
     database: String,
-    check:    Boolean = true
   ): Resource[F, Session[F]] =
     for {
-      ps <- Protocol[F](host, port, check)
+      ps <- Protocol[F](host, port)
       _  <- Resource.liftF(ps.startup(user, database))
       // TODO: password negotiation, SASL, etc.
     } yield fromProtocol(ps)
@@ -234,8 +232,8 @@ object Session {
           case _        => Sync[F].raiseError(new RuntimeException("Expected at most one row, more returned."))
         }
 
-      def prepare[A, B](query: Query[A, B])(implicit or: Origin) =
-        Resource.make(proto.prepareQuery(query, Some(CallSite("prepare", or))))(_.close).map(PreparedQuery.fromProto(_))
+      def prepare[A, B](query: Query[A, B]) =
+        Resource.make(proto.prepareQuery(query))(_.close).map(PreparedQuery.fromProto(_))
 
       def prepare[A](command: Command[A]) =
         Resource.make(proto.prepareCommand(command))(_.close).map(PreparedCommand.fromProto(_))

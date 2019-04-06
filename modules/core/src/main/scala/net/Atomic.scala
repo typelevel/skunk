@@ -18,9 +18,9 @@ import cats.implicits._
 
 /**
  * Atomic interactions with the database that consist of multiple message exchanges. These are
- * run under a mutex and are uninterruptable.
+ * run under a mutex and are uninterruptable. Protocol delegates its work here.
  */
-class Atomic[F[_]: Concurrent](
+case class Atomic[F[_]: Concurrent](
   ams:   BufferedMessageSocket[F],
   nam:   Namer[F],
   sem:   Semaphore[F],
@@ -70,15 +70,11 @@ class Atomic[F[_]: Concurrent](
     } yield a
 
   /** Parse a statement, yielding [the name of] a statement. */
-  def parse[A](
-    sql:       String,
-    sqlOrigin: Option[Origin],
-    enc:       Encoder[A]
-  ): F[String] =
+  def parse[A](statement: Statement[A]): F[String] =
     atomically {
       for {
         n <- nam.nextName("statement")
-        _ <- ams.send(Parse(n, sql, enc.types.toList))
+        _ <- ams.send(Parse(n, statement.sql, statement.encoder.types.toList))
         _ <- ams.send(Flush)
         _ <- ams.flatExpect {
           case ParseComplete    => ().pure[F]
@@ -87,8 +83,8 @@ class Atomic[F[_]: Concurrent](
               h <- ams.history(Int.MaxValue)
               a <- resyncAndRaise[Unit] {
                 new PostgresErrorException(
-                  sql       = sql,
-                  sqlOrigin = sqlOrigin,
+                  sql       = statement.sql,
+                  sqlOrigin = statement.origin,
                   info      = e,
                   history   = h,
                 )
@@ -100,17 +96,14 @@ class Atomic[F[_]: Concurrent](
 
   /** Bind a statement to arguments, yielding [the name of] a portal. */
   def bind[A](
-    sql:        String,
-    sqlOrigin:  Option[Origin],
-    stmt:       String,
-    enc:        Encoder[A],
+    statement:  Protocol.PreparedStatement[F, A],
     args:       A,
     argsOrigin: Origin
   ): F[String] =
     atomically {
       for {
         pn <- nam.nextName("portal")
-        _  <- ams.send(Bind(pn, stmt, enc.encode(args)))
+        _  <- ams.send(Bind(pn, statement.dbid, statement.statement.encoder.encode(args)))
         _  <- ams.send(Flush)
         _  <- ams.flatExpect {
           case BindComplete     => ().pure[F]
@@ -118,11 +111,11 @@ class Atomic[F[_]: Concurrent](
             for {
               h <- ams.history(Int.MaxValue)
               a <- resyncAndRaise[Unit](new PostgresErrorException(
-                sql             = sql,
-                sqlOrigin       = sqlOrigin,
+                sql             = statement.statement.sql,
+                sqlOrigin       = statement.statement.origin,
                 info            = info,
                 history         = h,
-                arguments       = enc.types.zip(enc.encode(args)),
+                arguments       = statement.statement.encoder.types.zip(statement.statement.encoder.encode(args)),
                 argumentsOrigin = Some(argsOrigin)
               ))
             } yield a
@@ -162,36 +155,36 @@ class Atomic[F[_]: Concurrent](
       }
     }
 
-  def executeQuery[B](query: Query[_, B], portal: String, maxRows: Int): F[List[B] ~ Boolean] =
+  def executeQuery[A, B](portal: Protocol.QueryPortal[F, A, B], maxRows: Int): F[List[B] ~ Boolean] =
     atomically {
       for {
-        _  <- ams.send(Execute(portal, maxRows))
+        _  <- ams.send(Execute(portal.dbid, maxRows))
         _  <- ams.send(Flush)
-        rs <- unroll(query.decoder)
+        rs <- unroll(portal)
       } yield rs
     }
 
   def executeQuickQuery[B](query: Query[Void, B]): F[List[B]] =
-    atomically {
-      ams.send(QueryMessage(query.sql)) *> ams.flatExpect {
+    sys.error("todo: executeQuickQuery")
+    // atomically {
+    //   ams.send(QueryMessage(query.sql)) *> ams.flatExpect {
 
-        case rd @ RowDescription(_) =>
-          for {
-            // _  <- printStatement(query.sql).whenA(check)
-            // _  <- checkRowDescription(rd, query.decoder).whenA(check)
-            rs <- unroll(query.decoder).map(_._1) // rs._2 will always be true here
-            _  <- ams.expect { case ReadyForQuery(_) => }
-          } yield rs
+    //     case rd @ RowDescription(_) =>
+    //       for {
+    //         // _  <- printStatement(query.sql).whenA(check)
+    //         // _  <- checkRowDescription(rd, query.decoder).whenA(check)
+    //         rs <- unroll(query, Void).map(_._1) // rs._2 will always be true here
+    //         _  <- ams.expect { case ReadyForQuery(_) => }
+    //       } yield rs
 
-        case ErrorResponse(e) =>
-          for {
-            _  <- ams.expect { case ReadyForQuery(_) => }
-            h  <- ams.history(Int.MaxValue)
-            rs <- Concurrent[F].raiseError[List[B]](new PostgresErrorException(query.sql, query.origin, e, h, Nil, None))
-          } yield rs
-        }
-
-    }
+    //     case ErrorResponse(e) =>
+    //       for {
+    //         _  <- ams.expect { case ReadyForQuery(_) => }
+    //         h  <- ams.history(Int.MaxValue)
+    //         rs <- Concurrent[F].raiseError[List[B]](new PostgresErrorException(query.sql, query.origin, e, h, Nil, None))
+    //       } yield rs
+    //     }
+    // }
 
   def checkCommand(cmd: Command[_], stmt: String): F[Unit] =
     atomically {
@@ -201,13 +194,13 @@ class Atomic[F[_]: Concurrent](
         _  <- ams.expect { case ParameterDescription(_) => } // always ok
         _  <- ams.flatExpect {
                 case NoData                 => ().pure[F]
-                case rd @ RowDescription(_) => Concurrent[F].raiseError[Unit](UnexpectedRowsException(cmd, rd))
+                case rd @ RowDescription(_) =>
+                  Concurrent[F].raiseError[Unit](UnexpectedRowsException(cmd, rd))
               }
       } yield ()
     }
 
-  // Two things can go wrong here.
-  def checkQuery[A](query: Query[_, A], stmt: String): F[Unit] =
+  def checkQuery[A](query: Query[_, A], stmt: String): F[RowDescription] =
     atomically {
       for {
         _  <- ams.send(Describe.statement(stmt))
@@ -215,26 +208,82 @@ class Atomic[F[_]: Concurrent](
         _  <- ams.expect { case ParameterDescription(_) => } // always ok
         rd <- ams.flatExpect {
                 case rd @ RowDescription(_) => rd.pure[F]
-                case NoData              => Concurrent[F].raiseError[RowDescription](NoDataException(query)) // this isn't a query!
+                case NoData                 =>
+                  Concurrent[F].raiseError[RowDescription](NoDataException(query))
               }
         ok =  query.decoder.types.map(_.oid) === rd.oids
         _  <- Concurrent[F].raiseError(ColumnAlignmentException(query, rd)).unlessA(ok)
-      } yield ()
+      } yield rd
     }
 
   /** Receive the next batch of rows. */
-  private def unroll[A](dec: Decoder[A]): F[List[A] ~ Boolean] = {
-    // Accumulate all the data first, then map it to the result type. This ensures that any decoding
-    // errors won't mess up the protocol.
-    def go(accum: List[List[Option[String]]]): F[List[List[Option[String]]] ~ Boolean] =
+  private def unroll[A, B](portal: Protocol.QueryPortal[F, A, B]): F[List[B] ~ Boolean] = {
+
+    // N.B. we process all waiting messages to ensure the protocol isn't messed up by decoding
+    // failures later on.
+    def accumulate(accum: List[List[Option[String]]]): F[List[List[Option[String]]] ~ Boolean] =
       ams.receive.flatMap {
-        case rd @ RowData(_)         => go(rd.fields :: accum) // TODO: when we encounter null here we need a good diagnostic report
+        case rd @ RowData(_)         => accumulate(rd.fields :: accum)
         case      CommandComplete(_) => (accum.reverse ~ false).pure[F]
         case      PortalSuspended    => (accum.reverse ~ true).pure[F]
       }
-    go(Nil).map {
-      case (data, bool) => (data.map(dec.decode), bool)
+
+    accumulate(Nil).flatMap {
+      case (rows, bool) =>
+        rows.traverse { data =>
+          portal.preparedQuery.query.decoder.decode(0, data) match {
+            case Right(a) => a.pure[F]
+            case Left(e)  => Concurrent[F].raiseError[B](new DecodeException(portal, data, e))
+          }
+        } .map(_ ~ bool)
     }
   }
+
+}
+
+// todo: this with a ctor we can call for quick query, which has no portal
+class DecodeException[F[_], A, B](
+  portal: Protocol.QueryPortal[F, A, B],
+  data:   List[Option[String]],
+  error:  Decoder.Error
+) extends SkunkException(
+  sql             = portal.preparedQuery.query.sql,
+  message         = "Decoding error.",
+  hint            = Some("This query's decoder was unable to decode a data row."),
+  arguments       = portal.preparedQuery.query.encoder.types.zip(portal.preparedQuery.query.encoder.encode(portal.arguments)),
+  argumentsOrigin = Some(portal.argumentsOrigin),
+  sqlOrigin       = portal.preparedQuery.query.origin
+) {
+
+  import Text.{ plain, empty, cyan, green }
+
+  val MaxValue = 15
+
+  private val dataʹ = data.map(_.map(s =>
+    if (s.length > MaxValue) s.take(MaxValue) + "⋯" else s
+  )) // truncate
+
+  private def describeType(f: RowDescription.Field): Text =
+    plain(Type.forOid(f.typeOid).fold(s"Unknown(${f.typeOid})")(_.name))
+
+  def describe(col: ((RowDescription.Field, Int), Option[String])): List[Text] = {
+    val ((t, n), op) = col
+    List(
+      green(t.name),
+      describeType(t),
+      plain("->"),
+      green(op.getOrElse("NULL")),
+      if (n === error.offset) cyan(s"── ${error.error}") else empty
+    )
+  }
+
+  final protected def row: String =
+    s"""|The row in question returned the following values (truncated to $MaxValue chars).
+        |
+        |  ${Text.grid(portal.preparedQuery.rowDescription.fields.zipWithIndex.zip(dataʹ).map(describe)).intercalate(plain("\n|  ")).render}
+        |""".stripMargin
+
+  override def sections =
+    super.sections :+ row
 
 }

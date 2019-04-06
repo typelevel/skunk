@@ -20,12 +20,6 @@ import skunk.util.{ CallSite, Origin }
 trait PreparedQuery[F[_], A, B] {
 
   /**
-   * Check that this `PreparedQuery`'s asserted argument and result types align correctly with the
-   * schema. In case of misalignment an exception is raised with a description of the problem.
-   */
-  def check: F[Unit]
-
-  /**
    * `Resource` that binds the supplied arguments to this `PreparedQuery`, yielding a `Cursor` from
    * which rows can be `fetch`ed. Note that higher-level operations like `stream`, `option`, and
    * `unique` are usually what you want.
@@ -58,9 +52,6 @@ object PreparedQuery {
 
   def fromProto[F[_]: Bracket[?[_], Throwable], A, B](proto: Protocol.PreparedQuery[F, A, B]) =
     new PreparedQuery[F, A, B] {
-
-      def check: F[Unit] =
-        proto.check
 
       def cursor(args: A)(implicit or: Origin): Resource[F, Cursor[F, B]] =
         Resource.make(proto.bind(args, or))(_.close).map { p =>
@@ -147,7 +138,6 @@ object PreparedQuery {
   new Functor[PreparedQuery[F, A, ?]] {
     def map[T, U](fa: PreparedQuery[F, A, T])(f: T => U) =
       new PreparedQuery[F, A, U] {
-        def check = fa.check
         def cursor(args: A)(implicit or: Origin) = fa.cursor(args).map(_.map(f))
         def stream(args: A, chunkSize: Int)(implicit or: Origin) = fa.stream(args, chunkSize).map(f)
         def option(args: A)(implicit or: Origin) = fa.option(args).map(_.map(f))
@@ -163,7 +153,6 @@ object PreparedQuery {
     new Contravariant[PreparedQuery[F, ?, B]] {
       def contramap[T, U](fa: PreparedQuery[F, T, B])(f: U => T) =
         new PreparedQuery[F, U, B] {
-          def check = fa.check
           def cursor(args: U)(implicit or: Origin) = fa.cursor(f(args))
           def stream(args: U, chunkSize: Int)(implicit or: Origin) = fa.stream(f(args), chunkSize)
           def option(args: U)(implicit or: Origin) = fa.option(f(args))

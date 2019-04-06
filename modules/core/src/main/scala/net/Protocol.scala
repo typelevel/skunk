@@ -9,8 +9,9 @@ import cats.effect.concurrent.Semaphore
 import cats.implicits._
 import fs2.concurrent.Signal
 import fs2.Stream
-import skunk.{ Command, Query, ~, Void }
+import skunk.{ Command, Query, Statement, ~, Void }
 import skunk.data._
+import skunk.net.message.RowDescription
 import skunk.util.{ CallSite, Namer, Origin }
 
 /**
@@ -64,7 +65,7 @@ trait Protocol[F[_]] {
    * Prepare a query (a statement that produces rows), yielding a `Protocol.PreparedCommand` which
    * must be closed by the caller. Higher-level APIs may wish to encapsulate this in a `Resource`.
    */
-  def prepareQuery[A, B](query: Query[A, B], callSite: Option[CallSite]): F[Protocol.PreparedQuery[F, A, B]]
+  def prepareQuery[A, B](query: Query[A, B]): F[Protocol.PreparedQuery[F, A, B]]
 
   /**
    * Execute a non-parameterized command (a statement that produces no rows), yielding a
@@ -96,28 +97,50 @@ trait Protocol[F[_]] {
 
 object Protocol {
 
-  trait CommandPortal[F[_]] {
+  trait Managed[F[_]] {
+    def dbid: String
     def close: F[Unit]
+  }
+
+  trait PreparedStatement[F[_], A] extends Managed[F] {
+    def statement: Statement[A]
+  }
+
+  abstract class PreparedCommand[F[_], A](
+    val command: Command[A],
+    val dbid: String,
+  ) extends PreparedStatement[F, A] {
+    def statement: Statement[A] = command
+    def bind(args: A, argsOrigin: Origin): F[CommandPortal[F, A]]
+  }
+
+  abstract class PreparedQuery[F[_], A, B](
+    val query: Query[A, B],
+    val dbid: String,
+    val rowDescription: RowDescription
+  ) extends PreparedStatement[F, A] {
+    def statement: Statement[A] = query
+    def bind(args: A, argsOrigin: Origin): F[QueryPortal[F, A, B]]
+  }
+
+  trait Portal[F[_], A] extends Managed[F] {
+    def preparedStatement: PreparedStatement[F, A]
+  }
+
+  abstract class CommandPortal[F[_], A](
+    val dbid: String
+  ) extends Portal[F, A] {
+    def preparedCommand: PreparedCommand[F, A]
+    def preparedStatement: PreparedStatement[F, A] = preparedCommand
     def execute: F[Completion]
   }
 
-  trait PreparedCommand[F[_], A] {
-    def command: Command[A]
-    def bind(args: A, argsOrigin: Origin): F[Protocol.CommandPortal[F]]
-    def check: F[Unit]
-    def close: F[Unit]
-  }
-
-  trait PreparedQuery[F[_], A, B] {
-    def query: Query[A, B]
-    def close: F[Unit]
-    def check: F[Unit]
-    def bind(args: A, argsOrigin: Origin): F[Protocol.QueryPortal[F, B]]
-  }
-
-  trait QueryPortal[F[_], A] {
-    def close: F[Unit]
-    def execute(maxRows: Int): F[List[A] ~ Boolean]
+  trait QueryPortal[F[_], A, B] extends Portal[F, A] {
+    def preparedQuery: PreparedQuery[F, A, B]
+    def preparedStatement: PreparedStatement[F, A] = preparedQuery
+    def arguments: A
+    def argumentsOrigin: Origin
+    def execute(maxRows: Int): F[List[B] ~ Boolean]
   }
 
   /**
@@ -129,94 +152,83 @@ object Protocol {
    */
   def apply[F[_]: Concurrent: ContextShift](
     host:  String,
-    port:  Int     = 5432,
-    check: Boolean = true
+    port:  Int     = 5432
   ): Resource[F, Protocol[F]] =
     for {
       ams <- BufferedMessageSocket[F](host, port)
-      ses <- Resource.liftF(Protocol.fromBufferedMessageSocket(ams, check))
+      ses <- Resource.liftF(Protocol.fromBufferedMessageSocket(ams))
     } yield ses
 
   /** Construct a `Protocol` by wrapping an `BufferedMessageSocket`. */
   private def fromBufferedMessageSocket[F[_]: Concurrent](
-    ams:   BufferedMessageSocket[F],
-    check: Boolean
+    ams:   BufferedMessageSocket[F]
   ): F[Protocol[F]] =
     for {
       nam <- Namer[F]
       sem <- Semaphore[F](1)
-    } yield new ProtocolImpl(ams, nam, sem, check)
+    } yield
+      new Protocol[F] {
 
-  /**
-   * `Protocol` implementation.
-   * @param ams `BufferedMessageSocket` that manages message exchange.
-   * @param nam `Namer` for giving unique (per session) names for prepared statements and portals.
-   * @param sem Single-key `Semaphore` used as a mutex for message exchanges. Every "conversation"
-   *   must be conducted while holding the mutex because we may have interleaved streams.
-   * @param check Check all `prepare` and `quick` statements for consistency with the schema.
-   */
-  private final class ProtocolImpl[F[_]: Concurrent](
-    ams:   BufferedMessageSocket[F],
-    nam:   Namer[F],
-    sem:   Semaphore[F],
-    check: Boolean
-  ) extends Protocol[F] {
+        val atomic: Atomic[F] =
+          Atomic[F](ams, nam, sem)
 
-    val atomic: Atomic[F] =
-      new Atomic[F](ams, nam, sem)
+        def notifications(maxQueued: Int): Stream[F, Notification] =
+          ams.notifications(maxQueued)
 
-    def notifications(maxQueued: Int): Stream[F, Notification] =
-      ams.notifications(maxQueued)
+        def parameters: Signal[F, Map[String, String]] =
+          ams.parameters
 
-    def parameters: Signal[F, Map[String, String]] =
-      ams.parameters
-
-    def prepareCommand[A](cmd: Command[A]): F[Protocol.PreparedCommand[F, A]] =
-      atomic.parse(cmd.sql, None, cmd.encoder).map { stmt =>
-        new Protocol.PreparedCommand[F, A] {
-          def command: Command[A] = cmd
-          def check: F[Unit] = atomic.checkCommand(cmd, stmt)
-          def close: F[Unit] = atomic.closeStmt(stmt)
-          def bind(args: A, origin: Origin): F[Protocol.CommandPortal[F]] =
-            atomic.bind(cmd.sql, None, stmt, cmd.encoder, args, origin).map { portalName =>
-              new Protocol.CommandPortal[F] {
-                def close: F[Unit] = atomic.closePortal(portalName)
-                def execute: F[Completion] = atomic.executeCommand(portalName)
-              }
+        def prepareCommand[A](command: Command[A]): F[PreparedCommand[F, A]] =
+          for {
+            dbid <- atomic.parse(command)
+            _    <- atomic.checkCommand(command, dbid)
+            } yield
+            new PreparedCommand[F, A](command, dbid) { pc =>
+              def close: F[Unit] = atomic.closeStmt(dbid)
+              def bind(args: A, origin: Origin): F[CommandPortal[F, A]] =
+                atomic.bind(this, args, origin).map { dbid =>
+                  new CommandPortal[F, A](dbid) {
+                    def close: F[Unit] = atomic.closePortal(dbid)
+                    def preparedCommand: PreparedCommand[F, A] = pc
+                    def execute: F[Completion] = atomic.executeCommand(dbid)
+                  }
+                }
             }
-        }
-      } .flatMap { ps => ps.check.whenA(check).as(ps) }
 
-    def prepareQuery[A, B](query0: Query[A, B], callSite: Option[CallSite]): F[Protocol.PreparedQuery[F, A, B]] =
-      atomic.parse(query0.sql, query0.origin, query0.encoder).map { stmt =>
-        new Protocol.PreparedQuery[F, A, B] {
-          def query = query0
-          def check: F[Unit] = atomic.checkQuery(query0, stmt)
-          def close: F[Unit] = atomic.closeStmt(stmt)
-          def bind(args: A, origin: Origin): F[Protocol.QueryPortal[F, B]] =
-            atomic.bind(query0.sql, query0.origin, stmt, query0.encoder, args, origin).map { portal =>
-              new Protocol.QueryPortal[F, B] {
-                def close: F[Unit] = atomic.closePortal(portal)
-                def execute(maxRows: Int): F[List[B] ~ Boolean] =
-                  atomic.executeQuery(query0, portal, maxRows)
+        def prepareQuery[A, B](query: Query[A, B]): F[PreparedQuery[F, A, B]] =
+          for {
+            dbid           <- atomic.parse(query)
+            rowDescription <- atomic.checkQuery(query, dbid)
+          } yield
+            new PreparedQuery[F, A, B](query, dbid, rowDescription) { pq =>
+              def close: F[Unit] = atomic.closeStmt(dbid)
+              def bind(args: A, origin: Origin): F[QueryPortal[F, A, B]] =
+                atomic.bind(this, args, origin).map { portal =>
+                  new QueryPortal[F, A, B] {
+                    def dbid = portal
+                    def preparedQuery = pq
+                    def arguments = args
+                    def argumentsOrigin = origin
+                    def close: F[Unit] = atomic.closePortal(portal)
+                    def execute(maxRows: Int): F[List[B] ~ Boolean] =
+                      atomic.executeQuery(this, maxRows)
+                  }
+                }
               }
-            }
-        }
-      } .flatMap { ps => ps.check.whenA(check).as(ps) }
 
-    def quick(command: Command[Void]): F[Completion] =
-      atomic.executeQuickCommand(command)
+        def quick(command: Command[Void]): F[Completion] =
+          atomic.executeQuickCommand(command)
 
-    def quick[B](query: Query[Void, B]): F[List[B]] =
-      atomic.executeQuickQuery(query)
+        def quick[B](query: Query[Void, B]): F[List[B]] =
+          atomic.executeQuickQuery(query)
 
-    def startup(user: String, database: String): F[Unit] =
-      atomic.startup(user, database)
+        def startup(user: String, database: String): F[Unit] =
+          atomic.startup(user, database)
 
-    def transactionStatus: Signal[F, TransactionStatus] =
-      ams.transactionStatus
+        def transactionStatus: Signal[F, TransactionStatus] =
+          ams.transactionStatus
 
-  }
+      }
 
 }
 

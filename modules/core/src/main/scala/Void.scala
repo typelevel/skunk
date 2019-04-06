@@ -4,6 +4,8 @@
 
 package skunk
 
+import cats.implicits._
+
 /**
  * A singly-inhabited type representing arguments to a parameterless statement.
  * @group Codecs
@@ -16,7 +18,11 @@ case object Void extends Void {
   val codec: Codec[Void] =
     new Codec[Void] {
       def encode(a: Void) = Nil
-      def decode(ss: List[Option[String]]) = Void
+      def decode(index: Int, ss: List[Option[String]]) =
+        ss match {
+          case Nil => Void.asRight
+          case _   => Left(Decoder.Error(index, 0, s"Expected no values, found $ss"))
+        }
       val types = Nil
     }
 

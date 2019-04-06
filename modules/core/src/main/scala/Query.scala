@@ -38,7 +38,7 @@ final case class Query[A, B](
   origin:  Option[Origin],
   encoder: Encoder[A],
   decoder: Decoder[B]
-) {
+) extends Statement[A] {
 
   /**
    * Query is a profunctor.

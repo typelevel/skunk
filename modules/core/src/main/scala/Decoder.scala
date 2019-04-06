@@ -5,6 +5,7 @@
 package skunk
 
 import cats._
+import cats.implicits._
 import skunk.data.Type
 
 /**
@@ -14,21 +15,23 @@ import skunk.data.Type
 trait Decoder[A] { outer =>
 
   def types: List[Type]
-  def decode(ss: List[Option[String]]): A
+  def decode(offset: Int, ss: List[Option[String]]): Either[Decoder.Error, A]
+
+  def length: Int = types.length
 
   /** Map decoded results to a new type `B`, yielding a `Decoder[B]`. */
   def map[B](f: A => B): Decoder[B] =
     new Decoder[B] {
-      def decode(ss: List[Option[String]]) = f(outer.decode(ss))
+      def decode(offset: Int, ss: List[Option[String]]) = outer.decode(offset, ss).map(f)
       val types = outer.types
     }
 
   /** `Decoder` is semigroupal: a pair of decoders make a decoder for a pair. */
   def product[B](fb: Decoder[B]): Decoder[(A, B)] =
     new Decoder[(A, B)] {
-      def decode(ss: List[Option[String]]) = {
+      def decode(offset: Int, ss: List[Option[String]]) = {
         val (sa, sb) = ss.splitAt(outer.types.length)
-        (outer.decode(sa), fb.decode(sb))
+        outer.decode(offset, sa) product fb.decode(offset + outer.length, sb)
       }
       val types = outer.types ++ fb.types
     }
@@ -41,9 +44,9 @@ trait Decoder[A] { outer =>
   def opt: Decoder[Option[A]] =
     new Decoder[Option[A]] {
       val types = outer.types
-      def decode(ss: List[Option[String]]) =
-        if (ss.forall(_.isEmpty)) None
-        else Some(outer.decode(ss))
+      def decode(offset: Int, ss: List[Option[String]]) =
+        if (ss.forall(_.isEmpty)) Right(None)
+        else outer.decode(offset, ss).map(Some(_))
     }
 
   override def toString =
@@ -53,6 +56,8 @@ trait Decoder[A] { outer =>
 
 /** @group Companions */
 object Decoder {
+
+  case class Error(offset: Int, length: Int, error: String)
 
   implicit val ApplyDecoder: Apply[Decoder] =
     new Apply[Decoder] {

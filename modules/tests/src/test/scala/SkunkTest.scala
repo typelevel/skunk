@@ -8,6 +8,7 @@ import cats.effect.{ IO, Resource }
 import cats.implicits._
 import skunk.Session
 import skunk.data._
+import skunk.exception._
 import skunk.codec.all._
 import skunk.implicits._
 
@@ -19,7 +20,6 @@ trait SkunkTest extends ffstest.FTest {
       port     = 5432,
       user     = "postgres",
       database = "world",
-      check    = false
     )
 
   def sessionTest[A](name: String)(fa: Session[IO] => IO[A]): Unit =
@@ -40,7 +40,7 @@ trait SkunkTest extends ffstest.FTest {
   }
 
   implicit class SkunkTestIOOps[A](fa: IO[A]) {
-    type SE = SqlException
+    type SE = SkunkException
     def assertFailsWithSqlException: IO[Unit] =
       fa.attempt.flatMap {
         case Left(_: SE) => IO.unit

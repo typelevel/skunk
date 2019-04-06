@@ -33,7 +33,7 @@ final case class Command[A](
   sql:     String,
   origin:  Option[Origin],
   encoder: Encoder[A]
-) {
+) extends Statement[A] {
 
   /**
    * Command is a [[https://typelevel.org/cats/typeclasses/contravariant.html contravariant

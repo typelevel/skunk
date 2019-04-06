@@ -15,7 +15,6 @@ import skunk.util.Origin
  * @group Session
  */
 trait PreparedCommand[F[_], A] {
-  def check: F[Unit]
   def execute(args: A)(implicit origin: Origin): F[Completion]
 }
 
@@ -27,14 +26,12 @@ object PreparedCommand {
     new Contravariant[PreparedCommand[F, ?]] {
       def contramap[A, B](fa: PreparedCommand[F,A])(f: B => A) =
         new PreparedCommand[F, B] {
-          def check = fa.check
           def execute(args: B)(implicit origin: Origin) = fa.execute(f(args))
         }
     }
 
   def fromProto[F[_]: Bracket[?[_], Throwable], A](pc: Protocol.PreparedCommand[F, A]) =
     new PreparedCommand[F, A] {
-      def check = pc.check
       def execute(args: A)(implicit origin: Origin) =
         Bracket[F, Throwable].bracket(pc.bind(args, origin))(_.execute)(_.close)
     }
