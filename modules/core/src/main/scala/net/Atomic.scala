@@ -28,16 +28,16 @@ trait Atomic[F[_]] {
    * Parse a statement, yielding the database id of a statement. Note that this resource must
    * be closed.
    */
-  def parse[A](statement: Statement[A]): Resource[F, Protocol.StatementName]
+  def parse[A](statement: Statement[A]): Resource[F, Protocol.StatementId]
 
   /** Bind a statement to arguments, yielding the database id of a portal. */
   def bind[A](
     statement:  Protocol.PreparedStatement[F, A],
     args:       A,
     argsOrigin: Origin
-  ): Resource[F, Protocol.PortalName]
+  ): Resource[F, Protocol.PortalId]
 
-  def executeCommand(portalName: Protocol.PortalName): F[Completion]
+  def executeCommand(portalName: Protocol.PortalId): F[Completion]
 
   def executeQuickCommand(command: Command[Void]): F[Completion]
 
@@ -45,9 +45,9 @@ trait Atomic[F[_]] {
 
   def executeQuickQuery[B](query: Query[Void, B]): F[List[B]]
 
-  def checkCommand(cmd: Command[_], stmt: Protocol.StatementName): F[Unit]
+  def checkCommand(cmd: Command[_], stmt: Protocol.StatementId): F[Unit]
 
-  def checkQuery[A](query: Query[_, A], stmt: Protocol.StatementName): F[RowDescription]
+  def checkQuery[A](query: Query[_, A], stmt: Protocol.StatementId): F[RowDescription]
 
 }
 
@@ -71,11 +71,11 @@ object Atomic {
         }
 
       /** Parse a statement, yielding [the name of] a statement, which will be closed after use. */
-      def parse[A](statement: Statement[A]): Resource[F, Protocol.StatementName] =
+      def parse[A](statement: Statement[A]): Resource[F, Protocol.StatementId] =
         Resource.make {
           atomically {
             for {
-              n <- nam.nextName("statement").map(Protocol.StatementName)
+              n <- nam.nextName("statement").map(Protocol.StatementId)
               _ <- ams.send(Parse(n.value, statement.sql, statement.encoder.types.toList))
               _ <- ams.send(Flush)
               _ <- ams.flatExpect {
@@ -105,12 +105,12 @@ object Atomic {
         statement:  Protocol.PreparedStatement[F, A],
         args:       A,
         argsOrigin: Origin
-      ): Resource[F, Protocol.PortalName] =
+      ): Resource[F, Protocol.PortalId] =
         Resource.make {
           atomically {
             for {
-              pn <- nam.nextName("portal").map(Protocol.PortalName)
-              _  <- ams.send(Bind(pn.value, statement.dbid.value, statement.statement.encoder.encode(args)))
+              pn <- nam.nextName("portal").map(Protocol.PortalId)
+              _  <- ams.send(Bind(pn.value, statement.id.value, statement.statement.encoder.encode(args)))
               _  <- ams.send(Flush)
               _  <- ams.flatExpect {
                 case BindComplete     => ().pure[F]
@@ -131,7 +131,7 @@ object Atomic {
           }
         } { name => close(Close.portal(name.value)) }
 
-      def executeCommand(portalName: Protocol.PortalName): F[Completion] =
+      def executeCommand(portalName: Protocol.PortalId): F[Completion] =
         atomically {
           for {
             _  <- ams.send(Execute(portalName.value, 0))
@@ -166,7 +166,7 @@ object Atomic {
       def executeQuery[A, B](portal: Protocol.QueryPortal[F, A, B], maxRows: Int): F[List[B] ~ Boolean] =
         atomically {
           for {
-            _  <- ams.send(Execute(portal.dbid.value, maxRows))
+            _  <- ams.send(Execute(portal.id.value, maxRows))
             _  <- ams.send(Flush)
             rs <- unroll(portal)
           } yield rs
@@ -204,7 +204,7 @@ object Atomic {
             }
         }
 
-      def checkCommand(cmd: Command[_], stmt: Protocol.StatementName): F[Unit] =
+      def checkCommand(cmd: Command[_], stmt: Protocol.StatementId): F[Unit] =
         atomically {
           for {
             _  <- ams.send(Describe.statement(stmt.value))
@@ -218,7 +218,7 @@ object Atomic {
           } yield ()
         }
 
-      def checkQuery[A](query: Query[_, A], stmt: Protocol.StatementName): F[RowDescription] =
+      def checkQuery[A](query: Query[_, A], stmt: Protocol.StatementId): F[RowDescription] =
         atomically {
           for {
             _  <- ams.send(Describe.statement(stmt.value))

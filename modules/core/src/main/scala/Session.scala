@@ -201,7 +201,7 @@ object Session {
     new Session[F] {
 
       def execute(command: Command[Void]) =
-        proto.quick(command)
+        proto.execute(command)
 
       def channel(name: Identifier) =
         Channel.fromNameAndProtocol(name, proto)
@@ -216,7 +216,7 @@ object Session {
         proto.transactionStatus
 
       def execute[A](query: Query[Void, A]) =
-        proto.quick(query)
+        proto.execute(query)
 
       def unique[A](query: Query[Void, A]): F[A] =
         execute(query).flatMap {
@@ -233,10 +233,10 @@ object Session {
         }
 
       def prepare[A, B](query: Query[A, B]) =
-        proto.prepareQuery(query).map(PreparedQuery.fromProto(_))
+        proto.prepare(query).map(PreparedQuery.fromProto(_))
 
       def prepare[A](command: Command[A]) =
-        proto.prepareCommand(command).map(PreparedCommand.fromProto(_))
+        proto.prepare(command).map(PreparedCommand.fromProto(_))
 
     }
 

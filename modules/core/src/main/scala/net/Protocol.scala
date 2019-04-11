@@ -14,7 +14,9 @@ import skunk.util.Origin
 
 /**
  * Interface for a Postgres database, expressed through high-level operations that rely on exchange
- * of multiple messages. Operations here can be executed concurrently and are non-cancelable.
+ * of multiple messages. Operations here can be executed concurrently and are non-cancelable. The
+ * structures returned here expose internals (safely) that are important for error reporting but are
+ * not generally useful for end users.
  */
 trait Protocol[F[_]] {
 
@@ -55,20 +57,20 @@ trait Protocol[F[_]] {
    * Prepare a command (a statement that produces no rows), yielding a `Protocol.PreparedCommand`
    * which will be closed after use.
    */
-  def prepareCommand[A](command: Command[A]): Resource[F, Protocol.PreparedCommand[F, A]]
+  def prepare[A](command: Command[A]): Resource[F, Protocol.PreparedCommand[F, A]]
 
   /**
    * Prepare a query (a statement that produces rows), yielding a `Protocol.PreparedCommand` which
    * which will be closed after use.
    */
-  def prepareQuery[A, B](query: Query[A, B]): Resource[F, Protocol.PreparedQuery[F, A, B]]
+  def prepare[A, B](query: Query[A, B]): Resource[F, Protocol.PreparedQuery[F, A, B]]
 
   /**
    * Execute a non-parameterized command (a statement that produces no rows), yielding a
    * `Completion`. This is equivalent to `prepare` + `bind` + `execute` but it uses the "simple"
    * query protocol which requires fewer message exchanges.
    */
-  def quick(command: Command[Void]): F[Completion]
+  def execute(command: Command[Void]): F[Completion]
 
   /**
    * Execute a non-parameterized query (a statement that produces rows), yielding all rows. This is
@@ -76,7 +78,7 @@ trait Protocol[F[_]] {
    * requires fewer message exchanges. If you wish to page or stream results you need to use the
    * general protocol instead.
    */
-  def quick[A](query: Query[Void, A]): F[List[A]]
+  def execute[A](query: Query[Void, A]): F[List[A]]
 
   /**
    * Initiate the session. This must be the first thing you do. This is very basic at the momemnt.
@@ -93,55 +95,49 @@ trait Protocol[F[_]] {
 
 object Protocol {
 
-  // Protocol has its own internal representation for prepared statements and portals that expose
-  // internals that aren't relevant to the end-user API. Specifically there are a lot of back-
-  // pointers that aren't useful for end users but are necessary for context-aware error reporting.
+  final case class StatementId(value: String)
+  final case class PortalId(value: String)
 
-  final case class StatementName(value: String)
-  final case class PortalName(value: String)
+  sealed abstract class Managed[A](val id: A)
 
-  trait Managed[A] {
-    def dbid: A
-  }
+  sealed abstract class PreparedStatement[F[_], A](
+        id:        StatementId,
+    val statement: Statement[A]
+  ) extends Managed[StatementId](id)
 
-  trait PreparedStatement[F[_], A] extends Managed[StatementName] {
-    def statement: Statement[A]
-  }
-
-  abstract class PreparedCommand[F[_], A](
+  sealed abstract class PreparedCommand[F[_], A](
+        id:      StatementId,
     val command: Command[A],
-    val dbid:    StatementName,
-  ) extends PreparedStatement[F, A] {
-    def statement: Statement[A] = command
+  ) extends PreparedStatement[F, A](id, command) {
     def bind(args: A, argsOrigin: Origin): Resource[F, CommandPortal[F, A]]
   }
 
-  abstract class PreparedQuery[F[_], A, B](
+  sealed abstract class PreparedQuery[F[_], A, B](
+        id:             StatementId,
     val query:          Query[A, B],
-    val dbid:           StatementName,
     val rowDescription: RowDescription
-  ) extends PreparedStatement[F, A] {
-    def statement: Statement[A] = query
+  ) extends PreparedStatement[F, A](id, query) {
     def bind(args: A, argsOrigin: Origin): Resource[F, QueryPortal[F, A, B]]
   }
 
-  trait Portal[F[_], A] extends Managed[PortalName] {
-    def preparedStatement: PreparedStatement[F, A]
-  }
+  sealed abstract class Portal[F[_], A](
+        id:                PortalId,
+    val preparedStatement: PreparedStatement[F, A]
+  ) extends Managed[PortalId](id)
 
-  abstract class CommandPortal[F[_], A](
-    val dbid: PortalName
-  ) extends Portal[F, A] {
-    def preparedCommand: PreparedCommand[F, A]
-    def preparedStatement: PreparedStatement[F, A] = preparedCommand
+  sealed abstract class CommandPortal[F[_], A](
+        id:              PortalId,
+    val preparedCommand: PreparedCommand[F, A]
+  ) extends Portal[F, A](id, preparedCommand) {
     def execute: F[Completion]
   }
 
-  trait QueryPortal[F[_], A, B] extends Portal[F, A] {
-    def preparedQuery: PreparedQuery[F, A, B]
-    def preparedStatement: PreparedStatement[F, A] = preparedQuery
-    def arguments: A
-    def argumentsOrigin: Origin
+  sealed abstract class QueryPortal[F[_], A, B](
+        id:              PortalId,
+    val preparedQuery:   PreparedQuery[F, A, B],
+    val arguments:       A,
+    val argumentsOrigin: Origin,
+  ) extends Portal[F, A](id, preparedQuery) {
     def execute(maxRows: Int): F[List[B] ~ Boolean]
   }
 
@@ -166,42 +162,37 @@ object Protocol {
         def parameters: Signal[F, Map[String, String]] =
           bms.parameters
 
-        def prepareCommand[A](command: Command[A]): Resource[F, PreparedCommand[F, A]] =
+        def prepare[A](command: Command[A]): Resource[F, PreparedCommand[F, A]] =
           for {
-            dbid <- atomic.parse(command)
-            _    <- Resource.liftF(atomic.checkCommand(command, dbid))
-          } yield new PreparedCommand[F, A](command, dbid) { pc =>
+            id <- atomic.parse(command)
+            _    <- Resource.liftF(atomic.checkCommand(command, id))
+          } yield new PreparedCommand[F, A](id, command) { pc =>
             def bind(args: A, origin: Origin): Resource[F, CommandPortal[F, A]] =
-              atomic.bind(this, args, origin).map { dbid =>
-                new CommandPortal[F, A](dbid) {
-                  val preparedCommand: PreparedCommand[F, A] = pc
-                  val execute: F[Completion] = atomic.executeCommand(dbid)
+              atomic.bind(this, args, origin).map {
+                new CommandPortal[F, A](_, pc) {
+                  val execute: F[Completion] = atomic.executeCommand(id)
                 }
               }
           }
 
-        def prepareQuery[A, B](query: Query[A, B]): Resource[F, PreparedQuery[F, A, B]] =
+        def prepare[A, B](query: Query[A, B]): Resource[F, PreparedQuery[F, A, B]] =
           for {
-            dbid <- atomic.parse(query)
-            rd   <- Resource.liftF(atomic.checkQuery(query, dbid))
-          } yield new PreparedQuery[F, A, B](query, dbid, rd) { pq =>
+            id <- atomic.parse(query)
+            rd <- Resource.liftF(atomic.checkQuery(query, id))
+          } yield new PreparedQuery[F, A, B](id, query, rd) { pq =>
             def bind(args: A, origin: Origin): Resource[F, QueryPortal[F, A, B]] =
-              atomic.bind(this, args, origin).map { portal =>
-                new QueryPortal[F, A, B] {
-                  val dbid            = portal
-                  val preparedQuery   = pq
-                  val arguments       = args
-                  val argumentsOrigin = origin
+              atomic.bind(this, args, origin).map {
+                new QueryPortal[F, A, B](_, pq, args, origin) {
                   def execute(maxRows: Int): F[List[B] ~ Boolean] =
                     atomic.executeQuery(this, maxRows)
                 }
               }
           }
 
-        def quick(command: Command[Void]): F[Completion] =
+        def execute(command: Command[Void]): F[Completion] =
           atomic.executeQuickCommand(command)
 
-        def quick[B](query: Query[Void, B]): F[List[B]] =
+        def execute[B](query: Query[Void, B]): F[List[B]] =
           atomic.executeQuickQuery(query)
 
         def startup(user: String, database: String): F[Unit] =
