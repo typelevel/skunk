@@ -54,16 +54,15 @@ object PreparedQuery {
     new PreparedQuery[F, A, B] {
 
       def cursor(args: A)(implicit or: Origin): Resource[F, Cursor[F, B]] =
-        Resource.make(proto.bind(args, or))(_.close).map { p =>
+        proto.bind(args, or).map { p =>
           new Cursor[F, B] {
             def fetch(maxRows: Int) =
               p.execute(maxRows)
           }
         }
 
-      def stream(args: A, chunkSize: Int)(implicit or: Origin) = {
-        val rsrc = Resource.make(proto.bind(args, or))(_.close)
-        Stream.resource(rsrc).flatMap { cursor =>
+      def stream(args: A, chunkSize: Int)(implicit or: Origin) =
+        Stream.resource(proto.bind(args, or)).flatMap { cursor =>
           def chunks: Stream[F, B] =
             Stream.eval(cursor.execute(chunkSize)).flatMap { case (bs, more) =>
               val s = Stream.chunk(Chunk.seq(bs))
@@ -72,7 +71,6 @@ object PreparedQuery {
             }
           chunks
         }
-      }
 
       // We have a few operations that only want the first row. In order to do this AND
       // know if there are more we need to ask for 2 rows.

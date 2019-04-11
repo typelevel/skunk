@@ -50,12 +50,12 @@ object MessageSocket {
           for {
             msg <- receiveImpl
             _   <- cb.enqueue1(Right(msg))
-            _   <- Sync[F].delay(println(s" ← ${Console.GREEN}$msg${Console.RESET}"))
+            // _   <- Sync[F].delay(println(s" ← ${Console.GREEN}$msg${Console.RESET}"))
           } yield msg
 
         def send[A](a: A)(implicit ev: FrontendMessage[A]): F[Unit] =
           for {
-            _ <- Sync[F].delay(println(s" → ${Console.YELLOW}$a${Console.RESET}"))
+            // _ <- Sync[F].delay(println(s" → ${Console.YELLOW}$a${Console.RESET}"))
             _ <- bvs.write(ev.fullEncoder.encode(a).require)
             _ <- cb.enqueue1(Left(a))
           } yield ()

@@ -5,20 +5,16 @@
 package skunk.net
 
 import cats.effect.{ Concurrent, ContextShift, Resource }
-import cats.effect.concurrent.Semaphore
-import cats.implicits._
 import fs2.concurrent.Signal
 import fs2.Stream
 import skunk.{ Command, Query, Statement, ~, Void }
 import skunk.data._
 import skunk.net.message.RowDescription
-import skunk.util.{ Namer, Origin }
+import skunk.util.Origin
 
 /**
  * Interface for a Postgres database, expressed through high-level operations that rely on exchange
  * of multiple messages. Operations here can be executed concurrently and are non-cancelable.
- * Note that resource safety is not guaranteed here: statements and portals must be closed
- * explicitly.
  */
 trait Protocol[F[_]] {
 
@@ -56,16 +52,16 @@ trait Protocol[F[_]] {
   def parameters: Signal[F, Map[String, String]]
 
   /**
-   * Prepare a command (a statement that produces no rows), yielding a `Protocol.PreparedCommand` which
-   * must be closed by the caller. Higher-level APIs may wish to encapsulate this in a `Resource`.
+   * Prepare a command (a statement that produces no rows), yielding a `Protocol.PreparedCommand`
+   * which will be closed after use.
    */
-  def prepareCommand[A](command: Command[A]): F[Protocol.PreparedCommand[F, A]]
+  def prepareCommand[A](command: Command[A]): Resource[F, Protocol.PreparedCommand[F, A]]
 
   /**
    * Prepare a query (a statement that produces rows), yielding a `Protocol.PreparedCommand` which
-   * must be closed by the caller. Higher-level APIs may wish to encapsulate this in a `Resource`.
+   * which will be closed after use.
    */
-  def prepareQuery[A, B](query: Query[A, B]): F[Protocol.PreparedQuery[F, A, B]]
+  def prepareQuery[A, B](query: Query[A, B]): Resource[F, Protocol.PreparedQuery[F, A, B]]
 
   /**
    * Execute a non-parameterized command (a statement that produces no rows), yielding a
@@ -98,45 +94,43 @@ trait Protocol[F[_]] {
 object Protocol {
 
   // Protocol has its own internal representation for prepared statements and portals that expose
-  // internals that aren't relevant to the end-user API.
+  // internals that aren't relevant to the end-user API. Specifically there are a lot of back-
+  // pointers that aren't useful for end users but are necessary for context-aware error reporting.
 
-  /**
-   * A managed resource with an underlying database identifier and a `close` action which must be
-   * called at some point, after which the resource is invalid. This is obviously bad so the high-
-   * level API exposes this stuff with Resource.
-   */
-  trait Managed[F[_]] {
-    def dbid: String
-    def close: F[Unit]
+  final case class StatementName(value: String)
+  final case class PortalName(value: String)
+
+  trait Managed[A] {
+    def dbid: A
   }
 
-  trait PreparedStatement[F[_], A] extends Managed[F] {
+  trait PreparedStatement[F[_], A] extends Managed[StatementName] {
     def statement: Statement[A]
   }
 
   abstract class PreparedCommand[F[_], A](
     val command: Command[A],
-    val dbid: String,
+    val dbid:    StatementName,
   ) extends PreparedStatement[F, A] {
     def statement: Statement[A] = command
-    def bind(args: A, argsOrigin: Origin): F[CommandPortal[F, A]]
+    def bind(args: A, argsOrigin: Origin): Resource[F, CommandPortal[F, A]]
   }
 
   abstract class PreparedQuery[F[_], A, B](
-    val query: Query[A, B],
-    val dbid: String,
+    val query:          Query[A, B],
+    val dbid:           StatementName,
     val rowDescription: RowDescription
   ) extends PreparedStatement[F, A] {
     def statement: Statement[A] = query
-    def bind(args: A, argsOrigin: Origin): F[QueryPortal[F, A, B]]
+    def bind(args: A, argsOrigin: Origin): Resource[F, QueryPortal[F, A, B]]
   }
 
-  trait Portal[F[_], A] extends Managed[F] {
+  trait Portal[F[_], A] extends Managed[PortalName] {
     def preparedStatement: PreparedStatement[F, A]
   }
 
   abstract class CommandPortal[F[_], A](
-    val dbid: String
+    val dbid: PortalName
   ) extends Portal[F, A] {
     def preparedCommand: PreparedCommand[F, A]
     def preparedStatement: PreparedStatement[F, A] = preparedCommand
@@ -152,75 +146,57 @@ object Protocol {
   }
 
   /**
-   * Resource yielding a new `Protocol` with the given `host`, `port`, and statement checking policy.
+   * Resource yielding a new `Protocol` with the given `host` and `port`.
    * @param host  Postgres server host
    * @param port  Postgres port, default 5432
-   * @param check Check all `prepare` and `quick` statements for consistency with the schema. This
-   *   is true by default and is recommended for development work.
    */
   def apply[F[_]: Concurrent: ContextShift](
     host:  String,
     port:  Int     = 5432
   ): Resource[F, Protocol[F]] =
     for {
-      ams <- BufferedMessageSocket[F](host, port)
-      ses <- Resource.liftF(Protocol.fromBufferedMessageSocket(ams))
-    } yield ses
-
-  /** Construct a `Protocol` by wrapping an `BufferedMessageSocket`. */
-  private def fromBufferedMessageSocket[F[_]: Concurrent](
-    ams:   BufferedMessageSocket[F]
-  ): F[Protocol[F]] =
-    for {
-      nam <- Namer[F]
-      sem <- Semaphore[F](1)
+      bms    <- BufferedMessageSocket[F](host, port)
+      atomic <- Resource.liftF(Atomic.fromBufferedMessageSocket(bms))
     } yield
       new Protocol[F] {
 
-        val atomic: Atomic[F] =
-          Atomic[F](ams, nam, sem)
-
         def notifications(maxQueued: Int): Stream[F, Notification] =
-          ams.notifications(maxQueued)
+          bms.notifications(maxQueued)
 
         def parameters: Signal[F, Map[String, String]] =
-          ams.parameters
+          bms.parameters
 
-        def prepareCommand[A](command: Command[A]): F[PreparedCommand[F, A]] =
+        def prepareCommand[A](command: Command[A]): Resource[F, PreparedCommand[F, A]] =
           for {
             dbid <- atomic.parse(command)
-            _    <- atomic.checkCommand(command, dbid).onError { case _ => atomic.closeStmt(dbid) }
-            } yield new PreparedCommand[F, A](command, dbid) { pc =>
-              def close: F[Unit] = atomic.closeStmt(dbid)
-              def bind(args: A, origin: Origin): F[CommandPortal[F, A]] =
-                atomic.bind(this, args, origin).map { dbid =>
-                  new CommandPortal[F, A](dbid) {
-                    def close: F[Unit] = atomic.closePortal(dbid)
-                    def preparedCommand: PreparedCommand[F, A] = pc
-                    def execute: F[Completion] = atomic.executeCommand(dbid)
-                  }
-                }
-            }
-
-        def prepareQuery[A, B](query: Query[A, B]): F[PreparedQuery[F, A, B]] =
-          for {
-            dbid           <- atomic.parse(query)
-            rowDescription <- atomic.checkQuery(query, dbid).onError { case _ => atomic.closeStmt(dbid) }
-          } yield new PreparedQuery[F, A, B](query, dbid, rowDescription) { pq =>
-              def close: F[Unit] = atomic.closeStmt(dbid)
-              def bind(args: A, origin: Origin): F[QueryPortal[F, A, B]] =
-                atomic.bind(this, args, origin).map { portal =>
-                  new QueryPortal[F, A, B] {
-                    def dbid = portal
-                    def preparedQuery = pq
-                    def arguments = args
-                    def argumentsOrigin = origin
-                    def close: F[Unit] = atomic.closePortal(portal)
-                    def execute(maxRows: Int): F[List[B] ~ Boolean] =
-                      atomic.executeQuery(this, maxRows)
-                  }
+            _    <- Resource.liftF(atomic.checkCommand(command, dbid))
+          } yield new PreparedCommand[F, A](command, dbid) { pc =>
+            def bind(args: A, origin: Origin): Resource[F, CommandPortal[F, A]] =
+              atomic.bind(this, args, origin).map { dbid =>
+                new CommandPortal[F, A](dbid) {
+                  val preparedCommand: PreparedCommand[F, A] = pc
+                  val execute: F[Completion] = atomic.executeCommand(dbid)
                 }
               }
+          }
+
+        def prepareQuery[A, B](query: Query[A, B]): Resource[F, PreparedQuery[F, A, B]] =
+          for {
+            dbid <- atomic.parse(query)
+            rd   <- Resource.liftF(atomic.checkQuery(query, dbid))
+          } yield new PreparedQuery[F, A, B](query, dbid, rd) { pq =>
+            def bind(args: A, origin: Origin): Resource[F, QueryPortal[F, A, B]] =
+              atomic.bind(this, args, origin).map { portal =>
+                new QueryPortal[F, A, B] {
+                  val dbid            = portal
+                  val preparedQuery   = pq
+                  val arguments       = args
+                  val argumentsOrigin = origin
+                  def execute(maxRows: Int): F[List[B] ~ Boolean] =
+                    atomic.executeQuery(this, maxRows)
+                }
+              }
+          }
 
         def quick(command: Command[Void]): F[Completion] =
           atomic.executeQuickCommand(command)
@@ -232,7 +208,7 @@ object Protocol {
           atomic.startup(user, database)
 
         def transactionStatus: Signal[F, TransactionStatus] =
-          ams.transactionStatus
+          bms.transactionStatus
 
       }
 

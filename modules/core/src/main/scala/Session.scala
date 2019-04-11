@@ -233,10 +233,10 @@ object Session {
         }
 
       def prepare[A, B](query: Query[A, B]) =
-        Resource.make(proto.prepareQuery(query))(_.close).map(PreparedQuery.fromProto(_))
+        proto.prepareQuery(query).map(PreparedQuery.fromProto(_))
 
       def prepare[A](command: Command[A]) =
-        Resource.make(proto.prepareCommand(command))(_.close).map(PreparedCommand.fromProto(_))
+        proto.prepareCommand(command).map(PreparedCommand.fromProto(_))
 
     }
 

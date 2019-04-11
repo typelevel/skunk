@@ -33,7 +33,7 @@ object PreparedCommand {
   def fromProto[F[_]: Bracket[?[_], Throwable], A](pc: Protocol.PreparedCommand[F, A]) =
     new PreparedCommand[F, A] {
       def execute(args: A)(implicit origin: Origin) =
-        Bracket[F, Throwable].bracket(pc.bind(args, origin))(_.execute)(_.close)
+        pc.bind(args, origin).use(_.execute)
     }
 
 }
