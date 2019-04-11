@@ -165,12 +165,12 @@ object Protocol {
         def prepare[A](command: Command[A]): Resource[F, PreparedCommand[F, A]] =
           for {
             id <- atomic.parse(command)
-            _    <- Resource.liftF(atomic.checkCommand(command, id))
+            _  <- Resource.liftF(atomic.check(command, id))
           } yield new PreparedCommand[F, A](id, command) { pc =>
             def bind(args: A, origin: Origin): Resource[F, CommandPortal[F, A]] =
               atomic.bind(this, args, origin).map {
                 new CommandPortal[F, A](_, pc) {
-                  val execute: F[Completion] = atomic.executeCommand(id)
+                  val execute: F[Completion] = atomic.execute(this)
                 }
               }
           }
@@ -178,22 +178,22 @@ object Protocol {
         def prepare[A, B](query: Query[A, B]): Resource[F, PreparedQuery[F, A, B]] =
           for {
             id <- atomic.parse(query)
-            rd <- Resource.liftF(atomic.checkQuery(query, id))
+            rd <- Resource.liftF(atomic.check(query, id))
           } yield new PreparedQuery[F, A, B](id, query, rd) { pq =>
             def bind(args: A, origin: Origin): Resource[F, QueryPortal[F, A, B]] =
               atomic.bind(this, args, origin).map {
                 new QueryPortal[F, A, B](_, pq, args, origin) {
                   def execute(maxRows: Int): F[List[B] ~ Boolean] =
-                    atomic.executeQuery(this, maxRows)
+                    atomic.execute(this, maxRows)
                 }
               }
           }
 
         def execute(command: Command[Void]): F[Completion] =
-          atomic.executeQuickCommand(command)
+          atomic.execute(command)
 
         def execute[B](query: Query[Void, B]): F[List[B]] =
-          atomic.executeQuickQuery(query)
+          atomic.execute(query)
 
         def startup(user: String, database: String): F[Unit] =
           atomic.startup(user, database)

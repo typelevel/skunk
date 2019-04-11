@@ -24,30 +24,25 @@ trait Atomic[F[_]] {
 
   def startup(user: String, database: String): F[Unit]
 
-  /**
-   * Parse a statement, yielding the database id of a statement. Note that this resource must
-   * be closed.
-   */
   def parse[A](statement: Statement[A]): Resource[F, Protocol.StatementId]
 
-  /** Bind a statement to arguments, yielding the database id of a portal. */
   def bind[A](
     statement:  Protocol.PreparedStatement[F, A],
     args:       A,
     argsOrigin: Origin
   ): Resource[F, Protocol.PortalId]
 
-  def executeCommand(portalName: Protocol.PortalId): F[Completion]
+  def execute[A](portalName: Protocol.CommandPortal[F, A]): F[Completion]
 
-  def executeQuickCommand(command: Command[Void]): F[Completion]
+  def execute[A, B](portal: Protocol.QueryPortal[F, A, B], maxRows: Int): F[List[B] ~ Boolean]
 
-  def executeQuery[A, B](portal: Protocol.QueryPortal[F, A, B], maxRows: Int): F[List[B] ~ Boolean]
+  def execute(command: Command[Void]): F[Completion]
 
-  def executeQuickQuery[B](query: Query[Void, B]): F[List[B]]
+  def execute[B](query: Query[Void, B]): F[List[B]]
 
-  def checkCommand(cmd: Command[_], stmt: Protocol.StatementId): F[Unit]
+  def check(cmd: Command[_], id: Protocol.StatementId): F[Unit]
 
-  def checkQuery[A](query: Query[_, A], stmt: Protocol.StatementId): F[RowDescription]
+  def check[A](query: Query[_, A], id: Protocol.StatementId): F[RowDescription]
 
 }
 
@@ -70,7 +65,6 @@ object Atomic {
           } yield ()
         }
 
-      /** Parse a statement, yielding [the name of] a statement, which will be closed after use. */
       def parse[A](statement: Statement[A]): Resource[F, Protocol.StatementId] =
         Resource.make {
           atomically {
@@ -97,10 +91,6 @@ object Atomic {
           }
         } { name => close(Close.statement(name.value)) }
 
-      /**
-       * Bind a statement to arguments, yielding [the name of] a portal, which will be closed after
-       * use.
-       */
       def bind[A](
         statement:  Protocol.PreparedStatement[F, A],
         args:       A,
@@ -131,10 +121,10 @@ object Atomic {
           }
         } { name => close(Close.portal(name.value)) }
 
-      def executeCommand(portalName: Protocol.PortalId): F[Completion] =
+      def execute[A](portal: Protocol.CommandPortal[F, A]): F[Completion] =
         atomically {
           for {
-            _  <- ams.send(Execute(portalName.value, 0))
+            _  <- ams.send(Execute(portal.id.value, 0))
             _  <- ams.send(Flush)
             c  <- ams.expect {
               case CommandComplete(c) => c
@@ -149,7 +139,7 @@ object Atomic {
           } yield c
         }
 
-      def executeQuickCommand(command: Command[Void]): F[Completion] =
+      def execute(command: Command[Void]): F[Completion] =
         atomically {
           ams.send(QueryMessage(command.sql)) *> ams.flatExpect {
             case CommandComplete(c) => ams.expect { case ReadyForQuery(_) => c }
@@ -163,7 +153,7 @@ object Atomic {
           }
         }
 
-      def executeQuery[A, B](portal: Protocol.QueryPortal[F, A, B], maxRows: Int): F[List[B] ~ Boolean] =
+      def execute[A, B](portal: Protocol.QueryPortal[F, A, B], maxRows: Int): F[List[B] ~ Boolean] =
         atomically {
           for {
             _  <- ams.send(Execute(portal.id.value, maxRows))
@@ -172,7 +162,7 @@ object Atomic {
           } yield rs
         }
 
-      def executeQuickQuery[B](query: Query[Void, B]): F[List[B]] =
+      def execute[B](query: Query[Void, B]): F[List[B]] =
         atomically {
           ams.send(QueryMessage(query.sql)) *> ams.flatExpect {
 
@@ -204,10 +194,10 @@ object Atomic {
             }
         }
 
-      def checkCommand(cmd: Command[_], stmt: Protocol.StatementId): F[Unit] =
+      def check(cmd: Command[_], id: Protocol.StatementId): F[Unit] =
         atomically {
           for {
-            _  <- ams.send(Describe.statement(stmt.value))
+            _  <- ams.send(Describe.statement(id.value))
             _  <- ams.send(Flush)
             _  <- ams.expect { case ParameterDescription(_) => } // always ok
             _  <- ams.flatExpect {
@@ -218,10 +208,10 @@ object Atomic {
           } yield ()
         }
 
-      def checkQuery[A](query: Query[_, A], stmt: Protocol.StatementId): F[RowDescription] =
+      def check[A](query: Query[_, A], id: Protocol.StatementId): F[RowDescription] =
         atomically {
           for {
-            _  <- ams.send(Describe.statement(stmt.value))
+            _  <- ams.send(Describe.statement(id.value))
             _  <- ams.send(Flush)
             _  <- ams.expect { case ParameterDescription(_) => } // always ok
             rd <- ams.flatExpect {
