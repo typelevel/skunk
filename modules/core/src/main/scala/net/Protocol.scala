@@ -12,7 +12,7 @@ import fs2.Stream
 import skunk.{ Command, Query, Statement, ~, Void }
 import skunk.data._
 import skunk.net.message.RowDescription
-import skunk.util.{ CallSite, Namer, Origin }
+import skunk.util.{ Namer, Origin }
 
 /**
  * Interface for a Postgres database, expressed through high-level operations that rely on exchange
@@ -97,6 +97,14 @@ trait Protocol[F[_]] {
 
 object Protocol {
 
+  // Protocol has its own internal representation for prepared statements and portals that expose
+  // internals that aren't relevant to the end-user API.
+
+  /**
+   * A managed resource with an underlying database identifier and a `close` action which must be
+   * called at some point, after which the resource is invalid. This is obviously bad so the high-
+   * level API exposes this stuff with Resource.
+   */
   trait Managed[F[_]] {
     def dbid: String
     def close: F[Unit]
@@ -181,9 +189,8 @@ object Protocol {
         def prepareCommand[A](command: Command[A]): F[PreparedCommand[F, A]] =
           for {
             dbid <- atomic.parse(command)
-            _    <- atomic.checkCommand(command, dbid)
-            } yield
-            new PreparedCommand[F, A](command, dbid) { pc =>
+            _    <- atomic.checkCommand(command, dbid).onError { case _ => atomic.closeStmt(dbid) }
+            } yield new PreparedCommand[F, A](command, dbid) { pc =>
               def close: F[Unit] = atomic.closeStmt(dbid)
               def bind(args: A, origin: Origin): F[CommandPortal[F, A]] =
                 atomic.bind(this, args, origin).map { dbid =>
@@ -198,9 +205,8 @@ object Protocol {
         def prepareQuery[A, B](query: Query[A, B]): F[PreparedQuery[F, A, B]] =
           for {
             dbid           <- atomic.parse(query)
-            rowDescription <- atomic.checkQuery(query, dbid)
-          } yield
-            new PreparedQuery[F, A, B](query, dbid, rowDescription) { pq =>
+            rowDescription <- atomic.checkQuery(query, dbid).onError { case _ => atomic.closeStmt(dbid) }
+          } yield new PreparedQuery[F, A, B](query, dbid, rowDescription) { pq =>
               def close: F[Unit] = atomic.closeStmt(dbid)
               def bind(args: A, origin: Origin): F[QueryPortal[F, A, B]] =
                 atomic.bind(this, args, origin).map { portal =>

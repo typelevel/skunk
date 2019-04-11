@@ -165,26 +165,36 @@ case class Atomic[F[_]: Concurrent](
     }
 
   def executeQuickQuery[B](query: Query[Void, B]): F[List[B]] =
-    sys.error("todo: executeQuickQuery")
-    // atomically {
-    //   ams.send(QueryMessage(query.sql)) *> ams.flatExpect {
+    atomically {
+      ams.send(QueryMessage(query.sql)) *> ams.flatExpect {
 
-    //     case rd @ RowDescription(_) =>
-    //       for {
-    //         // _  <- printStatement(query.sql).whenA(check)
-    //         // _  <- checkRowDescription(rd, query.decoder).whenA(check)
-    //         rs <- unroll(query, Void).map(_._1) // rs._2 will always be true here
-    //         _  <- ams.expect { case ReadyForQuery(_) => }
-    //       } yield rs
+        case rd @ RowDescription(_) =>
+          val ok =  query.decoder.types.map(_.oid) === rd.oids
+          for {
+            _  <- Concurrent[F].raiseError(ColumnAlignmentException(query, rd)).unlessA(ok)
+            rs <- unroll(
+                    sql            = query.sql,
+                    sqlOrigin      = query.origin,
+                    args           = Void,
+                    argsOrigin     = None,
+                    encoder        = Void.codec,
+                    rowDescription = rd,
+                    decoder        = query.decoder,
+                ).map(_._1) // rs._2 will always be true here
+            _  <- ams.expect { case ReadyForQuery(_) => }
+          } yield rs
 
-    //     case ErrorResponse(e) =>
-    //       for {
-    //         _  <- ams.expect { case ReadyForQuery(_) => }
-    //         h  <- ams.history(Int.MaxValue)
-    //         rs <- Concurrent[F].raiseError[List[B]](new PostgresErrorException(query.sql, query.origin, e, h, Nil, None))
-    //       } yield rs
-    //     }
-    // }
+        case NoData                 =>
+          Concurrent[F].raiseError[List[B]](NoDataException(query))
+
+        case ErrorResponse(e) =>
+          for {
+            _  <- ams.expect { case ReadyForQuery(_) => }
+            h  <- ams.history(Int.MaxValue)
+            rs <- Concurrent[F].raiseError[List[B]](new PostgresErrorException(query.sql, query.origin, e, h, Nil, None))
+          } yield rs
+        }
+    }
 
   def checkCommand(cmd: Command[_], stmt: String): F[Unit] =
     atomically {
@@ -217,7 +227,26 @@ case class Atomic[F[_]: Concurrent](
     }
 
   /** Receive the next batch of rows. */
-  private def unroll[A, B](portal: Protocol.QueryPortal[F, A, B]): F[List[B] ~ Boolean] = {
+  private def unroll[A, B](portal: Protocol.QueryPortal[F, A, B]): F[List[B] ~ Boolean] =
+    unroll(
+      sql            = portal.preparedQuery.query.sql,
+      sqlOrigin      = portal.preparedQuery.query.origin,
+      args           = portal.arguments,
+      argsOrigin     = Some(portal.argumentsOrigin),
+      encoder        = portal.preparedQuery.query.encoder,
+      rowDescription = portal.preparedQuery.rowDescription,
+      decoder        = portal.preparedQuery.query.decoder
+    )
+
+  private def unroll[A, B](
+    sql:            String,
+    sqlOrigin:      Option[Origin],
+    args:           A,
+    argsOrigin:     Option[Origin],
+    encoder:        Encoder[A],
+    rowDescription: RowDescription,
+    decoder:        Decoder[B]
+  ): F[List[B] ~ Boolean] = {
 
     // N.B. we process all waiting messages to ensure the protocol isn't messed up by decoding
     // failures later on.
@@ -231,59 +260,23 @@ case class Atomic[F[_]: Concurrent](
     accumulate(Nil).flatMap {
       case (rows, bool) =>
         rows.traverse { data =>
-          portal.preparedQuery.query.decoder.decode(0, data) match {
+          decoder.decode(0, data) match {
             case Right(a) => a.pure[F]
-            case Left(e)  => Concurrent[F].raiseError[B](new DecodeException(portal, data, e))
+            case Left(e)  => Concurrent[F].raiseError[B](new DecodeException(
+              data,
+              e,
+              sql,
+              sqlOrigin,
+              args,
+              argsOrigin,
+              encoder,
+              rowDescription
+            ))
           }
         } .map(_ ~ bool)
     }
+
   }
 
 }
 
-// todo: this with a ctor we can call for quick query, which has no portal
-class DecodeException[F[_], A, B](
-  portal: Protocol.QueryPortal[F, A, B],
-  data:   List[Option[String]],
-  error:  Decoder.Error
-) extends SkunkException(
-  sql             = portal.preparedQuery.query.sql,
-  message         = "Decoding error.",
-  hint            = Some("This query's decoder was unable to decode a data row."),
-  arguments       = portal.preparedQuery.query.encoder.types.zip(portal.preparedQuery.query.encoder.encode(portal.arguments)),
-  argumentsOrigin = Some(portal.argumentsOrigin),
-  sqlOrigin       = portal.preparedQuery.query.origin
-) {
-
-  import Text.{ plain, empty, cyan, green }
-
-  val MaxValue = 15
-
-  private val dataʹ = data.map(_.map(s =>
-    if (s.length > MaxValue) s.take(MaxValue) + "⋯" else s
-  )) // truncate
-
-  private def describeType(f: RowDescription.Field): Text =
-    plain(Type.forOid(f.typeOid).fold(s"Unknown(${f.typeOid})")(_.name))
-
-  def describe(col: ((RowDescription.Field, Int), Option[String])): List[Text] = {
-    val ((t, n), op) = col
-    List(
-      green(t.name),
-      describeType(t),
-      plain("->"),
-      green(op.getOrElse("NULL")),
-      if (n === error.offset) cyan(s"── ${error.error}") else empty
-    )
-  }
-
-  final protected def row: String =
-    s"""|The row in question returned the following values (truncated to $MaxValue chars).
-        |
-        |  ${Text.grid(portal.preparedQuery.rowDescription.fields.zipWithIndex.zip(dataʹ).map(describe)).intercalate(plain("\n|  ")).render}
-        |""".stripMargin
-
-  override def sections =
-    super.sections :+ row
-
-}

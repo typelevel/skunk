@@ -11,6 +11,6 @@ case class NoDataException(
 ) extends SkunkException(
   sql       = query.sql,
   message   = "Statement does not return data.",
-  hint      = Some(s"This ${framed("query")} returns no rows and should be a ${framed("command")}."),
+  hint      = Some(s"This ${framed("query")} returns no row. Use a ${framed("command")} instead."),
   sqlOrigin = query.origin,
 )

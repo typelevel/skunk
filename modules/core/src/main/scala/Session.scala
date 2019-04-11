@@ -10,7 +10,7 @@ import fs2.Stream
 import fs2.concurrent.Signal
 import skunk.data._
 import skunk.net.Protocol
-import skunk.util.{ CallSite, Origin, Pool }
+import skunk.util.Pool
 
 /**
  * Represents a live connection to a Postgres database. Operations provided here are safe to use

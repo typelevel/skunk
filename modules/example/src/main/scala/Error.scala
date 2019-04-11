@@ -22,11 +22,11 @@ object Error extends IOApp {
 
   val query =
     sql"""
-      SELECT name, null::int4 as foo, population
+      SELECT name, null::int4
       FROM   country
       WHERE  population > $varchar::int4
       AND    population < $int4
-    """.query(varchar ~ int4 ~ int4)
+    """.query(varchar ~ int4)
 
   def prog[F[_]: Bracket[?[_], Throwable]](s: Session[F]): F[ExitCode] =
     s.prepare(query).use(_.unique("42" ~ 1000000)).as(ExitCode.Success)
