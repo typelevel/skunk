@@ -10,16 +10,16 @@ import skunk.Query
 import skunk.util.{ CallSite, Origin, Pretty }
 
 class SkunkException protected[skunk](
-  sql:             String,
-  message:         String,
-  position:        Option[Int]                  = None,
-  detail:          Option[String]               = None,
-  hint:            Option[String]               = None,
-  history:         List[Either[Any, Any]]       = Nil,
-  arguments:       List[(Type, Option[String])] = Nil,
-  sqlOrigin:       Option[Origin]               = None,
-  argumentsOrigin: Option[Origin]               = None,
-  callSite:        Option[CallSite]             = None
+  val sql:             String,
+  val message:         String,
+  val position:        Option[Int]                  = None,
+  val detail:          Option[String]               = None,
+  val hint:            Option[String]               = None,
+  val history:         List[Either[Any, Any]]       = Nil,
+  val arguments:       List[(Type, Option[String])] = Nil,
+  val sqlOrigin:       Option[Origin]               = None,
+  val argumentsOrigin: Option[Origin]               = None,
+  val callSite:        Option[CallSite]             = None
 ) extends Exception(message) with scala.util.control.NoStackTrace {
 
   protected def title: String =
@@ -101,7 +101,7 @@ object SkunkException {
     new SkunkException(
       query.sql,
       message,
-      sqlOrigin       = query.origin,
+      sqlOrigin       = Some(query.origin),
       callSite        = callSite,
       hint            = hint,
       arguments       = query.encoder.types zip query.encoder.encode(args),
@@ -117,7 +117,7 @@ object SkunkException {
     new SkunkException(
       query.sql,
       message,
-      sqlOrigin       = query.origin,
+      sqlOrigin       = Some(query.origin),
       callSite        = callSite,
       hint            = hint,
     )

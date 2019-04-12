@@ -11,6 +11,7 @@ import cats.implicits._
 import fs2.Stream
 import skunk.data.{ Identifier, Notification }
 import skunk.net.Protocol
+import skunk.util.Origin
 
 /**
  * A '''channel''' that can be used for inter-process communication, implemented in terms of
@@ -85,10 +86,10 @@ object Channel {
     new Channel[F, String, Notification] {
 
     val listen: F[Unit] =
-      proto.execute(Command(s"LISTEN ${name.value}", None, Void.codec)).void
+      proto.execute(Command(s"LISTEN ${name.value}", implicitly[Origin], Void.codec)).void
 
     val unlisten: F[Unit] =
-      proto.execute(Command(s"UNLISTEN ${name.value}", None, Void.codec)).void
+      proto.execute(Command(s"UNLISTEN ${name.value}", implicitly[Origin], Void.codec)).void
 
     def listen(maxQueued: Int) =
       for {
@@ -98,7 +99,7 @@ object Channel {
 
     def notify(message: String) =
       // TODO: escape the message
-      proto.execute(Command(s"NOTIFY ${name.value}, '$message'", None, Void.codec)).void
+      proto.execute(Command(s"NOTIFY ${name.value}, '$message'", implicitly[Origin], Void.codec)).void
 
   }
 

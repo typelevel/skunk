@@ -31,7 +31,7 @@ import skunk.util.Origin
  */
 final case class Command[A](
   sql:     String,
-  origin:  Option[Origin],
+  origin:  Origin,
   encoder: Encoder[A]
 ) extends Statement[A] {
 

@@ -36,7 +36,7 @@ object StringContextOps {
         case Emb(ps) => ps
       },
       enc,
-      Some(or)
+      or
     )
 
   class StringOpsMacros(val c: whitebox.Context) {

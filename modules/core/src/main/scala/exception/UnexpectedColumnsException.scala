@@ -17,7 +17,7 @@ case class UnexpectedRowsException(
   sql       = command.sql,
   message   = "Statement returns data.",
   hint      = Some(s"This ${framed("command")} returns rows and should be a ${framed("query")}."),
-  sqlOrigin = command.origin,
+  sqlOrigin = Some(command.origin),
 ) {
 
   import Text.green

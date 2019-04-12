@@ -6,9 +6,9 @@ package tests
 
 import cats.effect.{ IO, Resource }
 import cats.implicits._
+import scala.reflect.ClassTag
 import skunk.Session
 import skunk.data._
-import skunk.exception._
 import skunk.codec.all._
 import skunk.implicits._
 
@@ -40,12 +40,11 @@ trait SkunkTest extends ffstest.FTest {
   }
 
   implicit class SkunkTestIOOps[A](fa: IO[A]) {
-    type SE = SkunkException
-    def assertFailsWithSqlException: IO[Unit] =
+    def assertFailsWith[E: ClassTag]: IO[E] =
       fa.attempt.flatMap {
-        case Left(_: SE) => IO.unit
-        case Left(e)     => IO.raiseError(e)
-        case Right(a)    => fail(s"Expected SqlException, got $a")
+        case Left(e: E) => e.pure[IO]
+        case Left(e)    => IO.raiseError(e)
+        case Right(a)   => fail[E](s"Expected SqlException, got $a")
       }
   }
 

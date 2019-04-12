@@ -10,7 +10,7 @@ import fs2.Stream
 import fs2.concurrent.Signal
 import skunk.data._
 import skunk.net.Protocol
-import skunk.util.Pool
+import skunk.util.{ Origin, Pool }
 
 /**
  * Represents a live connection to a Postgres database. Operations provided here are safe to use
@@ -161,7 +161,7 @@ object Session {
       for {
         // todo: unsubscribe all
         // todo: sync, rollback if necessary
-        _ <- s.execute(Command("RESET ALL", None, Void.codec))
+        _ <- s.execute(Command("RESET ALL", implicitly[Origin], Void.codec))
       } yield true
 
     Pool.of(single(host, port, user, database), max, reset)

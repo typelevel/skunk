@@ -19,7 +19,7 @@ case class ColumnAlignmentException(
   sql       = query.sql,
   message   = "Asserted and actual column types differ.",
   hint      = Some("The decoder you provided is incompatible with the output columns for this query. You may need to add or remove columns from the query or your decoder, change their types, or add explicit SQL casts."),
-  sqlOrigin = query.origin,
+  sqlOrigin = Some(query.origin),
 ) {
 
   import Text.{ green, red, cyan, empty }

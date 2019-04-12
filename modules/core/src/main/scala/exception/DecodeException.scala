@@ -41,7 +41,7 @@ class DecodeException[F[_], A, B](
     data,
     error,
     portal.preparedQuery.query.sql,
-    portal.preparedQuery.query.origin,
+    Some(portal.preparedQuery.query.origin),
     portal.arguments,
     Some(portal.argumentsOrigin),
     portal.preparedQuery.query.encoder,

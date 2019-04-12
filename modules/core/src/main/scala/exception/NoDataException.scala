@@ -12,5 +12,5 @@ case class NoDataException(
   sql       = query.sql,
   message   = "Statement does not return data.",
   hint      = Some(s"This ${framed("query")} returns no row. Use a ${framed("command")} instead."),
-  sqlOrigin = query.origin,
+  sqlOrigin = Some(query.origin),
 )

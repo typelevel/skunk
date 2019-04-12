@@ -80,7 +80,7 @@ object Atomic {
                     a <- resyncAndRaise[Unit] {
                       new PostgresErrorException(
                         sql       = statement.sql,
-                        sqlOrigin = statement.origin,
+                        sqlOrigin = Some(statement.origin),
                         info      = e,
                         history   = h,
                       )
@@ -109,7 +109,7 @@ object Atomic {
                     h <- ams.history(Int.MaxValue)
                     a <- resyncAndRaise[Unit](new PostgresErrorException(
                       sql             = statement.statement.sql,
-                      sqlOrigin       = statement.statement.origin,
+                      sqlOrigin       = Some(statement.statement.origin),
                       info            = info,
                       history         = h,
                       arguments       = statement.statement.encoder.types.zip(statement.statement.encoder.encode(args)),
@@ -167,20 +167,32 @@ object Atomic {
           ams.send(QueryMessage(query.sql)) *> ams.flatExpect {
 
             case rd @ RowDescription(_) =>
-              val ok =  query.decoder.types.map(_.oid) === rd.oids
-              for {
-                _  <- Concurrent[F].raiseError(ColumnAlignmentException(query, rd)).unlessA(ok)
-                rs <- unroll(
-                        sql            = query.sql,
-                        sqlOrigin      = query.origin,
-                        args           = Void,
-                        argsOrigin     = None,
-                        encoder        = Void.codec,
-                        rowDescription = rd,
-                        decoder        = query.decoder,
-                    ).map(_._1) // rs._2 will always be true here
-                _  <- ams.expect { case ReadyForQuery(_) => }
-              } yield rs
+              if (query.decoder.types.map(_.oid) === rd.oids) {
+                for {
+                  rs <- unroll(
+                          sql            = query.sql,
+                          sqlOrigin      = query.origin,
+                          args           = Void,
+                          argsOrigin     = None,
+                          encoder        = Void.codec,
+                          rowDescription = rd,
+                          decoder        = query.decoder,
+                      ).map(_._1) // rs._2 will always be true here
+                  _  <- ams.expect { case ReadyForQuery(_) => }
+                } yield rs
+              } else {
+
+                // ok so if the row description is wrong just discard all the messages and then
+                // raise the error
+                def discard: F[Unit] =
+                  ams.receive.flatMap {
+                    case rd @ RowData(_)         => discard
+                    case      CommandComplete(_) => ams.expect { case ReadyForQuery(_) => }
+                  }
+
+                discard *> Concurrent[F].raiseError[List[B]](ColumnAlignmentException(query, rd))
+
+              }
 
             case NoData                 =>
               Concurrent[F].raiseError[List[B]](NoDataException(query))
@@ -189,7 +201,7 @@ object Atomic {
               for {
                 _  <- ams.expect { case ReadyForQuery(_) => }
                 h  <- ams.history(Int.MaxValue)
-                rs <- Concurrent[F].raiseError[List[B]](new PostgresErrorException(query.sql, query.origin, e, h, Nil, None))
+                rs <- Concurrent[F].raiseError[List[B]](new PostgresErrorException(query.sql, Some(query.origin), e, h, Nil, None))
               } yield rs
             }
         }
@@ -249,7 +261,7 @@ object Atomic {
       // so we have to pass everything in manually.
       def unroll[A, B](
         sql:            String,
-        sqlOrigin:      Option[Origin],
+        sqlOrigin:      Origin,
         args:           A,
         argsOrigin:     Option[Origin],
         encoder:        Encoder[A],
@@ -271,11 +283,20 @@ object Atomic {
             rows.traverse { data =>
               decoder.decode(0, data) match {
                 case Right(a) => a.pure[F]
-                case Left(e)  => Concurrent[F].raiseError[B](new DecodeException(
+                case Left(e)  =>
+                  // need to discard remaining rows!
+                  def discard: F[Unit] = ams.receive.flatMap {
+                    case rd @ RowData(_)         => discard
+                    case      CommandComplete(_) | PortalSuspended    => ams.expect { case ReadyForQuery(_) => }
+                    case ReadyForQuery(_) => ().pure[F]
+                  }
+
+                discard *>
+                Concurrent[F].raiseError[B](new DecodeException(
                   data,
                   e,
                   sql,
-                  sqlOrigin,
+                  Some(sqlOrigin),
                   args,
                   argsOrigin,
                   encoder,

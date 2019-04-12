@@ -35,7 +35,7 @@ import skunk.util.Origin
  */
 final case class Query[A, B](
   sql:     String,
-  origin:  Option[Origin],
+  origin:  Origin,
   encoder: Encoder[A],
   decoder: Decoder[B]
 ) extends Statement[A] {

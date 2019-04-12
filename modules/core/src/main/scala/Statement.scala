@@ -8,6 +8,6 @@ import skunk.util.Origin
 
 trait Statement[A] {
   def sql:     String
-  def origin:  Option[Origin]
+  def origin:  Origin
   def encoder: Encoder[A]
 }

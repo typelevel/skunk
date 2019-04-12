@@ -6,6 +6,7 @@ package tests
 
 import cats.effect.IO
 import skunk.codec.all._
+import skunk.exception.PostgresErrorException
 import skunk.implicits._
 
 /**
@@ -16,28 +17,28 @@ case object ErrorResponseTest extends SkunkTest {
 
   sessionTest("simple command, syntax error") { s =>
     for {
-      _ <- s.execute(sql"foo?".command).assertFailsWithSqlException
+      _ <- s.execute(sql"foo?".command).assertFailsWith[PostgresErrorException]
       _ <- s.assertHealthy
     } yield "ok"
   }
 
   sessionTest("simple query, syntax error") { s =>
     for {
-      _ <- s.execute(sql"foo?".query(int4)).assertFailsWithSqlException
+      _ <- s.execute(sql"foo?".query(int4)).assertFailsWith[PostgresErrorException]
       _ <- s.assertHealthy
     } yield "ok"
   }
 
   sessionTest("prepared query, syntax error") { s =>
     for {
-      _ <- s.prepare(sql"foo?".query(int4)).use(_ => IO.unit).assertFailsWithSqlException
+      _ <- s.prepare(sql"foo?".query(int4)).use(_ => IO.unit).assertFailsWith[PostgresErrorException]
       _ <- s.assertHealthy
     } yield "ok"
   }
 
   sessionTest("prepared command, syntax error") { s =>
     for {
-      _ <- s.prepare(sql"foo?".command).use(_ => IO.unit).assertFailsWithSqlException
+      _ <- s.prepare(sql"foo?".command).use(_ => IO.unit).assertFailsWith[PostgresErrorException]
       _ <- s.assertHealthy
     } yield "ok"
   }

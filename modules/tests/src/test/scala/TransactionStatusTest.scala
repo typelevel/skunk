@@ -7,6 +7,7 @@ package tests
 import skunk.implicits._
 import skunk.codec.all._
 import skunk.data.TransactionStatus._
+import skunk.exception.PostgresErrorException
 
 /**
  * Every query/command cycle ends with a `ReadyForQuery` message that indicates the current
@@ -20,7 +21,7 @@ object TransactionStatusTest extends SkunkTest {
       _ <- s.assertTransactionStatus("initial state", Idle)
       _ <- s.execute(sql"select 42".query(int4))
       _ <- s.assertTransactionStatus("after successful query.", Idle)
-      _ <- s.execute(sql"select !".query(int4)).assertFailsWithSqlException // ensure recovery
+      _ <- s.execute(sql"select !".query(int4)).assertFailsWith[PostgresErrorException] // ensure recovery
       _ <- s.assertTransactionStatus("after failure.", Idle)
     } yield "ok"
   }
@@ -38,7 +39,7 @@ object TransactionStatusTest extends SkunkTest {
       _ <- s.assertTransactionStatus("after rollback", Idle)
       _ <- s.execute(sql"begin".command)
       _ <- s.assertTransactionStatus("after begin", ActiveTransaction)
-      _ <- s.execute(sql"foo?".command).assertFailsWithSqlException // ensure recovery
+      _ <- s.execute(sql"foo?".command).assertFailsWith[PostgresErrorException] // ensure recovery
       _ <- s.assertTransactionStatus("after error", FailedTransaction)
       _ <- s.execute(sql"rollback".command)
       _ <- s.assertTransactionStatus("after rollback", Idle)

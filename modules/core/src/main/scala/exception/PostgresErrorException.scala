@@ -122,15 +122,15 @@ class PostgresErrorException private[skunk](
     s"Postgres ${severity} $code ${pgSource.orEmpty}"
   }
 
-  // private def errorResponse: String =
-  //   if (info.isEmpty) "" else
-  //   s"""|ErrorResponse map:
-  //       |
-  //       |  ${info.toList.map { case (k, v) => s"$k = $v" } .mkString("\n|  ")}
-  //       |
-  //       |""".stripMargin
+  private def errorResponse: String =
+    if (info.isEmpty) "" else
+    s"""|ErrorResponse map:
+        |
+        |  ${info.toList.map { case (k, v) => s"$k = $v" } .mkString("\n|  ")}
+        |
+        |""".stripMargin
 
   override def sections =
-    List(header, statement, args) //, exchanges, errorResponse)
+    List(header, statement, args/*, exchanges*/, errorResponse)
 
 }

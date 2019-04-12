@@ -18,7 +18,7 @@ import skunk.util.Origin
 final case class Fragment[A](
   parts:   List[Either[String, Int]],
   encoder: Encoder[A],
-  origin:  Option[Origin]
+  origin:  Origin
 ) {
 
   lazy val sql: String =
@@ -37,7 +37,7 @@ final case class Fragment[A](
     Fragment(parts, encoder.contramap(f), origin)
 
   def product[B](fb: Fragment[B]): Fragment[(A, B)] =
-    Fragment(parts <+> fb.parts, encoder ~ fb.encoder, origin <+> fb.origin)
+    Fragment(parts <+> fb.parts, encoder ~ fb.encoder, origin)
 
   def ~[B](fb: Fragment[B]): Fragment[A ~ B] =
     product(fb)
