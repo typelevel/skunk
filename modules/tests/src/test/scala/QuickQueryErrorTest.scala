@@ -99,4 +99,12 @@ case object QuickQueryErrorTest extends SkunkTest {
     } yield "ok"
   }
 
+  sessionTest("not a query") { s =>
+    for {
+      e <- s.execute(sql"commit".query(int4)).assertFailsWith[NoDataException]
+      _ <- assert("message",  e.message  === "Statement does not return data.")
+      _ <- s.assertHealthy
+    } yield "ok"
+  }
+
 }

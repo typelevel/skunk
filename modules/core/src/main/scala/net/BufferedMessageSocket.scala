@@ -111,6 +111,8 @@ object BufferedMessageSocket {
       case     NotificationResponse(n) => Stream.eval_(noTop.publish1(n))
       case m @ BackendKeyData(_, _)    => Stream.eval_(bkDef.complete(m))
 
+      case e @ NoticeResponse(_)       => Stream.empty // TODO: accumulate warnings
+
       // Everything else is passed through.
       case m                           => Stream.emit(m)
     }

@@ -18,7 +18,8 @@ import cats.implicits._
 
 /**
  * Atomic interactions with the database that consist of multiple message exchanges. These are
- * run under a mutex and are uninterruptable.
+ * run under a mutex and are uninterruptable. The contract here is that on completion of these
+ * actions the connection will be in a neutral state, having just received a ReadyForQuery message.
  */
 trait Atomic[F[_]] {
 
@@ -167,7 +168,9 @@ object Atomic {
           ams.send(QueryMessage(query.sql)) *> ams.flatExpect {
 
             case rd @ RowDescription(_) =>
+
               if (query.decoder.types.map(_.oid) === rd.oids) {
+
                 for {
                   rs <- unroll(
                           sql            = query.sql,
@@ -180,6 +183,7 @@ object Atomic {
                       ).map(_._1) // rs._2 will always be true here
                   _  <- ams.expect { case ReadyForQuery(_) => }
                 } yield rs
+
               } else {
 
                 // ok so if the row description is wrong just discard all the messages and then
@@ -194,9 +198,12 @@ object Atomic {
 
               }
 
-            case NoData                 =>
+            // This was actually a command
+            case CommandComplete(completion) =>
+              ams.expect { case ReadyForQuery(_) => } *>
               Concurrent[F].raiseError[List[B]](NoDataException(query))
 
+            // Invalid query
             case ErrorResponse(e) =>
               for {
                 _  <- ams.expect { case ReadyForQuery(_) => }
@@ -329,3 +336,4 @@ object Atomic {
     }
 
 }
+
