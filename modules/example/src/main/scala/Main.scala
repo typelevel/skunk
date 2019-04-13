@@ -10,7 +10,6 @@ import skunk.implicits._
 import cats.effect._
 import cats.implicits._
 import fs2._
-import fs2.Sink.showLinesStdOut
 
 // This does a lot of stuff and is mostly just to test features as they're being added. This class
 // will probably go away.
@@ -25,8 +24,8 @@ object Main extends IOApp {
   def putStrLn(a: Any): IO[Unit] =
     IO(println(a))
 
-  def anyLinesStdOut[F[_]: Sync]: Sink[F, Any] =
-    _.map(_.toString).to(showLinesStdOut)
+  def anyLinesStdOut[F[_]: Sync]: Pipe[F, Any, Unit] =
+    _.map(_.toString).showLinesStdOut
 
   val fra0 = sql"true"
 
@@ -55,7 +54,7 @@ object Main extends IOApp {
 
   def hmm[F[_]: ConcurrentEffect](ps: PreparedQuery[F, Int ~ String, _]): F[Unit] =
     (ps.stream(100000 ~ "%", 4).take(25) either ps.stream(10000 ~ "%", 4))
-      .to(anyLinesStdOut)
+      .through(anyLinesStdOut)
       .compile
       .drain
 
@@ -76,7 +75,7 @@ object Main extends IOApp {
           st  <- s.transactionStatus.get
           enc <- s.parameters.get.map(_.get("client_encoding"))
           _   <- putStrLn(s"Logged in! Transaction status is $st and client_encoding is $enc")
-          f2  <- s.channel(id"foo").listen(10).to(anyLinesStdOut).compile.drain.start
+          f2  <- s.channel(id"foo").listen(10).through(anyLinesStdOut).compile.drain.start
           rs  <- s.execute(sql"select name, code, indepyear, population from country limit 20".query(country))
           _   <- rs.traverse(putStrLn)
           _   <- s.execute(sql"set seed = 0.123".command)
@@ -84,11 +83,11 @@ object Main extends IOApp {
           _   <- s.channel(id"foo").notify("here is a message")
           _   <- s.execute(sql"select current_user".query(name))
           _   <- s.prepare(q).use(hmm(_))
-          _   <- s.prepare(in(3)).use { _.stream(List("FRA", "USA", "GAB"), 100).to(anyLinesStdOut).compile.drain }
+          _   <- s.prepare(in(3)).use { _.stream(List("FRA", "USA", "GAB"), 100).through(anyLinesStdOut).compile.drain }
           _   <- f2.cancel // otherwise it will run forever
           _   <- f1.cancel // otherwise it will run forever
           _   <- s.execute(sql"select 'x'::char(10)".query(varchar))
-          _   <- s.prepare(sql"select 1".query(int4)).use { _.stream(Void, 10).to(anyLinesStdOut).compile.drain }
+          _   <- s.prepare(sql"select 1".query(int4)).use { _.stream(Void, 10).through(anyLinesStdOut).compile.drain }
           _   <- putStrLn("Done.")
         } yield ExitCode.Success
       } *>

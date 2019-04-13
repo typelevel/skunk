@@ -30,6 +30,7 @@ object BackendMessage {
        case ErrorResponse.Tag         => ErrorResponse.decoder
        case NoData.Tag                => NoData.decoder
        case NotificationResponse.Tag  => NotificationResponse.decoder
+       case NoticeResponse.Tag        => NoticeResponse.decoder
        case ParameterDescription.Tag  => ParameterDescription.decoder
        case ParameterStatus.Tag       => ParameterStatus.decoder
        case ParseComplete.Tag         => ParseComplete.decoder

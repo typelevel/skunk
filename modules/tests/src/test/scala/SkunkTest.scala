@@ -6,6 +6,7 @@ package tests
 
 import cats.effect.{ IO, Resource }
 import cats.implicits._
+import scala.reflect.ClassTag
 import skunk.Session
 import skunk.data._
 import skunk.codec.all._
@@ -19,7 +20,6 @@ trait SkunkTest extends ffstest.FTest {
       port     = 5432,
       user     = "postgres",
       database = "world",
-      check    = false
     )
 
   def sessionTest[A](name: String)(fa: Session[IO] => IO[A]): Unit =
@@ -33,19 +33,18 @@ trait SkunkTest extends ffstest.FTest {
     def assertHealthy: IO[Unit] =
       for {
         _ <- assertTransactionStatus("sanity check", TransactionStatus.Idle)
-        n <- s.execute(sql"select 42".query(int4))
-        _ <- assert("sanity check", n === List(42))
+        n <- s.unique(sql"select 'SkunkTest Health Check'::varchar".query(varchar))
+        _ <- assert("sanity check", n === "SkunkTest Health Check")
       } yield ()
 
   }
 
   implicit class SkunkTestIOOps[A](fa: IO[A]) {
-    type SE = SqlException
-    def assertFailsWithSqlException: IO[Unit] =
+    def assertFailsWith[E: ClassTag]: IO[E] =
       fa.attempt.flatMap {
-        case Left(_: SE) => IO.unit
-        case Left(e)     => IO.raiseError(e)
-        case Right(a)    => fail(s"Expected SqlException, got $a")
+        case Left(e: E) => e.pure[IO]
+        case Left(e)    => IO.raiseError(e)
+        case Right(a)   => fail[E](s"Expected SqlException, got $a")
       }
   }
 

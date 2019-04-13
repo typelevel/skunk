@@ -10,7 +10,7 @@ import fs2.Stream
 import fs2.concurrent.Signal
 import skunk.data._
 import skunk.net.Protocol
-import skunk.util.Pool
+import skunk.util.{ Origin, Pool }
 
 /**
  * Represents a live connection to a Postgres database. Operations provided here are safe to use
@@ -149,23 +149,22 @@ object Session {
    *   production but honestly it's really cheap and probably worth keeping.
    * @group Constructors
    */
-  def pooled[F[_]: Concurrent](
+  def pooled[F[_]: Concurrent: ContextShift](
     host:     String,
     port:     Int,
     user:     String,
     database: String,
     max:      Long,
-    check:    Boolean = true
   ): SessionPool[F] = {
 
     val reset: Session[F] => F[Boolean] = s =>
       for {
         // todo: unsubscribe all
         // todo: sync, rollback if necessary
-        _ <- s.execute(Command("RESET ALL", Void.codec))
+        _ <- s.execute(Command("RESET ALL", implicitly[Origin], Void.codec))
       } yield true
 
-    Pool.of(single(host, port, user, database, check), max, reset)
+    Pool.of(single(host, port, user, database), max, reset)
 
   }
 
@@ -181,15 +180,14 @@ object Session {
    *   production but honestly it's really cheap and probably worth keeping.
    * @group Constructors
    */
-  def single[F[_]: Concurrent](
+  def single[F[_]: Concurrent: ContextShift](
     host:     String,
     port:     Int,
     user:     String,
     database: String,
-    check:    Boolean = true
   ): Resource[F, Session[F]] =
     for {
-      ps <- Protocol[F](host, port, check)
+      ps <- Protocol[F](host, port)
       _  <- Resource.liftF(ps.startup(user, database))
       // TODO: password negotiation, SASL, etc.
     } yield fromProtocol(ps)
@@ -203,7 +201,7 @@ object Session {
     new Session[F] {
 
       def execute(command: Command[Void]) =
-        proto.quick(command)
+        proto.execute(command)
 
       def channel(name: Identifier) =
         Channel.fromNameAndProtocol(name, proto)
@@ -218,27 +216,27 @@ object Session {
         proto.transactionStatus
 
       def execute[A](query: Query[Void, A]) =
-        proto.quick(query)
+        proto.execute(query)
 
       def unique[A](query: Query[Void, A]): F[A] =
         execute(query).flatMap {
-            case b :: Nil => b.pure[F]
-            case Nil      => Sync[F].raiseError(new RuntimeException("Expected exactly one result, none returned."))
-            case _        => Sync[F].raiseError(new RuntimeException("Expected exactly one result, more returned."))
-          }
+          case a :: Nil => a.pure[F]
+          case Nil      => Sync[F].raiseError(new RuntimeException("Expected exactly one row, none returned."))
+          case _        => Sync[F].raiseError(new RuntimeException("Expected exactly one row, more returned."))
+        }
 
       def option[A](query: Query[Void, A]): F[Option[A]] =
         execute(query).flatMap {
-          case b :: Nil => b.some.pure[F]
+          case a :: Nil => a.some.pure[F]
           case Nil      => none[A].pure[F]
-          case _        => Sync[F].raiseError(new RuntimeException("Expected exactly one result, more returned."))
+          case _        => Sync[F].raiseError(new RuntimeException("Expected at most one row, more returned."))
         }
 
       def prepare[A, B](query: Query[A, B]) =
-        Resource.make(proto.prepareQuery(query))(_.close).map(PreparedQuery.fromProto(_))
+        proto.prepare(query).map(PreparedQuery.fromProto(_))
 
       def prepare[A](command: Command[A]) =
-        Resource.make(proto.prepareCommand(command))(_.close).map(PreparedCommand.fromProto(_))
+        proto.prepare(command).map(PreparedCommand.fromProto(_))
 
     }
 

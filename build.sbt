@@ -1,18 +1,13 @@
 import ReleaseTransformations._
 
 // Library versions all in one place, for convenience and sanity.
-lazy val catsVersion          = "1.4.0"
-lazy val catsEffectVersion    = "1.1.0"
-lazy val catsMtlVersion       = "0.3.0"
-lazy val catsTaglessVersion   = "0.1.0"
-lazy val kindProjectorVersion = "0.9.8"
-lazy val fs2Version           = "1.0.0"
-lazy val scodecCoreVersion    = "1.10.3"
+lazy val catsVersion          = "1.6.0"
+lazy val catsEffectVersion    = "1.2.0"
+lazy val fs2Version           = "1.0.3"
+lazy val kindProjectorVersion = "0.9.9"
+lazy val scala12Version       = "2.12.8"
 lazy val scodecCatsVersion    = "0.8.0"
-lazy val scala12Version       = "2.12.7"
-
-// run dependencyUpdates whenever we [re]load.
-// onLoad in Global := { s => "dependencyUpdates" :: s }
+lazy val scodecCoreVersion    = "1.11.2"
 
 lazy val scalacSettings = Seq(
   scalacOptions ++= (

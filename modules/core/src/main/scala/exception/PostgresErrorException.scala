@@ -2,11 +2,34 @@
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
-package skunk.data
+package skunk.exception
 
 import cats.implicits._
+import skunk.data.Type
+import skunk.util.Origin
 
-class SqlException private[skunk](info: Map[Char, String]) extends Exception {
+// TODO: turn this into an ADT of structured error types
+class PostgresErrorException private[skunk](
+  sql:             String,
+  sqlOrigin:       Option[Origin],
+  info:            Map[Char, String],
+  history:         List[Either[Any, Any]],
+  arguments:       List[(Type, Option[String])] = Nil,
+  argumentsOrigin: Option[Origin]               = None
+) extends SkunkException(
+  sql       = sql,
+  message   = {
+    val m = info.getOrElse('M', sys.error("Invalid ErrorInfo: no message"))
+    m.take(1).toUpperCase + m.drop(1) + "."
+  },
+  position        = info.get('P').map(_.toInt),
+  detail          = info.get('D'),
+  hint            = info.get('H'),
+  history         = history,
+  arguments       = arguments,
+  sqlOrigin       = sqlOrigin,
+  argumentsOrigin = argumentsOrigin,
+) {
 
   /**
    * The field contents are ERROR, FATAL, or PANIC (in an error message), or WARNING, NOTICE, DEBUG,
@@ -18,35 +41,6 @@ class SqlException private[skunk](info: Map[Char, String]) extends Exception {
   /** The SQLSTATE code for the error (see Appendix A). Not localizable. Always present. */
   def code: String =
     info.getOrElse('C', sys.error("Invalid ErrorInfo: no code/sqlstate"))
-
-  /**
-   * The primary human-readable error message. This should be accurate but terse (typically one
-   * line). Always present.
-   */
-  def message: String =
-    info.getOrElse('M', sys.error("Invalid ErrorInfo: no message"))
-
-  /**
-   * Detail: an optional secondary error message carrying more detail about the problem. Might run
-   * to multiple lines.
-   */
-  def detail: Option[String] =
-    info.get('D')
-
-  /**
-   * An optional suggestion Shuffle to do about the problem. This is intended to differ from Detail in
-   * that it offers advice (potentially inappropriate) rather than hard facts. Might run to multiple
-   * lines.
-   */
-  def hint: Option[String] =
-    info.get('H')
-
-  /**
-   * An error cursor position as an index into the original query string. The first character has
-   * index 1, and positions are measured in characters not bytes.
-   */
-  def position: Option[Int] =
-    info.get('P').map(_.toInt)
 
   /**
    * Defined the same as the P field, but used when the cursor position refers to an internally
@@ -119,7 +113,24 @@ class SqlException private[skunk](info: Map[Char, String]) extends Exception {
   def routine: Option[String] =
     info.get('R')
 
-  override def toString =
-    s"SqlException(${info.toList.map { case (k, v) => s"$k=$v" } .intercalate(", ") })"
+
+  // These will likely get abstracted up and out, but for now we'll do it here in a single
+  // error class.
+
+  override def title: String = {
+    val pgSource = (fileName, line, routine).mapN((f, l, r) => s"raised in $r ($f:$l)")
+    s"Postgres ${severity} $code ${pgSource.orEmpty}"
+  }
+
+  private def errorResponse: String =
+    if (info.isEmpty) "" else
+    s"""|ErrorResponse map:
+        |
+        |  ${info.toList.map { case (k, v) => s"$k = $v" } .mkString("\n|  ")}
+        |
+        |""".stripMargin
+
+  override def sections =
+    List(header, statement, args/*, exchanges*/, errorResponse)
 
 }

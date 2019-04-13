@@ -5,6 +5,7 @@
 package skunk
 
 import cats._
+import cats.implicits._
 import skunk.data.Type
 
 /**
@@ -25,7 +26,7 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
       val pe = outer.asEncoder product fb.asEncoder
       val pd = outer.asDecoder product fb.asDecoder
       def encode(ab: (A, B)) = pe.encode(ab)
-      def decode(ss: List[Option[String]]) = pd.decode(ss)
+      def decode(offset: Int, ss: List[Option[String]]) = pd.decode(offset, ss)
       def types = outer.types ++ fb.types
     }
 
@@ -35,13 +36,15 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
 
   /** Contramap inputs from, and map outputs to, a new type `B`, yielding a `Codec[B]`. */
   def imap[B](f: A => B)(g: B => A): Codec[B] =
-    Codec(b => encode(g(b)), ss => f(decode(ss)), types)
+    Codec(b => encode(g(b)), decode(_, _).map(f), types)
 
-  /** Lift this `Codec` into `Option`, where `NONE` is mapped to and from a vector of `NULL`. */
+  /** Lift this `Codec` into `Option`, where `None` is mapped to and from a vector of `NULL`. */
   override def opt: Codec[Option[A]] =
     new Codec[Option[A]] {
       def encode(oa: Option[A]) = oa.fold(empty)(outer.encode)
-      def decode(ss: List[Option[String]]) = if (ss.forall(_.isEmpty)) None else Some(outer.decode(ss))
+      def decode(offset: Int, ss: List[Option[String]]) =
+        if (ss.forall(_.isEmpty)) Right(None)
+        else outer.decode(offset, ss).map(Some(_))
       def types = outer.types
     }
 
@@ -54,18 +57,30 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
 object Codec {
 
   /** @group Constructors */
-  def apply[A](encode0: A => List[Option[String]], decode0: List[Option[String]] => A, oids0: List[Type]): Codec[A] =
+  def apply[A](
+    encode0: A => List[Option[String]],
+    decode0: (Int, List[Option[String]]) => Either[Decoder.Error, A],
+    oids0:   List[Type]
+  ): Codec[A] =
     new Codec[A] {
       def encode(a: A) = encode0(a)
-      def decode(ss: List[Option[String]]) = decode0(ss)
+      def decode(offset: Int, ss: List[Option[String]]) = decode0(offset, ss)
       def types = oids0
     }
 
   // TODO: mechanism for better error reporting … should report a null at a column index so we can
   // refer back to the row description
   /** @group Constructors */
-  def simple[A](encode: A => String, decode: String => A, oid: Type): Codec[A] =
-    apply(a => List(Some(encode(a))), ss => decode(ss.head.getOrElse(sys.error("null"))), List(oid))
+  def simple[A](encode: A => String, decode: String => Either[String, A], oid: Type): Codec[A] =
+    apply(
+      a => List(Some(encode(a))),
+      (n, ss) => ss match {
+        case Some(s) :: Nil => decode(s).leftMap(Decoder.Error(n, 1, _))
+        case None    :: Nil => Left(Decoder.Error(n, 1, s"Unexpected NULL value in non-optional column."))
+        case _              => Left(Decoder.Error(n, 1, s"Expected one input value to decode, got ${ss.length}."))
+      },
+      List(oid)
+    )
 
   /**
    * Codec is an invariant semgroupal functor.

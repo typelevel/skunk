@@ -4,9 +4,10 @@
 
 package skunk
 
-import cats.Contravariant
+import cats.ContravariantSemigroupal
 import cats.data.State
 import cats.implicits._
+import skunk.util.Origin
 
 /**
  * A composable, embeddable hunk of SQL and typed parameters (common precursor to `Command` and
@@ -14,7 +15,11 @@ import cats.implicits._
  * the `sql` interpolator.
  * @group Statements
  */
-final case class Fragment[A](parts: List[Either[String, Int]], encoder: Encoder[A]) {
+final case class Fragment[A](
+  parts:   List[Either[String, Int]],
+  encoder: Encoder[A],
+  origin:  Origin
+) {
 
   lazy val sql: String =
     parts.traverse {
@@ -23,13 +28,19 @@ final case class Fragment[A](parts: List[Either[String, Int]], encoder: Encoder[
     } .runA(1).value.combineAll
 
   def query[B](decoder: Decoder[B]): Query[A, B] =
-    Query(sql, encoder, decoder)
+    Query(sql, origin, encoder, decoder)
 
   def command: Command[A] =
-    Command(sql, encoder)
+    Command(sql, origin, encoder)
 
   def contramap[B](f: B => A): Fragment[B] =
-    Fragment(parts, encoder.contramap(f))
+    Fragment(parts, encoder.contramap(f), origin)
+
+  def product[B](fb: Fragment[B]): Fragment[(A, B)] =
+    Fragment(parts <+> fb.parts, encoder ~ fb.encoder, origin)
+
+  def ~[B](fb: Fragment[B]): Fragment[A ~ B] =
+    product(fb)
 
   override def toString =
     s"Fragment($sql, $encoder)"
@@ -39,10 +50,10 @@ final case class Fragment[A](parts: List[Either[String, Int]], encoder: Encoder[
 /** @group Companions */
 object Fragment {
 
-  implicit val FragmentContravariant: Contravariant[Fragment] =
-    new Contravariant[Fragment] {
-      def contramap[A, B](fa: Fragment[A])(f: B => A) =
-        fa.contramap(f)
+  implicit val FragmentContravariantSemigroupal: ContravariantSemigroupal[Fragment] =
+    new ContravariantSemigroupal[Fragment] {
+      def contramap[A, B](fa: Fragment[A])(f: B => A) = fa.contramap(f)
+      def product[A, B](fa: Fragment[A], fb: Fragment[B]) = fa product fb
     }
 
 }

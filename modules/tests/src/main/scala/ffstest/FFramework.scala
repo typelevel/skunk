@@ -16,8 +16,8 @@ trait FTest {
   implicit val ioContextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
   implicit val ioTimer: Timer[IO] = IO.timer(ExecutionContext.global)
   def test[A](name: String)(f: IO[A]) = tests = tests :+ ((name, f))
-  def fail(msg: String): IO[Unit] = IO.raiseError(new AssertionError(msg))
-  def fail(msg: String, cause: Throwable): IO[Unit] = IO.raiseError(new AssertionError(msg, cause))
+  def fail[A](msg: String): IO[A] = IO.raiseError(new AssertionError(msg))
+  def fail[A](msg: String, cause: Throwable): IO[A] = IO.raiseError(new AssertionError(msg, cause))
   def assert(msg: => String, b: => Boolean): IO[Unit] = if (b) IO.pure(()) else fail(msg)
 }
 
@@ -66,6 +66,10 @@ case class FTask(taskDef: TaskDef, testClassLoader: ClassLoader) extends Task {
 
     def report(color: String, message: String, event: Event) = {
       loggers.foreach(_.info(s"$color   $message$RESET"))
+      if (event.throwable.isDefined) {
+        event.throwable.get.printStackTrace()
+        loggers.foreach(_.trace(event.throwable.get))
+      }
       eventHandler.handle(event)
     }
 
@@ -73,7 +77,7 @@ case class FTask(taskDef: TaskDef, testClassLoader: ClassLoader) extends Task {
     obj.tests.foreach { case (name, fa) =>
       type AE = AssertionError // to make the lines shorter below :-\
       FTask.timed(obj.ioContextShift.shift *> fa).attempt.unsafeRunSync match {
-        case Right((ms, a)) => report(GREEN, s"✓ $name ($ms ms)",          FEvent(Success, duration = ms))
+        case Right((ms, a)) => report(GREEN, s"✓ $name ($a, $ms ms)",      FEvent(Success, duration = ms))
         case Left(e: AE)    => report(RED,   s"✗ $name (${e.getMessage})", FEvent(Failure))
         case Left(e)        => report(RED,   s"? $name (${e.getMessage})", FEvent(Error, throwable = e)) // todo: stacktrace
       }

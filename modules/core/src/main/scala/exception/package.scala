@@ -2,11 +2,11 @@
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
-package skunk.syntax
+package skunk
 
-trait ToAllOps
-  extends ToIdOps
-     with ToStringContextOps
-     with ToListOps
+package object exception {
 
-object all extends ToAllOps
+  private[exception] def framed(s: String) =
+    "\u001B[4m" + s + "\u001B[24m"
+
+}

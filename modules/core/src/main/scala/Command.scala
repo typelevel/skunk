@@ -5,6 +5,7 @@
 package skunk
 
 import cats.Contravariant
+import skunk.util.Origin
 
 /**
  * SQL and parameter encoder for a statement that returns no rows. We assume that `sql` has the
@@ -28,7 +29,11 @@ import cats.Contravariant
  *
  * @group Statements
  */
-final case class Command[A](sql: String, encoder: Encoder[A]) {
+final case class Command[A](
+  sql:     String,
+  origin:  Origin,
+  encoder: Encoder[A]
+) extends Statement[A] {
 
   /**
    * Command is a [[https://typelevel.org/cats/typeclasses/contravariant.html contravariant
@@ -36,7 +41,7 @@ final case class Command[A](sql: String, encoder: Encoder[A]) {
    * @group Transformations
    */
   def contramap[B](f: B => A): Command[B] =
-    Command(sql, encoder.contramap(f))
+    Command(sql, origin, encoder.contramap(f))
 
 }
 

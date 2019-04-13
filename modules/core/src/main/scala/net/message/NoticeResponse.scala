@@ -7,15 +7,15 @@ package skunk.net.message
 import scodec.Decoder
 import scodec.codecs._
 
-final case class ErrorResponse(info: Map[Char, String]) extends BackendMessage {
+final case class NoticeResponse(info: Map[Char, String]) extends BackendMessage {
   override def toString =
-    info.map { case (k, v) => s"$k -> $v" } .mkString("ErrorResponse(", ", ", "")
+    info.map { case (k, v) => s"$k -> $v" } .mkString("NoticeResponse(", ", ", "")
 }
 
-object ErrorResponse {
+object NoticeResponse {
 
-  // ErrorResponse (B)
-  final val Tag = 'E'
+  // NoticeResponse (B)
+  final val Tag = 'N'
 
   // The message body consists of one or more identified fields, followed by a zero byte as a
   // terminator. Fields can appear in any order. For each field there is the following:
@@ -28,7 +28,7 @@ object ErrorResponse {
   val decoder: Decoder[BackendMessage] =
     list(cstring).map { ss =>
       val kv = ss.init.map(s => s.head -> s.tail).toMap // last one is always empty
-      ErrorResponse(kv)
+      NoticeResponse(kv)
     }
 
 }

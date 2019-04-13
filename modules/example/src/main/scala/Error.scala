@@ -5,11 +5,12 @@
 package example
 
 import cats.effect._
+import cats.implicits._
 import skunk._
 import skunk.implicits._
-import skunk.codec.text._
+import skunk.codec.all._
 
-object Minimal1 extends IOApp {
+object Error extends IOApp {
 
   val session: Resource[IO, Session[IO]] =
     Session.single(
@@ -19,12 +20,18 @@ object Minimal1 extends IOApp {
       database = "world",
     )
 
+  val query =
+    sql"""
+      SELECT name, null::int4
+      FROM   country
+      WHERE  population > $varchar::int4
+      AND    population < $int4
+    """.query(varchar ~ int4)
+
+  def prog[F[_]: Bracket[?[_], Throwable]](s: Session[F]): F[ExitCode] =
+    s.prepare(query).use(_.unique("42" ~ 1000000)).as(ExitCode.Success)
+
   def run(args: List[String]): IO[ExitCode] =
-    session.use { s =>
-      for {
-        s <- s.unique(sql"select 'hello world'".query(varchar))
-        _ <- IO(println(s"⭐️⭐  The answer is '$s'."))
-      } yield ExitCode.Success
-    }
+    session.use(prog(_))
 
 }

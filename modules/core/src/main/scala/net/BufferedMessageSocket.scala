@@ -66,8 +66,6 @@ trait BufferedMessageSocket[F[_]] extends MessageSocket[F] {
    */
   def notifications(maxQueued: Int): Stream[F, Notification]
 
-  def expect[B](f: PartialFunction[BackendMessage, B]): F[B]
-  def flatExpect[B](f: PartialFunction[BackendMessage, F[B]]): F[B]
 
   // TODO: this is an implementation leakage, fold into the factory below
   protected def terminate: F[Unit]
@@ -75,7 +73,7 @@ trait BufferedMessageSocket[F[_]] extends MessageSocket[F] {
 
 object BufferedMessageSocket {
 
-  def apply[F[_]: Concurrent](
+  def apply[F[_]: Concurrent: ContextShift](
     host:      String,
     port:      Int,
     queueSize: Int = 256
@@ -111,6 +109,8 @@ object BufferedMessageSocket {
       case     NotificationResponse(n) => Stream.eval_(noTop.publish1(n))
       case m @ BackendKeyData(_, _)    => Stream.eval_(bkDef.complete(m))
 
+      case e @ NoticeResponse(_)       => Stream.empty // TODO: accumulate warnings
+
       // Everything else is passed through.
       case m                           => Stream.emit(m)
     }
@@ -128,7 +128,7 @@ object BufferedMessageSocket {
       paSig <- SignallingRef[F, Map[String, String]](Map.empty)
       bkSig <- Deferred[F, BackendKeyData]
       noTop <- Topic[F, Notification](Notification(-1, Identifier.unsafeFromString("x"), "")) // blech
-      fib   <- next(ms, xaSig, paSig, bkSig, noTop).repeat.to(queue.enqueue).compile.drain.attempt.flatMap {
+      fib   <- next(ms, xaSig, paSig, bkSig, noTop).repeat.through(queue.enqueue).compile.drain.attempt.flatMap {
         case Left(e)  => Concurrent[F].delay(e.printStackTrace)
         case Right(a) => a.pure[F]
       } .start
@@ -158,6 +158,9 @@ object BufferedMessageSocket {
 
         def flatExpect[B](f: PartialFunction[BackendMessage, F[B]]): F[B] =
           expect(f).flatten
+
+        def history(max: Int) =
+          ms.history(max)
 
 
       }

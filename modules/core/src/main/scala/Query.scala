@@ -5,6 +5,7 @@
 package skunk
 
 import cats.arrow.Profunctor
+import skunk.util.Origin
 
 /**
  * SQL, parameter encoder, and row decoder for a statement that returns rows. We assume that `sql`
@@ -22,6 +23,7 @@ import cats.arrow.Profunctor
  * }}}
  *
  * @param sql A SQL statement returning no rows.
+ * @param origin  The `Origin` where the sql was defined, if any.
  * @param encoder An encoder for all parameters `$1`, `$2`, etc., in `sql`.
  * @param encoder A decoder for selected columns.
  *
@@ -31,14 +33,19 @@ import cats.arrow.Profunctor
  *
  * @group Statements
  */
-final case class Query[A, B](sql: String, encoder: Encoder[A], decoder: Decoder[B]) {
+final case class Query[A, B](
+  sql:     String,
+  origin:  Origin,
+  encoder: Encoder[A],
+  decoder: Decoder[B]
+) extends Statement[A] {
 
   /**
    * Query is a profunctor.
    * @group Transformations
    */
   def dimap[C, D](f: C => A)(g: B => D): Query[C, D] =
-    Query(sql, encoder.contramap(f), decoder.map(g))
+    Query(sql, origin, encoder.contramap(f), decoder.map(g))
 
   /**
    * Query is a contravariant functor in `A`.
