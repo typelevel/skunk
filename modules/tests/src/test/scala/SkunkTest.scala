@@ -33,8 +33,8 @@ trait SkunkTest extends ffstest.FTest {
     def assertHealthy: IO[Unit] =
       for {
         _ <- assertTransactionStatus("sanity check", TransactionStatus.Idle)
-        n <- s.execute(sql"select 42".query(int4))
-        _ <- assert("sanity check", n === List(42))
+        n <- s.unique(sql"select 'SkunkTest Health Check'::varchar".query(varchar))
+        _ <- assert("sanity check", n === "SkunkTest Health Check")
       } yield ()
 
   }

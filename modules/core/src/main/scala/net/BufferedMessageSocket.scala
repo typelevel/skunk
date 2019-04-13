@@ -66,8 +66,6 @@ trait BufferedMessageSocket[F[_]] extends MessageSocket[F] {
    */
   def notifications(maxQueued: Int): Stream[F, Notification]
 
-  def expect[B](f: PartialFunction[BackendMessage, B]): F[B]
-  def flatExpect[B](f: PartialFunction[BackendMessage, F[B]]): F[B]
 
   // TODO: this is an implementation leakage, fold into the factory below
   protected def terminate: F[Unit]

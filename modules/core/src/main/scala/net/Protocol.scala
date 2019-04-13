@@ -5,12 +5,14 @@
 package skunk.net
 
 import cats.effect.{ Concurrent, ContextShift, Resource }
+import cats.effect.concurrent.Semaphore
+import cats.effect.implicits._
 import fs2.concurrent.Signal
 import fs2.Stream
 import skunk.{ Command, Query, Statement, ~, Void }
 import skunk.data._
 import skunk.net.message.RowDescription
-import skunk.util.Origin
+import skunk.util.{ Namer, Origin }
 
 /**
  * Interface for a Postgres database, expressed through high-level operations that rely on exchange
@@ -151,10 +153,20 @@ object Protocol {
     port:  Int     = 5432
   ): Resource[F, Protocol[F]] =
     for {
-      bms    <- BufferedMessageSocket[F](host, port)
-      atomic <- Resource.liftF(Atomic.fromBufferedMessageSocket(bms))
+      bms <- BufferedMessageSocket[F](host, port)
+      nam <- Resource.liftF(Namer[F])
+      sem <- Resource.liftF(Semaphore[F](1))
     } yield
       new Protocol[F] {
+
+        implicit val ExchangeF: protocol.Exchange[F] =
+          new protocol.Exchange[F] {
+            def apply[A](fa: F[A]): F[A] =
+              sem.withPermit(fa).uncancelable
+          }
+
+        implicit val ms: MessageSocket[F] = bms
+        implicit val na: Namer[F] = nam
 
         def notifications(maxQueued: Int): Stream[F, Notification] =
           bms.notifications(maxQueued)
@@ -164,39 +176,40 @@ object Protocol {
 
         def prepare[A](command: Command[A]): Resource[F, PreparedCommand[F, A]] =
           for {
-            id <- atomic.parse(command)
-            _  <- Resource.liftF(atomic.check(command, id))
+            id <- protocol.Parse[F].apply(command)
+            _  <- Resource.liftF(protocol.Describe[F].apply(command, id))
           } yield new PreparedCommand[F, A](id, command) { pc =>
             def bind(args: A, origin: Origin): Resource[F, CommandPortal[F, A]] =
-              atomic.bind(this, args, origin).map {
+              protocol.Bind[F].apply(this, args, origin).map {
                 new CommandPortal[F, A](_, pc) {
-                  val execute: F[Completion] = atomic.execute(this)
+                  val execute: F[Completion] =
+                    protocol.Execute[F].apply(this)
                 }
               }
           }
 
         def prepare[A, B](query: Query[A, B]): Resource[F, PreparedQuery[F, A, B]] =
           for {
-            id <- atomic.parse(query)
-            rd <- Resource.liftF(atomic.check(query, id))
+            id <- protocol.Parse[F].apply(query)
+            rd <- Resource.liftF(protocol.Describe[F].apply(query, id))
           } yield new PreparedQuery[F, A, B](id, query, rd) { pq =>
             def bind(args: A, origin: Origin): Resource[F, QueryPortal[F, A, B]] =
-              atomic.bind(this, args, origin).map {
+              protocol.Bind[F].apply(this, args, origin).map {
                 new QueryPortal[F, A, B](_, pq, args, origin) {
                   def execute(maxRows: Int): F[List[B] ~ Boolean] =
-                    atomic.execute(this, maxRows)
+                    protocol.Execute[F].apply(this, maxRows)
                 }
               }
           }
 
         def execute(command: Command[Void]): F[Completion] =
-          atomic.execute(command)
+          protocol.Query[F].apply(command)
 
         def execute[B](query: Query[Void, B]): F[List[B]] =
-          atomic.execute(query)
+          protocol.Query[F].apply(query)
 
         def startup(user: String, database: String): F[Unit] =
-          atomic.startup(user, database)
+          protocol.Startup[F].apply(user, database)
 
         def transactionStatus: Signal[F, TransactionStatus] =
           bms.transactionStatus

@@ -25,6 +25,9 @@ trait MessageSocket[F[_]] {
   /** Destructively read the last `n` messages from the circular buffer. */
   def history(max: Int): F[List[Either[Any, Any]]]
 
+  def expect[B](f: PartialFunction[BackendMessage, B]): F[B]
+  def flatExpect[B](f: PartialFunction[BackendMessage, F[B]]): F[B]
+
 }
 
 object MessageSocket {
@@ -50,18 +53,29 @@ object MessageSocket {
           for {
             msg <- receiveImpl
             _   <- cb.enqueue1(Right(msg))
-            // _   <- Sync[F].delay(println(s" ← ${Console.GREEN}$msg${Console.RESET}"))
+            _   <- Sync[F].delay(println(s" ← ${Console.GREEN}$msg${Console.RESET}"))
           } yield msg
 
         def send[A](a: A)(implicit ev: FrontendMessage[A]): F[Unit] =
           for {
-            // _ <- Sync[F].delay(println(s" → ${Console.YELLOW}$a${Console.RESET}"))
+            _ <- Sync[F].delay(println(s" → ${Console.YELLOW}$a${Console.RESET}"))
             _ <- bvs.write(ev.fullEncoder.encode(a).require)
             _ <- cb.enqueue1(Left(a))
           } yield ()
 
         def history(max: Int) =
           cb.dequeueChunk1(max: Int).map(_.toList)
+
+        // Like flatMap but raises an error if a case isn't handled. This makes writing protocol
+        // handlers much easier.
+        def expect[B](f: PartialFunction[BackendMessage, B]): F[B] =
+          receive.flatMap {
+            case m if f.isDefinedAt(m) => f(m).pure[F]
+            case m                     => Concurrent[F].raiseError(new RuntimeException(s"expect: unhandled: $m"))
+          }
+
+        def flatExpect[B](f: PartialFunction[BackendMessage, F[B]]): F[B] =
+          expect(f).flatten
 
       }
     }
