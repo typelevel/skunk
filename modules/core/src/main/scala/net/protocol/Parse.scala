@@ -1,20 +1,17 @@
 package skunk.net.protocol
 
-import cats._
 import cats.effect.Resource
 import cats.implicits._
-
-import skunk._
-import skunk.util._
-import skunk.exception._
-import cats._
-import cats.implicits._
-import skunk.net.Protocol
+import cats.MonadError
+import skunk.exception.PostgresErrorException
 import skunk.net.message.{ Parse => ParseMessage, Close => CloseMessage, _ }
 import skunk.net.MessageSocket
+import skunk.net.Protocol.StatementId
+import skunk.Statement
+import skunk.util.Namer
 
 trait Parse[F[_]] {
-  def apply[A](statement: Statement[A]): Resource[F, Protocol.StatementId]
+  def apply[A](statement: Statement[A]): Resource[F, StatementId]
 }
 
 object Parse {
@@ -22,11 +19,11 @@ object Parse {
   def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket: Namer]: Parse[F] =
     new Parse[F] {
 
-      def apply[A](statement: Statement[A]): Resource[F, Protocol.StatementId] =
+      def apply[A](statement: Statement[A]): Resource[F, StatementId] =
         Resource.make {
           exchange {
             for {
-              id <- nextName("statement").map(Protocol.StatementId)
+              id <- nextName("statement").map(StatementId)
               _  <- send(ParseMessage(id.value, statement.sql, statement.encoder.types.toList))
               _  <- send(Flush)
               _  <- flatExpect {

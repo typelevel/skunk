@@ -1,24 +1,21 @@
 package skunk.net.protocol
 
-import cats._
 import cats.effect.Resource
 import cats.implicits._
-
-import skunk.util._
-import skunk.exception._
-import cats._
-import cats.implicits._
-import skunk.net.Protocol
+import cats.MonadError
+import skunk.exception.PostgresErrorException
 import skunk.net.message.{ Bind => BindMessage, Close => CloseMessage, _ }
 import skunk.net.MessageSocket
+import skunk.net.Protocol.{ PreparedStatement, PortalId }
+import skunk.util.{ Origin, Namer }
 
 trait Bind[F[_]] {
 
   def apply[A](
-    statement:  Protocol.PreparedStatement[F, A],
+    statement:  PreparedStatement[F, A],
     args:       A,
     argsOrigin: Origin
-  ): Resource[F, Protocol.PortalId]
+  ): Resource[F, PortalId]
 
 }
 
@@ -28,14 +25,14 @@ object Bind {
     new Bind[F] {
 
       def apply[A](
-        statement:  Protocol.PreparedStatement[F, A],
+        statement:  PreparedStatement[F, A],
         args:       A,
         argsOrigin: Origin
-      ): Resource[F, Protocol.PortalId] =
+      ): Resource[F, PortalId] =
         Resource.make {
           exchange {
             for {
-              pn <- nextName("portal").map(Protocol.PortalId)
+              pn <- nextName("portal").map(PortalId)
               _  <- send(BindMessage(pn.value, statement.id.value, statement.statement.encoder.encode(args)))
               _  <- send(Flush)
               _  <- flatExpect {
@@ -47,23 +44,23 @@ object Bind {
         } { name => Close[F].apply(CloseMessage.portal(name.value)) }
 
       def syncAndFail[A](
-        statement: Protocol.PreparedStatement[F, A],
+        statement:  PreparedStatement[F, A],
         args:       A,
         argsOrigin: Origin,
-        info: Map[Char, String]
+        info:       Map[Char, String]
       ): F[Unit] =
         for {
           hi <- history(Int.MaxValue)
           _  <- send(Sync)
           _  <- expect { case ReadyForQuery(_) => }
-          a  <- new PostgresErrorException(
+          a  <- PostgresErrorException.raiseError[F, Unit](
                   sql             = statement.statement.sql,
                   sqlOrigin       = Some(statement.statement.origin),
                   info            = info,
                   history         = hi,
                   arguments       = statement.statement.encoder.types.zip(statement.statement.encoder.encode(args)),
                   argumentsOrigin = Some(argsOrigin)
-                ).raiseError[F, Unit]
+                )
         } yield a
 
     }

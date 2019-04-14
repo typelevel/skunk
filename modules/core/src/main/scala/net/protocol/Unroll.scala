@@ -1,12 +1,13 @@
 package skunk.net.protocol
 
-import cats._
 import cats.implicits._
-import skunk._
-import skunk.exception._
+import cats.MonadError
+import skunk.{ ~, Encoder, Decoder }
+import skunk.exception.DecodeException
 import skunk.implicits._
 import skunk.net.message._
-import skunk.net.{ MessageSocket, Protocol }
+import skunk.net.MessageSocket
+import skunk.net.Protocol.QueryPortal
 import skunk.util.Origin
 
 /**
@@ -17,7 +18,7 @@ private[protocol] class Unroll[F[_]: MonadError[?[_], Throwable]: MessageSocket]
 
   /** Receive the next batch of rows. */
   def unroll[A, B](
-    portal: Protocol.QueryPortal[F, A, B]
+    portal: QueryPortal[F, A, B]
   ): F[List[B] ~ Boolean] =
     unroll(
       sql            = portal.preparedQuery.query.sql,

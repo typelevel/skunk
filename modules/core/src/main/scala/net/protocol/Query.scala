@@ -1,14 +1,10 @@
 package skunk.net.protocol
 
-import cats._
+import cats.MonadError
 import cats.implicits._
-
-import skunk._
+import skunk.{ Command, Void }
 import skunk.data.Completion
-import skunk.util._
-import skunk.exception._
-import cats._
-import cats.implicits._
+import skunk.exception.{ ColumnAlignmentException, NoDataException, PostgresErrorException }
 import skunk.net.message.{ Query => QueryMessage, _ }
 import skunk.net.MessageSocket
 
@@ -19,22 +15,8 @@ trait Query[F[_]] {
 
 object Query {
 
-  def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket: Namer]: Query[F] =
+  def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket]: Query[F] =
     new Unroll[F] with Query[F] {
-
-      def apply(command: Command[Void]): F[Completion] =
-        exchange {
-          send(QueryMessage(command.sql)) *> flatExpect {
-            case CommandComplete(c) => expect { case ReadyForQuery(_) => c }
-            // TODO: case RowDescription => oops, this returns rows, it needs to be a query
-            case ErrorResponse(e) =>
-              for {
-                _ <- expect { case ReadyForQuery(_) => }
-                h <- history(Int.MaxValue)
-                c <- new PostgresErrorException(command.sql, None, e, h, Nil, None).raiseError[F, Completion]
-              } yield c
-          }
-        }
 
       def apply[B](query: skunk.Query[Void, B]): F[List[B]] =
         exchange {
@@ -45,7 +27,8 @@ object Query {
             case rd @ RowDescription(_) =>
 
               // If our decoder lines up with the RowDescription we can decode the rows, otherwise
-              // we have to discard them and then raise an error.
+              // we have to discard them and then raise an error. All the args are necessary context
+              // if we have a decoding failure and need to report an error.
               if (query.decoder.types.map(_.oid) === rd.oids) {
                 unroll(
                   sql            = query.sql,
@@ -66,7 +49,7 @@ object Query {
               expect { case ReadyForQuery(_) => } *> NoDataException(query).raiseError[F, List[B]]
 
             // If we get an ErrorResponse it means there was an error in the query. In this case we
-            // simply await ReadyForQuery and raise an error.
+            // simply await ReadyForQuery and then raise an error.
             case ErrorResponse(e) =>
               for {
                 hi <- history(Int.MaxValue)
@@ -82,6 +65,20 @@ object Query {
 
         }
 
+        def apply(command: Command[Void]): F[Completion] =
+          exchange {
+            send(QueryMessage(command.sql)) *> flatExpect {
+              case CommandComplete(c) => expect { case ReadyForQuery(_) => c }
+              // TODO: case RowDescription => oops, this returns rows, it needs to be a query
+              case ErrorResponse(e) =>
+                for {
+                  _ <- expect { case ReadyForQuery(_) => }
+                  h <- history(Int.MaxValue)
+                  c <- new PostgresErrorException(command.sql, None, e, h, Nil, None).raiseError[F, Completion]
+                } yield c
+            }
+          }
+
         // If there is an error we just want to receive and discard everything until we have seen
         // CommandComplete followed by ReadyForQuery.
         val discard: F[Unit] =
@@ -89,6 +86,7 @@ object Query {
             case rd @ RowData(_)         => discard
             case      CommandComplete(_) => expect { case ReadyForQuery(_) => }
           }
+
 
     }
 

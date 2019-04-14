@@ -1,14 +1,15 @@
 package skunk.net.protocol
 
-import cats._
+import cats.MonadError
 import cats.implicits._
-import skunk.exception._
-import skunk.net.{ MessageSocket, Protocol }
+import skunk.exception.{ UnexpectedRowsException, ColumnAlignmentException, NoDataException }
+import skunk.net.MessageSocket
+import skunk.net.Protocol.StatementId
 import skunk.net.message.{ Describe => DescribeMessage, _ }
 
 trait Describe[F[_]] {
-  def apply(cmd: skunk.Command[_], id: Protocol.StatementId): F[Unit]
-  def apply[A](query: skunk.Query[_, A], id: Protocol.StatementId): F[RowDescription]
+  def apply(cmd: skunk.Command[_], id: StatementId): F[Unit]
+  def apply[A](query: skunk.Query[_, A], id: StatementId): F[RowDescription]
 }
 
 object Describe {
@@ -16,7 +17,7 @@ object Describe {
   def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket]: Describe[F] =
     new Describe[F] {
 
-      def apply(cmd: skunk.Command[_], id: Protocol.StatementId): F[Unit] =
+      def apply(cmd: skunk.Command[_], id: StatementId): F[Unit] =
         exchange {
           for {
             _  <- send(DescribeMessage.statement(id.value))
@@ -29,7 +30,7 @@ object Describe {
           } yield ()
         }
 
-      def apply[A](query: skunk.Query[_, A], id: Protocol.StatementId): F[RowDescription] =
+      def apply[A](query: skunk.Query[_, A], id: StatementId): F[RowDescription] =
         exchange {
           for {
             _  <- send(DescribeMessage.statement(id.value))
