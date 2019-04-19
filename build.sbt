@@ -3,6 +3,7 @@ import ReleaseTransformations._
 // Library versions all in one place, for convenience and sanity.
 lazy val catsVersion          = "1.6.0"
 lazy val catsEffectVersion    = "1.2.0"
+lazy val enumeratumVersion    = "1.5.13"
 lazy val fs2Version           = "1.0.3"
 lazy val kindProjectorVersion = "0.9.9"
 lazy val scala12Version       = "2.12.8"
@@ -157,12 +158,13 @@ lazy val core = project
     name := "skunk-core",
     description := "Tagless, non-blocking data access library for Postgres.",
     libraryDependencies ++= Seq(
-      "org.typelevel"        %% "cats-core"     % catsVersion,
-      "org.typelevel"        %% "cats-effect"   % catsEffectVersion,
-      "co.fs2"               %% "fs2-core"      % fs2Version,
-      "co.fs2"               %% "fs2-io"        % fs2Version,
-      "org.scodec"           %% "scodec-core"   % scodecCoreVersion,
-      "org.scodec"           %% "scodec-cats"   % scodecCatsVersion,
+      "org.typelevel" %% "cats-core"   % catsVersion,
+      "org.typelevel" %% "cats-effect" % catsEffectVersion,
+      "co.fs2"        %% "fs2-core"    % fs2Version,
+      "co.fs2"        %% "fs2-io"      % fs2Version,
+      "org.scodec"    %% "scodec-core" % scodecCoreVersion,
+      "org.scodec"    %% "scodec-cats" % scodecCatsVersion,
+      "com.beachape"  %% "enumeratum"  % enumeratumVersion
     )
   )
 

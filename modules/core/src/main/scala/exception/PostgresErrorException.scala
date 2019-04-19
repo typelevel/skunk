@@ -5,6 +5,7 @@
 package skunk.exception
 
 import cats.implicits._
+import skunk.SqlState
 import skunk.data.Type
 import skunk.util.Origin
 
@@ -122,16 +123,26 @@ class PostgresErrorException private[skunk](
     s"Postgres ${severity} $code ${pgSource.orEmpty}"
   }
 
-  private def errorResponse: String =
-    if (info.isEmpty) "" else
-    s"""|ErrorResponse map:
-        |
-        |  ${info.toList.map { case (k, v) => s"$k = $v" } .mkString("\n|  ")}
-        |
-        |""".stripMargin
+  private def trap: String =
+    SqlState.values.find(_.code == code).foldMap { st =>
+      s"""|If this is an error you wish to trap and handle in your application, you can do
+          |so with a SqlState extractor. For example:
+          |
+          |  ${Console.GREEN}doSomething.recoverWith { case SqlState.${st.entryName}(ex) => ... }${Console.RESET}
+          |
+          |""".stripMargin
+    }
+
+  // private def errorResponse: String =
+  //   if (info.isEmpty) "" else
+  //   s"""|ErrorResponse map:
+  //       |
+  //       |  ${info.toList.map { case (k, v) => s"$k = $v" } .mkString("\n|  ")}
+  //       |
+  //       |""".stripMargin
 
   override def sections =
-    List(header, statement, args/*, exchanges*/, errorResponse)
+    List(header, statement, args, trap) //, exchanges, errorResponse)
 
 }
 

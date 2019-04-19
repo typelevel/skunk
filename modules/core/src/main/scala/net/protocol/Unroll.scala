@@ -1,3 +1,7 @@
+// Copyright (c) 2018 by Rob Norris
+// This software is licensed under the MIT License (MIT).
+// For more information see LICENSE or https://opensource.org/licenses/MIT
+
 package skunk.net.protocol
 
 import cats.implicits._
@@ -57,24 +61,18 @@ private[protocol] class Unroll[F[_]: MonadError[?[_], Throwable]: MessageSocket]
           decoder.decode(0, data) match {
             case Right(a) => a.pure[F]
             case Left(e)  =>
-              // need to discard remaining rows!
-              def discard: F[Unit] = receive.flatMap {
-                case rd @ RowData(_)         => discard
-                case      CommandComplete(_) | PortalSuspended    => expect { case ReadyForQuery(_) => }
-                case ReadyForQuery(_) => ().pure[F]
-              }
-
-            discard *>
-            (new DecodeException(
-              data,
-              e,
-              sql,
-              Some(sqlOrigin),
-              args,
-              argsOrigin,
-              encoder,
-              rowDescription
-            )).raiseError[F, B]
+              send(Sync).whenA(bool) *> // if we're suspended we need to sync to get back to an ok state
+              expect { case ReadyForQuery(status) => } *>
+              (new DecodeException(
+                  data,
+                  e,
+                  sql,
+                  Some(sqlOrigin),
+                  args,
+                  argsOrigin,
+                  encoder,
+                  rowDescription
+                )).raiseError[F, B]
           }
         } .map(_ ~ bool)
     }

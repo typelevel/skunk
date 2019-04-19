@@ -14,6 +14,8 @@ final case class Origin(file: String, line: Int) {
 
 object Origin {
 
+  val unknown = Origin("«skunk internal»", 0)
+
   implicit def instance: Origin =
     macro OriginMacros.instance_impl
 
