@@ -1,15 +1,12 @@
 package skunk.net.protocol
 
-import cats._
 import cats.implicits._
-
-import skunk._
+import cats.MonadError
+import skunk.~
 import skunk.data.Completion
-import skunk.util._
-import cats._
-import cats.implicits._
-import skunk.net.message.{ Execute => ExecuteMessage, _ }
+import skunk.exception.PostgresErrorException
 import skunk.net.{ Protocol, MessageSocket }
+import skunk.net.message.{ Execute => ExecuteMessage, _ }
 
 trait Execute[F[_]] {
   def apply[A](portal: Protocol.CommandPortal[F, A]): F[Completion]
@@ -18,7 +15,7 @@ trait Execute[F[_]] {
 
 object Execute {
 
-  def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket: Namer]: Execute[F] =
+  def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket]: Execute[F] =
     new Unroll[F] with Execute[F] {
 
       def apply[A](portal: Protocol.CommandPortal[F, A]): F[Completion] =
@@ -26,15 +23,9 @@ object Execute {
           for {
             _  <- send(ExecuteMessage(portal.id.value, 0))
             _  <- send(Flush)
-            c  <- expect {
-              case CommandComplete(c) => c
-              // TODO: we need the sql and arguments here
-              // case ErrorResponse(e) =>
-              //   for {
-              //     _ <- expect { case ReadyForQuery(_) => }
-              //     h <- history(Int.MaxValue)
-              //     c <- Concurrent[F].raiseError[Completion](new PostgresErrorException(command.sql, None, e, h, Nil, None))
-              //   } yield c
+            c  <- flatExpect {
+              case CommandComplete(c)  => c.pure[F]
+              case ErrorResponse(info) => syncAndFail[A](portal, info)
             }
           } yield c
         }
@@ -47,6 +38,21 @@ object Execute {
             rs <- unroll(portal)
           } yield rs
         }
+
+      def syncAndFail[A](portal: Protocol.CommandPortal[F, A], info: Map[Char, String]): F[Completion] =
+        for {
+          hi <- history(Int.MaxValue)
+          _  <- send(Sync)
+          _  <- expect { case ReadyForQuery(_) => }
+          a  <- new PostgresErrorException(
+                  sql             = portal.preparedCommand.command.sql,
+                  sqlOrigin       = Some(portal.preparedCommand.command.origin),
+                  info            = info,
+                  history         = hi,
+                  arguments       = portal.preparedCommand.command.encoder.types.zip(portal.preparedCommand.command.encoder.encode(portal.arguments)),
+                  argumentsOrigin = Some(portal.argumentsOrigin)
+                ).raiseError[F, Completion]
+        } yield a
 
     }
 

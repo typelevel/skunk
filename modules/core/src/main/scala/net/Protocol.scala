@@ -97,49 +97,81 @@ trait Protocol[F[_]] {
 
 object Protocol {
 
+  /**
+   * Postgres identifier of a prepared statement, used by the protocol in subsequent `Bind`
+   * operations.
+   */
   final case class StatementId(value: String)
+
+  /** Postgres identifier of a portal, used by the protocol in subsequent `Execute` operations. */
   final case class PortalId(value: String)
 
-  sealed abstract class Managed[A](val id: A)
+  /**
+   * A prepared statement.
+   * @arg id the Postgres identifier of this statement.
+   * @arg statement the userland `Statement` used to construct this `PreparedStatement`.
+   */
+  sealed trait PreparedStatement[F[_], A] {
+    def id:        StatementId
+    def statement: Statement[A]
+  }
 
-  sealed abstract class PreparedStatement[F[_], A](
-        id:        StatementId,
-    val statement: Statement[A]
-  ) extends Managed[StatementId](id)
-
-  sealed abstract class PreparedCommand[F[_], A](
-        id:      StatementId,
+  /**
+   * A prepared command.
+   * @arg id the Postgres identifier of this statement.
+   * @arg command the userland `Command` used to construct this `PreparedCommand`.
+   */
+  abstract class PreparedCommand[F[_], A](
+    val id:      StatementId,
     val command: Command[A],
-  ) extends PreparedStatement[F, A](id, command) {
+  ) extends PreparedStatement[F, A] {
+    def statement: Statement[A] = command
     def bind(args: A, argsOrigin: Origin): Resource[F, CommandPortal[F, A]]
   }
 
-  sealed abstract class PreparedQuery[F[_], A, B](
-        id:             StatementId,
+  /**
+   * A prepared query.
+   * @arg id the Postgres identifier of this statement.
+   * @arg query the userland `Query` used to construct this `PreparedQuery`.
+   * @arg rowDescription a `RowDescription` specifyin this `PreparedQuery`'s output format.'.
+   */
+  abstract class PreparedQuery[F[_], A, B](
+    val id:             StatementId,
     val query:          Query[A, B],
     val rowDescription: RowDescription
-  ) extends PreparedStatement[F, A](id, query) {
+  ) extends PreparedStatement[F, A] {
+    def statement: Statement[A] = query
     def bind(args: A, argsOrigin: Origin): Resource[F, QueryPortal[F, A, B]]
   }
 
-  sealed abstract class Portal[F[_], A](
-        id:                PortalId,
-    val preparedStatement: PreparedStatement[F, A]
-  ) extends Managed[PortalId](id)
+  /**
+   * @arg id the Postgres identifier of this statement.
+   * @arg preparedStatement the `PreparedStatement` used to construct this `Portal`.
+   */
+  sealed trait Portal[F[_], A] {
+    def id:             PortalId
+    def preparedStatement: PreparedStatement[F, A]
+    def arguments:       A
+    def argumentsOrigin: Origin
+  }
 
-  sealed abstract class CommandPortal[F[_], A](
-        id:              PortalId,
-    val preparedCommand: PreparedCommand[F, A]
-  ) extends Portal[F, A](id, preparedCommand) {
+  abstract class CommandPortal[F[_], A](
+    val id:              PortalId,
+    val preparedCommand: PreparedCommand[F, A],
+    val arguments:       A,
+    val argumentsOrigin: Origin,
+  ) extends Portal[F, A] {
+    def preparedStatement: PreparedStatement[F, A] = preparedCommand
     def execute: F[Completion]
   }
 
-  sealed abstract class QueryPortal[F[_], A, B](
-        id:              PortalId,
+  abstract class QueryPortal[F[_], A, B](
+    val id:              PortalId,
     val preparedQuery:   PreparedQuery[F, A, B],
     val arguments:       A,
     val argumentsOrigin: Origin,
-  ) extends Portal[F, A](id, preparedQuery) {
+  ) extends Portal[F, A] {
+    def preparedStatement: PreparedStatement[F, A] = preparedQuery
     def execute(maxRows: Int): F[List[B] ~ Boolean]
   }
 
@@ -159,14 +191,15 @@ object Protocol {
     } yield
       new Protocol[F] {
 
+        // Not super sure about this but it does make the sub-protocol implementations cleaner.
+        // We'll see how well it works out.
+        implicit val ms: MessageSocket[F] = bms
+        implicit val na: Namer[F] = nam
         implicit val ExchangeF: protocol.Exchange[F] =
           new protocol.Exchange[F] {
             def apply[A](fa: F[A]): F[A] =
               sem.withPermit(fa).uncancelable
           }
-
-        implicit val ms: MessageSocket[F] = bms
-        implicit val na: Namer[F] = nam
 
         def notifications(maxQueued: Int): Stream[F, Notification] =
           bms.notifications(maxQueued)
@@ -175,32 +208,10 @@ object Protocol {
           bms.parameters
 
         def prepare[A](command: Command[A]): Resource[F, PreparedCommand[F, A]] =
-          for {
-            id <- protocol.Parse[F].apply(command)
-            _  <- Resource.liftF(protocol.Describe[F].apply(command, id))
-          } yield new PreparedCommand[F, A](id, command) { pc =>
-            def bind(args: A, origin: Origin): Resource[F, CommandPortal[F, A]] =
-              protocol.Bind[F].apply(this, args, origin).map {
-                new CommandPortal[F, A](_, pc) {
-                  val execute: F[Completion] =
-                    protocol.Execute[F].apply(this)
-                }
-              }
-          }
+          protocol.Prepare[F].apply(command)
 
         def prepare[A, B](query: Query[A, B]): Resource[F, PreparedQuery[F, A, B]] =
-          for {
-            id <- protocol.Parse[F].apply(query)
-            rd <- Resource.liftF(protocol.Describe[F].apply(query, id))
-          } yield new PreparedQuery[F, A, B](id, query, rd) { pq =>
-            def bind(args: A, origin: Origin): Resource[F, QueryPortal[F, A, B]] =
-              protocol.Bind[F].apply(this, args, origin).map {
-                new QueryPortal[F, A, B](_, pq, args, origin) {
-                  def execute(maxRows: Int): F[List[B] ~ Boolean] =
-                    protocol.Execute[F].apply(this, maxRows)
-                }
-              }
-          }
+          protocol.Prepare[F].apply(query)
 
         def execute(command: Command[Void]): F[Completion] =
           protocol.Query[F].apply(command)

@@ -1,6 +1,6 @@
 package skunk.net.protocol
 
-import cats._
+import cats.FlatMap
 import cats.implicits._
 import skunk.net.MessageSocket
 import skunk.net.message._

@@ -1,9 +1,9 @@
 package skunk.net.protocol
 
-import cats._
+import cats.FlatMap
 import cats.implicits._
-import skunk.net.MessageSocket
 import skunk.net.message.{ Close => CloseMessage, Flush, CloseComplete }
+import skunk.net.MessageSocket
 
 trait Close[F[_]] {
   def apply(message: CloseMessage): F[Unit]
