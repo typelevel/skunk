@@ -108,8 +108,8 @@ object Protocol {
 
   /**
    * A prepared statement.
-   * @arg id the Postgres identifier of this statement.
-   * @arg statement the userland `Statement` used to construct this `PreparedStatement`.
+   * @param id the Postgres identifier of this statement.
+   * @param statement the userland `Statement` used to construct this `PreparedStatement`.
    */
   sealed trait PreparedStatement[F[_], A] {
     def id:        StatementId
@@ -118,8 +118,8 @@ object Protocol {
 
   /**
    * A prepared command.
-   * @arg id the Postgres identifier of this statement.
-   * @arg command the userland `Command` used to construct this `PreparedCommand`.
+   * @param id the Postgres identifier of this statement.
+   * @param command the userland `Command` used to construct this `PreparedCommand`.
    */
   abstract class PreparedCommand[F[_], A](
     val id:      StatementId,
@@ -131,9 +131,9 @@ object Protocol {
 
   /**
    * A prepared query.
-   * @arg id the Postgres identifier of this statement.
-   * @arg query the userland `Query` used to construct this `PreparedQuery`.
-   * @arg rowDescription a `RowDescription` specifyin this `PreparedQuery`'s output format.'.
+   * @param id the Postgres identifier of this statement.
+   * @param query the userland `Query` used to construct this `PreparedQuery`.
+   * @param rowDescription a `RowDescription` specifyin this `PreparedQuery`'s output format.'.
    */
   abstract class PreparedQuery[F[_], A, B](
     val id:             StatementId,
@@ -145,8 +145,8 @@ object Protocol {
   }
 
   /**
-   * @arg id the Postgres identifier of this statement.
-   * @arg preparedStatement the `PreparedStatement` used to construct this `Portal`.
+   * @param id the Postgres identifier of this statement.
+   * @param preparedStatement the `PreparedStatement` used to construct this `Portal`.
    */
   sealed trait Portal[F[_], A] {
     def id:             PortalId
