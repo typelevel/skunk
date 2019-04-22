@@ -27,7 +27,7 @@ class DecodeException[F[_], A, B](
 ) extends SkunkException(
   sql             = sql,
   message         = "Decoding error.",
-  hint            = Some("This query's decoder was unable to decode a data row."),
+  detail          = Some("This query's decoder was unable to decode a row of data."),
   arguments       = encoder.types.zip(encoder.encode(arguments)),
   argumentsOrigin = argumentsOrigin,
   sqlOrigin       = sqlOrigin
@@ -65,7 +65,10 @@ class DecodeException[F[_], A, B](
       describeType(t),
       plain("->"),
       green(op.getOrElse("NULL")),
-      if (n === error.offset) cyan(s"── ${error.error}") else empty
+      if (n === error.offset) cyan(s"├── ${error.message}") else empty
+      // TODO - make a fence for errors that span, like
+      //        ├───── foo bar
+      //        │
     )
   }
 
