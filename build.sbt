@@ -8,7 +8,7 @@ lazy val fs2Version           = "1.0.3"
 lazy val kindProjectorVersion = "0.9.9"
 lazy val scala12Version       = "2.12.8"
 lazy val scodecCatsVersion    = "0.8.0"
-lazy val scodecCoreVersion    = "1.11.2"
+lazy val scodecCoreVersion    = "1.11.3"
 
 lazy val scalacSettings = Seq(
   scalacOptions ++= (
