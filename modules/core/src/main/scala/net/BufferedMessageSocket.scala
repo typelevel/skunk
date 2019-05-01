@@ -76,10 +76,11 @@ object BufferedMessageSocket {
   def apply[F[_]: Concurrent: ContextShift](
     host:      String,
     port:      Int,
-    queueSize: Int = 256
+    queueSize: Int,
+    debug:     Boolean
   ): Resource[F, BufferedMessageSocket[F]] =
     for {
-      ms  <- MessageSocket(host, port)
+      ms  <- MessageSocket(host, port, debug)
       ams <- Resource.make(BufferedMessageSocket.fromMessageSocket[F](ms, queueSize))(_.terminate)
     } yield ams
 

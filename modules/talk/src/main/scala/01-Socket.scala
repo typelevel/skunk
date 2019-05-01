@@ -19,12 +19,19 @@ object Socket1 {
   // So we need to do pure fuctional socket programming. How do we want to think about this?
   // The way the Postgres protocol works we really only need two operations, something like this.
 
-  trait Socket[F[_]] {
+trait Socket[F[_]] {
 
-    def readN(numBytes: Int, timeout: FiniteDuration): F[Array[Byte]]
+  def readN(
+    numBytes: Int,
+    timeout:  FiniteDuration
+  ): F[Array[Byte]]
 
-    def write(bytes: Array[Byte], timeout: FiniteDuration): F[Unit]
+  def write(
+    bytes:   Array[Byte],
+    timeout: FiniteDuration
+  ): F[Unit]
 
+}
     // This is a tagless interface, which is just a style of programming that parameterizes everything
     // on the effect in which values are computed. So `F` here is probably something like `IO` in real
     // code but you could mock up something in some other effect like StateT maybe, if you need to
@@ -33,7 +40,7 @@ object Socket1 {
     // So anyway we can read some number of bytes or we can write some number of bytes. In both
     // cases we can time out, which will raise an error in the `F` effect.
 
-  }
+  // }
 
 }
 
@@ -47,11 +54,17 @@ object Socket2 {
 
     trait Socket[F[_]] {
 
-      def readN(numBytes: Int, timeout: Option[FiniteDuration]): F[Option[Chunk[Byte]]]
+      def readN(
+        numBytes: Int,
+        timeout:  Option[FiniteDuration]
+      ): F[Option[Chunk[Byte]]]
 
-      def write(bytes: Chunk[Byte], timeout: Option[FiniteDuration]): F[Unit]
+      def write(
+        bytes: Chunk[Byte],
+        timeout: Option[FiniteDuration]
+      ): F[Unit]
 
-      // much more
+      // ...
 
     }
 
@@ -68,18 +81,30 @@ object Socket3 {
   // So this is a good time to introduce cats.effect.Resource, if you haven't seen it.
   // EXPLAIN
 
-  def asynchronousChannelGroup[G[_]: Sync]: Resource[G, AsynchronousChannelGroup] = {
-    val alloc = Sync[G].delay(AsynchronousChannelGroup.withThreadPool(Executors.newCachedThreadPool()))
-    val free  = (acg: AsynchronousChannelGroup) => Sync[G].delay(acg.shutdown())
-    Resource.make(alloc)(free)
-  }
+def asynchronousChannelGroup[G[_]: Sync]
+  : Resource[G, AsynchronousChannelGroup] = {
+
+  val alloc: G[AsynchronousChannelGroup] =
+    Sync[G].delay {
+      AsynchronousChannelGroup
+        .withThreadPool(Executors.newCachedThreadPool())
+    }
+
+  val free: AsynchronousChannelGroup => G[Unit] =
+    acg => Sync[G].delay(acg.shutdown())
+
+  Resource.make(alloc)(free)
+}
 
   // And now if we have an implicit `AsynchronousChannelGroup` we can construct a socket and use it.
   // - introduce Concurrent and ContextShift
 
-  def socket[F[_]: Concurrent: ContextShift](host: String, port: Int): Resource[F, Socket[F]] =
+  def socket[F[_]: Concurrent: ContextShift](
+    host: String,
+    port: Int
+  ): Resource[F, Socket[F]] =
     asynchronousChannelGroup.flatMap { implicit acg =>
-      fs2.io.tcp.Socket.client[F](new InetSocketAddress(host, port))
+      Socket.client[F](new InetSocketAddress(host, port))
     }
 
 
@@ -90,15 +115,18 @@ object Socket3 {
 // - introduce Traverse[Option]
 // - introduce Sync
 
-object Soaket4 extends IOApp {
+object Socket4 extends IOApp {
   import Socket3._
 
   def run(args: List[String]): IO[ExitCode] =
     socket[IO]("google.com", 80).use { sock =>
+      val req = Chunk.array("GET / HTTP/1.0\n\n".getBytes)
       for {
-        _ <- sock.write(Chunk.array("GET / HTTP/1.0\n\n".getBytes("US-ASCII")), Some(1.second))
-        o <- sock.readN(512, Some(1.second))
-        _ <- o.traverse(c => Sync[IO].delay(println(new String(c.toArray, "US-ASCII"))))
+        _ <- sock.write(req, Some(1.second))
+        o <- sock.readN(256, Some(1.second))
+        _ <- o.traverse(c => Sync[IO].delay {
+              println(new String(c.toArray, "US-ASCII"))
+            })
       } yield ExitCode.Success
     }
 
@@ -112,10 +140,13 @@ object Socket5 extends IOApp {
 
   def runF[F[_]: Concurrent: ContextShift]: F[ExitCode] =
     socket[F]("google.com", 80).use { sock =>
+      val req = Chunk.array("GET / HTTP/1.0\n\n".getBytes)
       for {
-        _ <- sock.write(Chunk.array("GET / HTTP/1.0\n\n".getBytes("US-ASCII")), Some(1.second))
+        _ <- sock.write(req, Some(1.second))
         o <- sock.readN(512, Some(1.second))
-        _ <- o.traverse(c => Sync[F].delay(println(new String(c.toArray, "US-ASCII"))))
+        _ <- o.traverse(c => Sync[F].delay {
+                println(new String(c.toArray, "US-ASCII"))
+              })
       } yield ExitCode.Success
     }
 

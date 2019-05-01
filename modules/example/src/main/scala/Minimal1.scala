@@ -7,7 +7,7 @@ package example
 import cats.effect._
 import skunk._
 import skunk.implicits._
-import skunk.codec.text._
+import skunk.codec.all._
 
 object Minimal1 extends IOApp {
 
@@ -16,14 +16,14 @@ object Minimal1 extends IOApp {
       host     = "localhost",
       port     = 5432,
       user     = "postgres",
-      database = "world",
+      database = "world"
     )
 
   def run(args: List[String]): IO[ExitCode] =
     session.use { s =>
       for {
-        s <- s.unique(sql"select 'hello world'".query(varchar))
-        _ <- IO(println(s"⭐️⭐  The answer is '$s'."))
+        s <- s.unique(sql"select 42".query(int4))
+        _ <- IO(println(s"⭐️⭐  The answer is $s."))
       } yield ExitCode.Success
     }
 

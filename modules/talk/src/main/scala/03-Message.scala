@@ -44,6 +44,19 @@ object Message1 {
     // each part of the message payload and then concatenate the BitVectors together. BitVector is
     // structured in such a way that this is a fast operation.
 
+    val payload1: Encoder[Startup] =
+      Encoder { s =>
+        for {
+          v  <- int32.encode(196608)
+          uk <- cstring.encode("user")
+          u  <- cstring.encode(s.user)
+          dk <- cstring.encode("database")
+          d  <- cstring.encode(s.database)
+          n  <- byte.encode(0)
+        } yield v ++ uk ++ u ++ dk ++ d ++ n
+      }
+
+
     val payload: Encoder[Startup] =
       Encoder { s =>
         for {
@@ -99,12 +112,15 @@ object Message2 extends IOApp {
   // outgoing message.
 
   def runF[F[_]: Concurrent: ContextShift]: F[ExitCode] =
-    bitVectorSocket[F]("localhost", 5432, 1.second, 1.seconds).use { sock =>
-      val bytes = Startup.encoder.encode(Startup("postgres", "world")).require
+    bitVectorSocket[F](
+      "localhost", 5432, 1.second, 1.seconds
+    ).use { sock =>
+      val msg   = Startup("postgres", "world")
+      val bytes = Startup.encoder.encode(msg).require
       for {
         _  <- sock.write(bytes)
         bv <- sock.read(256)
-        _  <- Sync[F].delay(println(utf8.decode(bv).require))
+        _  <- Sync[F].delay(println(bv.decodeAscii))
       } yield ExitCode.Success
     }
 
@@ -123,31 +139,41 @@ object Message3 extends IOApp {
   // with a catchall case for unknown messages. The tag is actually an ASCII character so we'll
   // call it a char in the model.
 
-  case class Unknown(tag: Char, data: BitVector)
+  case class Unknown(tag: Char, data: BitVector) {
+    override def toString = s"Unknown($tag, <data>)"
+  }
 
   // All messages are prefixed with their length, so the strategy is, we read the first five bytes
   // which gives us the length and tag, then we can read the payload.
 
-  def readUnknown[F[_]: FlatMap](bvs: BitVectorSocket[F]): F[Unknown] =
+  def readUnknown[F[_]: FlatMap](
+    bvs: BitVectorSocket[F]
+  ): F[Unknown] =
     bvs.read(5).flatMap { bits =>
-      val (tag, len) = (byte ~ int32).decodeValue(bits).require
+      val tag ~ len = (byte ~ int32).decodeValue(bits).require
       bvs.read(len - 4).map(Unknown(tag.toChar, _))
     }
 
   // Then because we don't really have a better idea yet let's just read the response forever and
   // then the program will crash when the read socket times out.
 
-  def readForever[F[_]: Sync](bvs: BitVectorSocket[F]): F[Unit] =
+  def finishStartup[F[_]: Sync](bvs: BitVectorSocket[F]): F[Unit] =
     for {
       m <- readUnknown(bvs)
       _ <- Sync[F].delay(println(m))
-      _ <- readForever(bvs)
+      _ <- finishStartup(bvs)
     } yield ()
 
   def runF[F[_]: Concurrent: ContextShift]: F[ExitCode] =
-    bitVectorSocket[F]("localhost", 5432, 1.second, 1.seconds).use { sock =>
-      val bytes = Startup.encoder.encode(Startup("postgres", "world")).require
-      sock.write(bytes) *> readForever(sock).as(ExitCode.Success)
+    bitVectorSocket[F](
+      "localhost", 5432, 1.day, 1.second
+    ).use { sock =>
+      val msg   = Startup("postgres", "world")
+      val bytes = Startup.encoder.encode(msg).require
+      for {
+        _ <- sock.write(bytes)
+        _ <- finishStartup(sock)
+      } yield ExitCode.Success
     }
 
   def run(args: List[String]): IO[ExitCode] =
@@ -186,22 +212,37 @@ object Message4 extends IOApp {
 
   // }
 
-  def receiveAll[F[_]: Sync](ms: MessageSocket[F]): F[Unit] =
-    for {
-      m <- ms.receive
-      _ <- Sync[F].delay(println(m))
-      _ <- m match {
-        case ReadyForQuery(_) => Sync[F].delay(println("Done!"))
-        case _                => receiveAll(ms)
+
+
+  def finishStartupXX[F[_]: Monad](ms: MessageSocket[F]): F[Unit] =
+    ms.receive.flatMap {
+      case ReadyForQuery(_) => ().pure[F]
+      case _                => finishStartupXX(ms)
+    }
+
+  def finishStartup[F[_]: Monad](
+    ms: MessageSocket[F]
+  ): F[Map[String, String]] = {
+
+    def go(accum: Map[String, String]): F[Map[String, String]] =
+      ms.receive.flatMap {
+        case ReadyForQuery(_)      => accum.pure[F]
+        case ParameterStatus(k, v) => go(accum + (k -> v))
+        case _                     => go(accum)
       }
-    } yield ()
+
+    go(Map.empty)
+  }
 
   def runF[F[_]: Concurrent: ContextShift]: F[ExitCode] =
     BitVectorSocket("localhost", 5432).use { bvs =>
       for {
-        ms <- MessageSocket.fromBitVectorSocket(bvs)
-        _  <- ms.send(StartupMessage("postgres", ""))
-        _  <- receiveAll(ms)
+        ms <- MessageSocket.fromBitVectorSocket(bvs, true)
+        _  <- ms.send(StartupMessage("postgres", "world"))
+        ps <- finishStartup(ms)
+        _  <- ps.toList.traverse { case (k, v) =>
+                Sync[F].delay(println(s"$k -> $v"))
+              }
       } yield ExitCode.Success
     }
 
@@ -209,3 +250,77 @@ object Message4 extends IOApp {
     runF[IO]
 
 }
+
+// So you see how in `receiveAll` we're pattern-matching on messages, and we can do this to
+// build up protocol interactions, like if we send a query message we'll expect back a row
+// description message followed by a bunch of row data messages, a completion message, and then
+// ready for query. So we can define that exchange in terms of normal monadic composition.
+
+object Message5 extends IOApp {
+  import Message4._
+
+  import skunk.net._
+  import skunk.net.message.{ Sync => _, _ }
+
+  def processResults[F[_]: Sync](
+    ms: MessageSocket[F]
+  ): F[List[RowData]] = {
+
+    def expectF[A](
+      f: PartialFunction[BackendMessage, F[A]]
+    ): F[A] =
+      ms.receive.flatMap { m =>
+        if (f.isDefinedAt(m)) f(m)
+        else new Exception(s"Unexpected: $m").raiseError[F, A]
+      }
+
+    def expect[A](
+      f: PartialFunction[BackendMessage, A]
+    ): F[A] =
+      expectF(f.andThen(_.pure[F]))
+
+    def unroll(accum: List[RowData]): F[List[RowData]] =
+      expectF {
+        case rd @ RowData(_)         => unroll(rd :: accum)
+        case cc @ CommandComplete(_) => accum.reverse.pure[F]
+      }
+
+    for {
+      _  <- expect { case RowDescription(_)     => }
+      rs <- unroll(Nil)
+      _  <- expect { case rq @ ReadyForQuery(_) => }
+    } yield rs
+
+  }
+
+
+  def runF[F[_]: Concurrent: ContextShift]: F[ExitCode] =
+    BitVectorSocket("localhost", 5432).use { bvs =>
+      for {
+        ms <- MessageSocket.fromBitVectorSocket(bvs, true)
+        _  <- ms.send(StartupMessage("postgres", "world"))
+        _  <- finishStartup(ms)
+        _  <- ms.send(Query(
+                """select name, population from country
+                    where name like 'U%'"""
+              ))
+        rs <- processResults(ms)
+        _  <- rs.toList.traverse { rd =>
+                Sync[F].delay(println(rd))
+              }
+      } yield ExitCode.Success
+    }
+
+  def run(args: List[String]): IO[ExitCode] =
+    runF[IO]
+
+}
+
+// And we can factor out combinators for the repeated stuff like "what happens if we get an
+// unexpected message?" and we can build this stuff up. But we have this problem where we might
+// receive asynchronous messages at any time during the session, so these random messages might
+// pop up anywhere in our code and we have to be sure they're handled correctly. And they also
+// might pop up when we're not actively waiting to receive a message, so an asynchronous message
+// might not get noticed until next time we execute a query or something. So this is no good and
+// we need to figure out a better approach.
+
