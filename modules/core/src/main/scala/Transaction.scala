@@ -8,6 +8,8 @@ import skunk.data.Identifier
 import skunk.implicits._
 import skunk.data.Completion
 import skunk.data.TransactionStatus._
+import skunk.util.Origin
+import skunk.util.CallSite
 
 
 // Need exceptions for TransctionAlreadyInProgress and NoCurrentTransaction
@@ -16,10 +18,10 @@ trait Transaction[F[_]] {
 
   type Savepoint
 
-  def savepoint(name: Identifier): F[Savepoint]
-  def rollback(savepoint: Savepoint): F[Completion]
-  def rollback: F[Completion]
-  def commit: F[Completion]
+  def savepoint(name: Identifier)(implicit o: Origin): F[Savepoint]
+  def rollback(savepoint: Savepoint)(implicit o: Origin): F[Completion]
+  def rollback(implicit o: Origin): F[Completion]
+  def commit(implicit o: Origin): F[Completion]
 
 }
 
@@ -30,27 +32,28 @@ object Transaction {
     // also need to take an isolation level
   ): Resource[F, Transaction[F]] = {
 
-    def assertIdle: F[Unit] = ???
-    def assertActive: F[Unit] = ???
+    def assertIdle(cs: CallSite): F[Unit] = ???
+
+    def assertActive(cs: CallSite): F[Unit] = ???
 
     val acquire: F[Transaction[F]] =
-      assertIdle *>
+      assertIdle(CallSite("Transaction.use", Origin.unknown)) *> // this is lame
       s.execute(sql"BEGIN".command).map { _ =>
         new Transaction[F] {
           type Savepoint = Identifier
 
           // TODO: check status for all of these
-          def commit: F[Completion] =
-            assertActive *> s.execute(sql"COMMIT".command)
+          def commit(implicit o: Origin): F[Completion] =
+            assertActive(o.toCallSite("commit")) *> s.execute(sql"COMMIT".command)
 
-          def rollback: F[Completion] =
-            assertActive *> s.execute(sql"ROLLBACK".command)
+          def rollback(implicit o: Origin): F[Completion] =
+            assertActive(o.toCallSite("rollback")) *> s.execute(sql"ROLLBACK".command)
 
-          def rollback(savepoint: Savepoint): F[Completion] =
-            assertActive *> s.execute(sql"ROLLBACK #${savepoint.value}".command)
+          def rollback(savepoint: Savepoint)(implicit o: Origin): F[Completion] =
+            assertActive(o.toCallSite("savepoint")) *> s.execute(sql"ROLLBACK #${savepoint.value}".command)
 
-          def savepoint(name: Identifier): F[Savepoint] =
-            assertActive *> s.execute(sql"SAVEPOINT #${name.value}".command).as(name)
+          def savepoint(name: Identifier)(implicit o: Origin): F[Savepoint] =
+            assertActive(o.toCallSite("savepoint")) *> s.execute(sql"SAVEPOINT #${name.value}".command).as(name)
 
         }
       }

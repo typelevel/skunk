@@ -8,8 +8,13 @@ import scala.language.experimental.macros
 import scala.reflect.macros.blackbox
 
 final case class Origin(file: String, line: Int) {
+
+  def toCallSite(methodName: String): CallSite =
+    CallSite(methodName, this)
+
   override def toString =
     s"$file:$line"
+
 }
 
 object Origin {
