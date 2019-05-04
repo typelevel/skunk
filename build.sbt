@@ -2,7 +2,7 @@ import ReleaseTransformations._
 
 // Library versions all in one place, for convenience and sanity.
 lazy val catsVersion          = "1.6.0"
-lazy val catsEffectVersion    = "1.2.0"
+lazy val catsEffectVersion    = "1.3.0"
 lazy val enumeratumVersion    = "1.5.13"
 lazy val fs2Version           = "1.0.3"
 lazy val kindProjectorVersion = "0.9.10"
