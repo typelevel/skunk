@@ -7,11 +7,8 @@ import scala.concurrent.duration._
 import scodec._
 import scodec.codecs._
 import scodec.Encoder
-import scodec.interop.cats._
 import scodec.bits.BitVector
-import scodec.bits.ByteVector
 import skunk.net.BitVectorSocket
-import _root_.fs2.io.tcp.Socket
 
 // Ok, so now can step up a level and start talking about sending protocol messages, which we
 // encode as bitvectors, which we already know how to send back and forth.
