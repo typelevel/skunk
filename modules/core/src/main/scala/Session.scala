@@ -185,9 +185,10 @@ object Session {
     port:     Int,
     user:     String,
     database: String,
+    debug:    Boolean = false
   ): Resource[F, Session[F]] =
     for {
-      ps <- Protocol[F](host, port)
+      ps <- Protocol[F](host, port, debug)
       _  <- Resource.liftF(ps.startup(user, database))
       // TODO: password negotiation, SASL, etc.
     } yield fromProtocol(ps)

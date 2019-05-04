@@ -185,3 +185,10 @@ lazy val example = project
   .dependsOn(core)
   .settings(commonSettings)
   .settings(noPublishSettings)
+
+lazy val talk = project
+  .in(file("modules/talk"))
+  .enablePlugins(AutomateHeaderPlugin)
+  .dependsOn(core)
+  .settings(commonSettings)
+  .settings(noPublishSettings)

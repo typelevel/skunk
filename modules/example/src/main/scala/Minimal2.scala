@@ -17,13 +17,13 @@ object Minimal2 extends IOApp {
       host     = "localhost",
       port     = 5432,
       user     = "postgres",
-      database = "world",
+      database = "world"
     )
 
-  case class Country(code: String, name: String, pop: Long)
+  case class Country(code: String, name: String, pop: Int)
 
   val country: Decoder[Country] =
-    (varchar ~ varchar ~ int8).map { case c ~ n ~ p => Country(c, n, p) }
+    (bpchar ~ varchar ~ int4).map { case c ~ n ~ p => Country(c, n, p) }
 
   val select: Query[String, Country] =
     sql"""

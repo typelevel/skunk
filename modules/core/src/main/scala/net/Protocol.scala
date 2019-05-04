@@ -182,10 +182,11 @@ object Protocol {
    */
   def apply[F[_]: Concurrent: ContextShift](
     host:  String,
-    port:  Int     = 5432
+    port:  Int,
+    debug: Boolean
   ): Resource[F, Protocol[F]] =
     for {
-      bms <- BufferedMessageSocket[F](host, port)
+      bms <- BufferedMessageSocket[F](host, port, 256, debug) // TODO: should we expose the queue size?
       nam <- Resource.liftF(Namer[F])
       sem <- Resource.liftF(Semaphore[F](1))
     } yield

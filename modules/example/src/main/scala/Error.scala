@@ -22,16 +22,14 @@ object Error extends IOApp {
 
   val query =
     sql"""
-      SELECT name, 42::int4
+      SELECT name, code
       FROM   country
-      WHERE  population > $varchar
-      AND    population < $int4
+      WHERE  popsulation > $varchar
+      AND    population  < $int4
     """.query(varchar ~ int4)
 
-  def prog[F[_]: Bracket[?[_], Throwable]](s: Session[F]): F[ExitCode] =
-    s.prepare(query).use(_.unique("42" ~ 1000000)).as(ExitCode.Success).recover {
-      case SqlState.UndefinedTable(ex) => ExitCode.Error
-    }
+  def prog[F[_]: Sync](s: Session[F]): F[ExitCode] =
+    s.prepare(query).use(_.unique("42" ~ 1000000)).as(ExitCode.Success)
 
   def run(args: List[String]): IO[ExitCode] =
     session.use(prog(_))

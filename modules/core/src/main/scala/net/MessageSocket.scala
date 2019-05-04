@@ -32,7 +32,10 @@ trait MessageSocket[F[_]] {
 
 object MessageSocket {
 
-  def fromBitVectorSocket[F[_]: Concurrent](bvs: BitVectorSocket[F]): F[MessageSocket[F]] =
+  def fromBitVectorSocket[F[_]: Concurrent](
+    bvs: BitVectorSocket[F],
+    debug: Boolean
+  ): F[MessageSocket[F]] =
     InspectableQueue.circularBuffer[F, Either[Any, Any]](10).map { cb =>
       new MessageSocket[F] {
 
@@ -53,12 +56,12 @@ object MessageSocket {
           for {
             msg <- receiveImpl
             _   <- cb.enqueue1(Right(msg))
-            // _   <- Sync[F].delay(println(s" ← ${Console.GREEN}$msg${Console.RESET}"))
+            _   <- Sync[F].delay(println(s" ← ${Console.GREEN}$msg${Console.RESET}")).whenA(debug)
           } yield msg
 
         def send[A](a: A)(implicit ev: FrontendMessage[A]): F[Unit] =
           for {
-            // _ <- Sync[F].delay(println(s" → ${Console.YELLOW}$a${Console.RESET}"))
+            _ <- Sync[F].delay(println(s" → ${Console.YELLOW}$a${Console.RESET}")).whenA(debug)
             _ <- bvs.write(ev.fullEncoder.encode(a).require)
             _ <- cb.enqueue1(Left(a))
           } yield ()
@@ -80,10 +83,10 @@ object MessageSocket {
       }
     }
 
-  def apply[F[_]: Concurrent: ContextShift](host: String, port: Int): Resource[F, MessageSocket[F]] =
+  def apply[F[_]: Concurrent: ContextShift](host: String, port: Int, debug: Boolean): Resource[F, MessageSocket[F]] =
     for {
       bvs <- BitVectorSocket(host, port)
-      ms  <- Resource.liftF(fromBitVectorSocket(bvs))
+      ms  <- Resource.liftF(fromBitVectorSocket(bvs, debug))
     } yield ms
 
 
