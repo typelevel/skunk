@@ -17,8 +17,8 @@ object ReadyForQuery {
   def decoder: Decoder[BackendMessage] =
     byte.map {
       case 'I' => ReadyForQuery(TransactionStatus.Idle)
-      case 'T' => ReadyForQuery(TransactionStatus.ActiveTransaction)
-      case 'E' => ReadyForQuery(TransactionStatus.FailedTransaction)
+      case 'T' => ReadyForQuery(TransactionStatus.Active)
+      case 'E' => ReadyForQuery(TransactionStatus.Failed)
     }
 
 }

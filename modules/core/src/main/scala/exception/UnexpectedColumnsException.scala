@@ -14,7 +14,7 @@ case class UnexpectedRowsException(
   command: Command[_],
   rd:    RowDescription
 ) extends SkunkException(
-  sql       = command.sql,
+  sql       = Some(command.sql),
   message   = "Statement returns data.",
   hint      = Some(s"This ${framed("command")} returns rows and should be a ${framed("query")}."),
   sqlOrigin = Some(command.origin),

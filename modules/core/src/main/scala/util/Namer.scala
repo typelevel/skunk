@@ -18,7 +18,7 @@ object Namer {
     Ref[F].of(1).map { ctr =>
       new Namer[F] {
         def nextName(prefix: String) =
-          ctr.modify(n => (n + 1, s"$prefix-$n"))
+          ctr.modify(n => (n + 1, s"${prefix}_$n"))
       }
     }
 

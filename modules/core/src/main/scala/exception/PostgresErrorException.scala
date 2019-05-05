@@ -18,7 +18,7 @@ class PostgresErrorException private[skunk](
   arguments:       List[(Type, Option[String])] = Nil,
   argumentsOrigin: Option[Origin]               = None
 ) extends SkunkException(
-  sql       = sql,
+  sql       = Some(sql),
   message   = {
     val m = info.getOrElse('M', sys.error("Invalid ErrorInfo: no message"))
     m.take(1).toUpperCase + m.drop(1) + "."

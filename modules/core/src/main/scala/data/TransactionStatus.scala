@@ -6,12 +6,18 @@ package skunk.data
 
 import cats.Eq
 
+/** Enumerated type of transaction status values. See the companion object for more information. */
 sealed abstract class TransactionStatus extends Product with Serializable
 object TransactionStatus {
 
-  case object Idle              extends TransactionStatus
-  case object ActiveTransaction extends TransactionStatus
-  case object FailedTransaction extends TransactionStatus
+  /** No current transaction. */
+  case object Idle extends TransactionStatus
+
+  /** Transaction is active has not encountered an error. */
+  case object Active extends TransactionStatus
+
+  /** Transaction has encountered an error and must be rolled back. */
+  case object Failed extends TransactionStatus
 
   implicit val eq: Eq[TransactionStatus] =
     Eq.fromUniversalEquals

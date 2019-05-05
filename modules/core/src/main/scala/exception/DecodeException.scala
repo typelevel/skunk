@@ -25,7 +25,7 @@ class DecodeException[F[_], A, B](
   encoder:   Encoder[A],
   rowDescription: RowDescription
 ) extends SkunkException(
-  sql             = sql,
+  sql             = Some(sql),
   message         = "Decoding error.",
   detail          = Some("This query's decoder was unable to decode a row of data."),
   arguments       = encoder.types.zip(encoder.encode(arguments)),

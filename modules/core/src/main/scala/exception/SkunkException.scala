@@ -10,7 +10,7 @@ import skunk.Query
 import skunk.util.{ CallSite, Origin, Pretty }
 
 class SkunkException protected[skunk](
-  val sql:             String,
+  val sql:             Option[String],
   val message:         String,
   val position:        Option[Int]                  = None,
   val detail:          Option[String]               = None,
@@ -45,14 +45,15 @@ class SkunkException protected[skunk](
         |
         |""".stripMargin
 
-  final protected def statement: String = {
-    val stmt = Pretty.formatMessageAtPosition(sql, message, position.getOrElse(0))
-    s"""|The statement under consideration ${sqlOrigin.fold("is")(or => s"was defined\n  at $or")}
-        |
-        |$stmt
-        |
-        |""".stripMargin
-  }
+  final protected def statement: String =
+    sql.foldMap { sql =>
+      val stmt = Pretty.formatMessageAtPosition(sql, message, position.getOrElse(0))
+      s"""|The statement under consideration ${sqlOrigin.fold("is")(or => s"was defined\n  at $or")}
+          |
+          |$stmt
+          |
+          |""".stripMargin
+    }
 
   final protected def exchanges: String =
     if (history.isEmpty) "" else
@@ -99,7 +100,7 @@ object SkunkException {
     argsOrigin: Option[Origin] = None
   ) =
     new SkunkException(
-      query.sql,
+      Some(query.sql),
       message,
       sqlOrigin       = Some(query.origin),
       callSite        = callSite,
@@ -115,8 +116,8 @@ object SkunkException {
     hint:       Option[String] = None,
   ) =
     new SkunkException(
-      query.sql,
-      message,
+      sql             = Some(query.sql),
+      message         = message,
       sqlOrigin       = Some(query.origin),
       callSite        = callSite,
       hint            = hint,
