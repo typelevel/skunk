@@ -15,5 +15,6 @@ object Completion {
   case object Begin              extends Completion
   case object Commit             extends Completion
   case object Rollback           extends Completion
+  case object Savepoint          extends Completion
   // more ...
 }

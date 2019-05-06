@@ -5,6 +5,7 @@
 package skunk
 package syntax
 
+import cats.implicits._
 import scala.language.experimental.macros
 import scala.reflect.macros.whitebox
 import skunk.data.Identifier
@@ -18,6 +19,11 @@ class StringContextOps private[skunk](sc: StringContext) {
 
   def id(): Identifier =
     macro StringContextOps.StringOpsMacros.identifier_impl
+
+  private[skunk] def internal(literals: String*): Fragment[Void] = {
+    val chunks = sc.parts.zipAll(literals, "", "").flatMap { case (a, b) => List(a.asLeft, b.asLeft) }
+    Fragment(chunks.toList, Void.codec, Origin.unknown)
+  }
 
 }
 

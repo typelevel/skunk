@@ -11,6 +11,7 @@ import fs2.concurrent.Signal
 import skunk.data._
 import skunk.net.Protocol
 import skunk.util.{ Origin, Pool }
+import skunk.util.Namer
 
 /**
  * Represents a live connection to a Postgres database. Operations provided here are safe to use
@@ -31,6 +32,11 @@ import skunk.util.{ Origin, Pool }
  * @groupdesc Commands A command is any SQL statement that cannot return rows. Parameterized
  *   commands must first be prepared, then can be executed many times with different arguments.
  *   Commands without parameters can be executed directly.
+ *
+ * @groupprio Transactions 25
+ * @groupdesc Transactions Users can manipulate transactions directly via commands like `BEGIN` and
+ *   `COMMIT`, but dealing with cancellation and error conditions can be complicated and repetitive.
+ *   Skunk provides managed transaction blocks to make this easier.
  *
  * @groupprio Channels 30
  *
@@ -130,6 +136,23 @@ trait Session[F[_]] {
    */
   def channel(name: Identifier): Channel[F, String, Notification]
 
+  /**
+   * Resource that wraps a transaction block. A transaction is begun before entering the `use`
+   * block, on success the block is executed, and exit the following behavior holds.
+   *
+   *   - If the block exits normally, and the session transaction status is
+   *     - `Active`, then the transaction will be committed.
+   *     - `Idle`, then this means the user terminated the
+   *       transaction explicitly inside the block and there is is nothing to be done.
+   *     - `Error` then this means the user encountered and
+   *       handled an error but left the transaction in a failed state, and the transaction will
+   *       be rolled back.
+   *   - If the block exits due to cancellation or an error and the session transaction status is
+   *     not `Idle` then the transaction will be rolled back and any error will be re-raised.
+   * @group Transactions
+   */
+  def transaction[A]: Resource[F, Transaction[F]]
+
 }
 
 
@@ -188,17 +211,21 @@ object Session {
     debug:    Boolean = false
   ): Resource[F, Session[F]] =
     for {
-      ps <- Protocol[F](host, port, debug)
-      _  <- Resource.liftF(ps.startup(user, database))
+      nam <- Resource.liftF(Namer[F])
+      ps  <- Protocol[F](host, port, debug, nam)
+      _   <- Resource.liftF(ps.startup(user, database))
       // TODO: password negotiation, SASL, etc.
-    } yield fromProtocol(ps)
+    } yield fromProtocol(ps, nam)
 
   /**
    * Construct a `Session` by wrapping an existing `Protocol`, which we assume has already been
    * started up.
    * @group Constructors
    */
-  def fromProtocol[F[_]: Sync](proto: Protocol[F]): Session[F] =
+  def fromProtocol[F[_]: Sync](
+    proto: Protocol[F],
+    namer: Namer[F]
+  ): Session[F] =
     new Session[F] {
 
       def execute(command: Command[Void]) =
@@ -238,6 +265,9 @@ object Session {
 
       def prepare[A](command: Command[A]) =
         proto.prepare(command).map(PreparedCommand.fromProto(_))
+
+      def transaction[A] =
+        Transaction.fromSession(this, namer)
 
     }
 

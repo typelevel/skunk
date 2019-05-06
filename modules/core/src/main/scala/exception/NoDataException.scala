@@ -9,7 +9,7 @@ import skunk.Query
 case class NoDataException(
   query: Query[_, _],
 ) extends SkunkException(
-  sql       = query.sql,
+  sql       = Some(query.sql),
   message   = "Statement does not return data.",
   hint      = Some(s"This ${framed("query")} returns no row. Use a ${framed("command")} instead."),
   sqlOrigin = Some(query.origin),
