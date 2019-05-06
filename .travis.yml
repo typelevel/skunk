@@ -19,6 +19,7 @@ services:
   - docker
 
 before_script:
+  - sudo service postgresql stop # it's on by default
   - docker-compose up
 
 
