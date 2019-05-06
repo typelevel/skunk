@@ -13,6 +13,7 @@ import fs2.concurrent._
 import fs2.Stream
 import skunk.data._
 import skunk.net.message._
+import skunk.util.Origin
 
 /**
  * A `MessageSocket` that buffers incoming messages, removing and handling asynchronous back-end
@@ -110,8 +111,6 @@ object BufferedMessageSocket {
       case     NotificationResponse(n) => Stream.eval_(noTop.publish1(n))
       case m @ BackendKeyData(_, _)    => Stream.eval_(bkDef.complete(m))
 
-      case e @ NoticeResponse(_)       => Stream.empty // TODO: accumulate warnings
-
       // Everything else is passed through.
       case m                           => Stream.emit(m)
     }
@@ -134,7 +133,7 @@ object BufferedMessageSocket {
         case Right(a) => a.pure[F]
       } .start
     } yield
-      new BufferedMessageSocket[F] {
+      new AbstractMessageSocket[F] with BufferedMessageSocket[F] {
 
         def receive = queue.dequeue1
         def send[A: FrontendMessage](a: A) = ms.send(a)
@@ -148,17 +147,6 @@ object BufferedMessageSocket {
         protected def terminate: F[Unit] =
           fib.cancel *>      // stop processing incoming messages
           ms.send(Terminate) // server will close the socket when it sees this
-
-        // Like flatMap but raises an error if a case isn't handled. This makes writing protocol
-        // handlers much easier.
-        def expect[B](f: PartialFunction[BackendMessage, B]): F[B] =
-          receive.flatMap {
-            case m if f.isDefinedAt(m) => f(m).pure[F]
-            case m                     => Concurrent[F].raiseError(new RuntimeException(s"expect: unhandled: $m"))
-          }
-
-        def flatExpect[B](f: PartialFunction[BackendMessage, F[B]]): F[B] =
-          expect(f).flatten
 
         def history(max: Int) =
           ms.history(max)

@@ -65,21 +65,52 @@ object Query {
                         history   = hi,
                       )).raiseError[F, List[B]]
               } yield rs
-            }
 
+            // We can get a warning if this was actually a command and something wasn't quite
+            // right. In this case we'll report the first error because it's probably more
+            // informative.
+            case NoticeResponse(e) =>
+              for {
+                hi <- history(Int.MaxValue)
+                _  <- expect { case CommandComplete(_) => }
+                _  <- expect { case ReadyForQuery(_) => }
+                rs <- (new PostgresErrorException(
+                        sql       = query.sql,
+                        sqlOrigin = Some(query.origin),
+                        info      = e,
+                        history   = hi,
+                      )).raiseError[F, List[B]]
+              } yield rs
+
+          }
         }
 
         def apply(command: Command[Void]): F[Completion] =
           exchange {
             send(QueryMessage(command.sql)) *> flatExpect {
-              case CommandComplete(c) => expect { case ReadyForQuery(_) => c }
-              // TODO: case RowDescription => oops, this returns rows, it needs to be a query
+
+              case CommandComplete(c) =>
+                for {
+                  _ <- expect { case ReadyForQuery(_) => }
+                } yield c
+
               case ErrorResponse(e) =>
                 for {
                   _ <- expect { case ReadyForQuery(_) => }
                   h <- history(Int.MaxValue)
-                  c <- new PostgresErrorException(command.sql, None, e, h, Nil, None).raiseError[F, Completion]
+                  c <- new PostgresErrorException(command.sql, Some(command.origin), e, h, Nil, None).raiseError[F, Completion]
                 } yield c
+
+              case NoticeResponse(e) =>
+                for {
+                  _ <- expect { case CommandComplete(_) => }
+                  _ <- expect { case ReadyForQuery(_) =>  }
+                  h <- history(Int.MaxValue)
+                  c <- new PostgresErrorException(command.sql, Some(command.origin), e, h, Nil, None).raiseError[F, Completion]
+                } yield c
+
+              // TODO: case RowDescription => oops, this returns rows, it needs to be a query
+
             }
           }
 

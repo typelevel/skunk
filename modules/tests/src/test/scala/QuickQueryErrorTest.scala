@@ -83,7 +83,7 @@ case object QuickQueryErrorTest extends SkunkTest {
     for {
       e <- s.execute(sql"select null::varchar".query(varchar)).assertFailsWith[DecodeException[IO, _, _]]
       _ <- assert("message",  e.message  === "Decoding error.")
-      _ <- assert("hint",     e.hint     === Some("This query's decoder was unable to decode a data row."))
+      _ <- assertEqual("detail", e.detail, Some("This query's decoder was unable to decode a row of data."))
       // TODO: check the specific error
       _ <- s.assertHealthy
     } yield "ok"
@@ -93,7 +93,7 @@ case object QuickQueryErrorTest extends SkunkTest {
     for {
       e <- s.execute(sql"select null::varchar from country".query(varchar)).assertFailsWith[DecodeException[IO, _, _]]
       _ <- assert("message",  e.message  === "Decoding error.")
-      _ <- assert("hint",     e.hint     === Some("This query's decoder was unable to decode a data row."))
+      _ <- assertEqual("detail", e.detail, Some("This query's decoder was unable to decode a row of data."))
       // TODO: check the specific error
       _ <- s.assertHealthy
     } yield "ok"
@@ -101,8 +101,16 @@ case object QuickQueryErrorTest extends SkunkTest {
 
   sessionTest("not a query") { s =>
     for {
-      e <- s.execute(sql"commit".query(int4)).assertFailsWith[NoDataException]
+      e <- s.execute(sql"set seed = 0.123".query(int4)).assertFailsWith[NoDataException]
       _ <- assert("message",  e.message  === "Statement does not return data.")
+      _ <- s.assertHealthy
+    } yield "ok"
+  }
+
+  sessionTest("not a query, with warning") { s =>
+    for {
+      e <- s.execute(sql"commit".query(int4)).assertFailsWith[PostgresErrorException]
+      _ <- assertEqual("message", e.message, "There is no transaction in progress.")
       _ <- s.assertHealthy
     } yield "ok"
   }
