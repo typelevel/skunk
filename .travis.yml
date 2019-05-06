@@ -16,7 +16,7 @@ before_cache:
   - find $HOME/.sbt -name "*.lock" -delete
 
 addons:
-  postgresql: "9.6"
+  postgresql: "9.5"
 
 before_script:
   - psql -c 'create database world;' -U postgres
