@@ -30,17 +30,17 @@ object TransactionStatusTest extends SkunkTest {
     for {
       _ <- s.assertTransactionStatus("initial state", Idle)
       _ <- s.execute(sql"begin".command)
-      _ <- s.assertTransactionStatus("after begin", ActiveTransaction)
+      _ <- s.assertTransactionStatus("after begin", Active)
       _ <- s.execute(sql"commit".command)
       _ <- s.assertTransactionStatus("after commit", Idle)
       _ <- s.execute(sql"begin".command)
-      _ <- s.assertTransactionStatus("after begin", ActiveTransaction)
+      _ <- s.assertTransactionStatus("after begin", Active)
       _ <- s.execute(sql"rollback".command)
       _ <- s.assertTransactionStatus("after rollback", Idle)
       _ <- s.execute(sql"begin".command)
-      _ <- s.assertTransactionStatus("after begin", ActiveTransaction)
+      _ <- s.assertTransactionStatus("after begin", Active)
       _ <- s.execute(sql"foo?".command).assertFailsWith[PostgresErrorException] // ensure recovery
-      _ <- s.assertTransactionStatus("after error", FailedTransaction)
+      _ <- s.assertTransactionStatus("after error", Failed)
       _ <- s.execute(sql"rollback".command)
       _ <- s.assertTransactionStatus("after rollback", Idle)
     } yield "ok"
