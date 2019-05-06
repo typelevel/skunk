@@ -20,6 +20,7 @@ trait SkunkTest extends ffstest.FTest {
       port     = 5432,
       user     = "postgres",
       database = "world",
+      // debug = true
     )
 
   def sessionTest[A](name: String)(fa: Session[IO] => IO[A]): Unit =
@@ -40,13 +41,13 @@ trait SkunkTest extends ffstest.FTest {
   }
 
   implicit class SkunkTestIOOps[A](fa: IO[A]) {
-    def assertFailsWith[E: ClassTag]: IO[E] =
+    def assertFailsWith[E: ClassTag]: IO[E] = assertFailsWith[E](false)
+    def assertFailsWith[E: ClassTag](show: Boolean): IO[E] =
       fa.attempt.flatMap {
-        case Left(e: E) => e.pure[IO]
+        case Left(e: E) => IO(e.printStackTrace()).whenA(show) *> e.pure[IO]
         case Left(e)    => IO.raiseError(e)
         case Right(a)   => fail[E](s"Expected SqlException, got $a")
       }
   }
-
 
 }

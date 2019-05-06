@@ -9,6 +9,7 @@ import cats.implicits._
 import fs2.concurrent.InspectableQueue
 import scodec.codecs._
 import skunk.net.message.{ Sync => _, _ }
+import skunk.util.Origin
 
 /** A higher-level `BitVectorSocket` that speaks in terms of `Message`. */
 trait MessageSocket[F[_]] {
@@ -25,8 +26,8 @@ trait MessageSocket[F[_]] {
   /** Destructively read the last `n` messages from the circular buffer. */
   def history(max: Int): F[List[Either[Any, Any]]]
 
-  def expect[B](f: PartialFunction[BackendMessage, B]): F[B]
-  def flatExpect[B](f: PartialFunction[BackendMessage, F[B]]): F[B]
+  def expect[B](f: PartialFunction[BackendMessage, B])(implicit or: Origin): F[B]
+  def flatExpect[B](f: PartialFunction[BackendMessage, F[B]])(implicit or: Origin): F[B]
 
 }
 
@@ -37,7 +38,7 @@ object MessageSocket {
     debug: Boolean
   ): F[MessageSocket[F]] =
     InspectableQueue.circularBuffer[F, Either[Any, Any]](10).map { cb =>
-      new MessageSocket[F] {
+      new AbstractMessageSocket[F] with MessageSocket[F] {
 
         /**
         * Messages are prefixed with a 5-byte header consisting of a tag (byte) and a length (int32,
@@ -68,17 +69,6 @@ object MessageSocket {
 
         def history(max: Int) =
           cb.dequeueChunk1(max: Int).map(_.toList)
-
-        // Like flatMap but raises an error if a case isn't handled. This makes writing protocol
-        // handlers much easier.
-        def expect[B](f: PartialFunction[BackendMessage, B]): F[B] =
-          receive.flatMap {
-            case m if f.isDefinedAt(m) => f(m).pure[F]
-            case m                     => Concurrent[F].raiseError(new RuntimeException(s"expect: unhandled: $m"))
-          }
-
-        def flatExpect[B](f: PartialFunction[BackendMessage, F[B]]): F[B] =
-          expect(f).flatten
 
       }
     }

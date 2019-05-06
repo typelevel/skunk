@@ -4,6 +4,7 @@
 
 package ffstest
 
+import cats.Eq
 import cats.effect._
 import cats.implicits._
 import sbt.testing.{ Framework, _ }
@@ -19,6 +20,11 @@ trait FTest {
   def fail[A](msg: String): IO[A] = IO.raiseError(new AssertionError(msg))
   def fail[A](msg: String, cause: Throwable): IO[A] = IO.raiseError(new AssertionError(msg, cause))
   def assert(msg: => String, b: => Boolean): IO[Unit] = if (b) IO.pure(()) else fail(msg)
+
+  def assertEqual[A: Eq](msg: => String, actual: A, expected: A): IO[Unit] =
+    if (expected === actual) IO.pure(())
+    else fail(msg + s"\n  expected: $expected\n   actual: $actual")
+
 }
 
 class FFramework extends Framework {
