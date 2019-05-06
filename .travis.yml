@@ -15,11 +15,10 @@ before_cache:
   - find $HOME/.ivy2 -name "ivydata-*.properties" -delete
   - find $HOME/.sbt -name "*.lock" -delete
 
-addons:
-  postgresql: "9.5"
+services:
+  - docker
 
 before_script:
-  - psql -c 'create database world;' -U postgres
-  - psql -c '\i world.sql' -d world -U postgres
+  - docker-compose up
 
 
