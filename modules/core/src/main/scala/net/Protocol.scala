@@ -13,6 +13,8 @@ import skunk.{ Command, Query, Statement, ~, Void }
 import skunk.data._
 import skunk.net.message.RowDescription
 import skunk.util.{ Namer, Origin }
+import java.nio.channels.AsynchronousChannelGroup
+import scala.concurrent.duration.FiniteDuration
 
 /**
  * Interface for a Postgres database, expressed through high-level operations that rely on exchange
@@ -181,13 +183,16 @@ object Protocol {
    * @param port  Postgres port, default 5432
    */
   def apply[F[_]: Concurrent: ContextShift](
-    host:  String,
-    port:  Int,
-    debug: Boolean,
-    nam:  Namer[F]
+    host:         String,
+    port:         Int,
+    debug:        Boolean,
+    nam:          Namer[F],
+    readTimeout:  FiniteDuration,
+    writeTimeout: FiniteDuration,
+    acg:          AsynchronousChannelGroup
   ): Resource[F, Protocol[F]] =
     for {
-      bms <- BufferedMessageSocket[F](host, port, 256, debug) // TODO: should we expose the queue size?
+      bms <- BufferedMessageSocket[F](host, port, 256, debug, readTimeout, writeTimeout, acg) // TODO: should we expose the queue size?
       sem <- Resource.liftF(Semaphore[F](1))
     } yield
       new Protocol[F] {
