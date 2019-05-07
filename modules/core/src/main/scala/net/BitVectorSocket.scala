@@ -15,6 +15,7 @@ import java.net.InetSocketAddress
 import java.nio.channels._
 import java.util.concurrent.Executors
 import scala.concurrent.duration._
+import java.util.concurrent.ThreadFactory
 
 /** A higher-level `Socket` interface defined in terms of `BitVector`. */
 trait BitVectorSocket[F[_]] {
@@ -31,10 +32,28 @@ trait BitVectorSocket[F[_]] {
 
 object BitVectorSocket {
 
-  // N.B. we need to fix `socket` to `IO` otherwise we end up with a `ConcurrentEffect` constraint
-  // which is too strong (it prevents us from implementing `ApplicativeAsk` for instance). This is
-  // a design compromise that we may be able to fix at some point.
+  /** A default `AsynchronousChannelGroup` backed by a cached pool of daemon threads. */
+  final val GlobalACG: AsynchronousChannelGroup =
+    AsynchronousChannelGroup.withThreadPool(Executors.newCachedThreadPool {
+      new ThreadFactory {
+        var n = 1
+        def newThread(r: Runnable): Thread = {
+          val t = new Thread(r, s"BitVectorSocket.GlobalACG-$n")
+          t.setDaemon(true)
+          n += 1
+          t
+        }
+      }
+    })
 
+  /**
+   * Construct a `BitVectorSocket` by wrapping an existing `Socket`.
+   * @param socket the underlying `Socket`
+   * @param readTimeout a read timeout, typically `Int.MaxValue.seconds` because we must wait
+   *   actively for asynchronous messages.
+   * @param writeTimeout a write timeout, typically no more than a few seconds.
+   * @group Constructors
+   */
   def fromSocket[F[_]](
     socket:       Socket[F],
     readTimeout:  FiniteDuration,
@@ -60,21 +79,26 @@ object BitVectorSocket {
 
     }
 
-  def apply[F[_]: Concurrent: ContextShift](host: String, port: Int): Resource[F, BitVectorSocket[F]] = {
-
-    def acg[G[_]: Sync]: Resource[G, AsynchronousChannelGroup] = {
-      val alloc = Sync[G].delay(AsynchronousChannelGroup.withThreadPool(Executors.newCachedThreadPool()))
-      val free  = (acg: AsynchronousChannelGroup) => Sync[G].delay(acg.shutdown())
-      Resource.make(alloc)(free)
-    }
-
-    val sock: Resource[F, Socket[F]] =
-      acg[F].flatMap { implicit acg =>
-        fs2.io.tcp.Socket.client[F](new InetSocketAddress(host, port))
-      }
-
-    sock.map(fromSocket(_, 1.day, 5.seconds)) //.mapK(λ[IO ~> F](_.to))
-
+  /**
+   * Construct a `BitVectorSocket` by constructing and wrapping a `Socket`.
+   * @param host the remote hostname
+   * @param port the remote port
+   * @param readTimeout a read timeout, typically `Int.MaxValue.seconds` because we must wait
+   *   actively for asynchronous messages.
+   * @param writeTimeout a write timeout, typically no more than a few seconds.
+   * @param acg an `AsynchronousChannelGroup` for completing asynchronous requests. There is
+   *   typically one per application, and one is provided as `BitVectorSocket.GlobalACG`.
+   * @group Constructors
+   */
+  def apply[F[_]: Concurrent: ContextShift](
+    host:         String,
+    port:         Int,
+    readTimeout:  FiniteDuration,
+    writeTimeout: FiniteDuration,
+    acg:          AsynchronousChannelGroup,
+  ): Resource[F, BitVectorSocket[F]] = {
+    implicit val _acg = acg
+    Socket.client[F](new InetSocketAddress(host, port)).map(fromSocket(_, readTimeout, writeTimeout))
   }
 
 }

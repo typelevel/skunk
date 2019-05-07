@@ -12,6 +12,9 @@ import skunk.data._
 import skunk.net.Protocol
 import skunk.util.{ Origin, Pool }
 import skunk.util.Namer
+import skunk.net.BitVectorSocket
+import java.nio.channels.AsynchronousChannelGroup
+import scala.concurrent.duration._
 
 /**
  * Represents a live connection to a Postgres database. Operations provided here are safe to use
@@ -204,15 +207,18 @@ object Session {
    * @group Constructors
    */
   def single[F[_]: Concurrent: ContextShift](
-    host:     String,
-    port:     Int,
-    user:     String,
-    database: String,
-    debug:    Boolean = false
+    host:         String,
+    port:         Int,
+    user:         String,
+    database:     String,
+    debug:        Boolean = false,
+    readTimeout:  FiniteDuration           = 5.seconds,
+    writeTimeout: FiniteDuration           = Int.MaxValue.seconds,
+    acg:          AsynchronousChannelGroup = BitVectorSocket.GlobalACG
   ): Resource[F, Session[F]] =
     for {
       nam <- Resource.liftF(Namer[F])
-      ps  <- Protocol[F](host, port, debug, nam)
+      ps  <- Protocol[F](host, port, debug, nam, readTimeout, writeTimeout, acg)
       _   <- Resource.liftF(ps.startup(user, database))
       // TODO: password negotiation, SASL, etc.
     } yield fromProtocol(ps, nam)
