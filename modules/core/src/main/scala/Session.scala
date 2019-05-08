@@ -4,6 +4,7 @@
 
 package skunk
 
+import cats._
 import cats.effect._
 import cats.implicits._
 import fs2.Stream
@@ -141,7 +142,7 @@ trait Session[F[_]] {
 
   /**
    * Resource that wraps a transaction block. A transaction is begun before entering the `use`
-   * block, on success the block is executed, and exit the following behavior holds.
+   * block, on success the block is executed, and on exit the following behavior holds.
    *
    *   - If the block exits normally, and the session transaction status is
    *     - `Active`, then the transaction will be committed.
@@ -276,6 +277,40 @@ object Session {
         Transaction.fromSession(this, namer)
 
     }
+
+  // TODO: upstream
+  implicit class SignalOps[F[_], A](outer: Signal[F, A]) {
+    def mapK[G[_]](fk: F ~> G): Signal[G, A] =
+      new Signal[G, A] {
+        def continuous: Stream[G,A] = outer.continuous.translate(fk)
+        def discrete: Stream[G,A] = outer.continuous.translate(fk)
+        def get: G[A] = fk(outer.get)
+      }
+  }
+
+  implicit class SessionSyntax[F[_]](outer: Session[F]) {
+
+    /**
+     * Transform this `Session` by a given `FunctionK`.
+     * @group Transformations
+     */
+    def mapK[G[_]: Applicative: Defer](fk: F ~> G)(
+      implicit ev: Bracket[F, Throwable]
+    ): Session[G] =
+      new Session[G] {
+        def channel(name: Identifier): Channel[G,String,Notification] = outer.channel(name).mapK(fk)
+        def execute(command: Command[Void]): G[Completion] = fk(outer.execute(command))
+        def execute[A](query: Query[Void,A]): G[List[A]] = fk(outer.execute(query))
+        def option[A](query: Query[Void,A]): G[Option[A]] = fk(outer.option(query))
+        def parameter(key: String): Stream[G,String] = outer.parameter(key).translate(fk)
+        def parameters: Signal[G,Map[String,String]] = outer.parameters.mapK(fk)
+        def prepare[A, B](query: Query[A,B]): Resource[G,PreparedQuery[G,A,B]] = outer.prepare(query).mapK(fk).map(_.mapK(fk))
+        def prepare[A](command: Command[A]): Resource[G,PreparedCommand[G,A]] = outer.prepare(command).mapK(fk).map(_.mapK(fk))
+        def transaction[A]: Resource[G,Transaction[G]] = outer.transaction[A].mapK(fk).map(_.mapK(fk))
+        def transactionStatus: Signal[G,TransactionStatus] = outer.transactionStatus.mapK(fk)
+        def unique[A](query: Query[Void,A]): G[A] = fk(outer.unique(query))
+      }
+  }
 
 }
 
