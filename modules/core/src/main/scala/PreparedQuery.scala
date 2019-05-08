@@ -171,4 +171,22 @@ object PreparedQuery {
       override def rmap[A, B, C](fab: PreparedQuery[F, A, B])(f: (B) ⇒ C) = fab.map(f)
     }
 
+  implicit class PreparedQueryOps[F[_], A, B](outer: PreparedQuery[F, A, B]) {
+
+    /**
+     * Transform this `PreparedQuery` by a given `FunctionK`.
+     * @group Transformations
+     */
+    def mapK[G[_]: Applicative: Defer](fk: F ~> G)(
+      implicit ev: Bracket[F, Throwable]
+    ): PreparedQuery[G, A, B] =
+      new PreparedQuery[G, A, B] {
+        def cursor(args: A)(implicit or: Origin): Resource[G,Cursor[G,B]] = outer.cursor(args).mapK(fk).map(_.mapK(fk))
+        def option(args: A)(implicit or: Origin): G[Option[B]] = fk(outer.option(args))
+        def stream(args: A, chunkSize: Int)(implicit or: Origin): Stream[G,B] = outer.stream(args, chunkSize).translate(fk)
+        def unique(args: A)(implicit or: Origin): G[B] = fk(outer.unique(args))
+      }
+
+  }
+
 }

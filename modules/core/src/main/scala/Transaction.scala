@@ -22,8 +22,10 @@ import skunk.data.TransactionStatus
  * Control methods for use within a `transaction` block. An instance is provided when you call
  * `Session.transaction(...).use`.
  * @see Session#transaction for information on default commit/rollback behavior
+ *
+ * @groupname XA Transaction Control
  */
-trait Transaction[F[_]] {
+trait Transaction[F[_]] { outer =>
 
   /** Existential type for savepoints within this transaction block. */
   type Savepoint
@@ -32,19 +34,27 @@ trait Transaction[F[_]] {
    * Current transaction status. It is not usually necessary to check because transactions will be
    * commited or rolled back automatically, but if your are committing manually and you logic is
    * sufficiently complex it may be helpful.
+   * @group XA
    */
   def status: F[TransactionStatus]
 
-  /** Create a `Savepoint`, to which you can later roll back. */
+  /**
+   * Create a `Savepoint`, to which you can later roll back.
+   * @group XA
+   */
   def savepoint(implicit o: Origin): F[Savepoint]
 
-  /** Roll back to the specified `Savepoint`, leaving the transaction active at that point. */
+  /**
+   * Roll back to the specified `Savepoint`, leaving the transaction active at that point.
+   * @group XA
+   */
   def rollback(savepoint: Savepoint)(implicit o: Origin): F[Completion]
 
   /**
    * Terminate the transaction by rolling back. This is normally not necessary because a transaction
    * will be rolled back automatically when the block exits abnormally.
    * @see Session#transaction for information on default commit/rollback behavior
+   * @group XA
    */
   def rollback(implicit o: Origin): F[Completion]
 
@@ -52,8 +62,23 @@ trait Transaction[F[_]] {
    * Terminate the transaction by committing early. This is normally not necessary because a
    * transaction will be committed automatically if the block exits successfully.
    * @see Session#transaction for information on default commit/rollback behavior
+   * @group XA
    */
   def commit(implicit o: Origin): F[Completion]
+
+  /**
+   * Transform this `Transaction` by a given `FunctionK`.
+   * @group Transformations
+   */
+  def mapK[G[_]](fk: F ~> G): Transaction[G] =
+    new Transaction[G] {
+      type Savepoint = outer.Savepoint
+      def commit(implicit o: Origin): G[Completion] = fk(outer.commit)
+      def rollback(implicit o: Origin): G[Completion] = fk(outer.rollback)
+      def rollback(savepoint: Savepoint)(implicit o: Origin): G[Completion] = fk(outer.rollback(savepoint))
+      def savepoint(implicit o: Origin): G[Savepoint] = fk(outer.savepoint)
+      def status: G[TransactionStatus] = fk(outer.status)
+    }
 
 }
 

@@ -4,7 +4,7 @@
 
 package skunk
 
-import cats.Functor
+import cats.{ Functor, ~> }
 import cats.implicits._
 
 /**
@@ -21,6 +21,15 @@ trait Cursor[F[_], A] { outer =>
    * @group Queries
    */
   def fetch(maxRows: Int): F[(List[A], Boolean)]
+
+  /**
+   * Transform this `Cursor` by a given `FunctionK`.
+   * @group Transformations
+   */
+  def mapK[G[_]](fk: F ~> G): Cursor[G, A] =
+    new Cursor[G, A] {
+      def fetch(maxRows: Int): G[(List[A], Boolean)] = fk(outer.fetch(maxRows))
+    }
 
 }
 

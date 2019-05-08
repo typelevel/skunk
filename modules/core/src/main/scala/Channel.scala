@@ -4,7 +4,7 @@
 
 package skunk
 
-import cats.{ Contravariant, Functor }
+import cats.{ Contravariant, Functor, ~> }
 import cats.arrow.Profunctor
 import cats.effect.Resource
 import cats.implicits._
@@ -70,6 +70,16 @@ trait Channel[F[_], A, B] { outer =>
     new Channel[F, C, D] {
       def listen(maxQueued: Int) = outer.listen(maxQueued).map(g)
       def notify(message: C) = outer.notify(f(message))
+    }
+
+  /**
+   * Transform this `Channel` by a given `FunctionK`.
+   * @group Transformations
+   */
+  def mapK[G[_]](fk: F ~> G): Channel[G, A, B] =
+    new Channel[G, A, B] {
+      def listen(maxQueued: Int): Stream[G, B] = outer.listen(maxQueued).translate(fk)
+      def notify(message: A): G[Unit] = fk(outer.notify(message))
     }
 
 }
