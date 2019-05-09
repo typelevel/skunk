@@ -232,7 +232,7 @@ object Message4 extends IOApp {
   }
 
   def runF[F[_]: Concurrent: ContextShift]: F[ExitCode] =
-    BitVectorSocket("localhost", 5432).use { bvs =>
+    BitVectorSocket("localhost", 5432, 10.seconds, 1.second, BitVectorSocket.GlobalACG).use { bvs =>
       for {
         ms <- MessageSocket.fromBitVectorSocket(bvs, true)
         _  <- ms.send(StartupMessage("postgres", "world"))
@@ -292,7 +292,7 @@ object Message5 extends IOApp {
 
 
   def runF[F[_]: Concurrent: ContextShift]: F[ExitCode] =
-    BitVectorSocket("localhost", 5432).use { bvs =>
+    BitVectorSocket("localhost", 5432, 10.seconds, 1.second, BitVectorSocket.GlobalACG).use { bvs =>
       for {
         ms <- MessageSocket.fromBitVectorSocket(bvs, true)
         _  <- ms.send(StartupMessage("postgres", "world"))
