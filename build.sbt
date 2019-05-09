@@ -126,8 +126,8 @@ lazy val noPublishSettings = Seq(
 lazy val skunk = project.in(file("."))
   .settings(commonSettings)
   .settings(noPublishSettings)
-  .dependsOn(macros, core, tests, example)
-  .aggregate(macros, core, tests, example)
+  .dependsOn(macros, core, tests, example, talk)
+  .aggregate(macros, core, tests, example, talk)
   .settings(
     releaseCrossBuild := true,
     releaseProcess := Seq[ReleaseStep](

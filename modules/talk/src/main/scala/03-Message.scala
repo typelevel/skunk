@@ -1,3 +1,7 @@
+// Copyright (c) 2018 by Rob Norris
+// This software is licensed under the MIT License (MIT).
+// For more information see LICENSE or https://opensource.org/licenses/MIT
+
 package talk
 
 import cats._
@@ -232,7 +236,7 @@ object Message4 extends IOApp {
   }
 
   def runF[F[_]: Concurrent: ContextShift]: F[ExitCode] =
-    BitVectorSocket("localhost", 5432).use { bvs =>
+    BitVectorSocket("localhost", 5432, 10.seconds, 1.second, BitVectorSocket.GlobalACG).use { bvs =>
       for {
         ms <- MessageSocket.fromBitVectorSocket(bvs, true)
         _  <- ms.send(StartupMessage("postgres", "world"))
@@ -292,7 +296,7 @@ object Message5 extends IOApp {
 
 
   def runF[F[_]: Concurrent: ContextShift]: F[ExitCode] =
-    BitVectorSocket("localhost", 5432).use { bvs =>
+    BitVectorSocket("localhost", 5432, 10.seconds, 1.second, BitVectorSocket.GlobalACG).use { bvs =>
       for {
         ms <- MessageSocket.fromBitVectorSocket(bvs, true)
         _  <- ms.send(StartupMessage("postgres", "world"))
