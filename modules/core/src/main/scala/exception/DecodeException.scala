@@ -7,7 +7,6 @@ package skunk.exception
 import cats.data.Nested
 import cats.implicits._
 import skunk.{ Encoder, Decoder }
-import skunk.data.Type
 import skunk.util.Origin
 import skunk.net.message.RowDescription
 import skunk.net.Protocol
@@ -56,7 +55,7 @@ class DecodeException[F[_], A, B](
   } .value
 
   private def describeType(f: RowDescription.Field): Text =
-    plain(Type.forOid(f.typeOid).fold(s"Unknown(${f.typeOid})")(_.name))
+    Text(f.tpe.name)
 
   def describe(col: ((RowDescription.Field, Int), Option[String])): List[Text] = {
     val ((t, n), op) = col

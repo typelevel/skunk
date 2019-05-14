@@ -33,7 +33,7 @@ object Query {
               // If our decoder lines up with the RowDescription we can decode the rows, otherwise
               // we have to discard them and then raise an error. All the args are necessary context
               // if we have a decoding failure and need to report an error.
-              if (query.decoder.types.map(_.oid) === rd.oids) {
+              if (query.decoder.types === rd.types) {
                 unroll(
                   sql            = query.sql,
                   sqlOrigin      = query.origin,

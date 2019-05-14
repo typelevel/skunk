@@ -3,6 +3,7 @@
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
 package skunk.data
+import cats.kernel.Eq
 
 /**
  * Enumerated type of *built-in* schema types. These are defined as constants in the Postgres source
@@ -126,7 +127,11 @@ object Type {
   case object macaddr8            extends Type(774,  "macaddr8")
   case object money               extends Type(790,  "money")
   case object name                extends Type(19,   "name")
-  case object numeric             extends Type(1700, "numeric")
+
+  // Numeric is a special case
+  case object numeric                 extends Type(1700, "numeric")
+  case class  numeric(p: Int, s: Int) extends Type(1700, s"numeric($p,$s)")
+
   case object numrange            extends Type(3906, "numrange")
   case object oid                 extends Type(26,   "oid")
   case object oidvector           extends Type(30,   "oidvector")
@@ -159,10 +164,20 @@ object Type {
   case object smgr                extends Type(210,  "smgr")
   case object text                extends Type(25,   "text")
   case object tid                 extends Type(27,   "tid")
+
+  // Time is a special case
   case object time                extends Type(1083, "time")
+  case class  time(s: Int)        extends Type(1083, s"time($s)")
+
   case object timestamp           extends Type(1114, "timestamp")
+  case class  timestamp(s: Int)   extends Type(1114, s"timestamp($s)")
+
   case object timestamptz         extends Type(1184, "timestamptz")
+  case class  timestamptz(s: Int) extends Type(1184, s"timestamptz($s)")
+
   case object timetz              extends Type(1266, "timetz")
+  case class  timetz(s: Int)      extends Type(1266, s"timetz($s)")
+
   case object tinterval           extends Type(704,  "tinterval")
   case object trigger             extends Type(2279, "trigger")
   case object tsm_handler         extends Type(3310, "tsm_handler")
@@ -179,7 +194,9 @@ object Type {
   case object xid                 extends Type(28,   "xid")
   case object xml                 extends Type(142,  "xml")
 
-  val all: List[Type] =
+  case class UnknownType(override val oid: Int, typeMod: Int) extends Type(oid, s"UnknownType($oid, $typeMod)")
+
+  private val all: List[Type] =
     List(
       _abstime,       _aclitem,         _bit,         _bool,            _box,
       _bpchar,        _bytea,           _char,        _cid,             _cidr,
@@ -217,7 +234,49 @@ object Type {
       xid,            xml
     )
 
-  val forOid: Int => Option[Type] =
-    all.map(t => (t.oid -> t)).toMap.lift
+  private val typeMap = all.map(t => (t.oid -> t)).toMap
+
+  /**
+   * Given an oid and typeMod, construct a Type. The meaning of the typeMod depends on the type, but
+   * fortunately there are just a handful of cases where we need to handle it, and they're all with
+   * built-in types. Handling user-defined types will probably mean some heavy refactoring but we'll
+   * get there eventually.
+   */
+  def forOid(typeOid: Int, typeMod: Int): Type =
+    typeOid match {
+
+      // bit
+      // bpchar
+      // interval
+
+      case numeric.oid =>
+        if (typeMod == -1) numeric
+        else {
+          val p = ((typeMod - 4) >> 16) & 65535
+          val s = ((typeMod - 4)) & 65535
+          numeric(p, s)
+        }
+
+      case time.oid        => if (typeMod == -1) time        else time(typeMod)
+      case timetz.oid      => if (typeMod == -1) timetz      else timetz(typeMod)
+      case timestamp.oid   => if (typeMod == -1) timestamp   else timestamp(typeMod)
+      case timestamptz.oid => if (typeMod == -1) timestamptz else timestamptz(typeMod)
+
+      // varbit
+      // varchar
+
+      // // numeric precision from typeMod
+      // @ ((655368 - 4) >> 16) & 65535
+      // res3: Int = 10
+      // // numeric scale
+      // @ (655368 - 4) & 65535
+      // res4: Int = 4
+
+      case n => typeMap.getOrElse(n, UnknownType(n, typeMod))
+    }
+
+  implicit val EqType: Eq[Type] =
+    Eq.fromUniversalEquals
 
 }
+

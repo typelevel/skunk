@@ -25,15 +25,11 @@ case class ColumnAlignmentException(
   import Text.{ green, red, cyan, empty }
   implicit def stringToText(s: String): Text = Text(s)
 
-  private def describeType(f: RowDescription.Field): Text =
-    Text(Type.forOid(f.typeOid).fold(s"Unknown(${f.typeOid})")(_.name))
-
   private def describe(ior: Ior[RowDescription.Field, `Type`]): List[Text] =
     ior match {
-      case Ior.Left(f)    => List(green(f.name), describeType(f), "->", red(""),                         cyan("── unmapped column"))
-      case Ior.Right(t)   => List(empty,         empty,           "->", t.name,                          cyan("── missing column"))
-      case Ior.Both(f, t) => List(green(f.name), describeType(f), "->", t.name, if (f.typeOid === t.oid) empty
-                                                                                                    else cyan("── type mismatch"))
+      case Ior.Left(f)    => List(green(f.name), f.tpe.name, "->", red(""),                            cyan("── unmapped column"))
+      case Ior.Right(t)   => List(empty,         empty,      "->", t.name,                             cyan("── missing column"))
+      case Ior.Both(f, t) => List(green(f.name), f.tpe.name, "->", t.name, if (f.tpe === t) empty else cyan("── type mismatch"))
     }
 
   private def columns: String =

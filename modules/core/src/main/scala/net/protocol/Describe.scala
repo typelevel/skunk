@@ -44,7 +44,7 @@ object Describe {
                     case rd @ RowDescription(_) => rd.pure[F]
                     case NoData                 => NoDataException(query).raiseError[F, RowDescription]
                   }
-            ok =  query.decoder.types.map(_.oid) === rd.oids
+            ok =  query.decoder.types === rd.types
             _  <- ColumnAlignmentException(query, rd).raiseError[F, Unit].unlessA(ok)
           } yield rd
         }
