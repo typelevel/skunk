@@ -206,23 +206,22 @@ object Session {
   /**
    * Resource yielding a new, unpooled `Session` with the given connect information and statement
    * checking policy.
-   * @param host  Postgres server host
-   * @param port  Postgres port, default 5432
-   * @param user
-   * @param database
-   * @param check Check all `prepare` and `execute` statements for consistency with the schema. This
-   *   is true by default and is recommended for development work. You may wish to turn this off in
-   *   production but honestly it's really cheap and probably worth keeping.
+   * @param host     Postgres server host
+   * @param port     Postgres port, default `5432`
+   * @param user     Postgres user
+   * @param database Postgres database
+   * @param debug    If `true` Skunk will log all message exchanges to the console, default `false`.
+   *   This is useful if you're working on Skunk itself but should be disabled otherwise.
    * @group Constructors
    */
   def single[F[_]: Concurrent: ContextShift](
     host:         String,
-    port:         Int,
+    port:         Int                      = 5432,
     user:         String,
     database:     String,
     debug:        Boolean = false,
-    readTimeout:  FiniteDuration           = 5.seconds,
-    writeTimeout: FiniteDuration           = Int.MaxValue.seconds,
+    readTimeout:  FiniteDuration           = Int.MaxValue.seconds,
+    writeTimeout: FiniteDuration           = 5.seconds,
     acg:          AsynchronousChannelGroup = BitVectorSocket.GlobalACG
   ): Resource[F, Session[F]] =
     for {

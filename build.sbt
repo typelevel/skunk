@@ -234,4 +234,3 @@ lazy val docs = project
     )
   )
 
-  // https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.0.2/skunk/Session.html
