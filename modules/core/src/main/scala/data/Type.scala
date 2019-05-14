@@ -12,6 +12,8 @@ import cats.kernel.Eq
 sealed abstract class Type(val oid: Int, val name: String) extends Product with Serializable
 object Type {
 
+  // Let's set aside array handling for now. It will require some refactoring.
+
   case object _abstime            extends Type(1023, "_abstime")
   case object _aclitem            extends Type(1034, "_aclitem")
   case object _bit                extends Type(1561, "_bit")
@@ -83,6 +85,7 @@ object Type {
   case object _varchar            extends Type(1015, "_varchar")
   case object _xid                extends Type(1011, "_xid")
   case object _xml                extends Type(143,  "_xml")
+
   case object abstime             extends Type(702,  "abstime")
   case object aclitem             extends Type(1033, "aclitem")
   case object any                 extends Type(2276, "any")
@@ -94,7 +97,10 @@ object Type {
   case object bit                 extends Type(1560, "bit")
   case object bool                extends Type(16,   "bool")
   case object box                 extends Type(603,  "box")
-  case object bpchar              extends Type(1042, "bpchar")
+
+  case class  bpchar(n: Int)      extends Type(1042, s"bpchar($n)")
+  case object bpchar              extends Type(1042, "bpchar") // same as bpchar(1)
+
   case object bytea               extends Type(17,   "bytea")
   case object char                extends Type(18,   "char")
   case object cid                 extends Type(29,   "cid")
@@ -128,8 +134,7 @@ object Type {
   case object money               extends Type(790,  "money")
   case object name                extends Type(19,   "name")
 
-  // Numeric is a special case
-  case object numeric                 extends Type(1700, "numeric")
+  case object numeric             extends Type(1700, "numeric")
   case class  numeric(p: Int, s: Int) extends Type(1700, s"numeric($p,$s)")
 
   case object numrange            extends Type(3906, "numrange")
@@ -165,7 +170,6 @@ object Type {
   case object text                extends Type(25,   "text")
   case object tid                 extends Type(27,   "tid")
 
-  // Time is a special case
   case object time                extends Type(1083, "time")
   case class  time(s: Int)        extends Type(1083, s"time($s)")
 
@@ -189,7 +193,10 @@ object Type {
   case object unknown             extends Type(705,  "unknown")
   case object uuid                extends Type(2950, "uuid")
   case object varbit              extends Type(1562, "varbit")
+
+  case class varchar(n: Int)      extends Type(1042, s"varchar($n)")
   case object varchar             extends Type(1043, "varchar")
+
   case object void                extends Type(2278, "void")
   case object xid                 extends Type(28,   "xid")
   case object xml                 extends Type(142,  "xml")
@@ -214,7 +221,7 @@ object Type {
       _txid_snapshot, _uuid,            _varbit,      _varchar,         _xid,
       _xml,           abstime,          aclitem,      any,              anyarray,
       anyelement,     anyenum,          anynonarray,  anyrange,         bit,
-      bool,           box,              bpchar,       bytea,            char,
+      bool,           box,                            bytea,            char,
        cid,           cidr,             circle,       cstring,          date,
        daterange,     event_trigger,    fdw_handler,  float4,           float8,
        gtsvector,     index_am_handler, inet,         int2,             int2vector,
@@ -246,7 +253,6 @@ object Type {
     typeOid match {
 
       // bit
-      // bpchar
       // interval
 
       case numeric.oid =>
@@ -257,22 +263,18 @@ object Type {
           numeric(p, s)
         }
 
+      case bpchar.oid      => if (typeMod == -1) bpchar      else bpchar(typeMod - 4)
+      case varchar.oid     => if (typeMod == -1) varchar     else varchar(typeMod - 4)
       case time.oid        => if (typeMod == -1) time        else time(typeMod)
       case timetz.oid      => if (typeMod == -1) timetz      else timetz(typeMod)
       case timestamp.oid   => if (typeMod == -1) timestamp   else timestamp(typeMod)
       case timestamptz.oid => if (typeMod == -1) timestamptz else timestamptz(typeMod)
 
       // varbit
-      // varchar
 
-      // // numeric precision from typeMod
-      // @ ((655368 - 4) >> 16) & 65535
-      // res3: Int = 10
-      // // numeric scale
-      // @ (655368 - 4) & 65535
-      // res4: Int = 4
-
+      // Otherwise try to look up
       case n => typeMap.getOrElse(n, UnknownType(n, typeMod))
+
     }
 
   implicit val EqType: Eq[Type] =

@@ -23,7 +23,7 @@ object Minimal2 extends IOApp {
   case class Country(code: String, name: String, pop: Int)
 
   val country: Decoder[Country] =
-    (bpchar ~ varchar ~ int4).map { case c ~ n ~ p => Country(c, n, p) }
+    (bpchar(3) ~ varchar ~ int4).map { case c ~ n ~ p => Country(c, n, p) }
 
   val select: Query[String, Country] =
     sql"""

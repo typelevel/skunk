@@ -19,7 +19,7 @@ object Main extends IOApp {
   case class Country(name: String, code: String, indepyear: Option[Short], population: Int)
 
   val country: Codec[Country] =
-    (varchar, bpchar, int2.opt, int4).imapN(Country.apply)(Country.unapply(_).get)
+    (varchar, bpchar(3), int2.opt, int4).imapN(Country.apply)(Country.unapply(_).get)
 
   def putStrLn(a: Any): IO[Unit] =
     IO(println(a))
@@ -37,7 +37,7 @@ object Main extends IOApp {
       SELECT name, code, indepyear, population
       FROM   #$table -- literal interpolation
       WHERE  $frag   -- nested fragment
-      AND    code LIKE $bpchar
+      AND    code LIKE ${bpchar(3)}
       -- and a comment at the end
     """.query(country)
   }
@@ -46,7 +46,7 @@ object Main extends IOApp {
     sql"""
       SELECT name, code, indepyear, population
       FROM   country
-      WHERE  code in (${bpchar.list(ncodes)})
+      WHERE  code in (${bpchar(3).list(ncodes)})
     """.query(country)
 
   def clientEncodingChanged(enc: String): IO[Unit] =
@@ -86,7 +86,7 @@ object Main extends IOApp {
           _   <- s.prepare(in(3)).use { _.stream(List("FRA", "USA", "GAB"), 100).through(anyLinesStdOut).compile.drain }
           _   <- f2.cancel // otherwise it will run forever
           _   <- f1.cancel // otherwise it will run forever
-          _   <- s.execute(sql"select 'x'::char(10)".query(varchar))
+          _   <- s.execute(sql"select 'x'::bpchar(10)".query(bpchar(10)))
           _   <- s.prepare(sql"select 1".query(int4)).use { _.stream(Void, 10).through(anyLinesStdOut).compile.drain }
           _   <- putStrLn("Done.")
         } yield ExitCode.Success

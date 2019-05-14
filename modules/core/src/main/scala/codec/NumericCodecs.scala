@@ -10,17 +10,6 @@ import skunk.data.Type
 
 trait NumericCodecs {
 
-  val bool: Codec[Boolean] =
-   Codec.simple(
-      b => if (b) "t" else "f",
-      {
-        case "t" => Right(true)
-        case "f" => Right(false)
-        case s   => Left(s"Expected 't' or 'f', got $s")
-      },
-      Type.bool
-    )
-
   // TODO: catch exceptions on these
 
   val int2: Codec[Short] = Codec.simple(_.toString, _.toShort.asRight, Type.int2)
