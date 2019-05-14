@@ -16,6 +16,7 @@ import skunk.util.Namer
 import skunk.net.BitVectorSocket
 import java.nio.channels.AsynchronousChannelGroup
 import scala.concurrent.duration._
+import fs2.Pipe
 
 /**
  * Represents a live connection to a Postgres database. Operations provided here are safe to use
@@ -133,6 +134,13 @@ trait Session[F[_]] {
    * @group Commands
    */
   def prepare[A](command: Command[A]): Resource[F, PreparedCommand[F, A]]
+
+  /**
+   * Transform a `Command` into a `Pipe` from inputs to `Completion`s.
+   * @group Commands
+   */
+  def pipe[A](command: Command[A]): Pipe[F, A, Completion] = fa =>
+    Stream.resource(prepare(command)).flatMap(pc => fa.evalMap(pc.execute)).scope
 
   /**
    * A named asynchronous channel that can be used for inter-process communication.
