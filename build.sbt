@@ -174,12 +174,23 @@ lazy val core = project
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core"   % catsVersion,
       "org.typelevel" %% "cats-effect" % catsEffectVersion,
+      "org.typelevel" %% "cats-free"   % catsEffectVersion,
       "co.fs2"        %% "fs2-core"    % fs2Version,
       "co.fs2"        %% "fs2-io"      % fs2Version,
       "org.scodec"    %% "scodec-core" % scodecCoreVersion,
       "org.scodec"    %% "scodec-cats" % scodecCatsVersion,
       "com.beachape"  %% "enumeratum"  % enumeratumVersion
     )
+  )
+
+lazy val refined = project
+  .in(file("modules/refined"))
+  .enablePlugins(AutomateHeaderPlugin)
+  .dependsOn(core)
+  .settings(commonSettings)
+  .settings(publishSettings)
+  .settings(
+    libraryDependencies += "eu.timepit" %% "refined" % "0.9.5",
   )
 
 lazy val tests = project
@@ -206,3 +217,21 @@ lazy val talk = project
   .dependsOn(core)
   .settings(commonSettings)
   .settings(noPublishSettings)
+
+lazy val docs = project
+  .in(file("modules/docs"))
+  .dependsOn(core)
+  .settings(commonSettings)
+  .settings(noPublishSettings)
+  .enablePlugins(ParadoxPlugin)
+  .settings(
+    paradoxTheme := Some(builtinParadoxTheme("generic")),
+    paradoxProperties ++= Map(
+      "org"                     -> organization.value,
+      "core-name"               -> (core / name).value,
+      "version"                 -> version.value,
+      "scaladoc.skunk.base_url" -> s"https://static.javadoc.io/org.tpolecat/skunk-core_2.12/${version.value}"
+    )
+  )
+
+  // https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.0.2/skunk/Session.html
