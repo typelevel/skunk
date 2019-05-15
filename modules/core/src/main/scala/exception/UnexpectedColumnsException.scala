@@ -6,7 +6,6 @@ package skunk.exception
 
 import cats.implicits._
 import skunk.Command
-import skunk.data.`Type`
 import skunk.net.message.RowDescription
 import skunk.util.Text
 
@@ -24,7 +23,7 @@ case class UnexpectedRowsException(
   implicit def stringToText(s: String): Text = Text(s)
 
   private def describeType(f: RowDescription.Field): Text =
-    Text(Type.forOid(f.typeOid).fold(s"Unknown(${f.typeOid})")(_.name))
+    Text(f.tpe.name)
 
   private def describe(f: RowDescription.Field): List[Text] =
     List(green(f.name), describeType(f))

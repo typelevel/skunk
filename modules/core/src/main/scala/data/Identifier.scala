@@ -6,6 +6,7 @@ package skunk.data
 
 import cats.Eq
 import cats.implicits._
+import cats.ApplicativeError
 
 sealed abstract case class Identifier(value: String) {
   override def toString = value // ok?
@@ -13,14 +14,13 @@ sealed abstract case class Identifier(value: String) {
 
 object Identifier {
 
+  private[skunk] val dummy: Identifier = new Identifier("dummy") {}
+
   val maxLen = 63
   val pat    = "([a-z_][a-z_0-9$]*)".r
 
   implicit val EqIdentifier: Eq[Identifier] =
     Eq.by(_.value)
-
-  def unsafeFromString(s: String): Identifier =
-    fromString(s).fold(sys.error, identity)
 
   def fromString(s: String): Either[String, Identifier] =
     s match {
@@ -33,6 +33,9 @@ object Identifier {
           Right(new Identifier(s) {})
       case _ => Left(s"Malformed identifier: does not match ${pat.regex}")
     }
+
+  def fromStringF[F[_]: ApplicativeError[?[_], String]](s: String): F[Identifier] =
+    fromString(s).liftTo[F]
 
   val keywords: Set[String] =
     Set(

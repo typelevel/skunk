@@ -131,7 +131,7 @@ object BufferedMessageSocket {
       xaSig <- SignallingRef[F, TransactionStatus](TransactionStatus.Idle) // initial state (ok)
       paSig <- SignallingRef[F, Map[String, String]](Map.empty)
       bkSig <- Deferred[F, BackendKeyData]
-      noTop <- Topic[F, Notification](Notification(-1, Identifier.unsafeFromString("x"), "")) // blech
+      noTop <- Topic[F, Notification](Notification(-1, Identifier.dummy, "")) // blech
       fib   <- next(ms, xaSig, paSig, bkSig, noTop).repeat.through(queue.enqueue).compile.drain.attempt.flatMap {
         case Left(e)  => Concurrent[F].delay(e.printStackTrace)
         case Right(a) => a.pure[F]

@@ -10,22 +10,17 @@ import skunk.data.Type
 
 trait NumericCodecs {
 
-  val bool: Codec[Boolean] =
-   Codec.simple(
-      b => if (b) "t" else "f",
-      {
-        case "t" => Right(true)
-        case "f" => Right(false)
-        case s   => Left(s"Expected 't' or 'f', got $s")
-      },
-      Type.bool
-    )
+  // TODO: catch exceptions on these
 
-  val int2: Codec[Short] = Codec.simple(_.toString, _.toShort.asRight, Type.int2)// todo: validate
-  val int4: Codec[Int]   = Codec.simple(_.toString, _.toInt.asRight,   Type.int4)// todo: validate
-  val int8: Codec[Long]  = Codec.simple(_.toString, _.toLong.asRight,  Type.int8)// todo: validate
+  val int2: Codec[Short] = Codec.simple(_.toString, _.toShort.asRight, Type.int2)
+  val int4: Codec[Int]   = Codec.simple(_.toString, _.toInt.asRight,   Type.int4)
+  val int8: Codec[Long]  = Codec.simple(_.toString, _.toLong.asRight,  Type.int8)
 
-  val float8: Codec[Double]  = Codec.simple(_.toString, _.toDouble.asRight, Type.float8)// todo: validate
+  val numeric: Codec[BigDecimal] = Codec.simple(_.toString, BigDecimal(_).asRight, Type.numeric)
+  def numeric(precision: Int, scale: Int = 0): Codec[BigDecimal] = Codec.simple(_.toString, BigDecimal(_).asRight, Type.numeric(precision, scale))
+
+  val float4: Codec[Double]  = Codec.simple(_.toString, _.toDouble.asRight, Type.float4)
+  val float8: Codec[Double]  = Codec.simple(_.toString, _.toDouble.asRight, Type.float8)
 
 }
 

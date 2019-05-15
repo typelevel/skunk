@@ -14,15 +14,14 @@ object Minimal1 extends IOApp {
   val session: Resource[IO, Session[IO]] =
     Session.single(
       host     = "localhost",
-      port     = 5432,
       user     = "postgres",
-      database = "world"
+      database = "world",
     )
 
   def run(args: List[String]): IO[ExitCode] =
     session.use { s =>
       for {
-        s <- s.unique(sql"select 42".query(int4))
+        s <- s.unique(sql"select current_date".query(date))
         _ <- IO(println(s"⭐️⭐  The answer is $s."))
       } yield ExitCode.Success
     }

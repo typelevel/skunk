@@ -67,9 +67,6 @@ object Codec {
       def decode(offset: Int, ss: List[Option[String]]) = decode0(offset, ss)
       def types = oids0
     }
-
-  // TODO: mechanism for better error reporting … should report a null at a column index so we can
-  // refer back to the row description
   /** @group Constructors */
   def simple[A](encode: A => String, decode: String => Either[String, A], oid: Type): Codec[A] =
     apply(

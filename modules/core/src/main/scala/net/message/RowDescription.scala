@@ -11,7 +11,7 @@ import scodec.interop.cats._
 import skunk.data.Type
 
 case class RowDescription(fields: List[RowDescription.Field]) extends BackendMessage {
-  def oids: List[Int] = fields.map(_.typeOid)
+  def types: List[Type] = fields.map(_.tpe)
   override def toString = s"RowDescription(${fields.mkString("; ")})"
 }
 
@@ -25,12 +25,9 @@ object RowDescription {
     }
 
   final case class Field(name: String, tableOid: Int, columnAttr: Int, typeOid: Int, typeSize: Int, typeMod: Int, format: Int /* always 0 */) {
-    override def toString = {
-      val t = Type.forOid(typeOid).getOrElse(oid => s"Unknown($oid)")
-      val s = if (typeSize >= 0) s"$typeSize bytes" else s"*"
-      val f = format match { case 0 => "text" ; case 1 => "binary" }
-      s"Field($name, $tableOid, $columnAttr, $t, $s, $typeMod, $f)"
-    }
+    lazy val tpe: Type = Type.forOid(typeOid, typeMod)
+    override def toString =
+      s"Field($name, $tpe)"
   }
 
   object Field {

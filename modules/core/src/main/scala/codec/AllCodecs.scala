@@ -7,5 +7,7 @@ package skunk.codec
 trait AllCodecs
   extends NumericCodecs
      with TextCodecs
+     with TemporalCodecs
+     with BooleanCodec
 
 object all extends AllCodecs
