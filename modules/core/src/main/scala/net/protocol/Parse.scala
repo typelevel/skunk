@@ -13,9 +13,10 @@ import skunk.net.MessageSocket
 import skunk.net.Protocol.StatementId
 import skunk.Statement
 import skunk.util.Namer
+import skunk.util.Typer
 
 trait Parse[F[_]] {
-  def apply[A](statement: Statement[A]): Resource[F, StatementId]
+  def apply[A](statement: Statement[A], ty: Typer): Resource[F, StatementId]
 }
 
 object Parse {
@@ -23,12 +24,12 @@ object Parse {
   def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket: Namer]: Parse[F] =
     new Parse[F] {
 
-      def apply[A](statement: Statement[A]): Resource[F, StatementId] =
+      def apply[A](statement: Statement[A], ty: Typer): Resource[F, StatementId] =
         Resource.make {
           exchange {
             for {
               id <- nextName("statement").map(StatementId)
-              _  <- send(ParseMessage(id.value, statement.sql, statement.encoder.types.toList))
+              _  <- send(ParseMessage(id.value, statement.sql, statement.encoder.types.map(t => ty.oidForType(t).get)))
               _  <- send(Flush)
               _  <- flatExpect {
                       case ParseComplete       => ().pure[F]

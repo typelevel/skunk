@@ -56,4 +56,7 @@ object Fragment {
       def product[A, B](fa: Fragment[A], fb: Fragment[B]) = fa product fb
     }
 
+  private[skunk] def apply(sql: String): Fragment[Void] =
+    Fragment(List(Left(sql)), Void.codec, Origin.unknown)
+
 }

@@ -15,6 +15,7 @@ import skunk.net.message.RowDescription
 import skunk.util.{ Namer, Origin }
 import java.nio.channels.AsynchronousChannelGroup
 import scala.concurrent.duration.FiniteDuration
+import skunk.util.Typer
 
 /**
  * Interface for a Postgres database, expressed through high-level operations that rely on exchange
@@ -61,13 +62,13 @@ trait Protocol[F[_]] {
    * Prepare a command (a statement that produces no rows), yielding a `Protocol.PreparedCommand`
    * which will be closed after use.
    */
-  def prepare[A](command: Command[A]): Resource[F, Protocol.PreparedCommand[F, A]]
+  def prepare[A](command: Command[A], ty: Typer): Resource[F, Protocol.PreparedCommand[F, A]]
 
   /**
    * Prepare a query (a statement that produces rows), yielding a `Protocol.PreparedCommand` which
    * which will be closed after use.
    */
-  def prepare[A, B](query: Query[A, B]): Resource[F, Protocol.PreparedQuery[F, A, B]]
+  def prepare[A, B](query: Query[A, B], ty: Typer): Resource[F, Protocol.PreparedQuery[F, A, B]]
 
   /**
    * Execute a non-parameterized command (a statement that produces no rows), yielding a
@@ -82,7 +83,7 @@ trait Protocol[F[_]] {
    * requires fewer message exchanges. If you wish to page or stream results you need to use the
    * general protocol instead.
    */
-  def execute[A](query: Query[Void, A]): F[List[A]]
+  def execute[A](query: Query[Void, A], ty: Typer): F[List[A]]
 
   /**
    * Initiate the session. This must be the first thing you do. This is very basic at the momemnt.
@@ -213,17 +214,17 @@ object Protocol {
         def parameters: Signal[F, Map[String, String]] =
           bms.parameters
 
-        def prepare[A](command: Command[A]): Resource[F, PreparedCommand[F, A]] =
-          protocol.Prepare[F].apply(command)
+        def prepare[A](command: Command[A], ty: Typer): Resource[F, PreparedCommand[F, A]] =
+          protocol.Prepare[F].apply(command, ty)
 
-        def prepare[A, B](query: Query[A, B]): Resource[F, PreparedQuery[F, A, B]] =
-          protocol.Prepare[F].apply(query)
+        def prepare[A, B](query: Query[A, B], ty: Typer): Resource[F, PreparedQuery[F, A, B]] =
+          protocol.Prepare[F].apply(query, ty)
 
         def execute(command: Command[Void]): F[Completion] =
           protocol.Query[F].apply(command)
 
-        def execute[B](query: Query[Void, B]): F[List[B]] =
-          protocol.Query[F].apply(query)
+        def execute[B](query: Query[Void, B], ty: Typer): F[List[B]] =
+          protocol.Query[F].apply(query, ty)
 
         def startup(user: String, database: String): F[Unit] =
           protocol.Startup[F].apply(user, database)

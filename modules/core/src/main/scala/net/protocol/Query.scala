@@ -11,10 +11,11 @@ import skunk.data.Completion
 import skunk.exception.{ ColumnAlignmentException, NoDataException, PostgresErrorException }
 import skunk.net.message.{ Query => QueryMessage, _ }
 import skunk.net.MessageSocket
+import skunk.util.Typer
 
 trait Query[F[_]] {
   def apply(command: Command[Void]): F[Completion]
-  def apply[B](query: skunk.Query[Void, B]): F[List[B]]
+  def apply[B](query: skunk.Query[Void, B], ty: Typer): F[List[B]]
 }
 
 object Query {
@@ -22,7 +23,7 @@ object Query {
   def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket]: Query[F] =
     new Unroll[F] with Query[F] {
 
-      def apply[B](query: skunk.Query[Void, B]): F[List[B]] =
+      def apply[B](query: skunk.Query[Void, B], ty: Typer): F[List[B]] =
         exchange {
           send(QueryMessage(query.sql)) *> flatExpect {
 
@@ -33,7 +34,8 @@ object Query {
               // If our decoder lines up with the RowDescription we can decode the rows, otherwise
               // we have to discard them and then raise an error. All the args are necessary context
               // if we have a decoding failure and need to report an error.
-              if (query.decoder.types === rd.types) {
+              val types = rd.fields.map(f => ty.typeForOid(f.typeOid, f.typeMod).get)
+              if (query.decoder.types === types) {
                 unroll(
                   sql            = query.sql,
                   sqlOrigin      = query.origin,
@@ -42,9 +44,10 @@ object Query {
                   encoder        = Void.codec,
                   rowDescription = rd,
                   decoder        = query.decoder,
+                  ty             = ty
                 ).map(_._1) <* expect { case ReadyForQuery(_) => }
               } else {
-                discard *> ColumnAlignmentException(query, rd).raiseError[F, List[B]]
+                discard *> ColumnAlignmentException(query, rd, ty).raiseError[F, List[B]]
               }
 
             // If we get CommandComplete it means our Query was actually a Command. Postgres doesn't

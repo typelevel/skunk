@@ -13,6 +13,7 @@ import skunk.net.message._
 import skunk.net.MessageSocket
 import skunk.net.Protocol.QueryPortal
 import skunk.util.Origin
+import skunk.util.Typer
 
 /**
  * Superclass for `Query` and `Execute` sub-protocols, both of which need a way to accumulate
@@ -22,7 +23,8 @@ private[protocol] class Unroll[F[_]: MonadError[?[_], Throwable]: MessageSocket]
 
   /** Receive the next batch of rows. */
   def unroll[A, B](
-    portal: QueryPortal[F, A, B]
+    portal: QueryPortal[F, A, B],
+    ty:     Typer
   ): F[List[B] ~ Boolean] =
     unroll(
       sql            = portal.preparedQuery.query.sql,
@@ -31,7 +33,8 @@ private[protocol] class Unroll[F[_]: MonadError[?[_], Throwable]: MessageSocket]
       argsOrigin     = Some(portal.argumentsOrigin),
       encoder        = portal.preparedQuery.query.encoder,
       rowDescription = portal.preparedQuery.rowDescription,
-      decoder        = portal.preparedQuery.query.decoder
+      decoder        = portal.preparedQuery.query.decoder,
+      ty             = ty
     )
 
   // When we do a quick query there's no statement to hang onto all the error-reporting context
@@ -43,7 +46,8 @@ private[protocol] class Unroll[F[_]: MonadError[?[_], Throwable]: MessageSocket]
     argsOrigin:     Option[Origin],
     encoder:        Encoder[A],
     rowDescription: RowDescription,
-    decoder:        Decoder[B]
+    decoder:        Decoder[B],
+    ty:             Typer
   ): F[List[B] ~ Boolean] = {
 
     // N.B. we process all waiting messages to ensure the protocol isn't messed up by decoding
@@ -71,7 +75,8 @@ private[protocol] class Unroll[F[_]: MonadError[?[_], Throwable]: MessageSocket]
                   args,
                   argsOrigin,
                   encoder,
-                  rowDescription
+                  rowDescription,
+                  ty
                 )).raiseError[F, B]
           }
         } .map(_ ~ bool)

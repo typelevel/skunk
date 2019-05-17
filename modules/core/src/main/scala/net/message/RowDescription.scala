@@ -8,10 +8,8 @@ import cats.implicits._
 import scodec._
 import scodec.codecs._
 import scodec.interop.cats._
-import skunk.data.Type
 
 case class RowDescription(fields: List[RowDescription.Field]) extends BackendMessage {
-  def types: List[Type] = fields.map(_.tpe)
   override def toString = s"RowDescription(${fields.mkString("; ")})"
 }
 
@@ -25,9 +23,8 @@ object RowDescription {
     }
 
   final case class Field(name: String, tableOid: Int, columnAttr: Int, typeOid: Int, typeSize: Int, typeMod: Int, format: Int /* always 0 */) {
-    lazy val tpe: Type = Type.forOid(typeOid, typeMod)
     override def toString =
-      s"Field($name, $tpe)"
+      s"Field($name, $typeOid)"
   }
 
   object Field {

@@ -8,10 +8,12 @@ import cats.implicits._
 import skunk.Command
 import skunk.net.message.RowDescription
 import skunk.util.Text
+import skunk.util.Typer
 
 case class UnexpectedRowsException(
   command: Command[_],
-  rd:    RowDescription
+  rd:      RowDescription,
+  ty:      Typer
 ) extends SkunkException(
   sql       = Some(command.sql),
   message   = "Statement returns data.",
@@ -23,7 +25,7 @@ case class UnexpectedRowsException(
   implicit def stringToText(s: String): Text = Text(s)
 
   private def describeType(f: RowDescription.Field): Text =
-    Text(f.tpe.name)
+    Text(ty.typeForOid(f.typeOid, f.typeMod).get.name)
 
   private def describe(f: RowDescription.Field): List[Text] =
     List(green(f.name), describeType(f))

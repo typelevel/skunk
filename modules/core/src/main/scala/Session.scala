@@ -17,6 +17,7 @@ import skunk.net.BitVectorSocket
 import java.nio.channels.AsynchronousChannelGroup
 import scala.concurrent.duration._
 import fs2.Pipe
+import skunk.util.Typer
 
 /**
  * Represents a live connection to a Postgres database. Operations provided here are safe to use
@@ -165,6 +166,8 @@ trait Session[F[_]] {
    */
   def transaction[A]: Resource[F, Transaction[F]]
 
+  def typer: Typer
+
 }
 
 
@@ -229,7 +232,8 @@ object Session {
       ps  <- Protocol[F](host, port, debug, nam, readTimeout, writeTimeout, acg)
       _   <- Resource.liftF(ps.startup(user, database))
       // TODO: password negotiation, SASL, etc.
-    } yield fromProtocol(ps, nam)
+      s   <- Resource.liftF(fromProtocol(ps, nam))
+    } yield s
 
   /**
    * Construct a `Session` by wrapping an existing `Protocol`, which we assume has already been
@@ -239,50 +243,54 @@ object Session {
   def fromProtocol[F[_]: Sync](
     proto: Protocol[F],
     namer: Namer[F]
-  ): Session[F] =
-    new Session[F] {
+  ): F[Session[F]] =
+    Typer.fromProtocol(proto).map { ty =>
+      new Session[F] {
 
-      def execute(command: Command[Void]) =
-        proto.execute(command)
+        def typer = ty
 
-      def channel(name: Identifier) =
-        Channel.fromNameAndProtocol(name, proto)
+        def execute(command: Command[Void]) =
+          proto.execute(command)
 
-      def parameters =
-        proto.parameters
+        def channel(name: Identifier) =
+          Channel.fromNameAndProtocol(name, proto)
 
-      def parameter(key: String) =
-        parameters.discrete.map(_.get(key)).unNone.changes
+        def parameters =
+          proto.parameters
 
-      def transactionStatus =
-        proto.transactionStatus
+        def parameter(key: String) =
+          parameters.discrete.map(_.get(key)).unNone.changes
 
-      def execute[A](query: Query[Void, A]) =
-        proto.execute(query)
+        def transactionStatus =
+          proto.transactionStatus
 
-      def unique[A](query: Query[Void, A]): F[A] =
-        execute(query).flatMap {
-          case a :: Nil => a.pure[F]
-          case Nil      => Sync[F].raiseError(new RuntimeException("Expected exactly one row, none returned."))
-          case _        => Sync[F].raiseError(new RuntimeException("Expected exactly one row, more returned."))
-        }
+        def execute[A](query: Query[Void, A]) =
+          proto.execute(query, ty)
 
-      def option[A](query: Query[Void, A]): F[Option[A]] =
-        execute(query).flatMap {
-          case a :: Nil => a.some.pure[F]
-          case Nil      => none[A].pure[F]
-          case _        => Sync[F].raiseError(new RuntimeException("Expected at most one row, more returned."))
-        }
+        def unique[A](query: Query[Void, A]): F[A] =
+          execute(query).flatMap {
+            case a :: Nil => a.pure[F]
+            case Nil      => Sync[F].raiseError(new RuntimeException("Expected exactly one row, none returned."))
+            case _        => Sync[F].raiseError(new RuntimeException("Expected exactly one row, more returned."))
+          }
 
-      def prepare[A, B](query: Query[A, B]) =
-        proto.prepare(query).map(PreparedQuery.fromProto(_))
+        def option[A](query: Query[Void, A]): F[Option[A]] =
+          execute(query).flatMap {
+            case a :: Nil => a.some.pure[F]
+            case Nil      => none[A].pure[F]
+            case _        => Sync[F].raiseError(new RuntimeException("Expected at most one row, more returned."))
+          }
 
-      def prepare[A](command: Command[A]) =
-        proto.prepare(command).map(PreparedCommand.fromProto(_))
+        def prepare[A, B](query: Query[A, B]) =
+          proto.prepare(query, ty).map(PreparedQuery.fromProto(_))
 
-      def transaction[A] =
-        Transaction.fromSession(this, namer)
+        def prepare[A](command: Command[A]) =
+          proto.prepare(command, ty).map(PreparedCommand.fromProto(_))
 
+        def transaction[A] =
+          Transaction.fromSession(this, namer)
+
+      }
     }
 
   // TODO: upstream
@@ -305,6 +313,7 @@ object Session {
       implicit ev: Bracket[F, Throwable]
     ): Session[G] =
       new Session[G] {
+        def typer = outer.typer
         def channel(name: Identifier): Channel[G,String,Notification] = outer.channel(name).mapK(fk)
         def execute(command: Command[Void]): G[Completion] = fk(outer.execute(command))
         def execute[A](query: Query[Void,A]): G[List[A]] = fk(outer.execute(query))
