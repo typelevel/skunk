@@ -5,7 +5,6 @@
 package skunk.net.message
 
 import scodec.codecs._
-import skunk.data.Type
 
 case class Parse(name: String, sql: String, types: List[Int])
 
