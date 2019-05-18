@@ -11,7 +11,6 @@ import fs2.concurrent.Signal
 import fs2.Stream
 import skunk.{ Command, Query, Statement, ~, Void }
 import skunk.data._
-import skunk.net.message.RowDescription
 import skunk.util.{ Namer, Origin }
 import java.nio.channels.AsynchronousChannelGroup
 import scala.concurrent.duration.FiniteDuration
@@ -141,7 +140,7 @@ object Protocol {
   abstract class PreparedQuery[F[_], A, B](
     val id:             StatementId,
     val query:          Query[A, B],
-    val rowDescription: RowDescription
+    val rowDescription: TypedRowDescription
   ) extends PreparedStatement[F, A] {
     def statement: Statement[A] = query
     def bind(args: A, argsOrigin: Origin): Resource[F, QueryPortal[F, A, B]]

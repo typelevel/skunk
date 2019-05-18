@@ -12,6 +12,7 @@ import skunk.exception.{ ColumnAlignmentException, NoDataException, PostgresErro
 import skunk.net.message.{ Query => QueryMessage, _ }
 import skunk.net.MessageSocket
 import skunk.util.Typer
+import skunk.exception.UnknownOidException
 
 trait Query[F[_]] {
   def apply(command: Command[Void]): F[Completion]
@@ -34,20 +35,26 @@ object Query {
               // If our decoder lines up with the RowDescription we can decode the rows, otherwise
               // we have to discard them and then raise an error. All the args are necessary context
               // if we have a decoding failure and need to report an error.
-              val types = rd.fields.map(f => ty.typeForOid(f.typeOid, f.typeMod).get)
-              if (query.decoder.types === types) {
-                unroll(
-                  sql            = query.sql,
-                  sqlOrigin      = query.origin,
-                  args           = Void,
-                  argsOrigin     = None,
-                  encoder        = Void.codec,
-                  rowDescription = rd,
-                  decoder        = query.decoder,
-                  ty             = ty
-                ).map(_._1) <* expect { case ReadyForQuery(_) => }
-              } else {
-                discard *> ColumnAlignmentException(query, rd, ty).raiseError[F, List[B]]
+              rd.typed(ty) match {
+
+                case Right(td) =>
+                  if (query.decoder.types === td.types) {
+                    unroll(
+                      sql            = query.sql,
+                      sqlOrigin      = query.origin,
+                      args           = Void,
+                      argsOrigin     = None,
+                      encoder        = Void.codec,
+                      rowDescription = td,
+                      decoder        = query.decoder,
+                    ).map(_._1) <* expect { case ReadyForQuery(_) => }
+                  } else {
+                    discard *> ColumnAlignmentException(query, td).raiseError[F, List[B]]
+                  }
+
+                case Left(err) =>
+                  discard *> UnknownOidException(query, err).raiseError[F, List[B]]
+
               }
 
             // If we get CommandComplete it means our Query was actually a Command. Postgres doesn't

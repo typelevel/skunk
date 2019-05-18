@@ -18,6 +18,8 @@ import java.nio.channels.AsynchronousChannelGroup
 import scala.concurrent.duration._
 import fs2.Pipe
 import skunk.util.Typer
+import skunk.util.Typer.Strategy.BuiltinsOnly
+import skunk.util.Typer.Strategy.SearchPath
 
 /**
  * Represents a live connection to a Postgres database. Operations provided here are safe to use
@@ -225,14 +227,15 @@ object Session {
     debug:        Boolean = false,
     readTimeout:  FiniteDuration           = Int.MaxValue.seconds,
     writeTimeout: FiniteDuration           = 5.seconds,
-    acg:          AsynchronousChannelGroup = BitVectorSocket.GlobalACG
+    acg:          AsynchronousChannelGroup = BitVectorSocket.GlobalACG,
+    strategy:     Typer.Strategy           = Typer.Strategy.SearchPath
   ): Resource[F, Session[F]] =
     for {
       nam <- Resource.liftF(Namer[F])
       ps  <- Protocol[F](host, port, debug, nam, readTimeout, writeTimeout, acg)
       _   <- Resource.liftF(ps.startup(user, database))
       // TODO: password negotiation, SASL, etc.
-      s   <- Resource.liftF(fromProtocol(ps, nam))
+      s   <- Resource.liftF(fromProtocol(ps, nam, strategy))
     } yield s
 
   /**
@@ -241,13 +244,21 @@ object Session {
    * @group Constructors
    */
   def fromProtocol[F[_]: Sync](
-    proto: Protocol[F],
-    namer: Namer[F]
-  ): F[Session[F]] =
-    Typer.fromProtocol(proto).map { ty =>
+    proto:    Protocol[F],
+    namer:    Namer[F],
+    strategy: Typer.Strategy
+  ): F[Session[F]] = {
+
+    val ft: F[Typer] =
+      strategy match {
+        case BuiltinsOnly => Typer.Static.pure[F]
+        case SearchPath   => Typer.fromProtocol(proto)
+      }
+
+    ft.map { typ =>
       new Session[F] {
 
-        def typer = ty
+        val typer = typ
 
         def execute(command: Command[Void]) =
           proto.execute(command)
@@ -265,7 +276,7 @@ object Session {
           proto.transactionStatus
 
         def execute[A](query: Query[Void, A]) =
-          proto.execute(query, ty)
+          proto.execute(query, typer)
 
         def unique[A](query: Query[Void, A]): F[A] =
           execute(query).flatMap {
@@ -282,16 +293,17 @@ object Session {
           }
 
         def prepare[A, B](query: Query[A, B]) =
-          proto.prepare(query, ty).map(PreparedQuery.fromProto(_))
+          proto.prepare(query, typer).map(PreparedQuery.fromProto(_))
 
         def prepare[A](command: Command[A]) =
-          proto.prepare(command, ty).map(PreparedCommand.fromProto(_))
+          proto.prepare(command, typer).map(PreparedCommand.fromProto(_))
 
         def transaction[A] =
           Transaction.fromSession(this, namer)
 
       }
     }
+  }
 
   // TODO: upstream
   implicit class SignalOps[F[_], A](outer: Signal[F, A]) {

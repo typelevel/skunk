@@ -40,7 +40,7 @@ object Execute {
           for {
             _  <- send(ExecuteMessage(portal.id.value, maxRows))
             _  <- send(Flush)
-            rs <- unroll(portal, ty)
+            rs <- unroll(portal)
           } yield rs
         }
 

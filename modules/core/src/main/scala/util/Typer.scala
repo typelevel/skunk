@@ -30,6 +30,25 @@ trait Typer { self =>
 
 object Typer {
 
+  sealed trait Strategy
+  object Strategy {
+
+    /**
+     * This strategy supports built-in Postgres types only, and does not need a database round-trip
+     * for initialization. This is the fastest strategy and is appropriate when you are not using
+     * any user-defined types (this includes enums).
+     */
+    case object BuiltinsOnly extends Strategy
+
+    /**
+     * This strategy supports built-in Postgres types, as well as types that are defined in
+     * namespaces on the session search path. This is the default strategy.
+     */
+    case object SearchPath extends Strategy
+
+  }
+
+
   val Static: Typer = new Typer {
     import Type._
 

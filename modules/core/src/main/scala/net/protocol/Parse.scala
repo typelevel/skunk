@@ -14,6 +14,7 @@ import skunk.net.Protocol.StatementId
 import skunk.Statement
 import skunk.util.Namer
 import skunk.util.Typer
+import skunk.exception.UnknownTypeException
 
 trait Parse[F[_]] {
   def apply[A](statement: Statement[A], ty: Typer): Resource[F, StatementId]
@@ -25,19 +26,27 @@ object Parse {
     new Parse[F] {
 
       def apply[A](statement: Statement[A], ty: Typer): Resource[F, StatementId] =
-        Resource.make {
-          exchange {
-            for {
-              id <- nextName("statement").map(StatementId)
-              _  <- send(ParseMessage(id.value, statement.sql, statement.encoder.types.map(t => ty.oidForType(t).get)))
-              _  <- send(Flush)
-              _  <- flatExpect {
-                      case ParseComplete       => ().pure[F]
-                      case ErrorResponse(info) => syncAndFail(statement, info)
-                    }
-            } yield id
-          }
-        } { id => Close[F].apply(CloseMessage.statement(id.value)) }
+        statement.encoder.oids(ty) match {
+
+          case Right(os) =>
+            Resource.make {
+              exchange {
+                for {
+                  id <- nextName("statement").map(StatementId)
+                  _  <- send(ParseMessage(id.value, statement.sql, os))
+                  _  <- send(Flush)
+                  _  <- flatExpect {
+                          case ParseComplete       => ().pure[F]
+                          case ErrorResponse(info) => syncAndFail(statement, info)
+                        }
+                } yield id
+              }
+            } { id => Close[F].apply(CloseMessage.statement(id.value)) }
+
+          case Left(err) =>
+            Resource.liftF(new UnknownTypeException(statement, err).raiseError[F, StatementId])
+
+        }
 
       def syncAndFail(statement: Statement[_], info: Map[Char, String]): F[Unit] =
         for {
