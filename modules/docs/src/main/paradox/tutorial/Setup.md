@@ -4,24 +4,17 @@ Welcome to the Wonderful World of Skunk! This section will help you get everythi
 
 ## Database Setup
 
-In order to run the tutorial examples you will need a Postgres server with the `world` database loaded up, writable by the `postgres` user, who must be able to log in without a password.
-
-The easiest option is to use our [Docker](http://docker.com) image, which exposes a pre-populated instance of Postgres $postgres-version$ on port $postgres-port$.
+In order to run the tutorial examples you will need a Postgres server with the `world` database loaded up, writable by the `postgres` user, who must be able to log in without a password. Our [Docker](http://docker.com) image does exactly that.
 
 ```
-docker run -d tpolecat/skunk-tutorial
+docker run -p5432:5432 -d tpolecat/skunk-world
 ```
 
-Or, if you wish to use your own Postgres server you can download the `world.sql` file from the Skunk repository and install it yourself. As noted above you will need a `postgres` user who can log in with no password.
-
-```
-psql -c 'create database world;' -U postgres
-psql -c '\i world.sql' -d world -U postgres
-```
+If you wish to use your own Postgres server you can download `world/world.sql` from the Skunk repository and load it up yourself.
 
 ## Scala Setup
 
-You'll need to add Skunk as a project dependency.
+Create a new project with Skunk as a dependency.
 
 @@dependency[sbt,Maven,Gradle] {
   group="$org$"
@@ -51,3 +44,13 @@ When we run the program we will see the current date.
 ```
 The current date is 2019-05-11.
 ```
+
+## Experiment
+
+Here are some modifications that will cause runtime failures. Give them a try and see how Skunk responds.
+
+- Introduce a typo into the SQL string.
+- Change the decoder from `date` to another type like `timestamp`.
+
+We will see more examples later in the tutorial.
+

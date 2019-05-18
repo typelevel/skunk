@@ -8,7 +8,7 @@ package tutorial
 import cats.effect._
 import skunk._
 import skunk.implicits._
-import skunk.codec.temporal.date
+import skunk.codec.all._
 
 object Hello extends IOApp {
 
@@ -23,7 +23,7 @@ object Hello extends IOApp {
   def run(args: List[String]): IO[ExitCode] =
     session.use { s =>                                      // (2)
       for {
-        s <- s.unique(sql"select current_date".query(date)) // (3)
+        s <- s.unique(sql"select xcurrent_date".query(date)) // (3)
         _ <- IO(println(s"The current date is $s."))        // (4)
       } yield ExitCode.Success
     }

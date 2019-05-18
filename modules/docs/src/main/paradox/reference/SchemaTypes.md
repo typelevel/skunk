@@ -26,13 +26,14 @@ Skunk codecs have the same names as their corresponding Postgres data types. Def
 
 | ANSI SQL Type                        | Postgres Type | Scala Type |
 |--------------------------------------|---------------|------------|
-| `character varying(n)`, `varchar(n)` | `varchar`     | `String`   |
-| `character(n)`, `char(n)`            | `bpchar`      | `String`   |
+| `character varying(n)`, `varchar(n)` | `varchar(n)`  | `String`   |
+| `character(n)`, `char(n)`            | `bpchar(n)`   | `String`   |
 | n/a                                  | `text`        | `String`   |
 
 #### Notes
 
 - These codecs are importable from `skunk.codec.text._` or `skunk.codec.all._`.
+- The length specifier is optional. `bpchar` has a length of one, and `varchar` is unbounded.
 - See [§8.3](https://www.postgresql.org/docs/9.1/datatype-character.html) in the Postgres documentation for more information on character data types.
 
 ## Date/Time Types

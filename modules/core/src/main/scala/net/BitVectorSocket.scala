@@ -98,7 +98,11 @@ object BitVectorSocket {
     acg:          AsynchronousChannelGroup,
   ): Resource[F, BitVectorSocket[F]] = {
     implicit val _acg = acg
+
+    // TODO: trap IO exceptions here and raise a skunk error that includes all the connect args.
+    //       suggest connecting with psql -h <host> -p <port> -U <user> -d <database>
     Socket.client[F](new InetSocketAddress(host, port)).map(fromSocket(_, readTimeout, writeTimeout))
+
   }
 
 }

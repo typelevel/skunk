@@ -228,7 +228,7 @@ object Session {
     readTimeout:  FiniteDuration           = Int.MaxValue.seconds,
     writeTimeout: FiniteDuration           = 5.seconds,
     acg:          AsynchronousChannelGroup = BitVectorSocket.GlobalACG,
-    strategy:     Typer.Strategy           = Typer.Strategy.SearchPath
+    strategy:     Typer.Strategy           = Typer.Strategy.BuiltinsOnly
   ): Resource[F, Session[F]] =
     for {
       nam <- Resource.liftF(Namer[F])
