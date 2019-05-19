@@ -3,8 +3,26 @@ language: scala
 jdk:
   - oraclejdk8
 
-script:
-  - sbt headerCheck test docs/paradox
+before_install:
+  - git fetch --tags
+
+before_script:
+  - sudo service postgresql stop # it's on by default
+  - docker-compose up -d
+
+stages:
+  - name: test
+  - name: release
+    if: ((branch = master AND type = push) OR (tag IS present)) AND NOT fork
+
+jobs:
+  include:
+    # stage="test" if no stage is specified
+    - env: TEST="build"
+      script: sbt headerCheck test docs/paradox
+    # run ci-release only if previous stages passed
+    - stage: release
+      script: sbt ci-release
 
 cache:
   directories:
@@ -14,12 +32,4 @@ cache:
 before_cache:
   - find $HOME/.ivy2 -name "ivydata-*.properties" -delete
   - find $HOME/.sbt -name "*.lock" -delete
-
-services:
-  - docker
-
-before_script:
-  - sudo service postgresql stop # it's on by default
-  - docker-compose up -d
-
 
