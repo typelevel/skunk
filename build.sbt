@@ -159,9 +159,13 @@ lazy val docs = project
   .in(file("modules/docs"))
   .dependsOn(core)
   .enablePlugins(AutomateHeaderPlugin)
-  .settings(commonSettings)
   .enablePlugins(ParadoxPlugin)
+  .enablePlugins(ParadoxSitePlugin)
+  .enablePlugins(GhpagesPlugin)
+  .settings(commonSettings)
   .settings(
+    git.remoteRepo     := "git@github.com:tpolecat/skunk.git",
+    ghpagesNoJekyll    := true,
     publish / skip     := true,
     paradoxTheme       := Some(builtinParadoxTheme("generic")),
     paradoxProperties ++= Map(
