@@ -8,9 +8,10 @@ import cats.Eq
 import cats.implicits._
 import skunk._
 import skunk.implicits._
+import skunk.util.Typer
 
 /** Tests that we check if we can round-trip values via codecs. */
-trait CodecTest extends SkunkTest {
+abstract class CodecTest(strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly) extends SkunkTest(strategy) {
 
   def codecTest[A: Eq](codec: Codec[A])(as: A*): Unit =
     sessionTest(s"${codec.types.mkString(", ")}") { s =>

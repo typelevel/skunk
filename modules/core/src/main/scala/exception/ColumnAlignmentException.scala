@@ -8,13 +8,14 @@ import cats.data.Ior
 import cats.implicits._
 import skunk.Query
 import skunk.data.`Type`
-import skunk.net.message.RowDescription
 import skunk.util.Text
 import skunk.syntax.list._
+import skunk.data.TypedRowDescription
+import skunk.data.TypedRowDescription.Field
 
 case class ColumnAlignmentException(
   query: Query[_, _],
-  rd:    RowDescription
+  rd:    TypedRowDescription,
 ) extends SkunkException(
   sql       = Some(query.sql),
   message   = "Asserted and actual column types differ.",
@@ -25,7 +26,7 @@ case class ColumnAlignmentException(
   import Text.{ green, red, cyan, empty }
   implicit def stringToText(s: String): Text = Text(s)
 
-  private def describe(ior: Ior[RowDescription.Field, `Type`]): List[Text] =
+  private def describe(ior: Ior[Field, Type]): List[Text] =
     ior match {
       case Ior.Left(f)    => List(green(f.name), f.tpe.name, "->", red(""),                            cyan("── unmapped column"))
       case Ior.Right(t)   => List(empty,         empty,      "->", t.name,                             cyan("── missing column"))

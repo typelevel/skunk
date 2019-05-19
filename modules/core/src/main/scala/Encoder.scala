@@ -5,7 +5,9 @@
 package skunk
 
 import cats._
+import cats.implicits._
 import skunk.data.Type
+import skunk.util.Typer
 
 /**
  * Encoder of Postgres text-format data from Scala types.
@@ -24,6 +26,15 @@ trait Encoder[A] { outer =>
 
   /** Types of encoded fields, in order. */
   def types: List[Type]
+
+  /** Oids of types, or mismatches. */
+  def oids(ty: Typer): Either[List[(Type, Option[Int])], List[Int]] = {
+    val ots = types.map(ty.oidForType)
+    ots.sequence match {
+      case Some(os) => os.asRight
+      case None     => types.zip(ots).asLeft
+    }
+  }
 
   /** Contramap inputs from a new type `B`, yielding an `Encoder[B]`. */
   def contramap[B](f: B => A): Encoder[B] =

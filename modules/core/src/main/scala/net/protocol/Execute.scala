@@ -11,10 +11,11 @@ import skunk.data.Completion
 import skunk.exception.PostgresErrorException
 import skunk.net.{ Protocol, MessageSocket }
 import skunk.net.message.{ Execute => ExecuteMessage, _ }
+import skunk.util.Typer
 
 trait Execute[F[_]] {
   def apply[A](portal: Protocol.CommandPortal[F, A]): F[Completion]
-  def apply[A, B](portal: Protocol.QueryPortal[F, A, B], maxRows: Int): F[List[B] ~ Boolean]
+  def apply[A, B](portal: Protocol.QueryPortal[F, A, B], maxRows: Int, ty: Typer): F[List[B] ~ Boolean]
 }
 
 object Execute {
@@ -34,7 +35,7 @@ object Execute {
           } yield c
         }
 
-      def apply[A, B](portal: Protocol.QueryPortal[F, A, B], maxRows: Int): F[List[B] ~ Boolean] =
+      def apply[A, B](portal: Protocol.QueryPortal[F, A, B], maxRows: Int, ty: Typer): F[List[B] ~ Boolean] =
         exchange {
           for {
             _  <- send(ExecuteMessage(portal.id.value, maxRows))

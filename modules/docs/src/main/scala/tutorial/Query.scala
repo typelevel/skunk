@@ -1,3 +1,7 @@
+// Copyright (c) 2018 by Rob Norris
+// This software is licensed under the MIT License (MIT).
+// For more information see LICENSE or https://opensource.org/licenses/MIT
+
 package tutorial
 import cats.effect.IOApp
 import cats.effect.ExitCode
@@ -65,7 +69,10 @@ object Query extends IOApp {
     //#query-e-exec-a
     // assume s: Session[IO]
     s.prepare(e).use { ps =>
-      ps.stream("U%", 64).evalMap(c => IO(println(c))).compile.drain
+      ps.stream("U%", 64)
+        .evalMap(c => IO(println(c)))
+        .compile
+        .drain
     } // IO[Unit]
     //#query-e-exec-a
   }
@@ -99,7 +106,10 @@ object Query extends IOApp {
     //#query-f-exec
     // assume s: Session[IO]
     s.prepare(f).use { ps =>
-      ps.stream("U%" ~ 2000000, 64).evalMap(c => IO(println(c))).compile.drain
+      ps.stream("U%" ~ 2000000, 64)
+        .evalMap(c => IO(println(c)))
+        .compile
+        .drain
     } // IO[Unit]
     //#query-f-exec
   }

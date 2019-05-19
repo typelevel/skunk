@@ -29,7 +29,7 @@ object Error extends IOApp {
     """.query(varchar ~ int4)
 
   def prog[F[_]: Sync](s: Session[F]): F[ExitCode] =
-    s.prepare(query).use(_.unique("42" ~ 1000000)).as(ExitCode.Success)
+    s.prepare(query).use(_.unique("foo" ~ 1000000)).as(ExitCode.Success)
 
   def run(args: List[String]): IO[ExitCode] =
     session.use(prog(_))

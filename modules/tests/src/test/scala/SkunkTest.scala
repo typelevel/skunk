@@ -11,8 +11,9 @@ import skunk.Session
 import skunk.data._
 import skunk.codec.all._
 import skunk.implicits._
+import skunk.util.Typer
 
-trait SkunkTest extends ffstest.FTest {
+abstract class SkunkTest(strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly) extends ffstest.FTest {
 
   val session: Resource[IO, Session[IO]] =
     Session.single(
@@ -20,6 +21,7 @@ trait SkunkTest extends ffstest.FTest {
       port     = 5432,
       user     = "postgres",
       database = "world",
+      strategy = strategy
       // debug = true
     )
 

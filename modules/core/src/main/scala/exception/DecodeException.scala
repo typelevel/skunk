@@ -8,10 +8,11 @@ import cats.data.Nested
 import cats.implicits._
 import skunk.{ Encoder, Decoder }
 import skunk.util.Origin
-import skunk.net.message.RowDescription
 import skunk.net.Protocol
 import skunk.util.Text
 import skunk.util.Text.{ plain, empty, cyan, green }
+import skunk.data.TypedRowDescription
+import skunk.data.TypedRowDescription.Field
 
 // todo: this with a ctor we can call for quick query, which has no portal
 class DecodeException[F[_], A, B](
@@ -22,7 +23,7 @@ class DecodeException[F[_], A, B](
   arguments: A,
   argumentsOrigin: Option[Origin],
   encoder:   Encoder[A],
-  rowDescription: RowDescription
+  rowDescription: TypedRowDescription,
 ) extends SkunkException(
   sql             = Some(sql),
   message         = "Decoding error.",
@@ -35,7 +36,8 @@ class DecodeException[F[_], A, B](
   def this(
     portal: Protocol.QueryPortal[F, A, B],
     data:   List[Option[String]],
-    error:  Decoder.Error
+    error:  Decoder.Error,
+    rowDescription: TypedRowDescription
   ) = this(
     data,
     error,
@@ -44,7 +46,7 @@ class DecodeException[F[_], A, B](
     portal.arguments,
     Some(portal.argumentsOrigin),
     portal.preparedQuery.query.encoder,
-    portal.preparedQuery.rowDescription
+    rowDescription
   )
 
   val MaxValue = 15
@@ -54,14 +56,11 @@ class DecodeException[F[_], A, B](
     if (s.length > MaxValue) s.take(MaxValue) + "⋯" else s
   } .value
 
-  private def describeType(f: RowDescription.Field): Text =
-    Text(f.tpe.name)
-
-  def describe(col: ((RowDescription.Field, Int), Option[String])): List[Text] = {
+  def describe(col: ((Field, Int), Option[String])): List[Text] = {
     val ((t, n), op) = col
     List(
       green(t.name),
-      describeType(t),
+      Text(t.tpe.name),
       plain("->"),
       green(op.getOrElse("NULL")),
       if (n === error.offset) cyan(s"├── ${error.message}") else empty

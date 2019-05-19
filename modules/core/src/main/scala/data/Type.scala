@@ -3,282 +3,219 @@
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
 package skunk.data
-import cats.kernel.Eq
+
+import cats.{ Eq, Monad }
+import cats.implicits._
 
 /**
- * Enumerated type of *built-in* schema types. These are defined as constants in the Postgres source
- * and we can safely assume they will never change, heh-heh.
+ * A type has a name and a list of component types. So it's a rose tree, isomorphic to
+ * `Cofree[List, String]`, but we specialize here for simplicity.
  */
-sealed abstract class Type(val oid: Int, val name: String) extends Product with Serializable
+final case class Type(name: String, componentTypes: List[Type] = Nil) {
+
+  /** Catamorphism for `Type`. */
+  def fold[B](f: (String, List[B]) => B): B =
+    f(name, componentTypes.map(_.fold(f)))
+
+  /** Monadic catamorphism for `Type`. */
+  def foldM[F[_]: Monad, B](f: (String, List[B]) => F[B]): F[B] =
+    componentTypes.traverse(_.foldM(f)).flatMap(f(name, _))
+
+  override def toString =
+    fold[String] {
+      case (s, Nil) => s
+      case (s, ss)  => s + ss.mkString(" { ", ", ", " }")
+    }
+
+}
+
 object Type {
 
-  // Let's set aside array handling for now. It will require some refactoring.
+  /** Anamorphism for `Type`. */
+  def unfold[A](a: A)(f: A => List[A], g: A => String): Type =
+    Type(g(a), f(a).map(unfold(_)(f, g)))
 
-  case object _abstime            extends Type(1023, "_abstime")
-  case object _aclitem            extends Type(1034, "_aclitem")
-  case object _bit                extends Type(1561, "_bit")
-  case object _bool               extends Type(1000, "_bool")
-  case object _box                extends Type(1020, "_box")
-  case object _bpchar             extends Type(1014, "_bpchar")
-  case object _bytea              extends Type(1001, "_bytea")
-  case object _char               extends Type(1002, "_char")
-  case object _cid                extends Type(1012, "_cid")
-  case object _cidr               extends Type(651,  "_cidr")
-  case object _circle             extends Type(719,  "_circle")
-  case object _cstring            extends Type(1263, "_cstring")
-  case object _date               extends Type(1182, "_date")
-  case object _daterange          extends Type(3913, "_daterange")
-  case object _float4             extends Type(1021, "_float4")
-  case object _float8             extends Type(1022, "_float8")
-  case object _gtsvector          extends Type(3644, "_gtsvector")
-  case object _inet               extends Type(1041, "_inet")
-  case object _int2               extends Type(1005, "_int2")
-  case object _int2vector         extends Type(1006, "_int2vector")
-  case object _int4               extends Type(1007, "_int4")
-  case object _int4range          extends Type(3905, "_int4range")
-  case object _int8               extends Type(1016, "_int8")
-  case object _int8range          extends Type(3927, "_int8range")
-  case object _interval           extends Type(1187, "_interval")
-  case object _json               extends Type(199,  "_json")
-  case object _jsonb              extends Type(3807, "_jsonb")
-  case object _line               extends Type(629,  "_line")
-  case object _lseg               extends Type(1018, "_lseg")
-  case object _macaddr            extends Type(1040, "_macaddr")
-  case object _macaddr8           extends Type(775,  "_macaddr8")
-  case object _money              extends Type(791,  "_money")
-  case object _name               extends Type(1003, "_name")
-  case object _numeric            extends Type(1231, "_numeric")
-  case object _numrange           extends Type(3907, "_numrange")
-  case object _oid                extends Type(1028, "_oid")
-  case object _oidvector          extends Type(1013, "_oidvector")
-  case object _path               extends Type(1019, "_path")
-  case object _pg_lsn             extends Type(3221, "_pg_lsn")
-  case object _point              extends Type(1017, "_point")
-  case object _polygon            extends Type(1027, "_polygon")
-  case object _record             extends Type(2287, "_record")
-  case object _refcursor          extends Type(2201, "_refcursor")
-  case object _regclass           extends Type(2210, "_regclass")
-  case object _regconfig          extends Type(3735, "_regconfig")
-  case object _regdictionary      extends Type(3770, "_regdictionary")
-  case object _regnamespace       extends Type(4090, "_regnamespace")
-  case object _regoper            extends Type(2208, "_regoper")
-  case object _regoperator        extends Type(2209, "_regoperator")
-  case object _regproc            extends Type(1008, "_regproc")
-  case object _regprocedure       extends Type(2207, "_regprocedure")
-  case object _regrole            extends Type(4097, "_regrole")
-  case object _regtype            extends Type(2211, "_regtype")
-  case object _reltime            extends Type(1024, "_reltime")
-  case object _text               extends Type(1009, "_text")
-  case object _tid                extends Type(1010, "_tid")
-  case object _time               extends Type(1183, "_time")
-  case object _timestamp          extends Type(1115, "_timestamp")
-  case object _timestamptz        extends Type(1185, "_timestamptz")
-  case object _timetz             extends Type(1270, "_timetz")
-  case object _tinterval          extends Type(1025, "_tinterval")
-  case object _tsquery            extends Type(3645, "_tsquery")
-  case object _tsrange            extends Type(3909, "_tsrange")
-  case object _tstzrange          extends Type(3911, "_tstzrange")
-  case object _tsvector           extends Type(3643, "_tsvector")
-  case object _txid_snapshot      extends Type(2949, "_txid_snapshot")
-  case object _uuid               extends Type(2951, "_uuid")
-  case object _varbit             extends Type(1563, "_varbit")
-  case object _varchar            extends Type(1015, "_varchar")
-  case object _xid                extends Type(1011, "_xid")
-  case object _xml                extends Type(143,  "_xml")
-
-  case object abstime             extends Type(702,  "abstime")
-  case object aclitem             extends Type(1033, "aclitem")
-  case object any                 extends Type(2276, "any")
-  case object anyarray            extends Type(2277, "anyarray")
-  case object anyelement          extends Type(2283, "anyelement")
-  case object anyenum             extends Type(3500, "anyenum")
-  case object anynonarray         extends Type(2776, "anynonarray")
-  case object anyrange            extends Type(3831, "anyrange")
-  case object bit                 extends Type(1560, "bit")
-  case object bool                extends Type(16,   "bool")
-  case object box                 extends Type(603,  "box")
-
-  case class  bpchar(n: Int)      extends Type(1042, s"bpchar($n)")
-  case object bpchar              extends Type(1042, "bpchar") // same as bpchar(1)
-
-  case object bytea               extends Type(17,   "bytea")
-  case object char                extends Type(18,   "char")
-  case object cid                 extends Type(29,   "cid")
-  case object cidr                extends Type(650,  "cidr")
-  case object circle              extends Type(718,  "circle")
-  case object cstring             extends Type(2275, "cstring")
-  case object date                extends Type(1082, "date")
-  case object daterange           extends Type(3912, "daterange")
-  case object event_trigger       extends Type(3838, "event_trigger")
-  case object fdw_handler         extends Type(3115, "fdw_handler")
-  case object float4              extends Type(700,  "float4")
-  case object float8              extends Type(701,  "float8")
-  case object gtsvector           extends Type(3642, "gtsvector")
-  case object index_am_handler    extends Type(325,  "index_am_handler")
-  case object inet                extends Type(869,  "inet")
-  case object int2                extends Type(21,   "int2")
-  case object int2vector          extends Type(22,   "int2vector")
-  case object int4                extends Type(23,   "int4")
-  case object int4range           extends Type(3904, "int4range")
-  case object int8                extends Type(20,   "int8")
-  case object int8range           extends Type(3926, "int8range")
-  case object internal            extends Type(2281, "internal")
-  case object interval            extends Type(1186, "interval")
-  case object json                extends Type(114,  "json")
-  case object jsonb               extends Type(3802, "jsonb")
-  case object language_handler    extends Type(2280, "language_handler")
-  case object line                extends Type(628,  "line")
-  case object lseg                extends Type(601,  "lseg")
-  case object macaddr             extends Type(829,  "macaddr")
-  case object macaddr8            extends Type(774,  "macaddr8")
-  case object money               extends Type(790,  "money")
-  case object name                extends Type(19,   "name")
-
-  case object numeric             extends Type(1700, "numeric")
-  case class  numeric(p: Int, s: Int) extends Type(1700, s"numeric($p,$s)")
-
-  case object numrange            extends Type(3906, "numrange")
-  case object oid                 extends Type(26,   "oid")
-  case object oidvector           extends Type(30,   "oidvector")
-  case object opaque              extends Type(2282, "opaque")
-  case object path                extends Type(602,  "path")
-  case object pg_attribute        extends Type(75,   "pg_attribute")
-  case object pg_class            extends Type(83,   "pg_class")
-  case object pg_ddl_command      extends Type(32,   "pg_ddl_command")
-  case object pg_dependencies     extends Type(3402, "pg_dependencies")
-  case object pg_lsn              extends Type(3220, "pg_lsn")
-  case object pg_ndistinct        extends Type(3361, "pg_ndistinct")
-  case object pg_node_tree        extends Type(194,  "pg_node_tree")
-  case object pg_proc             extends Type(81,   "pg_proc")
-  case object pg_type             extends Type(71,   "pg_type")
-  case object point               extends Type(600,  "point")
-  case object polygon             extends Type(604,  "polygon")
-  case object record              extends Type(2249, "record")
-  case object refcursor           extends Type(1790, "refcursor")
-  case object regclass            extends Type(2205, "regclass")
-  case object regconfig           extends Type(3734, "regconfig")
-  case object regdictionary       extends Type(3769, "regdictionary")
-  case object regnamespace        extends Type(4089, "regnamespace")
-  case object regoper             extends Type(2203, "regoper")
-  case object regoperator         extends Type(2204, "regoperator")
-  case object regproc             extends Type(24,   "regproc")
-  case object regprocedure        extends Type(2202, "regprocedure")
-  case object regrole             extends Type(4096, "regrole")
-  case object regtype             extends Type(2206, "regtype")
-  case object reltime             extends Type(703,  "reltime")
-  case object smgr                extends Type(210,  "smgr")
-  case object text                extends Type(25,   "text")
-  case object tid                 extends Type(27,   "tid")
-
-  case object time                extends Type(1083, "time")
-  case class  time(s: Int)        extends Type(1083, s"time($s)")
-
-  case object timestamp           extends Type(1114, "timestamp")
-  case class  timestamp(s: Int)   extends Type(1114, s"timestamp($s)")
-
-  case object timestamptz         extends Type(1184, "timestamptz")
-  case class  timestamptz(s: Int) extends Type(1184, s"timestamptz($s)")
-
-  case object timetz              extends Type(1266, "timetz")
-  case class  timetz(s: Int)      extends Type(1266, s"timetz($s)")
-
-  case object tinterval           extends Type(704,  "tinterval")
-  case object trigger             extends Type(2279, "trigger")
-  case object tsm_handler         extends Type(3310, "tsm_handler")
-  case object tsquery             extends Type(3615, "tsquery")
-  case object tsrange             extends Type(3908, "tsrange")
-  case object tstzrange           extends Type(3910, "tstzrange")
-  case object tsvector            extends Type(3614, "tsvector")
-  case object txid_snapshot       extends Type(2970, "txid_snapshot")
-  case object unknown             extends Type(705,  "unknown")
-  case object uuid                extends Type(2950, "uuid")
-  case object varbit              extends Type(1562, "varbit")
-
-  case class varchar(n: Int)      extends Type(1042, s"varchar($n)")
-  case object varchar             extends Type(1043, "varchar")
-
-  case object void                extends Type(2278, "void")
-  case object xid                 extends Type(28,   "xid")
-  case object xml                 extends Type(142,  "xml")
-
-  case class UnknownType(override val oid: Int, typeMod: Int) extends Type(oid, s"UnknownType($oid, $typeMod)")
-
-  private val all: List[Type] =
-    List(
-      _abstime,       _aclitem,         _bit,         _bool,            _box,
-      _bpchar,        _bytea,           _char,        _cid,             _cidr,
-      _circle,        _cstring,         _date,        _daterange,       _float4,
-      _float8,        _gtsvector,       _inet,        _int2,            _int2vector,
-      _int4,          _int4range,       _int8,        _int8range,       _interval,
-      _json,          _jsonb,           _line,        _lseg,            _macaddr,
-      _macaddr8,      _money,           _name,        _numeric,         _numrange,
-      _oid,           _oidvector,       _path,        _pg_lsn,          _point,
-      _polygon,       _record,          _refcursor,   _regclass,        _regconfig,
-      _regdictionary, _regnamespace,    _regoper,     _regoperator,     _regproc,
-      _regprocedure,  _regrole,         _regtype,     _reltime,         _text,
-      _tid,           _time,            _timestamp,   _timestamptz,     _timetz,
-      _tinterval,     _tsquery,         _tsrange,     _tstzrange,       _tsvector,
-      _txid_snapshot, _uuid,            _varbit,      _varchar,         _xid,
-      _xml,           abstime,          aclitem,      any,              anyarray,
-      anyelement,     anyenum,          anynonarray,  anyrange,         bit,
-      bool,           box,                            bytea,            char,
-       cid,           cidr,             circle,       cstring,          date,
-       daterange,     event_trigger,    fdw_handler,  float4,           float8,
-       gtsvector,     index_am_handler, inet,         int2,             int2vector,
-      int4,           int4range,        int8,         int8range,        internal,
-      interval,       json,             jsonb,        language_handler, line,
-      lseg,           macaddr,          macaddr8,     money,            name,
-      numeric,        numrange,         oid,          oidvector,        opaque,
-      path,           pg_attribute,     pg_class,     pg_ddl_command,   pg_dependencies,
-      pg_lsn,         pg_ndistinct,     pg_node_tree, pg_proc,          pg_type,
-      point,          polygon,          record,       refcursor,        regclass,
-      regconfig,      regdictionary,    regnamespace, regoper,          regoperator,
-      regproc,        regprocedure,     regrole,      regtype,          reltime,
-      smgr,           text,             tid,          time,             timestamp,
-      timestamptz,    timetz,           tinterval,    trigger,          tsm_handler,
-      tsquery,        tsrange,          tstzrange,    tsvector,         txid_snapshot,
-      unknown,        uuid,             varbit,       varchar,          void,
-      xid,            xml
-    )
-
-  private val typeMap = all.map(t => (t.oid -> t)).toMap
-
-  /**
-   * Given an oid and typeMod, construct a Type. The meaning of the typeMod depends on the type, but
-   * fortunately there are just a handful of cases where we need to handle it, and they're all with
-   * built-in types. Handling user-defined types will probably mean some heavy refactoring but we'll
-   * get there eventually.
-   */
-  def forOid(typeOid: Int, typeMod: Int): Type =
-    typeOid match {
-
-      // bit
-      // interval
-
-      case numeric.oid =>
-        if (typeMod == -1) numeric
-        else {
-          val p = ((typeMod - 4) >> 16) & 65535
-          val s = ((typeMod - 4)) & 65535
-          numeric(p, s)
-        }
-
-      case bpchar.oid      => if (typeMod == -1) bpchar      else bpchar(typeMod - 4)
-      case varchar.oid     => if (typeMod == -1) varchar     else varchar(typeMod - 4)
-      case time.oid        => if (typeMod == -1) time        else time(typeMod)
-      case timetz.oid      => if (typeMod == -1) timetz      else timetz(typeMod)
-      case timestamp.oid   => if (typeMod == -1) timestamp   else timestamp(typeMod)
-      case timestamptz.oid => if (typeMod == -1) timestamptz else timestamptz(typeMod)
-
-      // varbit
-
-      // Otherwise try to look up
-      case n => typeMap.getOrElse(n, UnknownType(n, typeMod))
-
+  /** Monadic anamorphism for `Type`. */
+  def unfoldM[F[_]: Monad, A](a: A)(f: A => F[List[A]], g: A => F[String]): F[Type] =
+    f(a).flatMap { as =>
+      g(a).flatMap { s =>
+        as.traverse(unfoldM(_)(f, g)).map(ts => Type(s, ts))
+      }
     }
 
   implicit val EqType: Eq[Type] =
     Eq.fromUniversalEquals
 
+  // Built-in Parameterized Types
+  def bpchar(n: Int)          = Type(s"bpchar($n)")
+  def varchar(n: Int)         = Type(s"varchar($n)")
+  def numeric(p: Int, s: Int) = Type(s"numeric($p,$s)")
+  def time(n: Int)            = Type(s"time($n)")
+  def timetz(n: Int)          = Type(s"timetz($n)")
+  def timestamp(n: Int)       = Type(s"timestamp($n)")
+  def timestamptz(n: Int)     = Type(s"timestamptz($n)")
+
+  // Built-in Base Types
+  val abstime          = Type("abstime")
+  val aclitem          = Type("aclitem")
+  val any              = Type("any")
+  val anyarray         = Type("anyarray")
+  val anyelement       = Type("anyelement")
+  val anyenum          = Type("anyenum")
+  val anynonarray      = Type("anynonarray")
+  val anyrange         = Type("anyrange")
+  val bit              = Type("bit")
+  val bool             = Type("bool")
+  val box              = Type("box")
+  val bpchar           = Type("bpchar")
+  val bytea            = Type("bytea")
+  val char             = Type("char")
+  val cid              = Type("cid")
+  val cidr             = Type("cidr")
+  val circle           = Type("circle")
+  val cstring          = Type("cstring")
+  val date             = Type("date")
+  val daterange        = Type("daterange")
+  val event_trigger    = Type("event_trigger")
+  val fdw_handler      = Type("fdw_handler")
+  val float4           = Type("float4")
+  val float8           = Type("float8")
+  val gtsvector        = Type("gtsvector")
+  val index_am_handler = Type("index_am_handler")
+  val inet             = Type("inet")
+  val int2             = Type("int2")
+  val int2vector       = Type("int2vector")
+  val int4             = Type("int4")
+  val int4range        = Type("int4range")
+  val int8             = Type("int8")
+  val int8range        = Type("int8range")
+  val internal         = Type("internal")
+  val interval         = Type("interval")
+  val json             = Type("json")
+  val jsonb            = Type("jsonb")
+  val language_handler = Type("language_handler")
+  val line             = Type("line")
+  val lseg             = Type("lseg")
+  val macaddr          = Type("macaddr")
+  val macaddr8         = Type("macaddr8")
+  val money            = Type("money")
+  val name             = Type("name")
+  val numeric          = Type("numeric")
+  val numrange         = Type("numrange")
+  val oid              = Type("oid")
+  val oidvector        = Type("oidvector")
+  val opaque           = Type("opaque")
+  val path             = Type("path")
+  val point            = Type("point")
+  val polygon          = Type("polygon")
+  val record           = Type("record")
+  val refcursor        = Type("refcursor")
+  val regclass         = Type("regclass")
+  val regconfig        = Type("regconfig")
+  val regdictionary    = Type("regdictionary")
+  val regnamespace     = Type("regnamespace")
+  val regoper          = Type("regoper")
+  val regoperator      = Type("regoperator")
+  val regproc          = Type("regproc")
+  val regprocedure     = Type("regprocedure")
+  val regrole          = Type("regrole")
+  val regtype          = Type("regtype")
+  val reltime          = Type("reltime")
+  val smgr             = Type("smgr")
+  val text             = Type("text")
+  val tid              = Type("tid")
+  val time             = Type("time")
+  val timestamp        = Type("timestamp")
+  val timestamptz      = Type("timestamptz")
+  val timetz           = Type("timetz")
+  val tinterval        = Type("tinterval")
+  val trigger          = Type("trigger")
+  val tsm_handler      = Type("tsm_handler")
+  val tsquery          = Type("tsquery")
+  val tsrange          = Type("tsrange")
+  val tstzrange        = Type("tstzrange")
+  val tsvector         = Type("tsvector")
+  val txid_snapshot    = Type("txid_snapshot")
+  val unknown          = Type("unknown")
+  val uuid             = Type("uuid")
+  val varbit           = Type("varbit")
+  val varchar          = Type("varchar")
+  val void             = Type("void")
+  val xid              = Type("xid")
+  val xml              = Type("xml")
+
+  // Built-in Array Types
+  val _bool            = Type("_bool",          List(Type("bool")))
+  val _bytea           = Type("_bytea",         List(Type("bytea")))
+  val _char            = Type("_char",          List(Type("char")))
+  val _name            = Type("_name",          List(Type("name")))
+  val _int8            = Type("_int8",          List(Type("int8")))
+  val _int2            = Type("_int2",          List(Type("int2")))
+  val _int2vector      = Type("_int2vector",    List(Type("int2vector")))
+  val _int4            = Type("_int4",          List(Type("int4")))
+  val _regproc         = Type("_regproc",       List(Type("regproc")))
+  val _text            = Type("_text",          List(Type("text")))
+  val _oid             = Type("_oid",           List(Type("oid")))
+  val _tid             = Type("_tid",           List(Type("tid")))
+  val _xid             = Type("_xid",           List(Type("xid")))
+  val _cid             = Type("_cid",           List(Type("cid")))
+  val _oidvector       = Type("_oidvector",     List(Type("oidvector")))
+  val _json            = Type("_json",          List(Type("json")))
+  val _xml             = Type("_xml",           List(Type("xml")))
+  val _point           = Type("_point",         List(Type("point")))
+  val _lseg            = Type("_lseg",          List(Type("lseg")))
+  val _path            = Type("_path",          List(Type("path")))
+  val _box             = Type("_box",           List(Type("box")))
+  val _polygon         = Type("_polygon",       List(Type("polygon")))
+  val _line            = Type("_line",          List(Type("line")))
+  val _float4          = Type("_float4",        List(Type("float4")))
+  val _float8          = Type("_float8",        List(Type("float8")))
+  val _abstime         = Type("_abstime",       List(Type("abstime")))
+  val _reltime         = Type("_reltime",       List(Type("reltime")))
+  val _tinterval       = Type("_tinterval",     List(Type("tinterval")))
+  val _circle          = Type("_circle",        List(Type("circle")))
+  val _money           = Type("_money",         List(Type("money")))
+  val _macaddr         = Type("_macaddr",       List(Type("macaddr")))
+  val _inet            = Type("_inet",          List(Type("inet")))
+  val _cidr            = Type("_cidr",          List(Type("cidr")))
+  val _aclitem         = Type("_aclitem",       List(Type("aclitem")))
+  val _bpchar          = Type("_bpchar",        List(Type("bpchar")))
+  val _varchar         = Type("_varchar",       List(Type("varchar")))
+  val _date            = Type("_date",          List(Type("date")))
+  val _time            = Type("_time",          List(Type("time")))
+  val _timestamp       = Type("_timestamp",     List(Type("timestamp")))
+  val _timestamptz     = Type("_timestamptz",   List(Type("timestamptz")))
+  val _interval        = Type("_interval",      List(Type("interval")))
+  val _timetz          = Type("_timetz",        List(Type("timetz")))
+  val _bit             = Type("_bit",           List(Type("bit")))
+  val _varbit          = Type("_varbit",        List(Type("varbit")))
+  val _numeric         = Type("_numeric",       List(Type("numeric")))
+  val _refcursor       = Type("_refcursor",     List(Type("refcursor")))
+  val _regprocedure    = Type("_regprocedure",  List(Type("regprocedure")))
+  val _regoper         = Type("_regoper",       List(Type("regoper")))
+  val _regoperator     = Type("_regoperator",   List(Type("regoperator")))
+  val _regclass        = Type("_regclass",      List(Type("regclass")))
+  val _regtype         = Type("_regtype",       List(Type("regtype")))
+  val _regrole         = Type("_regrole",       List(Type("regrole")))
+  val _regnamespace    = Type("_regnamespace",  List(Type("regnamespace")))
+  val _uuid            = Type("_uuid",          List(Type("uuid")))
+  val _pg_lsn          = Type("_pg_lsn",        List(Type("pg_lsn")))
+  val _tsvector        = Type("_tsvector",      List(Type("tsvector")))
+  val _gtsvector       = Type("_gtsvector",     List(Type("gtsvector")))
+  val _tsquery         = Type("_tsquery",       List(Type("tsquery")))
+  val _regconfig       = Type("_regconfig",     List(Type("regconfig")))
+  val _regdictionary   = Type("_regdictionary", List(Type("regdictionary")))
+  val _jsonb           = Type("_jsonb",         List(Type("jsonb")))
+  val _txid_snapshot   = Type("_txid_snapshot", List(Type("txid_snapshot")))
+  val _int4range       = Type("_int4range",     List(Type("int4range")))
+  val _numrange        = Type("_numrange",      List(Type("numrange")))
+  val _tsrange         = Type("_tsrange",       List(Type("tsrange")))
+  val _tstzrange       = Type("_tstzrange",     List(Type("tstzrange")))
+  val _daterange       = Type("_daterange",     List(Type("daterange")))
+  val _int8range       = Type("_int8range",     List(Type("int8range")))
+  val _record          = Type("_record",        List(Type("record")))
+  val _cstring         = Type("_cstring",       List(Type("cstring")))
+
 }
+
 

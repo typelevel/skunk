@@ -6,12 +6,13 @@ package skunk.exception
 
 import cats.implicits._
 import skunk.Command
-import skunk.net.message.RowDescription
 import skunk.util.Text
+import skunk.data.TypedRowDescription
+import skunk.data.TypedRowDescription.Field
 
 case class UnexpectedRowsException(
   command: Command[_],
-  rd:    RowDescription
+  rd:      TypedRowDescription,
 ) extends SkunkException(
   sql       = Some(command.sql),
   message   = "Statement returns data.",
@@ -22,11 +23,8 @@ case class UnexpectedRowsException(
   import Text.green
   implicit def stringToText(s: String): Text = Text(s)
 
-  private def describeType(f: RowDescription.Field): Text =
-    Text(f.tpe.name)
-
-  private def describe(f: RowDescription.Field): List[Text] =
-    List(green(f.name), describeType(f))
+  private def describe(f: Field): List[Text] =
+    List(green(f.name), Text(f.tpe.name))
 
   private def columns: String =
     s"""|The unexpected output columns are

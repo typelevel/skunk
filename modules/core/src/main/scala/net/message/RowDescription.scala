@@ -8,11 +8,24 @@ import cats.implicits._
 import scodec._
 import scodec.codecs._
 import scodec.interop.cats._
-import skunk.data.Type
+import skunk.data.TypedRowDescription
+import skunk.util.Typer
 
 case class RowDescription(fields: List[RowDescription.Field]) extends BackendMessage {
-  def types: List[Type] = fields.map(_.tpe)
   override def toString = s"RowDescription(${fields.mkString("; ")})"
+
+  /**
+   * Attempt to type each field, returning a `TypedRowDescription` on success or a list of aligned
+   * pairs on failure (one or more will be `None`) for error reporting.
+   */
+  def typed(ty: Typer): Either[List[(RowDescription.Field, Option[TypedRowDescription.Field])], TypedRowDescription] = {
+    val otfs = fields.map(f => ty.typeForOid(f.typeOid, f.typeMod).map(TypedRowDescription.Field(f.name, _)))
+    otfs.sequence match {
+      case Some(tfs) => TypedRowDescription(tfs).asRight
+      case None      => fields.zip(otfs).asLeft
+    }
+  }
+
 }
 
 object RowDescription {
@@ -25,24 +38,14 @@ object RowDescription {
     }
 
   final case class Field(name: String, tableOid: Int, columnAttr: Int, typeOid: Int, typeSize: Int, typeMod: Int, format: Int /* always 0 */) {
-    lazy val tpe: Type = Type.forOid(typeOid, typeMod)
     override def toString =
-      s"Field($name, $tpe)"
+      s"Field($name, $typeOid)"
   }
 
   object Field {
 
     val decoder: Decoder[Field] =
       (cstring ~ int32 ~ int16 ~ int32 ~ int16 ~ int32 ~ int16).map(apply)
-
-      // // numeric precision from typeMod
-      // @ ((655368 - 4) >> 16) & 65535
-      // res3: Int = 10
-      // // numeric scale
-      // @ (655368 - 4) & 65535
-      // res4: Int = 4
-
-      // for bpchar and varchar the size is typeMod - 4
 
   }
 

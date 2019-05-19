@@ -9,5 +9,6 @@ trait AllCodecs
      with TextCodecs
      with TemporalCodecs
      with BooleanCodec
+     with EnumCodec
 
 object all extends AllCodecs

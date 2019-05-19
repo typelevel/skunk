@@ -17,6 +17,9 @@ import skunk.net.BitVectorSocket
 import java.nio.channels.AsynchronousChannelGroup
 import scala.concurrent.duration._
 import fs2.Pipe
+import skunk.util.Typer
+import skunk.util.Typer.Strategy.BuiltinsOnly
+import skunk.util.Typer.Strategy.SearchPath
 
 /**
  * Represents a live connection to a Postgres database. Operations provided here are safe to use
@@ -165,6 +168,8 @@ trait Session[F[_]] {
    */
   def transaction[A]: Resource[F, Transaction[F]]
 
+  def typer: Typer
+
 }
 
 
@@ -222,14 +227,16 @@ object Session {
     debug:        Boolean = false,
     readTimeout:  FiniteDuration           = Int.MaxValue.seconds,
     writeTimeout: FiniteDuration           = 5.seconds,
-    acg:          AsynchronousChannelGroup = BitVectorSocket.GlobalACG
+    acg:          AsynchronousChannelGroup = BitVectorSocket.GlobalACG,
+    strategy:     Typer.Strategy           = Typer.Strategy.BuiltinsOnly
   ): Resource[F, Session[F]] =
     for {
       nam <- Resource.liftF(Namer[F])
       ps  <- Protocol[F](host, port, debug, nam, readTimeout, writeTimeout, acg)
       _   <- Resource.liftF(ps.startup(user, database))
       // TODO: password negotiation, SASL, etc.
-    } yield fromProtocol(ps, nam)
+      s   <- Resource.liftF(fromProtocol(ps, nam, strategy))
+    } yield s
 
   /**
    * Construct a `Session` by wrapping an existing `Protocol`, which we assume has already been
@@ -237,53 +244,66 @@ object Session {
    * @group Constructors
    */
   def fromProtocol[F[_]: Sync](
-    proto: Protocol[F],
-    namer: Namer[F]
-  ): Session[F] =
-    new Session[F] {
+    proto:    Protocol[F],
+    namer:    Namer[F],
+    strategy: Typer.Strategy
+  ): F[Session[F]] = {
 
-      def execute(command: Command[Void]) =
-        proto.execute(command)
+    val ft: F[Typer] =
+      strategy match {
+        case BuiltinsOnly => Typer.Static.pure[F]
+        case SearchPath   => Typer.fromProtocol(proto)
+      }
 
-      def channel(name: Identifier) =
-        Channel.fromNameAndProtocol(name, proto)
+    ft.map { typ =>
+      new Session[F] {
 
-      def parameters =
-        proto.parameters
+        val typer = typ
 
-      def parameter(key: String) =
-        parameters.discrete.map(_.get(key)).unNone.changes
+        def execute(command: Command[Void]) =
+          proto.execute(command)
 
-      def transactionStatus =
-        proto.transactionStatus
+        def channel(name: Identifier) =
+          Channel.fromNameAndProtocol(name, proto)
 
-      def execute[A](query: Query[Void, A]) =
-        proto.execute(query)
+        def parameters =
+          proto.parameters
 
-      def unique[A](query: Query[Void, A]): F[A] =
-        execute(query).flatMap {
-          case a :: Nil => a.pure[F]
-          case Nil      => Sync[F].raiseError(new RuntimeException("Expected exactly one row, none returned."))
-          case _        => Sync[F].raiseError(new RuntimeException("Expected exactly one row, more returned."))
-        }
+        def parameter(key: String) =
+          parameters.discrete.map(_.get(key)).unNone.changes
 
-      def option[A](query: Query[Void, A]): F[Option[A]] =
-        execute(query).flatMap {
-          case a :: Nil => a.some.pure[F]
-          case Nil      => none[A].pure[F]
-          case _        => Sync[F].raiseError(new RuntimeException("Expected at most one row, more returned."))
-        }
+        def transactionStatus =
+          proto.transactionStatus
 
-      def prepare[A, B](query: Query[A, B]) =
-        proto.prepare(query).map(PreparedQuery.fromProto(_))
+        def execute[A](query: Query[Void, A]) =
+          proto.execute(query, typer)
 
-      def prepare[A](command: Command[A]) =
-        proto.prepare(command).map(PreparedCommand.fromProto(_))
+        def unique[A](query: Query[Void, A]): F[A] =
+          execute(query).flatMap {
+            case a :: Nil => a.pure[F]
+            case Nil      => Sync[F].raiseError(new RuntimeException("Expected exactly one row, none returned."))
+            case _        => Sync[F].raiseError(new RuntimeException("Expected exactly one row, more returned."))
+          }
 
-      def transaction[A] =
-        Transaction.fromSession(this, namer)
+        def option[A](query: Query[Void, A]): F[Option[A]] =
+          execute(query).flatMap {
+            case a :: Nil => a.some.pure[F]
+            case Nil      => none[A].pure[F]
+            case _        => Sync[F].raiseError(new RuntimeException("Expected at most one row, more returned."))
+          }
 
+        def prepare[A, B](query: Query[A, B]) =
+          proto.prepare(query, typer).map(PreparedQuery.fromProto(_))
+
+        def prepare[A](command: Command[A]) =
+          proto.prepare(command, typer).map(PreparedCommand.fromProto(_))
+
+        def transaction[A] =
+          Transaction.fromSession(this, namer)
+
+      }
     }
+  }
 
   // TODO: upstream
   implicit class SignalOps[F[_], A](outer: Signal[F, A]) {
@@ -305,6 +325,7 @@ object Session {
       implicit ev: Bracket[F, Throwable]
     ): Session[G] =
       new Session[G] {
+        def typer = outer.typer
         def channel(name: Identifier): Channel[G,String,Notification] = outer.channel(name).mapK(fk)
         def execute(command: Command[Void]): G[Completion] = fk(outer.execute(command))
         def execute[A](query: Query[Void,A]): G[List[A]] = fk(outer.execute(query))

@@ -3,7 +3,7 @@ services:
   postgres:
     image: postgres:9.5
     volumes:
-      - ./world.sql:/docker-entrypoint-initdb.d/world.sql
+      - ./world/world.sql:/docker-entrypoint-initdb.d/world.sql
     ports:
       - 5432:5432
     environment:

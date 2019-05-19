@@ -15,7 +15,7 @@ First let's look at a query that selects a single column and decodes rows as Sca
 Observe the following:
 
 - We are using the @ref:[sql interpolator](../reference/Fragments.md) to construct a @scaladoc[Fragment](skunk.Fragment), which we then turn into a @scaladoc[Query](skunk.Query) by calling the `query` method (fragments are also used to consruct @ref[Commands](Command.md)).
-- The argument to `query` is a Decoder called `varchar`, which defines the read relationship between the Postgres type `varchar` and the Scala type `String`. This is where the second type argument in `Query[Void, Int]` comes from. The relationship between Postgres types and Scala types is summarized in the reference section @ref:[Schema Types](../reference/SchemaTypes.md).
+- The argument to `query` is a Decoder called `varchar`, which defines the read relationship between the Postgres type `varchar` and the Scala type `String`. This is where the second type argument in `Query[Void, String]` comes from. The relationship between Postgres types and Scala types is summarized in the reference section @ref:[Schema Types](../reference/SchemaTypes.md).
 - The first type argument is `Void`, which means this query has no parameters.
 
 @@@ note { title=Definition }
