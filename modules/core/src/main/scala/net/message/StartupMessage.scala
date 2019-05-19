@@ -8,7 +8,13 @@ import scodec._
 import scodec.codecs._
 
 // TODO: SUPPORT OTHER PARAMETERS
-case class StartupMessage(user: String, database: String)
+case class StartupMessage(user: String, database: String) {
+
+  // HACK: we will take a plist eventually
+  val properties: Map[String, String] =
+    Map("user" -> user, "database" -> database)
+
+}
 
 object StartupMessage {
 

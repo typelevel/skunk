@@ -39,13 +39,13 @@ class SkunkException protected[skunk](
       ) + Console.RESET
     }
 
-  final protected def header: String =
+  protected def header: String =
     s"""|$title
         |${labeled("  Problem: ", message)}${labeled("   Detail: ", detail.orEmpty)}${labeled("     Hint: ", hint.orEmpty)}
         |
         |""".stripMargin
 
-  final protected def statement: String =
+  protected def statement: String =
     sql.foldMap { sql =>
       val stmt = Pretty.formatMessageAtPosition(sql, message, position.getOrElse(0))
       s"""|The statement under consideration ${sqlOrigin.fold("is")(or => s"was defined\n  at $or")}
@@ -55,7 +55,7 @@ class SkunkException protected[skunk](
           |""".stripMargin
     }
 
-  final protected def exchanges: String =
+  protected def exchanges: String =
     if (history.isEmpty) "" else
     s"""|Recent message exchanges:
         |
@@ -63,7 +63,7 @@ class SkunkException protected[skunk](
         |
         |""".stripMargin
 
-  final protected def args: String = {
+  protected def args: String = {
 
     def formatValue(s: String) =
       s"${Console.GREEN}$s${Console.RESET}"

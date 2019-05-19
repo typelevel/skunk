@@ -4,10 +4,11 @@
 
 package skunk.net.protocol
 
-import cats.FlatMap
+import cats.MonadError
 import cats.implicits._
 import skunk.net.MessageSocket
 import skunk.net.message._
+import skunk.exception.StartupException
 
 trait Startup[F[_]] {
   def apply(user: String, database: String): F[Unit]
@@ -15,14 +16,18 @@ trait Startup[F[_]] {
 
 object Startup {
 
-  def apply[F[_]: FlatMap: Exchange: MessageSocket]: Startup[F] =
+  def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket]: Startup[F] =
     new Startup[F] {
       def apply(user: String, database: String): F[Unit] =
         exchange {
+          val sm = StartupMessage(user, database)
           for {
-            _ <- send(StartupMessage(user, database))
+            _ <- send(sm)
             _ <- expect { case AuthenticationOk => }
-            _ <- expect { case ReadyForQuery(_) => }
+            _ <- flatExpect {
+                   case ReadyForQuery(_) => ().pure[F]
+                   case ErrorResponse(info) => new StartupException(info, sm.properties).raiseError[F, Unit]
+                 }
           } yield ()
         }
     }

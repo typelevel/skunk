@@ -8,7 +8,6 @@ import cats.effect._
 import skunk._
 import skunk.implicits._
 import skunk.codec.all._
-import skunk.data.Type
 
 object Minimal1 extends IOApp {
 
@@ -19,12 +18,10 @@ object Minimal1 extends IOApp {
       database = "world",
     )
 
-  val myenum = enum[String](identity, _ => None, Type("myenum"))
-
   def run(args: List[String]): IO[ExitCode] =
     session.use { s =>
       for {
-        s <- s.unique(sql"select 'foo'::myenum as col".query(myenum))
+        s <- s.unique(sql"select current_date".query(date))
         _ <- IO(println(s"⭐️⭐  The answer is $s."))
       } yield ExitCode.Success
     }

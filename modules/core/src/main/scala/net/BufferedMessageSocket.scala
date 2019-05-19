@@ -133,7 +133,7 @@ object BufferedMessageSocket {
       bkSig <- Deferred[F, BackendKeyData]
       noTop <- Topic[F, Notification](Notification(-1, Identifier.dummy, "")) // blech
       fib   <- next(ms, xaSig, paSig, bkSig, noTop).repeat.through(queue.enqueue).compile.drain.attempt.flatMap {
-        case Left(e)  => Concurrent[F].delay(e.printStackTrace)
+        case Left(e)  => Concurrent[F].delay(e.printStackTrace) // TODO: handle server-initiated shutdown better
         case Right(a) => a.pure[F]
       } .start
     } yield
