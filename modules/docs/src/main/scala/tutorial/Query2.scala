@@ -9,6 +9,7 @@ import skunk._
 import skunk.implicits._
 import skunk.codec.all._
 import java.time.OffsetDateTime
+import natchez.Trace.Implicits.noop
 
 object QueryExample extends IOApp {
 

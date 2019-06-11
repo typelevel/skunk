@@ -8,6 +8,7 @@ import cats.effect._
 import cats.implicits._
 import skunk._
 import skunk.implicits._
+import natchez.Trace.Implicits.noop
 
 object Channel extends IOApp {
 

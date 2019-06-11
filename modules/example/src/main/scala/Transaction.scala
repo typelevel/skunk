@@ -7,6 +7,7 @@ package example
 import cats.effect._
 import cats.implicits._
 import skunk._, skunk.implicits._, skunk.codec.all.int4
+import natchez.Trace.Implicits.noop
 
 object Transaction extends IOApp {
 

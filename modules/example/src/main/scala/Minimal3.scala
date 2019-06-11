@@ -11,6 +11,7 @@ import fs2.Stream.resource
 import skunk._
 import skunk.implicits._
 import skunk.codec.all._
+import natchez.Trace.Implicits.noop
 
 object Minimal3 extends IOApp {
 

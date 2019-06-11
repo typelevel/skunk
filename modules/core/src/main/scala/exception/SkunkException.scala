@@ -8,6 +8,8 @@ import cats.implicits._
 import skunk.data.Type
 import skunk.Query
 import skunk.util.{ CallSite, Origin, Pretty }
+import natchez.Fields
+import natchez.TraceValue
 
 class SkunkException protected[skunk](
   val sql:             Option[String],
@@ -20,7 +22,42 @@ class SkunkException protected[skunk](
   val sqlOrigin:       Option[Origin]               = None,
   val argumentsOrigin: Option[Origin]               = None,
   val callSite:        Option[CallSite]             = None
-) extends Exception(message) with scala.util.control.NoStackTrace {
+) extends Exception(message) with Fields with scala.util.control.NoStackTrace {
+
+  def fields: Map[String, TraceValue] = {
+
+    var map: Map[String, TraceValue] = Map.empty
+
+    map += "error.message" -> message
+
+    sql     .foreach(a => map += "error.sql"      -> a)
+    position.foreach(a => map += "error.position" -> a)
+    detail  .foreach(a => map += "error.detail"   -> a)
+    hint    .foreach(a => map += "error.hint"     -> a)
+
+    (arguments.zipWithIndex).foreach { case ((typ, os), n) =>
+      map += s"error.argument.${n + 1}.type"  -> typ.name
+      map += s"error.argument.${n + 1}.value" -> os.getOrElse[String]("NULL")
+    }
+
+    sqlOrigin.foreach { o =>
+      map += "error.sqlOrigin.file" -> o.file
+      map += "error.sqlOrigin.line" -> o.line
+    }
+
+    argumentsOrigin.foreach { o =>
+      map += "error.argumentsOrigin.file" -> o.file
+      map += "error.argumentsOrigin.line" -> o.line
+    }
+
+    callSite.foreach { cs =>
+      map += "error.callSite.origin.file"   -> cs.origin.file
+      map += "error.callSite.origin.line"   -> cs.origin.line
+      map += "error.callSite.origin.method" -> cs.methodName
+    }
+
+    map
+  }
 
   protected def title: String =
     callSite.fold(getClass.getSimpleName) { case CallSite(name, origin) =>

@@ -5,6 +5,7 @@
 package skunk
 package syntax
 
+import cats.data.State
 import cats.implicits._
 import scala.language.experimental.macros
 import scala.reflect.macros.whitebox
@@ -31,8 +32,8 @@ object StringContextOps {
 
   sealed trait Part
   case class Str(s: String)                     extends Part
-  case class Par(n: Int)                        extends Part
-  case class Emb(ps: List[Either[String, Int]]) extends Part
+  case class Par(n: State[Int, String])         extends Part // n parameters
+  case class Emb(ps: List[Either[String, State[Int, String]]]) extends Part
 
   def fragmentFromParts[A](ps: List[Part], enc: Encoder[A], or: Origin): Fragment[A] =
     Fragment(
@@ -99,7 +100,7 @@ object StringContextOps {
             } else if (argType <:< EncoderType) {
 
                 val p1 = q"_root_.skunk.syntax.StringContextOps.Str($part)"
-                val p2 = q"_root_.skunk.syntax.StringContextOps.Par($arg.types.length)"
+                val p2 = q"_root_.skunk.syntax.StringContextOps.Par($arg.sql)"
                 (p1 :: p2 :: tail, arg :: es)
 
             } else if (argType <:< VoidFragmentType) {

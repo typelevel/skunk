@@ -20,6 +20,7 @@ import fs2.Pipe
 import skunk.util.Typer
 import skunk.util.Typer.Strategy.BuiltinsOnly
 import skunk.util.Typer.Strategy.SearchPath
+import natchez.Trace
 
 /**
  * Represents a live connection to a Postgres database. Operations provided here are safe to use
@@ -189,7 +190,7 @@ object Session {
    *   production but honestly it's really cheap and probably worth keeping.
    * @group Constructors
    */
-  def pooled[F[_]: Concurrent: ContextShift](
+  def pooled[F[_]: Concurrent: ContextShift: Trace](
     host:     String,
     port:     Int,
     user:     String,
@@ -219,7 +220,7 @@ object Session {
    *   This is useful if you're working on Skunk itself but should be disabled otherwise.
    * @group Constructors
    */
-  def single[F[_]: Concurrent: ContextShift](
+  def single[F[_]: Concurrent: ContextShift: Trace](
     host:         String,
     port:         Int                      = 5432,
     user:         String,

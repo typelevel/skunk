@@ -9,6 +9,7 @@ import cats.implicits._
 import skunk._
 import skunk.implicits._
 import skunk.codec.all._
+import natchez.Trace.Implicits.noop
 
 object Error extends IOApp {
 

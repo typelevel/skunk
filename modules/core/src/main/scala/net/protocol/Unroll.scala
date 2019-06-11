@@ -14,12 +14,13 @@ import skunk.net.MessageSocket
 import skunk.net.Protocol.QueryPortal
 import skunk.util.Origin
 import skunk.data.TypedRowDescription
+import natchez.Trace
 
 /**
  * Superclass for `Query` and `Execute` sub-protocols, both of which need a way to accumulate
  * results in a `List` and report errors when decoding fails.
  */
-private[protocol] class Unroll[F[_]: MonadError[?[_], Throwable]: MessageSocket] {
+private[protocol] class Unroll[F[_]: MonadError[?[_], Throwable]: MessageSocket: Trace] {
 
   /** Receive the next batch of rows. */
   def unroll[A, B](
@@ -58,6 +59,10 @@ private[protocol] class Unroll[F[_]: MonadError[?[_], Throwable]: MessageSocket]
 
     accumulate(Nil).flatMap {
       case (rows, bool) =>
+        Trace[F].put(
+          "row-count" -> rows.length,
+          "more-rows" -> bool
+        ) *>
         rows.traverse { data =>
           decoder.decode(0, data) match {
             case Right(a) => a.pure[F]

@@ -30,14 +30,15 @@ Try out this minimal [IOApp](https://typelevel.org/cats-effect/datatypes/ioapp.h
 
 Let's examine the code above.
 
-- At ① we define a [Resource](https://typelevel.org/cats-effect/datatypes/resource.html)  that yields un-pooled @ref:[Session](../reference/Sessions.md) values and ensures that they are closed after use. We specify the host, port, user, and database.
+- At ① we import the no-op `Tracer`, which allows us to run Skunk programs with execution tracing disabled. We will revisit @ref:[Tracing](Tracing.md) in a later section.
+- At ② we define a [Resource](https://typelevel.org/cats-effect/datatypes/resource.html)  that yields un-pooled @ref:[Session](../reference/Sessions.md) values and ensures that they are closed after use. We specify the host, port, user, and database.
 
 @@@ note
 Skunk does not support authenticated (or encrypted) connections yet. You must connect with a user who can log in without a password.
 @@@
 
-- At ② we `use` the resource, specifying a block to execute during the `Session`'s lifetime. No matter how the block terminates (success, failure, cancellation) the `Session` will be closed properly.
-- At ③ we use the @ref:[sql interpolator](../reference/Fragments.md) to construct a `Query` that selects a single column of schema type `date` (which maps to JDK type @javadoc[LocalDate](java.time.LocalDate)), then we ask the session to execute it, expecting a *unique* value back; i.e., exactly one row.
+- At ③ we `use` the resource, specifying a block to execute during the `Session`'s lifetime. No matter how the block terminates (success, failure, cancellation) the `Session` will be closed properly.
+- At ④ we use the @ref:[sql interpolator](../reference/Fragments.md) to construct a `Query` that selects a single column of schema type `date` (which maps to JDK type @javadoc[LocalDate](java.time.LocalDate)), then we ask the session to execute it, expecting a *unique* value back; i.e., exactly one row.
 
 When we run the program we will see the current date.
 
@@ -49,6 +50,7 @@ The current date is 2019-05-11.
 
 Here are some modifications that will cause runtime failures. Give them a try and see how Skunk responds.
 
+- Try running with an invalid user or database name.
 - Introduce a typo into the SQL string.
 - Change the decoder from `date` to another type like `timestamp`.
 

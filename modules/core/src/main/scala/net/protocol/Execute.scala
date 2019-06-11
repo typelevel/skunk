@@ -12,6 +12,7 @@ import skunk.exception.PostgresErrorException
 import skunk.net.{ Protocol, MessageSocket }
 import skunk.net.message.{ Execute => ExecuteMessage, _ }
 import skunk.util.Typer
+import natchez.Trace
 
 trait Execute[F[_]] {
   def apply[A](portal: Protocol.CommandPortal[F, A]): F[Completion]
@@ -20,11 +21,11 @@ trait Execute[F[_]] {
 
 object Execute {
 
-  def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket]: Execute[F] =
+  def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket: Trace]: Execute[F] =
     new Unroll[F] with Execute[F] {
 
       def apply[A](portal: Protocol.CommandPortal[F, A]): F[Completion] =
-        exchange {
+        exchange("execute") {
           for {
             _  <- send(ExecuteMessage(portal.id.value, 0))
             _  <- send(Flush)
@@ -36,8 +37,12 @@ object Execute {
         }
 
       def apply[A, B](portal: Protocol.QueryPortal[F, A, B], maxRows: Int, ty: Typer): F[List[B] ~ Boolean] =
-        exchange {
+        exchange("execute") {
           for {
+            _  <- Trace[F].put(
+                    "max-rows"  -> maxRows,
+                    "portal-id" -> portal.id.value
+                  )
             _  <- send(ExecuteMessage(portal.id.value, maxRows))
             _  <- send(Flush)
             rs <- unroll(portal)

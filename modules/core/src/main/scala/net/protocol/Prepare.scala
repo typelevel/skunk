@@ -12,6 +12,7 @@ import skunk.net.MessageSocket
 import skunk.net.Protocol.{ PreparedCommand, PreparedQuery, CommandPortal, QueryPortal }
 import skunk.util.{ Origin, Namer }
 import skunk.util.Typer
+import natchez.Trace
 
 trait Prepare[F[_]] {
   def apply[A](command: skunk.Command[A], ty: Typer): Resource[F, PreparedCommand[F, A]]
@@ -20,7 +21,7 @@ trait Prepare[F[_]] {
 
 object Prepare {
 
-  def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket: Namer]: Prepare[F] =
+  def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket: Namer: Trace]: Prepare[F] =
     new Prepare[F] {
 
       def apply[A](command: skunk.Command[A], ty: Typer): Resource[F, PreparedCommand[F, A]] =

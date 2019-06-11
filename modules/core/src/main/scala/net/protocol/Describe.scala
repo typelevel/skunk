@@ -13,6 +13,7 @@ import skunk.net.message.{ Describe => DescribeMessage, _ }
 import skunk.util.Typer
 import skunk.exception.UnknownOidException
 import skunk.data.TypedRowDescription
+import natchez.Trace
 
 trait Describe[F[_]] {
   def apply(cmd: skunk.Command[_], id: StatementId, ty: Typer): F[Unit]
@@ -21,7 +22,7 @@ trait Describe[F[_]] {
 
 object Describe {
 
-  def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket]: Describe[F] =
+  def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket: Trace]: Describe[F] =
     new Describe[F] {
 
       // promote a command to a query ... weird case, see below
@@ -29,8 +30,9 @@ object Describe {
         skunk.Query(cmd.sql, cmd.origin, cmd.encoder, skunk.Void.codec)
 
       def apply(cmd: skunk.Command[_], id: StatementId, ty: Typer): F[Unit] =
-        exchange {
+        exchange("describe") {
           for {
+            _  <- Trace[F].put("statement-id" -> id.value)
             _  <- send(DescribeMessage.statement(id.value))
             _  <- send(Flush)
             _  <- expect { case ParameterDescription(_) => } // always ok
@@ -50,8 +52,9 @@ object Describe {
         }
 
       def apply[A](query: skunk.Query[_, A], id: StatementId, ty: Typer): F[TypedRowDescription] =
-        exchange {
+        exchange("describe") {
           for {
+            _  <- Trace[F].put("statement-id" -> id.value)
             _  <- send(DescribeMessage.statement(id.value))
             _  <- send(Flush)
             _  <- expect { case ParameterDescription(_) => } // always ok
@@ -61,7 +64,8 @@ object Describe {
                   }
             td <- rd.typed(ty) match {
                     case Left(err) => UnknownOidException(query, err).raiseError[F, TypedRowDescription]
-                    case Right(td) => td.pure[F]
+                    case Right(td) =>
+                      Trace[F].put("column-types" -> td.fields.map(_.tpe).mkString("[", ", ", "]")).as(td)
                   }
             _  <- ColumnAlignmentException(query, td).raiseError[F, Unit].unlessA(query.decoder.types === td.types)
           } yield td

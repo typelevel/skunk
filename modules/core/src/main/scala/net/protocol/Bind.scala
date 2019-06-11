@@ -8,10 +8,11 @@ import cats.effect.Resource
 import cats.implicits._
 import cats.MonadError
 import skunk.exception.PostgresErrorException
-import skunk.net.message.{ Bind => BindMessage, Close => CloseMessage, _ }
+import skunk.net.message.{ Bind => BindMessage, _ }
 import skunk.net.MessageSocket
 import skunk.net.Protocol.{ PreparedStatement, PortalId }
 import skunk.util.{ Origin, Namer }
+import natchez.Trace
 
 trait Bind[F[_]] {
 
@@ -25,7 +26,7 @@ trait Bind[F[_]] {
 
 object Bind {
 
-  def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket: Namer]: Bind[F] =
+  def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket: Namer: Trace]: Bind[F] =
     new Bind[F] {
 
       def apply[A](
@@ -34,9 +35,13 @@ object Bind {
         argsOrigin: Origin
       ): Resource[F, PortalId] =
         Resource.make {
-          exchange {
+          exchange("bind") {
             for {
               pn <- nextName("portal").map(PortalId)
+              _  <- Trace[F].put(
+                      "arguments" -> args.toString,
+                      "portal-id" -> pn.value
+                    )
               _  <- send(BindMessage(pn.value, statement.id.value, statement.statement.encoder.encode(args)))
               _  <- send(Flush)
               _  <- flatExpect {
@@ -45,7 +50,7 @@ object Bind {
                     }
             } yield pn
           }
-        } { name => Close[F].apply(CloseMessage.portal(name.value)) }
+        } { Close[F].apply }
 
       def syncAndFail[A](
         statement:  PreparedStatement[F, A],
