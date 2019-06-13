@@ -118,7 +118,7 @@ lazy val core = project
       "org.typelevel" %% "cats-free"    % "1.3.0",
       "co.fs2"        %% "fs2-core"     % "1.0.4",
       "co.fs2"        %% "fs2-io"       % "1.0.4",
-      "org.scodec"    %% "scodec-core"  % "1.11.3",
+      "org.scodec"    %% "scodec-core"  % "1.11.4",
       "org.scodec"    %% "scodec-cats"  % "0.8.0",
       "com.beachape"  %% "enumeratum"   % "1.5.13",
       "org.tpolecat"  %% "natchez-core" % "0.0.5",
