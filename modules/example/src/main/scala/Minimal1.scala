@@ -8,6 +8,7 @@ import cats.effect._
 import skunk._
 import skunk.implicits._
 import skunk.codec.all._
+import natchez.Trace.Implicits.noop
 
 object Minimal1 extends IOApp {
 

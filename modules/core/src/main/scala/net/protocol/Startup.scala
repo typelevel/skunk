@@ -9,6 +9,7 @@ import cats.implicits._
 import skunk.net.MessageSocket
 import skunk.net.message._
 import skunk.exception.StartupException
+import natchez.Trace
 
 trait Startup[F[_]] {
   def apply(user: String, database: String): F[Unit]
@@ -16,17 +17,23 @@ trait Startup[F[_]] {
 
 object Startup {
 
-  def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket]: Startup[F] =
+  def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket: Trace]: Startup[F] =
     new Startup[F] {
       def apply(user: String, database: String): F[Unit] =
-        exchange {
+        exchange("startup") {
           val sm = StartupMessage(user, database)
           for {
+            _ <- Trace[F].put(
+                   "user"     -> user,
+                   "database" -> database
+                 )
             _ <- send(sm)
             _ <- expect { case AuthenticationOk => }
             _ <- flatExpect {
                    case ReadyForQuery(_) => ().pure[F]
-                   case ErrorResponse(info) => new StartupException(info, sm.properties).raiseError[F, Unit]
+                   case ErrorResponse(info) =>
+                    val e = new StartupException(info, sm.properties)
+                    e.raiseError[F, Unit]
                  }
           } yield ()
         }

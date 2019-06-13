@@ -15,6 +15,7 @@ import skunk.util.{ Namer, Origin }
 import java.nio.channels.AsynchronousChannelGroup
 import scala.concurrent.duration.FiniteDuration
 import skunk.util.Typer
+import natchez.Trace
 
 /**
  * Interface for a Postgres database, expressed through high-level operations that rely on exchange
@@ -182,7 +183,7 @@ object Protocol {
    * @param host  Postgres server host
    * @param port  Postgres port, default 5432
    */
-  def apply[F[_]: Concurrent: ContextShift](
+  def apply[F[_]: Concurrent: ContextShift: Trace](
     host:         String,
     port:         Int,
     debug:        Boolean,

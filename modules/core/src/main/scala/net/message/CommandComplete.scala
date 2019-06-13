@@ -35,6 +35,8 @@ object CommandComplete {
 
   private object Patterns {
     val Select = """SELECT (\d+)""".r
+    val Delete = """DELETE (\d+)""".r
+    val Update = """UPDATE (\d+)""".r
   }
 
   def decoder = cstring.map {
@@ -48,6 +50,8 @@ object CommandComplete {
     case "ROLLBACK"         => apply(Completion.Rollback)
     case "SAVEPOINT"        => apply(Completion.Savepoint)
     case Patterns.Select(s) => apply(Completion.Select(s.toInt))
+    case Patterns.Delete(s) => apply(Completion.Delete(s.toInt))
+    case Patterns.Update(s) => apply(Completion.Delete(s.toInt))
     // more .. fill in as we hit them
   }
 

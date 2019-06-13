@@ -4,6 +4,7 @@
 
 package skunk
 
+import cats.data.State
 import cats.implicits._
 
 /**
@@ -24,6 +25,7 @@ case object Void extends Void {
           case _   => Left(Decoder.Error(index, 0, s"Expected no values, found $ss"))
         }
       val types = Nil
+      val sql   = "".pure[State[Int, ?]]
     }
 
 }

@@ -9,6 +9,7 @@ This section contains instructions and examples to get you started. It's written
 * [Commands](Command.md)
 * [Transactions](Transactions.md)
 * [Channels](Channels.md)
+* [Tracing](Tracing.md)
 
 @@@
 

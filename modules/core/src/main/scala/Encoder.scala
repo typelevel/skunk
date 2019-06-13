@@ -5,6 +5,7 @@
 package skunk
 
 import cats._
+import cats.data.State
 import cats.implicits._
 import skunk.data.Type
 import skunk.util.Typer
@@ -17,6 +18,12 @@ trait Encoder[A] { outer =>
 
   protected lazy val empty: List[Option[String]] =
     types.map(_ => None)
+
+  /**
+   * Given an initial parameter index, yield a hunk of sql containing placeholders, and a new
+   * index.
+   */
+  def sql: State[Int, String]
 
   /**
    * Encode a value of type `A`, yielding a list of Postgres text-formatted strings, lifted to
@@ -41,6 +48,7 @@ trait Encoder[A] { outer =>
     new Encoder[B] {
       def encode(b: B) = outer.encode(f(b))
       val types = outer.types
+      val sql = outer.sql
     }
 
   /** `Encoder` is semigroupal: a pair of encoders make a encoder for a pair. */
@@ -48,6 +56,7 @@ trait Encoder[A] { outer =>
     new Encoder[(A, B)] {
       def encode(ab: (A, B)) = outer.encode(ab._1) ++ fb.encode(ab._2)
       val types = outer.types ++ fb.types
+      val sql = (outer.sql, fb.sql).mapN((a, b) => s"$a, $b")
     }
 
   /** Shorthand for `product`. */
@@ -60,14 +69,32 @@ trait Encoder[A] { outer =>
     new Encoder[Option[A]] {
       def encode(a: Option[A]) = a.fold(empty)(outer.encode)
       val types = outer.types
+      val sql   = outer.sql
     }
 
-  // TODO: decoder, codec
+  /**
+   * Derive an encoder for a list of size `n` that expands to a comma-separated list of
+   * placeholders.
+   */
   def list(n: Int): Encoder[List[A]] =
     new Encoder[List[A]] {
       def encode(as: List[A]) = as.flatMap(outer.encode)
       val types = (0 until n).toList.flatMap(_ => outer.types)
+      val sql   = outer.sql.replicateA(n).map(_.mkString(", "))
     }
+
+  /**
+   * Derive an equivalent encoder for a row type; i.e., its placeholders will be surrounded by
+   * parens.
+   */
+  def values: Encoder[A] =
+    new Encoder[A] {
+      def encode(a: A): List[Option[String]] = outer.encode(a)
+      val types: List[Type] = outer.types
+      val sql: State[Int,String] = outer.sql.map(s => s"($s)")
+    }
+
+  // now we can say (int4 ~ varchar ~ bool).row.list(2) to get ($1, $2, $3), ($4, $5, $6)
 
   override def toString =
     s"Encoder(${types.toList.mkString(", ")})"

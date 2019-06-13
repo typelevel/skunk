@@ -9,11 +9,12 @@ import cats.effect._
 import skunk._
 import skunk.implicits._
 import skunk.codec.all._
+import natchez.Trace.Implicits.noop                          // (1)
 
 object Hello extends IOApp {
 
   val session: Resource[IO, Session[IO]] =
-    Session.single(                                         // (1)
+    Session.single(                                          // (2)
       host     = "localhost",
       port     = 5432,
       user     = "postgres",
@@ -21,10 +22,10 @@ object Hello extends IOApp {
     )
 
   def run(args: List[String]): IO[ExitCode] =
-    session.use { s =>                                      // (2)
+    session.use { s =>                                       // (3)
       for {
-        s <- s.unique(sql"select xcurrent_date".query(date)) // (3)
-        _ <- IO(println(s"The current date is $s."))        // (4)
+        s <- s.unique(sql"select xcurrent_date".query(date)) // (4)
+        _ <- IO(println(s"The current date is $s."))
       } yield ExitCode.Success
     }
 

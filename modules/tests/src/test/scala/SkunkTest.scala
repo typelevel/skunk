@@ -12,6 +12,7 @@ import skunk.data._
 import skunk.codec.all._
 import skunk.implicits._
 import skunk.util.Typer
+import natchez.Trace.Implicits.noop
 
 abstract class SkunkTest(strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly) extends ffstest.FTest {
 

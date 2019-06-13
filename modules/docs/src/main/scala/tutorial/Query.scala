@@ -15,6 +15,7 @@ object Query extends IOApp {
   import skunk._
   import skunk.implicits._
   import skunk.codec.all._
+  import natchez.Trace.Implicits.noop
 
   val a: Query[Void, String] =
     sql"SELECT name FROM country".query(varchar)
@@ -37,16 +38,16 @@ object Query extends IOApp {
 
   val c: Query[Void, Country] =
     sql"SELECT name, population FROM country"
-      .query(varchar ~ int4)
-      .map { case n ~ p => Country(n, p) }
+      .query(varchar ~ int4)                // (1)
+      .map { case n ~ p => Country(n, p) }  // (2)
   //#query-c
 
   //#query-d
   val country: Decoder[Country] =
-    (varchar ~ int4).map { case (n, p) => Country(n, p) }
+    (varchar ~ int4).map { case (n, p) => Country(n, p) }     // (1)
 
   val d: Query[Void, Country] =
-    sql"SELECT name, population FROM country".query(country)
+    sql"SELECT name, population FROM country".query(country)  // (2)
   //#query-d
 
   def q_d_exec[F[_]](s: Session[IO]): IO[List[Country]] = {

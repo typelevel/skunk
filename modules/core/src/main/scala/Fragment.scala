@@ -16,7 +16,7 @@ import skunk.util.Origin
  * @group Statements
  */
 final case class Fragment[A](
-  parts:   List[Either[String, Int]],
+  parts:   List[Either[String, State[Int, String]]],
   encoder: Encoder[A],
   origin:  Origin
 ) {
@@ -24,7 +24,7 @@ final case class Fragment[A](
   lazy val sql: String =
     parts.traverse {
       case Left(s)  => s.pure[State[Int, ?]]
-      case Right(n) => State((i: Int) => (i + n, (i until i + n).map("$" + _).mkString(", ")))
+      case Right(s) => s
     } .runA(1).value.combineAll
 
   def query[B](decoder: Decoder[B]): Query[A, B] =

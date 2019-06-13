@@ -8,13 +8,14 @@ import cats.effect.Resource
 import cats.implicits._
 import cats.MonadError
 import skunk.exception.PostgresErrorException
-import skunk.net.message.{ Parse => ParseMessage, Close => CloseMessage, _ }
+import skunk.net.message.{ Parse => ParseMessage, _ }
 import skunk.net.MessageSocket
 import skunk.net.Protocol.StatementId
 import skunk.Statement
 import skunk.util.Namer
 import skunk.util.Typer
 import skunk.exception.UnknownTypeException
+import natchez.Trace
 
 trait Parse[F[_]] {
   def apply[A](statement: Statement[A], ty: Typer): Resource[F, StatementId]
@@ -22,7 +23,7 @@ trait Parse[F[_]] {
 
 object Parse {
 
-  def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket: Namer]: Parse[F] =
+  def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket: Namer: Trace]: Parse[F] =
     new Parse[F] {
 
       def apply[A](statement: Statement[A], ty: Typer): Resource[F, StatementId] =
@@ -30,9 +31,14 @@ object Parse {
 
           case Right(os) =>
             Resource.make {
-              exchange {
+              exchange("parse") {
                 for {
                   id <- nextName("statement").map(StatementId)
+                  _  <- Trace[F].put(
+                          "statement-name"            -> id.value,
+                          "statement-sql"             -> statement.sql,
+                          "statement-parameter-types" -> os.map(n => ty.typeForOid(n, -1).getOrElse(n)).mkString("[", ", ", "]")
+                        )
                   _  <- send(ParseMessage(id.value, statement.sql, os))
                   _  <- send(Flush)
                   _  <- flatExpect {
@@ -41,7 +47,7 @@ object Parse {
                         }
                 } yield id
               }
-            } { id => Close[F].apply(CloseMessage.statement(id.value)) }
+            } { Close[F].apply }
 
           case Left(err) =>
             Resource.liftF(new UnknownTypeException(statement, err).raiseError[F, StatementId])

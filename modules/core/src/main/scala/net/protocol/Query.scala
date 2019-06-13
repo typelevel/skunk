@@ -13,6 +13,7 @@ import skunk.net.message.{ Query => QueryMessage, _ }
 import skunk.net.MessageSocket
 import skunk.util.Typer
 import skunk.exception.UnknownOidException
+import natchez.Trace
 
 trait Query[F[_]] {
   def apply(command: Command[Void]): F[Completion]
@@ -21,11 +22,11 @@ trait Query[F[_]] {
 
 object Query {
 
-  def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket]: Query[F] =
+  def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket: Trace]: Query[F] =
     new Unroll[F] with Query[F] {
 
       def apply[B](query: skunk.Query[Void, B], ty: Typer): F[List[B]] =
-        exchange {
+        exchange("query") {
           send(QueryMessage(query.sql)) *> flatExpect {
 
             // If we get a RowDescription back it means we have a valid query as far as Postgres is
@@ -96,7 +97,7 @@ object Query {
         }
 
         def apply(command: Command[Void]): F[Completion] =
-          exchange {
+          exchange("query") {
             send(QueryMessage(command.sql)) *> flatExpect {
 
               case CommandComplete(c) =>

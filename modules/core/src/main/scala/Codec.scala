@@ -5,6 +5,7 @@
 package skunk
 
 import cats._
+import cats.data._
 import cats.implicits._
 import skunk.data.Type
 
@@ -27,7 +28,8 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
       val pd = outer.asDecoder product fb.asDecoder
       def encode(ab: (A, B)) = pe.encode(ab)
       def decode(offset: Int, ss: List[Option[String]]) = pd.decode(offset, ss)
-      def types = outer.types ++ fb.types
+      val types = outer.types ++ fb.types
+      val sql   = (outer.sql, fb.sql).mapN((a, b) => s"$a, $b")
     }
 
   /** Shorthand for `product`. */
@@ -45,7 +47,8 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
       def decode(offset: Int, ss: List[Option[String]]) =
         if (ss.forall(_.isEmpty)) Right(None)
         else outer.decode(offset, ss).map(Some(_))
-      def types = outer.types
+      val types = outer.types
+      val sql   = outer.sql
     }
 
   override def toString =
@@ -66,6 +69,7 @@ object Codec {
       def encode(a: A) = encode0(a)
       def decode(offset: Int, ss: List[Option[String]]) = decode0(offset, ss)
       def types = oids0
+      val sql   = State((n: Int) => (n + 1, s"$$$n"))
     }
   /** @group Constructors */
   def simple[A](encode: A => String, decode: String => Either[String, A], oid: Type): Codec[A] =

@@ -10,6 +10,7 @@ import skunk.implicits._
 import cats.effect._
 import cats.implicits._
 import fs2._
+import natchez.Trace.Implicits.noop
 
 // This does a lot of stuff and is mostly just to test features as they're being added. This class
 // will probably go away.

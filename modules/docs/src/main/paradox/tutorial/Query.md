@@ -14,9 +14,15 @@ First let's look at a query that selects a single column and decodes rows as Sca
 
 Observe the following:
 
-- We are using the @ref:[sql interpolator](../reference/Fragments.md) to construct a @scaladoc[Fragment](skunk.Fragment), which we then turn into a @scaladoc[Query](skunk.Query) by calling the `query` method (fragments are also used to consruct @ref[Commands](Command.md)).
-- The argument to `query` is a Decoder called `varchar`, which defines the read relationship between the Postgres type `varchar` and the Scala type `String`. This is where the second type argument in `Query[Void, String]` comes from. The relationship between Postgres types and Scala types is summarized in the reference section @ref:[Schema Types](../reference/SchemaTypes.md).
-- The first type argument is `Void`, which means this query has no parameters.
+- We are using the @ref:[sql interpolator](../reference/Fragments.md) to construct a @scaladoc[Fragment](skunk.Fragment), which we then turn into a @scaladoc[Query](skunk.Query) by calling the `query` method (fragments are also used to construct @ref[Commands](Command.md)).
+- The argument to `query` is a value called `varchar`, which has type `Decoder[String]` and defines the read relationship between the Postgres type `varchar` and the Scala type `String`. The relationship between Postgres types and Scala types is summarized in the reference section @ref:[Schema Types](../reference/SchemaTypes.md).
+- The first type argument for our `Query` type is `Void`, which means this query has no parameters. The second type argument is `String`, which means we expect rows to be decoded as `String` values (via our `varchar` decoder).
+
+@@@ note
+Queries and Command types are usually inferrable, but specifying a type ensures that the chosen encoders and decoders are consistent with the expected input and output Scala types. For this reason (and for clarity) we will always use explicit type annotations in the documentation.
+@@@
+
+The query above is a *simple query*.
 
 @@@ note { title=Definition }
 A *simple query* is a query with no parameters.
@@ -40,22 +46,35 @@ Our next example selects two columns.
 
 @@snip [Query.scala](/modules/docs/src/main/scala/tutorial/Query.scala) { #query-b }
 
-Observe that the argument to `query` is a pair of decoders conjoined with the `~` operator, yielding a return type of `String ~ Int`. See the section on @ref:[twiddle lists](../reference/TwiddleLists.md) for reference on this mechanism.
+Observe that the argument to `query` is a pair of decoders conjoined with the `~` operator, yielding a return type of `String ~ Int`, which is an alias for `(String, Int)`. See the section on @ref:[twiddle lists](../reference/TwiddleLists.md) for more information on this mechanism.
+
+### Mapping Query Results
 
 Decoding into a twiddle list isn't ideal, so let's define a `Country` data type. We can them call `map` on our query to adapt the row type.
 
 @@snip [Query.scala](/modules/docs/src/main/scala/tutorial/Query.scala) { #query-c }
 
+Observe the following:
+
+- At ① we request that rows be decoded by `varchar ~ int4` into Scala type `String ~ Int`.
+- At ② we `map` to our `Country` data type, yielding a `Query[Void, Country]`.
+
 So that is is one way to do it.
+
+### Mapping Decoder Results
 
 A more reusable way to do this is to define a `Decoder[Country]` based on the `varchar ~ varchar` decoder. We can then decode directly into our `Country` data type.
 
 @@snip [Query.scala](/modules/docs/src/main/scala/tutorial/Query.scala) { #query-d }
 
+Observe the following:
+
+- At ① we map the `varchar ~ int4` decoder directly to Scala type `Country`, yielding a `Decoder[Country]`.
+- At ② we use our `country` decoder directly, yielding a `Query[Void, Country]`.
+
 And again we can pass the query to @scaladoc[Session#execute](skunk.Session#execute).
 
 @@snip [Query.scala](/modules/docs/src/main/scala/tutorial/Query.scala) { #query-d-exec }
-
 
 ## Parameterized Query
 
@@ -63,13 +82,23 @@ Now let's add a parameter to the query. We'll also reformat the query to be more
 
 @@snip [Query.scala](/modules/docs/src/main/scala/tutorial/Query.scala) { #query-e }
 
-Observe that we have interpolated an Encoder called `varchar`. This means that Postgres will expect an argument of type `varchar`, which will have Scala type `String`. The relationship between Postgres types and Scala types is summarized in the reference section @ref:[Schema Types](../reference/SchemaTypes.md).
+Observe that we have interpolated a value called `varchar`, which has type `Encoder[String]`.
+
+This means that Postgres will expect an argument of type `varchar`, which will have Scala type `String`. The relationship between Postgres types and Scala types is summarized in the reference section @ref:[Schema Types](../reference/SchemaTypes.md).
+
+@@@ note
+We have already seen `varchar` used as a row *decoder* for `String` and now we're using it as an *encoder* for `String`. We can do this because `encoder` actually has type `Codec[String]`, which extends both `Encoder[String]` and `Decoder[String]`. All type mappings provided by Skunk are codecs and thus can be used in both positions.
+@@@
+
+The query above is an *extended query*.
 
 @@@ note { title=Definition }
 An *extended query* is a query with parameters, or a simple query that is executed via the extended query protocol.
 @@@
 
 Postgres provides a [protocol](https://www.postgresql.org/docs/10/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY) for executing extended queries which is more involved than simple query protocol. It provides for prepared statements that can be reused with different sets of arguments, and provides cursors which allow results to be paged and streamed in constant space.
+
+Here we use the extended query protocol to stream directly to the console using constant space.
 
 @@snip [Query.scala](/modules/docs/src/main/scala/tutorial/Query.scala) { #query-e-exec-a }
 
@@ -102,6 +131,22 @@ Observe that we have two parameter encoders `varchar` and `int4` (in that order)
 
 And we pass the value `"U%" ~ 2000000` as our statement argument.
 
+## Summary of Query Types
+
+The *simple query protocol* (i.e., `Session#execute`) is slightly more efficient in terms of message exchange, so use it if:
+
+- Your query has no parameters; and
+- you are querying for a small number of rows; and
+- you will be using the query only once per session.
+
+
+The *extend query protocol* (i.e., `Session#prepare`) is more powerful and more general, but requires additional network exchanges. Use it if:
+
+- Your query has parameters; and/or
+- you are querying for a large or unknown number of rows; and/or
+- you intend to stream the results; and/or
+- you will be using the query more than once per session.
+
 ## Full Example
 
 Here is a complete program listing that demonstrates our knowledge thus far.
@@ -121,4 +166,36 @@ Country(Uzbekistan,UZB,24318000)
 Country(United States,USA,278357000)
 Country(United States Minor Outlying Islands,UMI,0)
 ```
+
+## Experiment
+
+Here are some experiments you might want to try.
+
+- Try to run the `extended` query via `Session#execute`, or the `simple` query via `Session#prepare`. Note that in the latter case you will need to pass the value `Void` as an argument.
+
+- Add/remove/change encoders and decoders. Do various things to make the queries fail. Which kinds of errors are detected at compile-time vs. runtime?
+
+- Add more fields to `Country` and more colums to the query; or add more parameters. You will need to consult the @ref:[Schema Types](../reference/SchemaTypes.md) reference to find the encoders/decoders you need.
+
+- Experiment with the treatment of nullable columns. You need to add `.opt` to encoders/decoders (`int4.opt` for example) to indicate nullability. Keep in mind that for interpolated encoders you'll need to write `${int4.opt}`.
+
+For reference, the `country` table looks like this.
+
+|     Column     |   Postgres Type   | Modifiers |
+|----------------|-------------------|-----------
+| code           | character(3)      | not null  |
+| name           | character varying | not null  |
+| continent      | character varying | not null  |
+| region         | character varying | not null  |
+| surfacearea    | real              | not null  |
+| indepyear      | smallint          |           |
+| population     | integer           | not null  |
+| lifeexpectancy | real              |           |
+| gnp            | numeric(10,2)     |           |
+| gnpold         | numeric(10,2)     |           |
+| localname      | character varying | not null  |
+| governmentform | character varying | not null  |
+| headofstate    | character varying |           |
+| capital        | integer           |           |
+| code2          | character(2)      | not null  |
 

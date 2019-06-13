@@ -8,11 +8,12 @@ import skunk.net.message._
 import skunk.util.Namer
 
 package object protocol {
+import natchez.Trace
 import skunk.util.Origin
 
-  def exchange[F[_], A](fa: F[A])(
+  def exchange[F[_]: Trace, A](label: String)(fa: F[A])(
     implicit exchange: Exchange[F]
-  ): F[A] = exchange(fa)
+  ): F[A] = Trace[F].span(label)(exchange(fa))
 
   def receive[F[_]](implicit ev: MessageSocket[F]): F[BackendMessage] =
     ev.receive

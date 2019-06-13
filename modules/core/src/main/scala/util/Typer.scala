@@ -5,7 +5,6 @@
 package skunk.util
 
 import cats._
-import cats.effect._
 import cats.implicits._
 import skunk._
 import skunk.codec.all._
@@ -241,28 +240,6 @@ object Typer {
           }
 
       }
-    }
-
-}
-
-object TyperTest extends IOApp {
-
-  val session: Resource[IO, Session[IO]] =
-    Session.single(
-      host     = "localhost",
-      user     = "postgres",
-      database = "world",
-      // debug    = true
-    )
-
-  def run(args: List[String]): IO[ExitCode] =
-    session.use { s =>
-      val t = s.typer.typeForOid(1042, 10)
-      val o = s.typer.oidForType(Type("complex"))
-      for {
-        _ <- IO(println(t))
-        _ <- IO(println(o))
-      } yield ExitCode.Success
     }
 
 }
