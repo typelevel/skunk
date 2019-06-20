@@ -22,8 +22,8 @@ abstract class SkunkTest(strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly)
       port     = 5432,
       user     = "postgres",
       database = "world",
-      strategy = strategy
-      // debug = true
+      strategy = strategy,
+      debug    = false
     )
 
   def sessionTest[A](name: String)(fa: Session[IO] => IO[A]): Unit =

@@ -143,7 +143,10 @@ lazy val tests = project
   .settings(commonSettings)
   .settings(
     publish / skip := true,
-    libraryDependencies += "org.scala-sbt" % "test-interface" % "1.0",
+    libraryDependencies ++= Seq(
+      "org.scala-sbt"      % "test-interface" % "1.0",
+      "io.chrisdavenport" %% "cats-time"      % "0.2.0"
+    ),
     testFrameworks += new TestFramework("ffstest.FFramework")
   )
 
