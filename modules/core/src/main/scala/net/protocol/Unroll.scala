@@ -69,16 +69,16 @@ private[protocol] class Unroll[F[_]: MonadError[?[_], Throwable]: MessageSocket:
             case Left(e)  =>
               send(Sync).whenA(bool) *> // if we're suspended we need to sync to get back to an ok state
               expect { case ReadyForQuery(status) => } *>
-              (new DecodeException(
-                  data,
-                  e,
-                  sql,
-                  Some(sqlOrigin),
-                  args,
-                  argsOrigin,
-                  encoder,
-                  rowDescription,
-                )).raiseError[F, B]
+              new DecodeException(
+                data,
+                e,
+                sql,
+                Some(sqlOrigin),
+                args,
+                argsOrigin,
+                encoder,
+                rowDescription,
+              ).raiseError[F, B]
           }
         } .map(_ ~ bool)
     }

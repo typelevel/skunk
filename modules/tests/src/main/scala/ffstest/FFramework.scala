@@ -16,7 +16,7 @@ trait FTest {
   protected[ffstest] var tests = List.empty[(String, IO[_])]
   implicit val ioContextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
   implicit val ioTimer: Timer[IO] = IO.timer(ExecutionContext.global)
-  def test[A](name: String)(f: IO[A]) = tests = tests :+ ((name, f))
+  def test[A](name: String)(f: IO[A]): Unit = tests = tests :+ ((name, f))
   def fail[A](msg: String): IO[A] = IO.raiseError(new AssertionError(msg))
   def fail[A](msg: String, cause: Throwable): IO[A] = IO.raiseError(new AssertionError(msg, cause))
   def assert(msg: => String, b: => Boolean): IO[Unit] = if (b) IO.pure(()) else fail(msg)
@@ -31,13 +31,13 @@ class FFramework extends Framework {
   val name = "ffstest"
   val fingerprints = Array(FFingerprint: Fingerprint)
   def runner(args: Array[String], remoteArgs: Array[String], testClassLoader: ClassLoader): Runner =
-    new FRunner(args, remoteArgs, testClassLoader)
+    FRunner(args, remoteArgs, testClassLoader)
 }
 
 object FFingerprint extends SubclassFingerprint {
   val isModule                = true
   val requireNoArgConstructor = true
-  val superclassName          = classOf[FTest].getName
+  val superclassName: String  = classOf[FTest].getName
 }
 
 final case class FRunner(
@@ -46,7 +46,7 @@ final case class FRunner(
   testClassLoader: ClassLoader
 ) extends Runner {
   val done = ""
-  def tasks(list: Array[TaskDef]) = list.map(FTask(_, testClassLoader))
+  def tasks(list: Array[TaskDef]): Array[Task] = list.map(FTask(_, testClassLoader))
 }
 
 case class FTask(taskDef: TaskDef, testClassLoader: ClassLoader) extends Task {
@@ -70,7 +70,7 @@ case class FTask(taskDef: TaskDef, testClassLoader: ClassLoader) extends Task {
     val obj = Class.forName(taskDef.fullyQualifiedName + "$", true, testClassLoader)
       .getField("MODULE$").get(null).asInstanceOf[FTest]
 
-    def report(color: String, message: String, event: Event) = {
+    def report(color: String, message: String, event: Event): Unit = {
       loggers.foreach(_.info(s"$color   $message$RESET"))
       if (event.throwable.isDefined) {
         event.throwable.get.printStackTrace()
@@ -93,7 +93,7 @@ case class FTask(taskDef: TaskDef, testClassLoader: ClassLoader) extends Task {
     Array.empty
   }
 
-  def tags = Array.empty // unused
+  def tags: Array[String] = Array.empty // unused
 
 }
 

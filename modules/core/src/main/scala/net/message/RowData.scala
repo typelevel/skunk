@@ -14,14 +14,14 @@ case class RowData(fields: List[Option[String]]) extends BackendMessage
 
 object RowData {
 
-  final val Tag = 'D'
-  final val decoder = int16.flatMap(field.replicateA(_)).map(apply)
-
   private val field: Decoder[Option[String]] =
     int32.flatMap {
       case -1 => Decoder.point(None)
       case n  => bytes(n).map(bv => Some(new String(bv.toArray, UTF_8)))
     }
+
+  final val Tag = 'D'
+  final val decoder: Decoder[RowData] = int16.flatMap(field.replicateA(_)).map(apply)
 
 }
 

@@ -25,7 +25,7 @@ import skunk.util.Origin
  * @param sql A SQL statement returning no rows.
  * @param origin  The `Origin` where the sql was defined, if any.
  * @param encoder An encoder for all parameters `$1`, `$2`, etc., in `sql`.
- * @param encoder A decoder for selected columns.
+ * @param decoder A decoder for selected columns.
  *
  * @see [[skunk.syntax.StringContextOps StringContextOps]] for information on the `sql`
  *   interpolator.
@@ -34,9 +34,9 @@ import skunk.util.Origin
  * @group Statements
  */
 final case class Query[A, B](
-  sql:     String,
-  origin:  Origin,
-  encoder: Encoder[A],
+  override val sql:     String,
+  override val origin:  Origin,
+  override val encoder: Encoder[A],
   decoder: Decoder[B]
 ) extends Statement[A] {
 
@@ -68,7 +68,7 @@ object Query {
 
   implicit val ProfunctorQuery: Profunctor[Query] =
     new Profunctor[Query] {
-      def dimap[A, B, C, D](fab: Query[A,B])(f: C => A)(g: B => D) =
+      override def dimap[A, B, C, D](fab: Query[A,B])(f: C => A)(g: B => D): Query[C, D] =
         fab.dimap(f)(g)
     }
 

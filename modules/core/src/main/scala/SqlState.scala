@@ -4,6 +4,7 @@
 
 package skunk
 
+import scala.collection.immutable.IndexedSeq
 import enumeratum.{ EnumEntry, Enum }
 import skunk.exception.PostgresErrorException
 
@@ -1219,6 +1220,6 @@ object SqlState extends Enum[SqlState] {
    */
   case object ZeroLengthCharacterString extends SqlState("2200F")
 
-  val values = findValues
+  override val values: IndexedSeq[SqlState] = findValues
 
 }

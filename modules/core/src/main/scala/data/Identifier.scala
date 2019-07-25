@@ -8,8 +8,10 @@ import cats.Eq
 import cats.implicits._
 import cats.ApplicativeError
 
+import scala.util.matching.Regex
+
 sealed abstract case class Identifier(value: String) {
-  override def toString = value // ok?
+  override def toString: String = value // ok?
 }
 
 object Identifier {
@@ -17,7 +19,7 @@ object Identifier {
   private[skunk] val dummy: Identifier = new Identifier("dummy") {}
 
   val maxLen = 63
-  val pat    = "([a-z_][a-z_0-9$]*)".r
+  val pat: Regex = "([a-z_][a-z_0-9$]*)".r
 
   implicit val EqIdentifier: Eq[Identifier] =
     Eq.by(_.value)

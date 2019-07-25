@@ -24,7 +24,7 @@ object Prepare {
   def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket: Namer: Trace]: Prepare[F] =
     new Prepare[F] {
 
-      def apply[A](command: skunk.Command[A], ty: Typer): Resource[F, PreparedCommand[F, A]] =
+      override def apply[A](command: skunk.Command[A], ty: Typer): Resource[F, PreparedCommand[F, A]] =
         for {
           id <- Parse[F].apply(command, ty)
           _  <- Resource.liftF(Describe[F].apply(command, id, ty))
@@ -38,7 +38,7 @@ object Prepare {
             }
         }
 
-      def apply[A, B](query: skunk.Query[A, B], ty: Typer): Resource[F, PreparedQuery[F, A, B]] =
+      override def apply[A, B](query: skunk.Query[A, B], ty: Typer): Resource[F, PreparedQuery[F, A, B]] =
         for {
           id <- Parse[F].apply(query, ty)
           rd <- Resource.liftF(Describe[F].apply(query, id, ty))

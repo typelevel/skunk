@@ -28,7 +28,7 @@ import natchez.Trace
  * scope of its owning `Resource`, as are any streams constructed here. If you `start` an operation
  * be sure to `join` its `Fiber` before releasing the resource.
  *
- * See the [[skunk.Session$ companion object]] for information on obtaining a pooled or single-use
+ * See the [[skunk.Session companion object]] for information on obtaining a pooled or single-use
  * instance.
  *
  * @groupprio Queries 10
@@ -259,47 +259,47 @@ object Session {
     ft.map { typ =>
       new Session[F] {
 
-        val typer = typ
+        override val typer: Typer = typ
 
-        def execute(command: Command[Void]) =
+        override def execute(command: Command[Void]): F[Completion] =
           proto.execute(command)
 
-        def channel(name: Identifier) =
+        override def channel(name: Identifier): Channel[F, String, Notification] =
           Channel.fromNameAndProtocol(name, proto)
 
-        def parameters =
+        override def parameters: Signal[F, Map[String, String]] =
           proto.parameters
 
-        def parameter(key: String) =
+        override def parameter(key: String): Stream[F, String] =
           parameters.discrete.map(_.get(key)).unNone.changes
 
-        def transactionStatus =
+        override def transactionStatus: Signal[F, TransactionStatus] =
           proto.transactionStatus
 
-        def execute[A](query: Query[Void, A]) =
+        override def execute[A](query: Query[Void, A]): F[List[A]] =
           proto.execute(query, typer)
 
-        def unique[A](query: Query[Void, A]): F[A] =
+        override def unique[A](query: Query[Void, A]): F[A] =
           execute(query).flatMap {
             case a :: Nil => a.pure[F]
             case Nil      => Sync[F].raiseError(new RuntimeException("Expected exactly one row, none returned."))
             case _        => Sync[F].raiseError(new RuntimeException("Expected exactly one row, more returned."))
           }
 
-        def option[A](query: Query[Void, A]): F[Option[A]] =
+        override def option[A](query: Query[Void, A]): F[Option[A]] =
           execute(query).flatMap {
             case a :: Nil => a.some.pure[F]
             case Nil      => none[A].pure[F]
             case _        => Sync[F].raiseError(new RuntimeException("Expected at most one row, more returned."))
           }
 
-        def prepare[A, B](query: Query[A, B]) =
+        override def prepare[A, B](query: Query[A, B]): Resource[F, PreparedQuery[F, A, B]] =
           proto.prepare(query, typer).map(PreparedQuery.fromProto(_))
 
-        def prepare[A](command: Command[A]) =
+        override def prepare[A](command: Command[A]): Resource[F, PreparedCommand[F, A]] =
           proto.prepare(command, typer).map(PreparedCommand.fromProto(_))
 
-        def transaction[A] =
+        override def transaction[A]: Resource[F, Transaction[F]] =
           Transaction.fromSession(this, namer)
 
       }
@@ -326,18 +326,18 @@ object Session {
       implicit ev: Bracket[F, Throwable]
     ): Session[G] =
       new Session[G] {
-        def typer = outer.typer
-        def channel(name: Identifier): Channel[G,String,Notification] = outer.channel(name).mapK(fk)
-        def execute(command: Command[Void]): G[Completion] = fk(outer.execute(command))
-        def execute[A](query: Query[Void,A]): G[List[A]] = fk(outer.execute(query))
-        def option[A](query: Query[Void,A]): G[Option[A]] = fk(outer.option(query))
-        def parameter(key: String): Stream[G,String] = outer.parameter(key).translate(fk)
-        def parameters: Signal[G,Map[String,String]] = outer.parameters.mapK(fk)
-        def prepare[A, B](query: Query[A,B]): Resource[G,PreparedQuery[G,A,B]] = outer.prepare(query).mapK(fk).map(_.mapK(fk))
-        def prepare[A](command: Command[A]): Resource[G,PreparedCommand[G,A]] = outer.prepare(command).mapK(fk).map(_.mapK(fk))
-        def transaction[A]: Resource[G,Transaction[G]] = outer.transaction[A].mapK(fk).map(_.mapK(fk))
-        def transactionStatus: Signal[G,TransactionStatus] = outer.transactionStatus.mapK(fk)
-        def unique[A](query: Query[Void,A]): G[A] = fk(outer.unique(query))
+        override val typer: Typer = outer.typer
+        override def channel(name: Identifier): Channel[G,String,Notification] = outer.channel(name).mapK(fk)
+        override def execute(command: Command[Void]): G[Completion] = fk(outer.execute(command))
+        override def execute[A](query: Query[Void,A]): G[List[A]] = fk(outer.execute(query))
+        override def option[A](query: Query[Void,A]): G[Option[A]] = fk(outer.option(query))
+        override def parameter(key: String): Stream[G,String] = outer.parameter(key).translate(fk)
+        override def parameters: Signal[G,Map[String,String]] = outer.parameters.mapK(fk)
+        override def prepare[A, B](query: Query[A,B]): Resource[G,PreparedQuery[G,A,B]] = outer.prepare(query).mapK(fk).map(_.mapK(fk))
+        override def prepare[A](command: Command[A]): Resource[G,PreparedCommand[G,A]] = outer.prepare(command).mapK(fk).map(_.mapK(fk))
+        override def transaction[A]: Resource[G,Transaction[G]] = outer.transaction[A].mapK(fk).map(_.mapK(fk))
+        override def transactionStatus: Signal[G,TransactionStatus] = outer.transactionStatus.mapK(fk)
+        override def unique[A](query: Query[Void,A]): G[A] = fk(outer.unique(query))
       }
   }
 

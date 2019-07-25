@@ -14,7 +14,7 @@ object ReadyForQuery {
 
   final val Tag = 'Z'
 
-  def decoder: Decoder[BackendMessage] =
+  val decoder: Decoder[BackendMessage] =
     byte.map {
       case 'I' => ReadyForQuery(TransactionStatus.Idle)
       case 'T' => ReadyForQuery(TransactionStatus.Active)

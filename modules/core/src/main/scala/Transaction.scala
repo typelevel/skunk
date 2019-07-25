@@ -72,12 +72,12 @@ trait Transaction[F[_]] { outer =>
    */
   def mapK[G[_]](fk: F ~> G): Transaction[G] =
     new Transaction[G] {
-      type Savepoint = outer.Savepoint
-      def commit(implicit o: Origin): G[Completion] = fk(outer.commit)
-      def rollback(implicit o: Origin): G[Completion] = fk(outer.rollback)
-      def rollback(savepoint: Savepoint)(implicit o: Origin): G[Completion] = fk(outer.rollback(savepoint))
-      def savepoint(implicit o: Origin): G[Savepoint] = fk(outer.savepoint)
-      def status: G[TransactionStatus] = fk(outer.status)
+      override type Savepoint = outer.Savepoint
+      override def commit(implicit o: Origin): G[Completion] = fk(outer.commit)
+      override def rollback(implicit o: Origin): G[Completion] = fk(outer.rollback)
+      override def rollback(savepoint: Savepoint)(implicit o: Origin): G[Completion] = fk(outer.rollback(savepoint))
+      override def savepoint(implicit o: Origin): G[Savepoint] = fk(outer.savepoint)
+      override def status: G[TransactionStatus] = fk(outer.status)
     }
 
 }
@@ -148,24 +148,24 @@ object Transaction {
       s.execute(internal"BEGIN".command).map { _ =>
         new Transaction[F] {
 
-          type Savepoint = String
+          override type Savepoint = String
 
-          def status: F[TransactionStatus] =
+          override def status: F[TransactionStatus] =
             s.transactionStatus.get
 
-          def commit(implicit o: Origin): F[Completion] =
+          override def commit(implicit o: Origin): F[Completion] =
             assertActive(o.toCallSite("commit")) *>
             doCommit
 
-          def rollback(implicit o: Origin): F[Completion] =
+          override def rollback(implicit o: Origin): F[Completion] =
             assertActiveOrError(o.toCallSite("rollback")) *>
             doRollback
 
-          def rollback(savepoint: Savepoint)(implicit o: Origin): F[Completion] =
+          override def rollback(savepoint: Savepoint)(implicit o: Origin): F[Completion] =
             assertActiveOrError(o.toCallSite("savepoint")) *>
             s.execute(internal"ROLLBACK TO ${savepoint}".command)
 
-          def savepoint(implicit o: Origin): F[Savepoint] =
+          override def savepoint(implicit o: Origin): F[Savepoint] =
             for {
               _ <- assertActive(o.toCallSite("savepoint"))
               i <- n.nextName("savepoint")

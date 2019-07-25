@@ -5,6 +5,7 @@
 package skunk.exception
 
 import cats.implicits._
+import natchez.TraceValue
 import skunk.SqlState
 import skunk.data.Type
 import skunk.util.Origin
@@ -32,7 +33,7 @@ class PostgresErrorException private[skunk](
   argumentsOrigin = argumentsOrigin,
 ) {
 
-  override def fields = {
+  override def fields: Map[String, TraceValue] = {
     var map = super.fields
 
     map += "error.postgres.message"  -> message

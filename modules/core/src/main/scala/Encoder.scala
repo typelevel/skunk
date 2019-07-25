@@ -46,17 +46,17 @@ trait Encoder[A] { outer =>
   /** Contramap inputs from a new type `B`, yielding an `Encoder[B]`. */
   def contramap[B](f: B => A): Encoder[B] =
     new Encoder[B] {
-      def encode(b: B) = outer.encode(f(b))
-      val types = outer.types
-      val sql = outer.sql
+      override def encode(b: B): List[Option[String]] = outer.encode(f(b))
+      override val types: List[Type] = outer.types
+      override val sql: State[Int, String] = outer.sql
     }
 
   /** `Encoder` is semigroupal: a pair of encoders make a encoder for a pair. */
   def product[B](fb: Encoder[B]): Encoder[(A, B)] =
     new Encoder[(A, B)] {
-      def encode(ab: (A, B)) = outer.encode(ab._1) ++ fb.encode(ab._2)
-      val types = outer.types ++ fb.types
-      val sql = (outer.sql, fb.sql).mapN((a, b) => s"$a, $b")
+      override def encode(ab: (A, B)): List[Option[String]] = outer.encode(ab._1) ++ fb.encode(ab._2)
+      override val types: List[Type] = outer.types ++ fb.types
+      override val sql: State[Int, String] = (outer.sql, fb.sql).mapN((a, b) => s"$a, $b")
     }
 
   /** Shorthand for `product`. */
@@ -67,9 +67,9 @@ trait Encoder[A] { outer =>
   // dumb errors
   def opt: Encoder[Option[A]] =
     new Encoder[Option[A]] {
-      def encode(a: Option[A]) = a.fold(empty)(outer.encode)
-      val types = outer.types
-      val sql   = outer.sql
+      override def encode(a: Option[A]): List[Option[String]] = a.fold(empty)(outer.encode)
+      override val types: List[Type] = outer.types
+      override val sql: State[Int, String]   = outer.sql
     }
 
   /**

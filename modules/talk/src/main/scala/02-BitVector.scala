@@ -36,7 +36,7 @@ trait BitVectorSocket[F[_]] {
 
   // Ok so the question is, how do we get from here to there? We have a `Socket` and we want a
   // `BitVectorSocket`. Well the way we do this is with delegation, and it's a really really
-  // comemon pattern in tagless style. You have an underlying low-level service and you wrap it up
+  // common pattern in tagless style. You have an underlying low-level service and you wrap it up
   // with a higher-level service.
 
   object BitVectorSocket {

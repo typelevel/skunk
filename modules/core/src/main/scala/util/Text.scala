@@ -13,15 +13,14 @@ final class Text private (private val content: List[Text.Segment]) {
   def ++(other: Text): Text = new Text(content ++ other.content)
   def length: Int = content.foldMap(_.body.length)
   def render: String = content.foldMap(_.render)
-  def padTo(n: Int) =
+  def padTo(n: Int): Text =
     content match {
       case Nil => Text.padding(n)
-      case _   => {
+      case _   =>
         val extra = n - length
         if (extra <= 0) this else this ++ Text.padding(extra)
-      }
     }
-  override def toString = s"""Text("$render")"""
+  override def toString: String = s"""Text("$render")"""
 }
 
 object Text {
@@ -30,15 +29,15 @@ object Text {
 
   def apply(body: String): Text = plain(body)
 
-  lazy val plain   = styled("", _)
-  lazy val red     = styled(Console.RED, _)
-  lazy val blue    = styled(Console.BLUE, _)
-  lazy val green   = styled(Console.GREEN, _)
-  lazy val yellow  = styled(Console.YELLOW, _)
-  lazy val cyan    = styled(Console.CYAN, _)
-  lazy val magenta = styled(Console.MAGENTA, _)
+  lazy val plain:   String => Text = styled("", _)
+  lazy val red:     String => Text = styled(Console.RED, _)
+  lazy val blue:    String => Text = styled(Console.BLUE, _)
+  lazy val green:   String => Text = styled(Console.GREEN, _)
+  lazy val yellow:  String => Text = styled(Console.YELLOW, _)
+  lazy val cyan:    String => Text = styled(Console.CYAN, _)
+  lazy val magenta: String => Text = styled(Console.MAGENTA, _)
 
-  val empty = plain("")
+  val empty: Text = plain("")
 
   def padding(n: Int): Text = Text(" " * n)
 

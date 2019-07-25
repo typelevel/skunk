@@ -29,7 +29,7 @@ object Describe {
       def promote[A](cmd: skunk.Command[A]): skunk.Query[A, skunk.Void] =
         skunk.Query(cmd.sql, cmd.origin, cmd.encoder, skunk.Void.codec)
 
-      def apply(cmd: skunk.Command[_], id: StatementId, ty: Typer): F[Unit] =
+      override def apply(cmd: skunk.Command[_], id: StatementId, ty: Typer): F[Unit] =
         exchange("describe") {
           for {
             _  <- Trace[F].put("statement-id" -> id.value)
@@ -51,7 +51,7 @@ object Describe {
           } yield ()
         }
 
-      def apply[A](query: skunk.Query[_, A], id: StatementId, ty: Typer): F[TypedRowDescription] =
+      override def apply[A](query: skunk.Query[_, A], id: StatementId, ty: Typer): F[TypedRowDescription] =
         exchange("describe") {
           for {
             _  <- Trace[F].put("statement-id" -> id.value)

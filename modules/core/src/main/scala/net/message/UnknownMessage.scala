@@ -4,6 +4,7 @@
 
 package skunk.net.message
 
+import scodec.Decoder
 import scodec.bits.ByteVector
 import scodec.codecs.bytes
 
@@ -13,5 +14,5 @@ final case class UnknownMessage(tag: Byte, data: ByteVector) extends BackendMess
 }
 
 object UnknownMessage {
-  def decoder(tag: Byte) = bytes.map(bv => UnknownMessage(tag, bv))
+  def decoder(tag: Byte): Decoder[UnknownMessage] = bytes.map(bv => UnknownMessage(tag, bv))
 }

@@ -4,8 +4,11 @@
 
 package skunk.net.message
 
+import scodec.Decoder
 import scodec.codecs._
 import skunk.data.Completion
+
+import scala.util.matching.Regex
 
 /**
  * Command-completed response. The command tag is usually a single word that identifies which SQL
@@ -25,7 +28,7 @@ import skunk.data.Completion
  * - For a COPY command, the tag is COPY rows where rows is the number of rows copied. (Note: the
  *   row count appears only in PostgreSQL 8.2 and later.)
  *
- * @param tag The command tag.
+ * @param completion The command tag.
  */
 case class CommandComplete(completion: Completion) extends BackendMessage
 
@@ -34,12 +37,13 @@ object CommandComplete {
   final val Tag = 'C'
 
   private object Patterns {
-    val Select = """SELECT (\d+)""".r
-    val Delete = """DELETE (\d+)""".r
-    val Update = """UPDATE (\d+)""".r
+    val Select: Regex = """SELECT (\d+)""".r
+    val Delete: Regex = """DELETE (\d+)""".r
+    val Update: Regex = """UPDATE (\d+)""".r
   }
 
-  def decoder = cstring.map {
+  //TODO: maybe make lazy val
+  def decoder: Decoder[CommandComplete] = cstring.map {
     case "BEGIN"            => apply(Completion.Begin)
     case "COMMIT"           => apply(Completion.Commit)
     case "LISTEN"           => apply(Completion.Listen)

@@ -35,7 +35,7 @@ package object message { module =>
 
   implicit def attemptSemigroup[A: Semigroup]: Semigroup[Attempt[A]] =
     new Semigroup[Attempt[A]] {
-      def combine(a: Attempt[A], b: Attempt[A]) = (a, b).mapN(_ |+| _)
+      override def combine(a: Attempt[A], b: Attempt[A]): Attempt[A] = (a, b).mapN(_ |+| _)
     }
 
   val utf8z: SCodec[String] =

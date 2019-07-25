@@ -26,7 +26,7 @@ object Parse {
   def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket: Namer: Trace]: Parse[F] =
     new Parse[F] {
 
-      def apply[A](statement: Statement[A], ty: Typer): Resource[F, StatementId] =
+      override def apply[A](statement: Statement[A], ty: Typer): Resource[F, StatementId] =
         statement.encoder.oids(ty) match {
 
           case Right(os) =>

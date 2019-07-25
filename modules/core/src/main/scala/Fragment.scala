@@ -42,7 +42,7 @@ final case class Fragment[A](
   def ~[B](fb: Fragment[B]): Fragment[A ~ B] =
     product(fb)
 
-  override def toString =
+  override def toString: String =
     s"Fragment($sql, $encoder)"
 
 }
@@ -52,8 +52,8 @@ object Fragment {
 
   implicit val FragmentContravariantSemigroupal: ContravariantSemigroupal[Fragment] =
     new ContravariantSemigroupal[Fragment] {
-      def contramap[A, B](fa: Fragment[A])(f: B => A) = fa.contramap(f)
-      def product[A, B](fa: Fragment[A], fb: Fragment[B]) = fa product fb
+      override def contramap[A, B](fa: Fragment[A])(f: B => A): Fragment[B] = fa.contramap(f)
+      override def product[A, B](fa: Fragment[A], fb: Fragment[B]): Fragment[(A, B)] = fa product fb
     }
 
   private[skunk] def apply(sql: String): Fragment[Void] =

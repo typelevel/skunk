@@ -133,26 +133,26 @@ object BufferedMessageSocket {
       bkSig <- Deferred[F, BackendKeyData]
       noTop <- Topic[F, Notification](Notification(-1, Identifier.dummy, "")) // blech
       fib   <- next(ms, xaSig, paSig, bkSig, noTop).repeat.through(queue.enqueue).compile.drain.attempt.flatMap {
-        case Left(e)  => Concurrent[F].delay(e.printStackTrace) // TODO: handle server-initiated shutdown better
+        case Left(e)  => Concurrent[F].delay(e.printStackTrace()) // TODO: handle server-initiated shutdown better
         case Right(a) => a.pure[F]
       } .start
     } yield
       new AbstractMessageSocket[F] with BufferedMessageSocket[F] {
 
-        def receive = queue.dequeue1
-        def send[A: FrontendMessage](a: A) = ms.send(a)
-        def transactionStatus = xaSig
-        def parameters = paSig
-        def backendKeyData = bkSig
+        override def receive: F[BackendMessage] = queue.dequeue1
+        override def send[A: FrontendMessage](a: A): F[Unit] = ms.send(a)
+        override def transactionStatus: SignallingRef[F, TransactionStatus] = xaSig
+        override def parameters: SignallingRef[F, Map[String, String]] = paSig
+        override def backendKeyData: Deferred[F, BackendKeyData] = bkSig
 
-        def notifications(maxQueued: Int) =
+        override def notifications(maxQueued: Int): Stream[F, Notification] =
           noTop.subscribe(maxQueued).filter(_.pid > 0) // filter out the bogus initial value
 
-        protected def terminate: F[Unit] =
+        override protected def terminate: F[Unit] =
           fib.cancel *>      // stop processing incoming messages
           ms.send(Terminate) // server will close the socket when it sees this
 
-        def history(max: Int) =
+        override def history(max: Int): F[List[Either[Any, Any]]] =
           ms.history(max)
 
 
