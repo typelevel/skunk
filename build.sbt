@@ -72,7 +72,11 @@ lazy val commonSettings = Seq(
     "-Ywarn-unused:privates",            // Warn if a private member is unused.
     "-Ywarn-value-discard",              // Warn when non-Unit expression results are unused.
     "-Ywarn-macros:before",              // via som
-    "-Yrangepos"                         // for longer squiggles
+    "-Yrangepos",                        // for longer squiggles
+    "-P:bm4:no-filtering:y",             // you can destructure tuples in for comprehensions for F[_] without withFilter
+    "-P:bm4:no-map-id:y",                // removes redundant .map in for comprehension desugaring
+    "-P:bm4:no-tupling:y",               // If the binding is not used in follow-up withFilter, it is desugared as plain vals, saving on allocations and primitive boxing.
+    "-P:bm4:implicit-patterns:y",        // allows defining implicit values in for comprehensions
   ),
   Compile / console / scalacOptions --= Seq("-Xfatal-warnings", "-Ywarn-unused:imports"),
   Compile / doc     / scalacOptions --= Seq("-Xfatal-warnings"),
@@ -82,6 +86,7 @@ lazy val commonSettings = Seq(
     "-doc-source-url", "https://github.com/tpolecat/skunk/blob/v" + version.value + "€{FILE_PATH}.scala",
   ),
   addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3"), //https://github.com/typelevel/kind-projector/releases
+  addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"), //https://github.com/oleg-py/better-monadic-for/releases
 
 )
 
