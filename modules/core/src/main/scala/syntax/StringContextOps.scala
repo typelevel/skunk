@@ -30,10 +30,12 @@ class StringContextOps private[skunk](sc: StringContext) {
 
 object StringContextOps {
 
+  // format: off
   sealed trait Part
   case class Str(s: String)                     extends Part
   case class Par(n: State[Int, String])         extends Part // n parameters
   case class Emb(ps: List[Either[String, State[Int, String]]]) extends Part
+  // format: on
 
   def fragmentFromParts[A](ps: List[Part], enc: Encoder[A], or: Origin): Fragment[A] =
     Fragment(

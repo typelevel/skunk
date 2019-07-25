@@ -18,7 +18,7 @@ object Identifier {
 
   private[skunk] val dummy: Identifier = new Identifier("dummy") {}
 
-  val maxLen = 63
+  val maxLen: Int = 63
   val pat: Regex = "([a-z_][a-z_0-9$]*)".r
 
   implicit val EqIdentifier: Eq[Identifier] =
@@ -39,6 +39,7 @@ object Identifier {
   def fromStringF[F[_]: ApplicativeError[?[_], String]](s: String): F[Identifier] =
     fromString(s).liftTo[F]
 
+  // format: off
   val keywords: Set[String] =
     Set(
       "A",                               "ABORT",                   "ABS",                              "ABSENT",                   "ABSOLUTE",
@@ -194,5 +195,6 @@ object Identifier {
       "XMLSERIALIZE",                    "XMLTABLE",                "XMLTEXT",                          "XMLVALIDATE",              "YEAR",
       "YES",                             "ZONE"
     )
+    // format: on
 
 }

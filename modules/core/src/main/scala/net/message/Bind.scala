@@ -59,6 +59,7 @@ object Bind {
           null // :-\
         )
 
+      // format: off
       (utf8z ~ utf8z ~ int16 ~ int16 ~ list(arg) ~ int16).contramap[Bind] { b =>
         b.portal      ~  // The name of the destination portal
         b.statement   ~ // The name of the source prepared statement
@@ -67,6 +68,7 @@ object Bind {
         b.args ~        // args
         0               // The number of result-column format codes
       }
+      // format: on
 
     }
 

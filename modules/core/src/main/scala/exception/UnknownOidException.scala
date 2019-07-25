@@ -17,11 +17,13 @@ case class UnknownOidException(
   query: Query[_, _],
   types: List[(RowDescription.Field, Option[TypedRowDescription.Field])],
 ) extends SkunkException(
+  // format: off
   sql       = Some(query.sql),
   message   = "Unknown oid(s) in row description.",
   detail    = Some("Skunk could not interpret the row description for this query because it contains references to unknown types."),
   hint      = Some("A referenced type was created after this session was initiated, or it is in a namespace that's not on the search path."),
   sqlOrigin = Some(query.origin),
+  // format: on
 ) {
 
   import Text.{ green, red, cyan, empty }

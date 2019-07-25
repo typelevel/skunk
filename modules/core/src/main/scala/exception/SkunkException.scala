@@ -30,10 +30,12 @@ class SkunkException protected[skunk](
 
     map += "error.message" -> message
 
+    // format: off
     sql     .foreach(a => map += "error.sql"      -> a)
     position.foreach(a => map += "error.position" -> a)
     detail  .foreach(a => map += "error.detail"   -> a)
     hint    .foreach(a => map += "error.hint"     -> a)
+    // format: on
 
     (arguments.zipWithIndex).foreach { case ((typ, os), n) =>
       map += s"error.argument.${n + 1}.type"  -> typ.name

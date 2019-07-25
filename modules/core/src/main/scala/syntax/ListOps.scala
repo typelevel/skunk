@@ -8,6 +8,7 @@ import cats.data.Ior
 import scala.annotation.tailrec
 
 final class ListOps[A](as: List[A]) {
+  // format: off
   def align[B](bs: List[B]): List[A Ior B] = {
     @tailrec
     def go(as: List[A], bs: List[B], acc: List[A Ior B]): List[A Ior B] =
@@ -19,6 +20,7 @@ final class ListOps[A](as: List[A]) {
       }
     go(as, bs, Nil)
   }
+  // format: on
 }
 
 trait ToListOps {

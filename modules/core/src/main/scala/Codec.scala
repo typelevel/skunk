@@ -75,11 +75,13 @@ object Codec {
   def simple[A](encode: A => String, decode: String => Either[String, A], oid: Type): Codec[A] =
     apply(
       a => List(Some(encode(a))),
+      // format: off
       (n, ss) => ss match {
         case Some(s) :: Nil => decode(s).leftMap(Decoder.Error(n, 1, _))
         case None    :: Nil => Left(Decoder.Error(n, 1, s"Unexpected NULL value in non-optional column."))
         case _              => Left(Decoder.Error(n, 1, s"Expected one input value to decode, got ${ss.length}."))
       },
+      // format: on
       List(oid)
     )
 

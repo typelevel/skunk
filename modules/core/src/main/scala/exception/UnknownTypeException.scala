@@ -13,11 +13,13 @@ case class UnknownTypeException(
   query: skunk.Statement[_],
   types: List[(Type, Option[Int])]
 ) extends SkunkException(
+  // format: off
   sql       = Some(query.sql),
   message   = "Unknown type(s) in statement.",
   detail    = Some("Skunk could not determine the Postgres oid for one or more parameter types."),
   hint      = Some("A referenced type does not exist, was created after this session was initiated, or is in a namespace that's not on the search path."),
   sqlOrigin = Some(query.origin),
+  // format: on
 ) {
 
   import Text.{ green, cyan, empty }

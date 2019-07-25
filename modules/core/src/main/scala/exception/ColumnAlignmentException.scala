@@ -17,21 +17,25 @@ case class ColumnAlignmentException(
   query: Query[_, _],
   rd:    TypedRowDescription,
 ) extends SkunkException(
+  // format: off
   sql       = Some(query.sql),
   message   = "Asserted and actual column types differ.",
   hint      = Some("The decoder you provided is incompatible with the output columns for this query. You may need to add or remove columns from the query or your decoder, change their types, or add explicit SQL casts."),
   sqlOrigin = Some(query.origin),
+  // format: on
 ) {
 
   import Text.{ green, red, cyan, empty }
   implicit def stringToText(s: String): Text = Text(s)
 
+  // format: off
   private def describe(ior: Ior[Field, Type]): List[Text] =
     ior match {
       case Ior.Left(f)    => List(green(f.name), f.tpe.name, "->", red(""),                            cyan("── unmapped column"))
       case Ior.Right(t)   => List(empty,         empty,      "->", t.name,                             cyan("── missing column"))
       case Ior.Both(f, t) => List(green(f.name), f.tpe.name, "->", t.name, if (f.tpe === t) empty else cyan("── type mismatch"))
     }
+  // format: on
 
   private def columns: String =
     s"""|The actual and asserted output columns are
