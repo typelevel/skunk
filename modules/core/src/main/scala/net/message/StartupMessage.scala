@@ -35,12 +35,11 @@ object StartupMessage {
           "client_min_messages" -> "WARNING",
           "DateStyle"           -> "ISO, MDY",
           "IntervalStyle"       -> "iso_8601",
-          "client_encoding"     -> "UTF8",
+          "client_encoding"     -> "UTF8"
           //#config
-        ).foldRight(byte.applied(0)) { case ((k, v), e) => pair(k).applied(v) <~ e}
+        ).foldRight(byte.applied(0)) { case ((k, v), e) => pair(k).applied(v) <~ e }
 
-      (version ~> pair("user") ~ pair("database") <~ tail)
-        .asEncoder
+      (version ~> pair("user") ~ pair("database") <~ tail).asEncoder
         .contramap(m => m.user ~ m.database)
 
     }

@@ -12,7 +12,7 @@ import scala.reflect.macros.whitebox
 import skunk.data.Identifier
 import skunk.util.Origin
 
-class StringContextOps private[skunk](sc: StringContext) {
+class StringContextOps private[skunk] (sc: StringContext) {
   void(sc)
 
   def sql(argSeq: Any*): Any =
@@ -64,7 +64,7 @@ object StringContextOps {
       val parts: List[Tree] =
         c.prefix.tree match {
           case Apply(_, List(Apply(_, ts))) => ts
-          case _ => c.abort(c.prefix.tree.pos, "Unexpected tree, oops. See StringContextOps.scala")
+          case _                            => c.abort(c.prefix.tree.pos, "Unexpected tree, oops. See StringContextOps.scala")
         }
 
       // The interpolated args are a list of size `parts.length - 1`. We also just know this.
@@ -79,13 +79,12 @@ object StringContextOps {
       // Assemble a single list of Either[string tree, encoder int] by interleaving the stringy parts
       // and the args' lengths, as well as a list of the args. If the arg is an interpolated string
       // we reinterpret it as a stringy part. If the arg is a fragment we splice it in.
-      val (finalParts, encoders) : (List[Tree /* part */], List[Tree] /* encoder */) =
+      val (finalParts, encoders): (List[Tree /* part */ ], List[Tree] /* encoder */ ) =
         (parts zip args).foldRight((List(q"_root_.skunk.syntax.StringContextOps.Str(${parts.last})"), List.empty[Tree])) {
 
           // The stringy part had better be a string literal. If we got here via the interpolator it
           // always will be. If not we punt (below).
           case ((part @ Literal(Constant(str: String)), arg), (tail, es)) =>
-
             // The arg had better have a type conforming with Encoder[_] or String
             val argType = c.typecheck(arg, c.TYPEmode).tpe
 
@@ -101,21 +100,21 @@ object StringContextOps {
 
             } else if (argType <:< EncoderType) {
 
-                val p1 = q"_root_.skunk.syntax.StringContextOps.Str($part)"
-                val p2 = q"_root_.skunk.syntax.StringContextOps.Par($arg.sql)"
-                (p1 :: p2 :: tail, arg :: es)
+              val p1 = q"_root_.skunk.syntax.StringContextOps.Str($part)"
+              val p2 = q"_root_.skunk.syntax.StringContextOps.Par($arg.sql)"
+              (p1 :: p2 :: tail, arg :: es)
 
             } else if (argType <:< VoidFragmentType) {
 
-                val p1 = q"_root_.skunk.syntax.StringContextOps.Str($part)"
-                val p2 = q"_root_.skunk.syntax.StringContextOps.Emb($arg.parts)"
-                (p1 :: p2 :: tail, es)
+              val p1 = q"_root_.skunk.syntax.StringContextOps.Str($part)"
+              val p2 = q"_root_.skunk.syntax.StringContextOps.Emb($arg.parts)"
+              (p1 :: p2 :: tail, es)
 
             } else if (argType <:< FragmentType) {
 
-                val p1 = q"_root_.skunk.syntax.StringContextOps.Str($part)"
-                val p2 = q"_root_.skunk.syntax.StringContextOps.Emb($arg.parts)"
-                (p1 :: p2 :: tail, q"$arg.encoder" :: es)
+              val p1 = q"_root_.skunk.syntax.StringContextOps.Str($part)"
+              val p2 = q"_root_.skunk.syntax.StringContextOps.Emb($arg.parts)"
+              (p1 :: p2 :: tail, q"$arg.encoder" :: es)
 
             } else {
 
@@ -142,7 +141,7 @@ object StringContextOps {
     def identifier_impl(): Tree = {
       val Apply(_, List(Apply(_, List(s @ Literal(Constant(part: String)))))) = c.prefix.tree
       Identifier.fromString(part) match {
-        case Left(s) => c.abort(c.enclosingPosition, s)
+        case Left(s)              => c.abort(c.enclosingPosition, s)
         case Right(Identifier(s)) => q"_root_.skunk.data.Identifier.fromString($s).fold(sys.error, identity)"
       }
     }

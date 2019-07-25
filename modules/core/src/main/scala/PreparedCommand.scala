@@ -4,7 +4,7 @@
 
 package skunk
 
-import cats.{ Contravariant, ~> }
+import cats.{Contravariant, ~>}
 import cats.effect.Bracket
 import skunk.data.Completion
 import skunk.net.Protocol
@@ -35,7 +35,7 @@ object PreparedCommand {
   /** `PreparedCommand[F, ?]` is a contravariant functor for all `F`. */
   implicit def contravariantPreparedCommand[F[_]]: Contravariant[PreparedCommand[F, ?]] =
     new Contravariant[PreparedCommand[F, ?]] {
-      override def contramap[A, B](fa: PreparedCommand[F,A])(f: B => A): PreparedCommand[F, B] =
+      override def contramap[A, B](fa: PreparedCommand[F, A])(f: B => A): PreparedCommand[F, B] =
         new PreparedCommand[F, B] {
           override def execute(args: B)(implicit origin: Origin): F[Completion] = fa.execute(f(args))
         }

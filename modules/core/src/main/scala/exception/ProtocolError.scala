@@ -9,10 +9,11 @@ import skunk.net.message.BackendMessage
 import skunk.util.Origin
 import skunk.util.Pretty
 
-class ProtocolError protected[skunk](
-  val message:  BackendMessage,
-  val origin:   Origin
-) extends Error(s"Unexpected backend message: $message") with scala.util.control.NoStackTrace {
+class ProtocolError protected[skunk] (
+  val message: BackendMessage,
+  val origin:  Origin
+) extends Error(s"Unexpected backend message: $message")
+  with scala.util.control.NoStackTrace {
 
   protected def title: String =
     s"An unhandled backend message was encountered\n  at $origin"
@@ -20,9 +21,10 @@ class ProtocolError protected[skunk](
   protected def width = 80 // wrap here
 
   def labeled(label: String, s: String): String =
-    if (s.isEmpty) "" else {
+    if (s.isEmpty) ""
+    else {
       "\n|" +
-      label + Console.CYAN + Pretty.wrap(
+        label + Console.CYAN + Pretty.wrap(
         width - label.length,
         s,
         s"${Console.RESET}\n${Console.CYAN}" + label.map(_ => ' ')
@@ -41,11 +43,8 @@ class ProtocolError protected[skunk](
     List(header) //, exchanges)
 
   final override def toString: String =
-    sections
-      .combineAll
-      .lines
+    sections.combineAll.lines
       .map("🔥  " + _)
       .mkString("\n", "\n", s"\n\n${getClass.getName}: $message")
 
 }
-

@@ -15,17 +15,17 @@ import skunk.data.TypedRowDescription.Field
 
 case class ColumnAlignmentException(
   query: Query[_, _],
-  rd:    TypedRowDescription,
+  rd:    TypedRowDescription
 ) extends SkunkException(
-  // format: off
+    // format: off
   sql       = Some(query.sql),
   message   = "Asserted and actual column types differ.",
   hint      = Some("The decoder you provided is incompatible with the output columns for this query. You may need to add or remove columns from the query or your decoder, change their types, or add explicit SQL casts."),
-  sqlOrigin = Some(query.origin),
+  sqlOrigin = Some(query.origin)
   // format: on
-) {
+  ) {
 
-  import Text.{ green, red, cyan, empty }
+  import Text.{cyan, empty, green, red}
   implicit def stringToText(s: String): Text = Text(s)
 
   // format: off
@@ -48,4 +48,3 @@ case class ColumnAlignmentException(
     super.sections :+ columns
 
 }
-

@@ -4,14 +4,14 @@
 
 package skunk.net
 
-import cats.effect.{ Concurrent, ContextShift, Resource }
+import cats.effect.{Concurrent, ContextShift, Resource}
 import cats.effect.concurrent.Semaphore
 import cats.effect.implicits._
 import fs2.concurrent.Signal
 import fs2.Stream
-import skunk.{ Command, Query, Statement, ~, Void }
+import skunk.{Command, Query, Statement, Void, ~}
 import skunk.data._
-import skunk.util.{ Namer, Origin }
+import skunk.util.{Namer, Origin}
 import java.nio.channels.AsynchronousChannelGroup
 import scala.concurrent.duration.FiniteDuration
 import skunk.util.Typer
@@ -126,7 +126,7 @@ object Protocol {
    */
   abstract class PreparedCommand[F[_], A](
     val id:      StatementId,
-    val command: Command[A],
+    val command: Command[A]
   ) extends PreparedStatement[F, A] {
     def statement: Statement[A] = command
     def bind(args: A, argsOrigin: Origin): Resource[F, CommandPortal[F, A]]
@@ -152,17 +152,17 @@ object Protocol {
    * @param preparedStatement the `PreparedStatement` used to construct this `Portal`.
    */
   sealed trait Portal[F[_], A] {
-    def id:             PortalId
+    def id:                PortalId
     def preparedStatement: PreparedStatement[F, A]
-    def arguments:       A
-    def argumentsOrigin: Origin
+    def arguments:         A
+    def argumentsOrigin:   Origin
   }
 
   abstract class CommandPortal[F[_], A](
     val id:              PortalId,
     val preparedCommand: PreparedCommand[F, A],
     val arguments:       A,
-    val argumentsOrigin: Origin,
+    val argumentsOrigin: Origin
   ) extends Portal[F, A] {
     def preparedStatement: PreparedStatement[F, A] = preparedCommand
     def execute: F[Completion]
@@ -172,7 +172,7 @@ object Protocol {
     val id:              PortalId,
     val preparedQuery:   PreparedQuery[F, A, B],
     val arguments:       A,
-    val argumentsOrigin: Origin,
+    val argumentsOrigin: Origin
   ) extends Portal[F, A] {
     def preparedStatement: PreparedStatement[F, A] = preparedQuery
     def execute(maxRows: Int): F[List[B] ~ Boolean]
@@ -195,45 +195,42 @@ object Protocol {
     for {
       bms <- BufferedMessageSocket[F](host, port, 256, debug, readTimeout, writeTimeout, acg) // TODO: should we expose the queue size?
       sem <- Resource.liftF(Semaphore[F](1))
-    } yield
-      new Protocol[F] {
+    } yield new Protocol[F] {
 
-        // Not super sure about this but it does make the sub-protocol implementations cleaner.
-        // We'll see how well it works out.
-        implicit val ms: MessageSocket[F] = bms
-        implicit val na: Namer[F] = nam
-        implicit val ExchangeF: protocol.Exchange[F] =
-          new protocol.Exchange[F] {
-            override def apply[A](fa: F[A]): F[A] =
-              sem.withPermit(fa).uncancelable
-          }
+      // Not super sure about this but it does make the sub-protocol implementations cleaner.
+      // We'll see how well it works out.
+      implicit val ms: MessageSocket[F] = bms
+      implicit val na: Namer[F]         = nam
+      implicit val ExchangeF: protocol.Exchange[F] =
+        new protocol.Exchange[F] {
+          override def apply[A](fa: F[A]): F[A] =
+            sem.withPermit(fa).uncancelable
+        }
 
-        override def notifications(maxQueued: Int): Stream[F, Notification] =
-          bms.notifications(maxQueued)
+      override def notifications(maxQueued: Int): Stream[F, Notification] =
+        bms.notifications(maxQueued)
 
-        override def parameters: Signal[F, Map[String, String]] =
-          bms.parameters
+      override def parameters: Signal[F, Map[String, String]] =
+        bms.parameters
 
-        override def prepare[A](command: Command[A], ty: Typer): Resource[F, PreparedCommand[F, A]] =
-          protocol.Prepare[F].apply(command, ty)
+      override def prepare[A](command: Command[A], ty: Typer): Resource[F, PreparedCommand[F, A]] =
+        protocol.Prepare[F].apply(command, ty)
 
-        override def prepare[A, B](query: Query[A, B], ty: Typer): Resource[F, PreparedQuery[F, A, B]] =
-          protocol.Prepare[F].apply(query, ty)
+      override def prepare[A, B](query: Query[A, B], ty: Typer): Resource[F, PreparedQuery[F, A, B]] =
+        protocol.Prepare[F].apply(query, ty)
 
-        override def execute(command: Command[Void]): F[Completion] =
-          protocol.Query[F].apply(command)
+      override def execute(command: Command[Void]): F[Completion] =
+        protocol.Query[F].apply(command)
 
-        override def execute[B](query: Query[Void, B], ty: Typer): F[List[B]] =
-          protocol.Query[F].apply(query, ty)
+      override def execute[B](query: Query[Void, B], ty: Typer): F[List[B]] =
+        protocol.Query[F].apply(query, ty)
 
-        override def startup(user: String, database: String): F[Unit] =
-          protocol.Startup[F].apply(user, database)
+      override def startup(user: String, database: String): F[Unit] =
+        protocol.Startup[F].apply(user, database)
 
-        override def transactionStatus: Signal[F, TransactionStatus] =
-          bms.transactionStatus
+      override def transactionStatus: Signal[F, TransactionStatus] =
+        bms.transactionStatus
 
-      }
+    }
 
 }
-
-

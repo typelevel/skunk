@@ -14,6 +14,3 @@ object Leak {
   def of[F[_]: Bracket[?[_], Throwable], A](rfa: Resource[F, A]): F[Leak[F, A]] =
     rfa.allocated.map(t => new Leak(t._1, t._2) {})
 }
-
-
-

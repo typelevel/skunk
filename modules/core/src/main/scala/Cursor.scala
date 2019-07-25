@@ -4,7 +4,7 @@
 
 package skunk
 
-import cats.{ Functor, ~> }
+import cats.{Functor, ~>}
 import cats.implicits._
 
 /**

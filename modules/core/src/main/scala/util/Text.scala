@@ -11,12 +11,12 @@ import cats.implicits._
 // display combinators for styled text
 final class Text private (private val content: List[Text.Segment]) {
   def ++(other: Text): Text = new Text(content ++ other.content)
-  def length: Int = content.foldMap(_.body.length)
+  def length: Int    = content.foldMap(_.body.length)
   def render: String = content.foldMap(_.render)
   def padTo(n: Int): Text =
     content match {
       case Nil => Text.padding(n)
-      case _   =>
+      case _ =>
         val extra = n - length
         if (extra <= 0) this else this ++ Text.padding(extra)
     }

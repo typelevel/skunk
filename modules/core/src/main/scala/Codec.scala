@@ -26,9 +26,9 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
     new Codec[(A, B)] {
       private val pe = outer.asEncoder product fb.asEncoder
       private val pd = outer.asDecoder product fb.asDecoder
-      override def encode(ab: (A, B)): List[Option[String]] = pe.encode(ab)
-      override def decode(offset: Int, ss: List[Option[String]]):Either[Decoder.Error, (A, B)] = pd.decode(offset, ss)
-      override val sql: State[Int, String]   = (outer.sql, fb.sql).mapN((a, b) => s"$a, $b")
+      override def encode(ab:     (A, B)): List[Option[String]] = pe.encode(ab)
+      override def decode(offset: Int, ss: List[Option[String]]): Either[Decoder.Error, (A, B)] = pd.decode(offset, ss)
+      override val sql:   State[Int, String] = (outer.sql, fb.sql).mapN((a, b) => s"$a, $b")
       override val types: List[Type]         = outer.types ++ fb.types
     }
 
@@ -43,11 +43,11 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
   /** Lift this `Codec` into `Option`, where `None` is mapped to and from a vector of `NULL`. */
   override def opt: Codec[Option[A]] =
     new Codec[Option[A]] {
-      override def encode(oa: Option[A]): List[Option[String]] = oa.fold(empty)(outer.encode)
+      override def encode(oa:     Option[A]): List[Option[String]] = oa.fold(empty)(outer.encode)
       override def decode(offset: Int, ss: List[Option[String]]): Either[Decoder.Error, Option[A]] =
         if (ss.forall(_.isEmpty)) Right(None)
         else outer.decode(offset, ss).map(Some(_))
-      override val sql: State[Int, String]   = outer.sql
+      override val sql:   State[Int, String] = outer.sql
       override val types: List[Type]         = outer.types
     }
 
@@ -66,10 +66,10 @@ object Codec {
     oids0:   List[Type]
   ): Codec[A] =
     new Codec[A] {
-      override def encode(a: A): List[Option[String]] = encode0(a)
+      override def encode(a:      A): List[Option[String]] = encode0(a)
       override def decode(offset: Int, ss: List[Option[String]]): Either[Decoder.Error, A] = decode0(offset, ss)
-      override val types: List[Type] = oids0
-      override val sql: State[Int, String]   = State((n: Int) => (n + 1, s"$$$n"))
+      override val types: List[Type]         = oids0
+      override val sql:   State[Int, String] = State((n: Int) => (n + 1, s"$$$n"))
     }
   /** @group Constructors */
   def simple[A](encode: A => String, decode: String => Either[String, A], oid: Type): Codec[A] =
@@ -91,8 +91,8 @@ object Codec {
    */
   implicit val InvariantSemigroupalCodec: InvariantSemigroupal[Codec] =
     new InvariantSemigroupal[Codec] {
-      override def imap[A, B](fa: Codec[A])(f: A => B)(g: B => A): Codec[B] = fa.imap(f)(g)
-      override def product[A, B](fa: Codec[A],fb: Codec[B]): Codec[(A, B)]= fa product fb
+      override def imap[A, B](fa:    Codec[A])(f:  A => B)(g: B => A): Codec[B] = fa.imap(f)(g)
+      override def product[A, B](fa: Codec[A], fb: Codec[B]): Codec[(A, B)] = fa product fb
     }
 
 }

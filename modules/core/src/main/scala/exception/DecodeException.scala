@@ -6,37 +6,37 @@ package skunk.exception
 
 import cats.data.Nested
 import cats.implicits._
-import skunk.{ Encoder, Decoder }
+import skunk.{Decoder, Encoder}
 import skunk.util.Origin
 import skunk.net.Protocol
 import skunk.util.Text
-import skunk.util.Text.{ plain, empty, cyan, green }
+import skunk.util.Text.{cyan, empty, green, plain}
 import skunk.data.TypedRowDescription
 import skunk.data.TypedRowDescription.Field
 
 // todo: this with a ctor we can call for quick query, which has no portal
 class DecodeException[F[_], A, B](
-  data:      List[Option[String]],
-  error:     Decoder.Error,
-  sql:       String,
-  sqlOrigin: Option[Origin],
-  arguments: A,
+  data:            List[Option[String]],
+  error:           Decoder.Error,
+  sql:             String,
+  sqlOrigin:       Option[Origin],
+  arguments:       A,
   argumentsOrigin: Option[Origin],
-  encoder:   Encoder[A],
-  rowDescription: TypedRowDescription,
+  encoder:         Encoder[A],
+  rowDescription:  TypedRowDescription
 ) extends SkunkException(
-  sql             = Some(sql),
-  message         = "Decoding error.",
-  detail          = Some("This query's decoder was unable to decode a row of data."),
-  arguments       = encoder.types.zip(encoder.encode(arguments)),
-  argumentsOrigin = argumentsOrigin,
-  sqlOrigin       = sqlOrigin
-) {
+    sql             = Some(sql),
+    message         = "Decoding error.",
+    detail          = Some("This query's decoder was unable to decode a row of data."),
+    arguments       = encoder.types.zip(encoder.encode(arguments)),
+    argumentsOrigin = argumentsOrigin,
+    sqlOrigin       = sqlOrigin
+  ) {
 
   def this(
-    portal: Protocol.QueryPortal[F, A, B],
-    data:   List[Option[String]],
-    error:  Decoder.Error,
+    portal:         Protocol.QueryPortal[F, A, B],
+    data:           List[Option[String]],
+    error:          Decoder.Error,
     rowDescription: TypedRowDescription
   ) = this(
     data,
@@ -54,7 +54,7 @@ class DecodeException[F[_], A, B](
   // Truncate column values at MaxValue char
   private val dataʹ = Nested(data).map { s =>
     if (s.length > MaxValue) s.take(MaxValue) + "⋯" else s
-  } .value
+  }.value
 
   def describe(col: ((Field, Int), Option[String])): List[Text] = {
     val ((t, n), op) = col

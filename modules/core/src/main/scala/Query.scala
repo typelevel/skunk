@@ -37,7 +37,7 @@ final case class Query[A, B](
   override val sql:     String,
   override val origin:  Origin,
   override val encoder: Encoder[A],
-  decoder: Decoder[B]
+  decoder:              Decoder[B]
 ) extends Statement[A] {
 
   /**
@@ -68,7 +68,7 @@ object Query {
 
   implicit val ProfunctorQuery: Profunctor[Query] =
     new Profunctor[Query] {
-      override def dimap[A, B, C, D](fab: Query[A,B])(f: C => A)(g: B => D): Query[C, D] =
+      override def dimap[A, B, C, D](fab: Query[A, B])(f: C => A)(g: B => D): Query[C, D] =
         fab.dimap(f)(g)
     }
 

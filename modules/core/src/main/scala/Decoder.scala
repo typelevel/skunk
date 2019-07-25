@@ -22,7 +22,8 @@ trait Decoder[A] { outer =>
   /** Map decoded results to a new type `B`, yielding a `Decoder[B]`. */
   def map[B](f: A => B): Decoder[B] =
     new Decoder[B] {
-      override def decode(offset: Int, ss: List[Option[String]]): Either[Decoder.Error, B] = outer.decode(offset, ss).map(f)
+      override def decode(offset: Int, ss: List[Option[String]]): Either[Decoder.Error, B] =
+        outer.decode(offset, ss).map(f)
       override val types: List[Type] = outer.types
     }
 
@@ -65,7 +66,7 @@ object Decoder {
 
   implicit val ApplyDecoder: Apply[Decoder] =
     new Apply[Decoder] {
-      override def map[A, B](fa: Decoder[A])(f: A => B): Decoder[B] = fa map f
+      override def map[A, B](fa: Decoder[A])(f:       A => B): Decoder[B] = fa map f
       override def ap[A, B](fab: Decoder[A => B])(fa: Decoder[A]): Decoder[B] =
         map(fab.product(fa)) { case (fabb, a) => fabb(a) }
     }

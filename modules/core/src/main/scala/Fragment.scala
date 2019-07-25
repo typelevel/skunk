@@ -22,10 +22,14 @@ final case class Fragment[A](
 ) {
 
   lazy val sql: String =
-    parts.traverse {
-      case Left(s)  => s.pure[State[Int, ?]]
-      case Right(s) => s
-    } .runA(1).value.combineAll
+    parts
+      .traverse {
+        case Left(s)  => s.pure[State[Int, ?]]
+        case Right(s) => s
+      }
+      .runA(1)
+      .value
+      .combineAll
 
   def query[B](decoder: Decoder[B]): Query[A, B] =
     Query(sql, origin, encoder, decoder)
@@ -52,8 +56,8 @@ object Fragment {
 
   implicit val FragmentContravariantSemigroupal: ContravariantSemigroupal[Fragment] =
     new ContravariantSemigroupal[Fragment] {
-      override def contramap[A, B](fa: Fragment[A])(f: B => A): Fragment[B] = fa.contramap(f)
-      override def product[A, B](fa: Fragment[A], fb: Fragment[B]): Fragment[(A, B)] = fa product fb
+      override def contramap[A, B](fa: Fragment[A])(f:  B => A):      Fragment[B]      = fa.contramap(f)
+      override def product[A, B](fa:   Fragment[A], fb: Fragment[B]): Fragment[(A, B)] = fa product fb
     }
 
   private[skunk] def apply(sql: String): Fragment[Void] =

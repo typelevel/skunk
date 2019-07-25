@@ -15,9 +15,8 @@ case object NumericCodecTest extends CodecTest {
 
   // Integral
   codecTest(int2)(Short.MinValue, -1, 0, 1, Short.MaxValue)
-  codecTest(int4)(Int  .MinValue, -1, 0, 1, Int  .MaxValue)
-  codecTest(int8)(Long .MinValue, -1, 0, 1, Long .MaxValue)
-
+  codecTest(int4)(Int.MinValue, -1, 0, 1, Int.MaxValue)
+  codecTest(int8)(Long.MinValue, -1, 0, 1, Long.MaxValue)
 
   // Not exactly Double … extents go to infinity
   codecTest(float8)(Double.NegativeInfinity, -1, 0, Double.MinPositiveValue, 1, Double.PositiveInfinity)
@@ -28,5 +27,3 @@ case object NumericCodecTest extends CodecTest {
   specialValueTest("NaN", float4)(Float.NaN, _.isNaN)
 
 }
-
-

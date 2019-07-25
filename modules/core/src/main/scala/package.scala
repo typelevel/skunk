@@ -143,8 +143,6 @@ package object skunk {
 
   type SessionPool[F[_]] = Resource[F, Resource[F, Session[F]]]
 
-  object implicits
-    extends syntax.ToAllOps
+  object implicits extends syntax.ToAllOps
 
 }
-

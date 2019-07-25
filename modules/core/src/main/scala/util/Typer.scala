@@ -47,7 +47,6 @@ object Typer {
 
   }
 
-
   val Static: Typer = new Typer {
     import Type._
 
@@ -97,12 +96,12 @@ object Typer {
         3644 -> _gtsvector,    3645 -> _tsquery,       3735 -> _regconfig,    3770 -> _regdictionary,
         3807 -> _jsonb,        2949 -> _txid_snapshot, 3905 -> _int4range,    3907 -> _numrange,
         3909 -> _tsrange,      3911 -> _tstzrange,     3913 -> _daterange,    3927 -> _int8range,
-        2287 -> _record,       1263 -> _cstring,
+        2287 -> _record,       1263 -> _cstring
      )
      // format: on
 
     val staticByName: Map[String, Int] =
-     staticByOid.map { case (k, v) => v.name -> k }
+      staticByOid.map { case (k, v) => v.name -> k }
 
     /** These types are parameterized and need special handling. */
     object Oid {
@@ -147,13 +146,12 @@ object Typer {
             }
           }
 
-
-        case Oid.bpchar      => if (typeMod == -1) Some(Type("bpchar"))      else Some(Type(s"bpchar(${typeMod - 4})"))
-        case Oid.time        => if (typeMod == -1) Some(Type("time"))        else Some(Type(s"time($typeMod)"))
-        case Oid.timetz      => if (typeMod == -1) Some(Type("timetz"))      else Some(Type(s"timetz($typeMod)"))
-        case Oid.timestamp   => if (typeMod == -1) Some(Type("timestamp"))   else Some(Type(s"timestamp($typeMod)"))
+        case Oid.bpchar      => if (typeMod == -1) Some(Type("bpchar")) else Some(Type(s"bpchar(${typeMod - 4})"))
+        case Oid.time        => if (typeMod == -1) Some(Type("time")) else Some(Type(s"time($typeMod)"))
+        case Oid.timetz      => if (typeMod == -1) Some(Type("timetz")) else Some(Type(s"timetz($typeMod)"))
+        case Oid.timestamp   => if (typeMod == -1) Some(Type("timestamp")) else Some(Type(s"timestamp($typeMod)"))
         case Oid.timestamptz => if (typeMod == -1) Some(Type("timestamptz")) else Some(Type(s"timestamptz($typeMod)"))
-        case Oid.varchar     => if (typeMod == -1) Some(Type("varchar"))     else Some(Type(s"varchar(${typeMod - 4})"))
+        case Oid.varchar     => if (typeMod == -1) Some(Type("varchar")) else Some(Type(s"varchar(${typeMod - 4})"))
 
         // // varbit
 
@@ -164,7 +162,6 @@ object Typer {
 
   }
 
-
   case class TypeInfo(oid: Int, name: String, arrayTypeOid: Option[Int], relOid: Option[Int])
 
   implicit class ProtocolOps[F[_]: Functor](p: Protocol[F]) {
@@ -173,8 +170,9 @@ object Typer {
     val typeInfoMap: F[Map[Int, TypeInfo]] = {
 
       val typeinfo =
-        (oid ~ name ~ oid ~ oid).map { case o ~ n ~ a ~ r =>
-          TypeInfo(o, n, Some(a).filter(_ > 0), Some(r).filter(_ > 0))
+        (oid ~ name ~ oid ~ oid).map {
+          case o ~ n ~ a ~ r =>
+            TypeInfo(o, n, Some(a).filter(_ > 0), Some(r).filter(_ > 0))
         }
 
       val query: Query[Void, TypeInfo] =
@@ -193,7 +191,6 @@ object Typer {
       }
 
     }
-
 
     val relInfoMap: F[Map[Int, List[Int]]] = {
 
@@ -229,7 +226,7 @@ object Typer {
         val arrayLookup: Map[Int, Int] =
           tim.values.collect {
             case TypeInfo(elem, _, Some(parent), _) => parent -> elem
-          } .toMap
+          }.toMap
 
         def baseLookup(oid: Int): Option[Type] =
           Type.unfoldM(oid)(tim.get(_).map(_.relOid.flatMap(rim.get).getOrElse(Nil)), tim.get(_).map(_.name))
@@ -239,8 +236,11 @@ object Typer {
 
         def typeForOid(oid: Int, typeMod: Int): Option[Type] =
           arrayLookup.get(oid) match {
-            case Some(e) => (tim.get(oid), baseLookup(e)).mapN { (a, b) => Type(a.name, List(b)) }
-            case None    => baseLookup(oid)
+            case Some(e) =>
+              (tim.get(oid), baseLookup(e)).mapN { (a, b) =>
+                Type(a.name, List(b))
+              }
+            case None => baseLookup(oid)
           }
 
       }

@@ -17,9 +17,7 @@ import skunk.net.BitVectorSocket
 // Ok, so now can step up a level and start talking about sending protocol messages, which we
 // encode as bitvectors, which we already know how to send back and forth.
 
-
 object Message1 {
-
 
   // So let's just start at the beginning. The first message we have to send is the Startup message,
   // which identifies you with the back end and specifies which database you'd like to use. So our
@@ -48,23 +46,22 @@ object Message1 {
     val payload1: Encoder[Startup] =
       Encoder { s =>
         for {
-          v  <- int32.encode(196608)
+          v <- int32.encode(196608)
           uk <- cstring.encode("user")
-          u  <- cstring.encode(s.user)
+          u <- cstring.encode(s.user)
           dk <- cstring.encode("database")
-          d  <- cstring.encode(s.database)
-          n  <- byte.encode(0)
+          d <- cstring.encode(s.database)
+          n <- byte.encode(0)
         } yield v ++ uk ++ u ++ dk ++ d ++ n
       }
-
 
     val payload: Encoder[Startup] =
       Encoder { s =>
         for {
-          v  <- int32.encode(196608)
-          u  <- keyed("user").encode(s.user)
-          d  <- keyed("database").encode(s.database)
-          n  <- byte.encode(0)
+          v <- int32.encode(196608)
+          u <- keyed("user").encode(s.user)
+          d <- keyed("database").encode(s.database)
+          n <- byte.encode(0)
         } yield v ++ u ++ d ++ n
       }
 
@@ -104,7 +101,6 @@ object Message1 {
 
 }
 
-
 object Message2 extends IOApp {
   import BitVector2._
   import Message1._
@@ -114,14 +110,17 @@ object Message2 extends IOApp {
 
   def runF[F[_]: Concurrent: ContextShift]: F[ExitCode] =
     bitVectorSocket[F](
-      "localhost", 5432, 1.second, 1.seconds
+      "localhost",
+      5432,
+      1.second,
+      1.seconds
     ).use { sock =>
       val msg   = Startup("postgres", "world")
       val bytes = Startup.encoder.encode(msg).require
       for {
-        _  <- sock.write(bytes)
+        _ <- sock.write(bytes)
         bv <- sock.read(256)
-        _  <- Sync[F].delay(println(bv.decodeAscii))
+        _ <- Sync[F].delay(println(bv.decodeAscii))
       } yield ExitCode.Success
     }
 
@@ -167,7 +166,10 @@ object Message3 extends IOApp {
 
   def runF[F[_]: Concurrent: ContextShift]: F[ExitCode] =
     bitVectorSocket[F](
-      "localhost", 5432, 1.day, 1.second
+      "localhost",
+      5432,
+      1.day,
+      1.second
     ).use { sock =>
       val msg   = Startup("postgres", "world")
       val bytes = Startup.encoder.encode(msg).require
@@ -198,7 +200,7 @@ object Message3 extends IOApp {
 
 object Message4 extends IOApp {
   import skunk.net._
-  import skunk.net.message.{ Sync => _, _ }
+  import skunk.net.message.{Sync => _, _}
 
   // So using all this machinery we can create wrap our BitVectorSocket and create a MessageSocket
   // that knows how to speak in terms of these messages, using encoders and decoders just like we
@@ -212,8 +214,6 @@ object Message4 extends IOApp {
   //   // ...
 
   // }
-
-
 
   def finishStartupXX[F[_]: Monad](ms: MessageSocket[F]): F[Unit] =
     ms.receive.flatMap {
@@ -239,11 +239,12 @@ object Message4 extends IOApp {
     BitVectorSocket("localhost", 5432, 10.seconds, 1.second, BitVectorSocket.GlobalACG).use { bvs =>
       for {
         ms <- MessageSocket.fromBitVectorSocket(bvs, true)
-        _  <- ms.send(StartupMessage("postgres", "world"))
+        _ <- ms.send(StartupMessage("postgres", "world"))
         ps <- finishStartup(ms)
-        _  <- ps.toList.traverse { case (k, v) =>
+        _ <- ps.toList.traverse {
+              case (k, v) =>
                 Sync[F].delay(println(s"$k -> $v"))
-              }
+            }
       } yield ExitCode.Success
     }
 
@@ -261,7 +262,7 @@ object Message5 extends IOApp {
   import Message4._
 
   import skunk.net._
-  import skunk.net.message.{ Sync => _, _ }
+  import skunk.net.message.{Sync => _, _}
 
   def processResults[F[_]: Sync](
     ms: MessageSocket[F]
@@ -287,28 +288,29 @@ object Message5 extends IOApp {
       }
 
     for {
-      _  <- expect { case RowDescription(_)     => }
+      _ <- expect { case RowDescription(_) => }
       rs <- unroll(Nil)
-      _  <- expect { case rq @ ReadyForQuery(_) => }
+      _ <- expect { case rq @ ReadyForQuery(_) => }
     } yield rs
 
   }
-
 
   def runF[F[_]: Concurrent: ContextShift]: F[ExitCode] =
     BitVectorSocket("localhost", 5432, 10.seconds, 1.second, BitVectorSocket.GlobalACG).use { bvs =>
       for {
         ms <- MessageSocket.fromBitVectorSocket(bvs, true)
-        _  <- ms.send(StartupMessage("postgres", "world"))
-        _  <- finishStartup(ms)
-        _  <- ms.send(Query(
+        _ <- ms.send(StartupMessage("postgres", "world"))
+        _ <- finishStartup(ms)
+        _ <- ms.send(
+              Query(
                 """select name, population from country
                     where name like 'U%'"""
-              ))
+              )
+            )
         rs <- processResults(ms)
-        _  <- rs.toList.traverse { rd =>
-                Sync[F].delay(println(rd))
-              }
+        _ <- rs.toList.traverse { rd =>
+              Sync[F].delay(println(rd))
+            }
       } yield ExitCode.Success
     }
 
@@ -324,4 +326,3 @@ object Message5 extends IOApp {
 // might pop up when we're not actively waiting to receive a message, so an asynchronous message
 // might not get noticed until next time we execute a query or something. So this is no good and
 // we need to figure out a better approach.
-

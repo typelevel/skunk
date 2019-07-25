@@ -20,7 +20,9 @@ object Describe {
 
   implicit val DescribeFrontendMessage: FrontendMessage[Describe] =
     FrontendMessage.tagged('D') {
-      (byte ~ utf8z).contramap[Describe] { d => d.variant ~ d.name }
+      (byte ~ utf8z).contramap[Describe] { d =>
+        d.variant ~ d.name
+      }
     }
 
 }

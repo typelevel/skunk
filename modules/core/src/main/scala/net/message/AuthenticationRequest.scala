@@ -33,5 +33,3 @@ object AuthenticationRequest {
       }
     }
 }
-
-

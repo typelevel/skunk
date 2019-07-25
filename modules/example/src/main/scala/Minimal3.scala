@@ -20,7 +20,7 @@ object Minimal3 extends IOApp {
       host     = "localhost",
       port     = 5432,
       user     = "postgres",
-      database = "world",
+      database = "world"
     )
 
   case class Country(code: String, name: String, pop: Long)
@@ -37,9 +37,9 @@ object Minimal3 extends IOApp {
 
   def stream(pattern: String): Stream[IO, Country] =
     for {
-      s  <- resource(session)
+      s <- resource(session)
       pq <- resource(s.prepare(select))
-      c  <- pq.stream(pattern, 8)
+      c <- pq.stream(pattern, 8)
     } yield c
 
   def run(args: List[String]): IO[ExitCode] =

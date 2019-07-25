@@ -23,26 +23,26 @@ object Socket1 {
   // So we need to do pure fuctional socket programming. How do we want to think about this?
   // The way the Postgres protocol works we really only need two operations, something like this.
 
-trait Socket[F[_]] {
+  trait Socket[F[_]] {
 
-  def readN(
-    numBytes: Int,
-    timeout:  FiniteDuration
-  ): F[Array[Byte]]
+    def readN(
+      numBytes: Int,
+      timeout:  FiniteDuration
+    ): F[Array[Byte]]
 
-  def write(
-    bytes:   Array[Byte],
-    timeout: FiniteDuration
-  ): F[Unit]
+    def write(
+      bytes:   Array[Byte],
+      timeout: FiniteDuration
+    ): F[Unit]
 
-}
-    // This is a tagless interface, which is just a style of programming that parameterizes everything
-    // on the effect in which values are computed. So `F` here is probably something like `IO` in real
-    // code but you could mock up something in some other effect like StateT maybe, if you need to
-    // test error-handling code for example and want to force some weird errors to happen.
+  }
+  // This is a tagless interface, which is just a style of programming that parameterizes everything
+  // on the effect in which values are computed. So `F` here is probably something like `IO` in real
+  // code but you could mock up something in some other effect like StateT maybe, if you need to
+  // test error-handling code for example and want to force some weird errors to happen.
 
-    // So anyway we can read some number of bytes or we can write some number of bytes. In both
-    // cases we can time out, which will raise an error in the `F` effect.
+  // So anyway we can read some number of bytes or we can write some number of bytes. In both
+  // cases we can time out, which will raise an error in the `F` effect.
 
   // }
 
@@ -50,27 +50,27 @@ trait Socket[F[_]] {
 
 object Socket2 {
 
-    // So it turns out there's already an implementation of something like this, provided by fs2.
-    // One difference is that it uses a thing called a `Chunk` instead of a byte array. A chunk is
-    // an immutable sequence of bytes. Another difference is that whe we read a chunk we get back
-    // None if the socket terminates before we have read enough bytes. So let's go with this for
-    // now.
+  // So it turns out there's already an implementation of something like this, provided by fs2.
+  // One difference is that it uses a thing called a `Chunk` instead of a byte array. A chunk is
+  // an immutable sequence of bytes. Another difference is that whe we read a chunk we get back
+  // None if the socket terminates before we have read enough bytes. So let's go with this for
+  // now.
 
-    trait Socket[F[_]] {
+  trait Socket[F[_]] {
 
-      def readN(
-        numBytes: Int,
-        timeout:  Option[FiniteDuration]
-      ): F[Option[Chunk[Byte]]]
+    def readN(
+      numBytes: Int,
+      timeout:  Option[FiniteDuration]
+    ): F[Option[Chunk[Byte]]]
 
-      def write(
-        bytes: Chunk[Byte],
-        timeout: Option[FiniteDuration]
-      ): F[Unit]
+    def write(
+      bytes:   Chunk[Byte],
+      timeout: Option[FiniteDuration]
+    ): F[Unit]
 
-      // ...
+    // ...
 
-    }
+  }
 
 }
 
@@ -85,20 +85,19 @@ object Socket3 {
   // So this is a good time to introduce cats.effect.Resource, if you haven't seen it.
   // EXPLAIN
 
-def asynchronousChannelGroup[G[_]: Sync]
-  : Resource[G, AsynchronousChannelGroup] = {
+  def asynchronousChannelGroup[G[_]: Sync]: Resource[G, AsynchronousChannelGroup] = {
 
-  val alloc: G[AsynchronousChannelGroup] =
-    Sync[G].delay {
-      AsynchronousChannelGroup
-        .withThreadPool(Executors.newCachedThreadPool())
-    }
+    val alloc: G[AsynchronousChannelGroup] =
+      Sync[G].delay {
+        AsynchronousChannelGroup
+          .withThreadPool(Executors.newCachedThreadPool())
+      }
 
-  val free: AsynchronousChannelGroup => G[Unit] =
-    acg => Sync[G].delay(acg.shutdown())
+    val free: AsynchronousChannelGroup => G[Unit] =
+      acg => Sync[G].delay(acg.shutdown())
 
-  Resource.make(alloc)(free)
-}
+    Resource.make(alloc)(free)
+  }
 
   // And now if we have an implicit `AsynchronousChannelGroup` we can construct a socket and use it.
   // - introduce Concurrent and ContextShift
@@ -110,7 +109,6 @@ def asynchronousChannelGroup[G[_]: Sync]
     asynchronousChannelGroup.flatMap { implicit acg =>
       Socket.client[F](new InetSocketAddress(host, port))
     }
-
 
 }
 
@@ -128,9 +126,12 @@ object Socket4 extends IOApp {
       for {
         _ <- sock.write(req, Some(1.second))
         o <- sock.readN(256, Some(1.second))
-        _ <- o.traverse(c => Sync[IO].delay {
-              println(new String(c.toArray, "US-ASCII"))
-            })
+        _ <- o.traverse(
+              c =>
+                Sync[IO].delay {
+                  println(new String(c.toArray, "US-ASCII"))
+                }
+            )
       } yield ExitCode.Success
     }
 
@@ -148,9 +149,12 @@ object Socket5 extends IOApp {
       for {
         _ <- sock.write(req, Some(1.second))
         o <- sock.readN(512, Some(1.second))
-        _ <- o.traverse(c => Sync[F].delay {
-                println(new String(c.toArray, "US-ASCII"))
-              })
+        _ <- o.traverse(
+              c =>
+                Sync[F].delay {
+                  println(new String(c.toArray, "US-ASCII"))
+                }
+            )
       } yield ExitCode.Success
     }
 

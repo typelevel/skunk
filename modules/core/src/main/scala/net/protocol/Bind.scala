@@ -8,10 +8,10 @@ import cats.effect.Resource
 import cats.implicits._
 import cats.MonadError
 import skunk.exception.PostgresErrorException
-import skunk.net.message.{ Bind => BindMessage, _ }
+import skunk.net.message.{Bind => BindMessage, _}
 import skunk.net.MessageSocket
-import skunk.net.Protocol.{ PreparedStatement, PortalId }
-import skunk.util.{ Origin, Namer }
+import skunk.net.Protocol.{PortalId, PreparedStatement}
+import skunk.util.{Namer, Origin}
 import natchez.Trace
 
 trait Bind[F[_]] {
@@ -38,16 +38,16 @@ object Bind {
           exchange("bind") {
             for {
               pn <- nextName("portal").map(PortalId)
-              _  <- Trace[F].put(
-                      "arguments" -> args.toString,
-                      "portal-id" -> pn.value
-                    )
-              _  <- send(BindMessage(pn.value, statement.id.value, statement.statement.encoder.encode(args)))
-              _  <- send(Flush)
-              _  <- flatExpect {
-                      case BindComplete        => ().pure[F]
-                      case ErrorResponse(info) => syncAndFail(statement,  args, argsOrigin, info)
-                    }
+              _ <- Trace[F].put(
+                    "arguments" -> args.toString,
+                    "portal-id" -> pn.value
+                  )
+              _ <- send(BindMessage(pn.value, statement.id.value, statement.statement.encoder.encode(args)))
+              _ <- send(Flush)
+              _ <- flatExpect {
+                    case BindComplete        => ().pure[F]
+                    case ErrorResponse(info) => syncAndFail(statement, args, argsOrigin, info)
+                  }
             } yield pn
           }
         } { Close[F].apply }
@@ -60,16 +60,16 @@ object Bind {
       ): F[Unit] =
         for {
           hi <- history(Int.MaxValue)
-          _  <- send(Sync)
-          _  <- expect { case ReadyForQuery(_) => }
-          a  <- PostgresErrorException.raiseError[F, Unit](
-                  sql             = statement.statement.sql,
-                  sqlOrigin       = Some(statement.statement.origin),
-                  info            = info,
-                  history         = hi,
-                  arguments       = statement.statement.encoder.types.zip(statement.statement.encoder.encode(args)),
-                  argumentsOrigin = Some(argsOrigin)
-                )
+          _ <- send(Sync)
+          _ <- expect { case ReadyForQuery(_) => }
+          a <- PostgresErrorException.raiseError[F, Unit](
+                sql             = statement.statement.sql,
+                sqlOrigin       = Some(statement.statement.origin),
+                info            = info,
+                history         = hi,
+                arguments       = statement.statement.encoder.types.zip(statement.statement.encoder.encode(args)),
+                argumentsOrigin = Some(argsOrigin)
+              )
         } yield a
 
     }

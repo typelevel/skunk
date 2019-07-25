@@ -19,14 +19,14 @@ case object Void extends Void {
 
   val codec: Codec[Void] =
     new Codec[Void] {
-      override def encode(a: Void): List[Option[String]] = Nil
-      override def decode(index: Int, ss: List[Option[String]]): Either[Decoder.Error, Void.type ] =
+      override def encode(a:     Void): List[Option[String]] = Nil
+      override def decode(index: Int, ss: List[Option[String]]): Either[Decoder.Error, Void.type] =
         ss match {
           case Nil => Void.asRight
           case _   => Left(Decoder.Error(index, 0, s"Expected no values, found $ss"))
         }
-      override val types: List[Type] = Nil
-      override val sql: State[Int, String]   = "".pure[State[Int, ?]]
+      override val types: List[Type]         = Nil
+      override val sql:   State[Int, String] = "".pure[State[Int, ?]]
     }
 
 }

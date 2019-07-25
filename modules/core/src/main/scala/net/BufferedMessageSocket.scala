@@ -54,7 +54,6 @@ trait BufferedMessageSocket[F[_]] extends MessageSocket[F] {
    */
   def parameters: Signal[F, Map[String, String]]
 
-
   def backendKeyData: Deferred[F, BackendKeyData]
 
   /**
@@ -67,7 +66,6 @@ trait BufferedMessageSocket[F[_]] extends MessageSocket[F] {
    * @see [[https://www.postgresql.org/docs/10/static/sql-listen.html LISTEN]]
    */
   def notifications(maxQueued: Int): Stream[F, Notification]
-
 
   // TODO: this is an implementation leakage, fold into the factory below
   protected def terminate: F[Unit]
@@ -85,7 +83,7 @@ object BufferedMessageSocket {
     acg:          AsynchronousChannelGroup
   ): Resource[F, BufferedMessageSocket[F]] =
     for {
-      ms  <- MessageSocket(host, port, debug, readTimeout, writeTimeout, acg)
+      ms <- MessageSocket(host, port, debug, readTimeout, writeTimeout, acg)
       ams <- Resource.make(BufferedMessageSocket.fromMessageSocket[F](ms, queueSize))(_.terminate)
     } yield ams
 
@@ -105,25 +103,25 @@ object BufferedMessageSocket {
 
       // RowData is really the only hot spot so we special-case it to avoid the linear search. This
       // may be premature … need to benchmark and see if it matters.
-      case m @ RowData(_)              => Stream.emit(m)
+      case m @ RowData(_) => Stream.emit(m)
 
       // This one is observed and then emitted.
-      case m @ ReadyForQuery(s)        => Stream.eval(xaSig.set(s).as(m)) // observe and then emit
+      case m @ ReadyForQuery(s) => Stream.eval(xaSig.set(s).as(m)) // observe and then emit
 
       // These are handled here and are never seen by the higher-level API.
-      case     ParameterStatus(k, v)   => Stream.eval_(paSig.update(_ + (k -> v)))
-      case     NotificationResponse(n) => Stream.eval_(noTop.publish1(n))
-      case m @ BackendKeyData(_, _)    => Stream.eval_(bkDef.complete(m))
+      case ParameterStatus(k, v)    => Stream.eval_(paSig.update(_ + (k -> v)))
+      case NotificationResponse(n)  => Stream.eval_(noTop.publish1(n))
+      case m @ BackendKeyData(_, _) => Stream.eval_(bkDef.complete(m))
 
       // Everything else is passed through.
-      case m                           => Stream.emit(m)
+      case m => Stream.emit(m)
     }
 
   // Here we read messages as they arrive, rather than waiting for the user to ask. This allows us
   // to handle asynchronous messages, which are dealt with here and not passed on. Other messages
   // are queued up and are typically consumed immediately, so a small queue size is probably fine.
   private def fromMessageSocket[F[_]: Concurrent](
-    ms:       MessageSocket[F],
+    ms:        MessageSocket[F],
     queueSize: Int
   ): F[BufferedMessageSocket[F]] =
     for {
@@ -132,33 +130,35 @@ object BufferedMessageSocket {
       paSig <- SignallingRef[F, Map[String, String]](Map.empty)
       bkSig <- Deferred[F, BackendKeyData]
       noTop <- Topic[F, Notification](Notification(-1, Identifier.dummy, "")) // blech
-      fib   <- next(ms, xaSig, paSig, bkSig, noTop).repeat.through(queue.enqueue).compile.drain.attempt.flatMap {
-        case Left(e)  => Concurrent[F].delay(e.printStackTrace()) // TODO: handle server-initiated shutdown better
-        case Right(a) => a.pure[F]
-      } .start
-    } yield
-      new AbstractMessageSocket[F] with BufferedMessageSocket[F] {
+      fib <- next(ms, xaSig, paSig, bkSig, noTop).repeat
+              .through(queue.enqueue)
+              .compile
+              .drain
+              .attempt
+              .flatMap {
+                case Left(e) =>
+                  Concurrent[F].delay(e.printStackTrace()) // TODO: handle server-initiated shutdown better
+                case Right(a) => a.pure[F]
+              }
+              .start
+    } yield new AbstractMessageSocket[F] with BufferedMessageSocket[F] {
 
-        override def receive: F[BackendMessage] = queue.dequeue1
-        override def send[A: FrontendMessage](a: A): F[Unit] = ms.send(a)
-        override def transactionStatus: SignallingRef[F, TransactionStatus] = xaSig
-        override def parameters: SignallingRef[F, Map[String, String]] = paSig
-        override def backendKeyData: Deferred[F, BackendKeyData] = bkSig
+      override def receive: F[BackendMessage] = queue.dequeue1
+      override def send[A: FrontendMessage](a: A): F[Unit] = ms.send(a)
+      override def transactionStatus: SignallingRef[F, TransactionStatus]   = xaSig
+      override def parameters:        SignallingRef[F, Map[String, String]] = paSig
+      override def backendKeyData:    Deferred[F, BackendKeyData]           = bkSig
 
-        override def notifications(maxQueued: Int): Stream[F, Notification] =
-          noTop.subscribe(maxQueued).filter(_.pid > 0) // filter out the bogus initial value
+      override def notifications(maxQueued: Int): Stream[F, Notification] =
+        noTop.subscribe(maxQueued).filter(_.pid > 0) // filter out the bogus initial value
 
-        override protected def terminate: F[Unit] =
-          fib.cancel *>      // stop processing incoming messages
+      override protected def terminate: F[Unit] =
+        fib.cancel *> // stop processing incoming messages
           ms.send(Terminate) // server will close the socket when it sees this
 
-        override def history(max: Int): F[List[Either[Any, Any]]] =
-          ms.history(max)
+      override def history(max: Int): F[List[Either[Any, Any]]] =
+        ms.history(max)
 
-
-      }
-
+    }
 
 }
-
-

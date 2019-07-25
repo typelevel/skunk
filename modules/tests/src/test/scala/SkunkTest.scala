@@ -4,7 +4,7 @@
 
 package tests
 
-import cats.effect.{ IO, Resource }
+import cats.effect.{IO, Resource}
 import cats.implicits._
 import scala.reflect.ClassTag
 import skunk.Session
@@ -48,8 +48,8 @@ abstract class SkunkTest(strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly)
     def assertFailsWith[E: ClassTag](show: Boolean): IO[E] =
       fa.attempt.flatMap {
         case Left(e: E) => IO(e.printStackTrace()).whenA(show) *> e.pure[IO]
-        case Left(e)    => IO.raiseError(e)
-        case Right(a)   => fail[E](s"Expected SqlException, got $a")
+        case Left(e)  => IO.raiseError(e)
+        case Right(a) => fail[E](s"Expected SqlException, got $a")
       }
   }
 

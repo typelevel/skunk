@@ -6,7 +6,7 @@ package skunk.net.protocol
 
 import cats.implicits._
 import cats.MonadError
-import skunk.{ ~, Encoder, Decoder }
+import skunk.{Decoder, Encoder, ~}
 import skunk.exception.DecodeException
 import skunk.implicits._
 import skunk.net.message._
@@ -24,7 +24,7 @@ private[protocol] class Unroll[F[_]: MonadError[?[_], Throwable]: MessageSocket:
 
   /** Receive the next batch of rows. */
   def unroll[A, B](
-    portal:         QueryPortal[F, A, B]
+    portal: QueryPortal[F, A, B]
   ): F[List[B] ~ Boolean] =
     unroll(
       sql            = portal.preparedQuery.query.sql,
@@ -33,7 +33,7 @@ private[protocol] class Unroll[F[_]: MonadError[?[_], Throwable]: MessageSocket:
       argsOrigin     = Some(portal.argumentsOrigin),
       encoder        = portal.preparedQuery.query.encoder,
       rowDescription = portal.preparedQuery.rowDescription,
-      decoder        = portal.preparedQuery.query.decoder,
+      decoder        = portal.preparedQuery.query.decoder
     )
 
   // When we do a quick query there's no statement to hang onto all the error-reporting context
@@ -45,16 +45,16 @@ private[protocol] class Unroll[F[_]: MonadError[?[_], Throwable]: MessageSocket:
     argsOrigin:     Option[Origin],
     encoder:        Encoder[A],
     rowDescription: TypedRowDescription,
-    decoder:        Decoder[B],
+    decoder:        Decoder[B]
   ): F[List[B] ~ Boolean] = {
 
     // N.B. we process all waiting messages to ensure the protocol isn't messed up by decoding
     // failures later on.
     def accumulate(accum: List[List[Option[String]]]): F[List[List[Option[String]]] ~ Boolean] =
       receive.flatMap {
-        case rd @ RowData(_)         => accumulate(rd.fields :: accum)
-        case      CommandComplete(_) => (accum.reverse ~ false).pure[F]
-        case      PortalSuspended    => (accum.reverse ~ true).pure[F]
+        case rd @ RowData(_)    => accumulate(rd.fields :: accum)
+        case CommandComplete(_) => (accum.reverse ~ false).pure[F]
+        case PortalSuspended    => (accum.reverse ~ true).pure[F]
       }
 
     accumulate(Nil).flatMap {
@@ -63,24 +63,26 @@ private[protocol] class Unroll[F[_]: MonadError[?[_], Throwable]: MessageSocket:
           "row-count" -> rows.length,
           "more-rows" -> bool
         ) *>
-        rows.traverse { data =>
-          decoder.decode(0, data) match {
-            case Right(a) => a.pure[F]
-            case Left(e)  =>
-              send(Sync).whenA(bool) *> // if we're suspended we need to sync to get back to an ok state
-              expect { case ReadyForQuery(status) => } *>
-              new DecodeException(
-                data,
-                e,
-                sql,
-                Some(sqlOrigin),
-                args,
-                argsOrigin,
-                encoder,
-                rowDescription,
-              ).raiseError[F, B]
-          }
-        } .map(_ ~ bool)
+          rows
+            .traverse { data =>
+              decoder.decode(0, data) match {
+                case Right(a) => a.pure[F]
+                case Left(e) =>
+                  send(Sync).whenA(bool) *> // if we're suspended we need to sync to get back to an ok state
+                    expect { case ReadyForQuery(status) => } *>
+                    new DecodeException(
+                      data,
+                      e,
+                      sql,
+                      Some(sqlOrigin),
+                      args,
+                      argsOrigin,
+                      encoder,
+                      rowDescription
+                    ).raiseError[F, B]
+              }
+            }
+            .map(_ ~ bool)
     }
 
   }

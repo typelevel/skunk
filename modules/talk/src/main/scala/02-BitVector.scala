@@ -20,8 +20,8 @@ object BitVector1 {
   // So we have the socket interface which is *ok*
 
   trait Socket[F[_]] {
-    def readN(numBytes: Int, timeout: Option[FiniteDuration]): F[Option[Chunk[Byte]]]
-    def write(bytes: Chunk[Byte], timeout: Option[FiniteDuration]): F[Unit]
+    def readN(numBytes: Int, timeout:         Option[FiniteDuration]): F[Option[Chunk[Byte]]]
+    def write(bytes:    Chunk[Byte], timeout: Option[FiniteDuration]): F[Unit]
   }
 
   // But what we want is something more abstract. We'll assume that read and write timeouts are
@@ -29,10 +29,10 @@ object BitVector1 {
   // going to treat EOF as an error because we always know how many bytes are coming because
   // messages are length-prefixed. If we it EOF it's an unrecoverable error.
 
-trait BitVectorSocket[F[_]] {
-  def write(bits: BitVector): F[Unit]
-  def read(nBytes: Int): F[BitVector]
-}
+  trait BitVectorSocket[F[_]] {
+    def write(bits:  BitVector): F[Unit]
+    def read(nBytes: Int):       F[BitVector]
+  }
 
   // Ok so the question is, how do we get from here to there? We have a `Socket` and we want a
   // `BitVectorSocket`. Well the way we do this is with delegation, and it's a really really
@@ -44,25 +44,25 @@ trait BitVectorSocket[F[_]] {
     // Introduce MonadError
     // say it's ok to match on Option in flatMap ... it's often really nice
 
-      def fromSocket[F[_]: MonadError[?[_], Throwable]](
-        socket:       Socket[F],
-        readTimeout:  FiniteDuration,
-        writeTimeout: FiniteDuration
-      ): BitVectorSocket[F] =
-        new BitVectorSocket[F] {
+    def fromSocket[F[_]: MonadError[?[_], Throwable]](
+      socket:       Socket[F],
+      readTimeout:  FiniteDuration,
+      writeTimeout: FiniteDuration
+    ): BitVectorSocket[F] =
+      new BitVectorSocket[F] {
 
-          def read(nBytes: Int): F[BitVector] =
-            socket.readN(nBytes, Some(readTimeout)).flatMap {
-              case Some(c) => BitVector(c.toArray).pure[F]
-              case None    =>
-                new Exception(s"Fatal: EOF, expected $nBytes bytes.")
-                  .raiseError[F, BitVector]
-            }
+        def read(nBytes: Int): F[BitVector] =
+          socket.readN(nBytes, Some(readTimeout)).flatMap {
+            case Some(c) => BitVector(c.toArray).pure[F]
+            case None =>
+              new Exception(s"Fatal: EOF, expected $nBytes bytes.")
+                .raiseError[F, BitVector]
+          }
 
-          def write(bits: BitVector): F[Unit] =
-            socket.write(Chunk.array(bits.toByteArray), Some(writeTimeout))
+        def write(bits: BitVector): F[Unit] =
+          socket.write(Chunk.array(bits.toByteArray), Some(writeTimeout))
 
-        }
+      }
 
   }
 
@@ -88,13 +88,16 @@ object BitVector2 extends IOApp {
 
   def runF[F[_]: Concurrent: ContextShift]: F[ExitCode] =
     bitVectorSocket[F](
-      "google.com", 80, 1.second, 1.seconds
+      "google.com",
+      80,
+      1.second,
+      1.seconds
     ).use { sock =>
       val req: BitVector = utf8.encode("GET / HTTP/1.0\n\n").require
       for {
-        _  <- sock.write(req)
+        _ <- sock.write(req)
         bv <- sock.read(256)
-        _  <- Sync[F].delay(println(utf8.decodeValue(bv).require))
+        _ <- Sync[F].delay(println(utf8.decodeValue(bv).require))
       } yield ExitCode.Success
     }
 
@@ -102,4 +105,3 @@ object BitVector2 extends IOApp {
     runF[IO]
 
 }
-

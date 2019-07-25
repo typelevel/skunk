@@ -11,7 +11,7 @@ import fs2.Stream
 import fs2.concurrent.Signal
 import skunk.data._
 import skunk.net.Protocol
-import skunk.util.{ Origin, Pool }
+import skunk.util.{Origin, Pool}
 import skunk.util.Namer
 import skunk.net.BitVectorSocket
 import java.nio.channels.AsynchronousChannelGroup
@@ -143,8 +143,8 @@ trait Session[F[_]] {
    * Transform a `Command` into a `Pipe` from inputs to `Completion`s.
    * @group Commands
    */
-  def pipe[A](command: Command[A]): Pipe[F, A, Completion] = fa =>
-    Stream.resource(prepare(command)).flatMap(pc => fa.evalMap(pc.execute)).scope
+  def pipe[A](command: Command[A]): Pipe[F, A, Completion] =
+    fa => Stream.resource(prepare(command)).flatMap(pc => fa.evalMap(pc.execute)).scope
 
   /**
    * A named asynchronous channel that can be used for inter-process communication.
@@ -173,8 +173,6 @@ trait Session[F[_]] {
 
 }
 
-
-
 /** @group Companions */
 object Session {
 
@@ -195,7 +193,7 @@ object Session {
     port:     Int,
     user:     String,
     database: String,
-    max:      Long,
+    max:      Long
   ): SessionPool[F] = {
 
     val reset: Session[F] => F[Boolean] = s =>
@@ -222,21 +220,21 @@ object Session {
    */
   def single[F[_]: Concurrent: ContextShift: Trace](
     host:         String,
-    port:         Int                      = 5432,
+    port:         Int = 5432,
     user:         String,
     database:     String,
     debug:        Boolean = false,
-    readTimeout:  FiniteDuration           = Int.MaxValue.seconds,
-    writeTimeout: FiniteDuration           = 5.seconds,
+    readTimeout:  FiniteDuration = Int.MaxValue.seconds,
+    writeTimeout: FiniteDuration = 5.seconds,
     acg:          AsynchronousChannelGroup = BitVectorSocket.GlobalACG,
-    strategy:     Typer.Strategy           = Typer.Strategy.BuiltinsOnly
+    strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly
   ): Resource[F, Session[F]] =
     for {
       nam <- Resource.liftF(Namer[F])
-      ps  <- Protocol[F](host, port, debug, nam, readTimeout, writeTimeout, acg)
-      _   <- Resource.liftF(ps.startup(user, database))
+      ps <- Protocol[F](host, port, debug, nam, readTimeout, writeTimeout, acg)
+      _ <- Resource.liftF(ps.startup(user, database))
       // TODO: password negotiation, SASL, etc.
-      s   <- Resource.liftF(fromProtocol(ps, nam, strategy))
+      s <- Resource.liftF(fromProtocol(ps, nam, strategy))
     } yield s
 
   /**
@@ -310,9 +308,9 @@ object Session {
   implicit class SignalOps[F[_], A](outer: Signal[F, A]) {
     def mapK[G[_]](fk: F ~> G): Signal[G, A] =
       new Signal[G, A] {
-        def continuous: Stream[G,A] = outer.continuous.translate(fk)
-        def discrete: Stream[G,A] = outer.continuous.translate(fk)
-        def get: G[A] = fk(outer.get)
+        def continuous: Stream[G, A] = outer.continuous.translate(fk)
+        def discrete:   Stream[G, A] = outer.continuous.translate(fk)
+        def get:        G[A]         = fk(outer.get)
       }
   }
 
@@ -327,21 +325,20 @@ object Session {
     ): Session[G] =
       new Session[G] {
         override val typer: Typer = outer.typer
-        override def channel(name: Identifier): Channel[G,String,Notification] = outer.channel(name).mapK(fk)
-        override def execute(command: Command[Void]): G[Completion] = fk(outer.execute(command))
-        override def execute[A](query: Query[Void,A]): G[List[A]] = fk(outer.execute(query))
-        override def option[A](query: Query[Void,A]): G[Option[A]] = fk(outer.option(query))
-        override def parameter(key: String): Stream[G,String] = outer.parameter(key).translate(fk)
-        override def parameters: Signal[G,Map[String,String]] = outer.parameters.mapK(fk)
-        override def prepare[A, B](query: Query[A,B]): Resource[G,PreparedQuery[G,A,B]] = outer.prepare(query).mapK(fk).map(_.mapK(fk))
-        override def prepare[A](command: Command[A]): Resource[G,PreparedCommand[G,A]] = outer.prepare(command).mapK(fk).map(_.mapK(fk))
-        override def transaction[A]: Resource[G,Transaction[G]] = outer.transaction[A].mapK(fk).map(_.mapK(fk))
-        override def transactionStatus: Signal[G,TransactionStatus] = outer.transactionStatus.mapK(fk)
-        override def unique[A](query: Query[Void,A]): G[A] = fk(outer.unique(query))
+        override def channel(name:     Identifier):     Channel[G, String, Notification] = outer.channel(name).mapK(fk)
+        override def execute(command:  Command[Void]):  G[Completion]                    = fk(outer.execute(command))
+        override def execute[A](query: Query[Void, A]): G[List[A]]                       = fk(outer.execute(query))
+        override def option[A](query:  Query[Void, A]): G[Option[A]]                     = fk(outer.option(query))
+        override def parameter(key:    String):         Stream[G, String]                = outer.parameter(key).translate(fk)
+        override def parameters: Signal[G, Map[String, String]] = outer.parameters.mapK(fk)
+        override def prepare[A, B](query: Query[A, B]): Resource[G, PreparedQuery[G, A, B]] =
+          outer.prepare(query).mapK(fk).map(_.mapK(fk))
+        override def prepare[A](command: Command[A]): Resource[G, PreparedCommand[G, A]] =
+          outer.prepare(command).mapK(fk).map(_.mapK(fk))
+        override def transaction[A]:    Resource[G, Transaction[G]]  = outer.transaction[A].mapK(fk).map(_.mapK(fk))
+        override def transactionStatus: Signal[G, TransactionStatus] = outer.transactionStatus.mapK(fk)
+        override def unique[A](query: Query[Void, A]): G[A] = fk(outer.unique(query))
       }
   }
 
 }
-
-
-

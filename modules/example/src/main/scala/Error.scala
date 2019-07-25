@@ -18,7 +18,7 @@ object Error extends IOApp {
       host     = "localhost",
       port     = 5432,
       user     = "postgres",
-      database = "world",
+      database = "world"
     )
 
   val query =

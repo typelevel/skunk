@@ -8,7 +8,7 @@ import cats.effect.Resource
 import cats.implicits._
 import cats.MonadError
 import skunk.exception.PostgresErrorException
-import skunk.net.message.{ Parse => ParseMessage, _ }
+import skunk.net.message.{Parse => ParseMessage, _}
 import skunk.net.MessageSocket
 import skunk.net.Protocol.StatementId
 import skunk.Statement
@@ -34,17 +34,19 @@ object Parse {
               exchange("parse") {
                 for {
                   id <- nextName("statement").map(StatementId)
-                  _  <- Trace[F].put(
-                          "statement-name"            -> id.value,
-                          "statement-sql"             -> statement.sql,
-                          "statement-parameter-types" -> os.map(n => ty.typeForOid(n, -1).getOrElse(n)).mkString("[", ", ", "]")
-                        )
-                  _  <- send(ParseMessage(id.value, statement.sql, os))
-                  _  <- send(Flush)
-                  _  <- flatExpect {
-                          case ParseComplete       => ().pure[F]
-                          case ErrorResponse(info) => syncAndFail(statement, info)
-                        }
+                  _ <- Trace[F].put(
+                        "statement-name" -> id.value,
+                        "statement-sql"  -> statement.sql,
+                        "statement-parameter-types" -> os
+                          .map(n => ty.typeForOid(n, -1).getOrElse(n))
+                          .mkString("[", ", ", "]")
+                      )
+                  _ <- send(ParseMessage(id.value, statement.sql, os))
+                  _ <- send(Flush)
+                  _ <- flatExpect {
+                        case ParseComplete       => ().pure[F]
+                        case ErrorResponse(info) => syncAndFail(statement, info)
+                      }
                 } yield id
               }
             } { Close[F].apply }
@@ -57,14 +59,14 @@ object Parse {
       def syncAndFail(statement: Statement[_], info: Map[Char, String]): F[Unit] =
         for {
           hi <- history(Int.MaxValue)
-          _  <- send(Sync)
-          _  <- expect { case ReadyForQuery(_) => }
-          a  <- new PostgresErrorException(
-                  sql       = statement.sql,
-                  sqlOrigin = Some(statement.origin),
-                  info      = info,
-                  history   = hi,
-                ).raiseError[F, Unit]
+          _ <- send(Sync)
+          _ <- expect { case ReadyForQuery(_) => }
+          a <- new PostgresErrorException(
+                sql       = statement.sql,
+                sqlOrigin = Some(statement.origin),
+                info      = info,
+                history   = hi
+              ).raiseError[F, Unit]
         } yield a
 
     }

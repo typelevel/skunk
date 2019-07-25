@@ -4,7 +4,7 @@
 
 package skunk.data
 
-import cats.{ Eq, Monad }
+import cats.{Eq, Monad}
 import cats.implicits._
 
 /**
@@ -219,5 +219,3 @@ object Type {
 
   // format: on
 }
-
-

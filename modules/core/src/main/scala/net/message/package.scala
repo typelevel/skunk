@@ -6,7 +6,7 @@ package skunk.net
 
 import cats.implicits._
 import cats.Semigroup
-import scodec.{ Attempt, Codec => SCodec, Err }
+import scodec.{Attempt, Codec => SCodec, Err}
 import scodec.bits._
 import scodec.codecs._
 import scodec.interop.cats._
@@ -43,7 +43,7 @@ package object message { module =>
 
   val identifier: SCodec[Identifier] =
     cstring.exmap(
-      s  => Attempt.fromEither(Identifier.fromString(s).leftMap(Err(_))),
+      s => Attempt.fromEither(Identifier.fromString(s).leftMap(Err(_))),
       id => Attempt.successful(id.value)
     )
 

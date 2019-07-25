@@ -7,7 +7,6 @@ package skunk.net.message
 import scodec._
 import scodec.codecs._
 
-
 case class Bind(portal: String, statement: String, args: List[Option[String]])
 
 object Bind {
@@ -48,11 +47,11 @@ object Bind {
         Codec(
           Encoder { (os: Option[String]) =>
             os match {
-              case None    => int32.encode(-1)
+              case None => int32.encode(-1)
               case Some(s) =>
                 for {
                   data <- utf8.encode(s)
-                  len  <- int32.encode(data.size.toInt / 8)
+                  len <- int32.encode(data.size.toInt / 8)
                 } yield len ++ data
             }
           },

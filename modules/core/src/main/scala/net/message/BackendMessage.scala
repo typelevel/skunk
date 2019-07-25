@@ -22,23 +22,23 @@ object BackendMessage {
    */
   def decoder(tag: Byte): Decoder[BackendMessage] =
     (tag: @switch) match { // N.B. `final val Tag = <char>` req'd for case switch here
-       case AuthenticationRequest.Tag => AuthenticationRequest.decoder
-       case BackendKeyData.Tag        => BackendKeyData.decoder
-       case BindComplete.Tag          => BindComplete.decoder
-       case CloseComplete.Tag         => CloseComplete.decoder
-       case CommandComplete.Tag       => CommandComplete.decoder
-       case ErrorResponse.Tag         => ErrorResponse.decoder
-       case NoData.Tag                => NoData.decoder
-       case NotificationResponse.Tag  => NotificationResponse.decoder
-       case NoticeResponse.Tag        => NoticeResponse.decoder
-       case ParameterDescription.Tag  => ParameterDescription.decoder
-       case ParameterStatus.Tag       => ParameterStatus.decoder
-       case ParseComplete.Tag         => ParseComplete.decoder
-       case PortalSuspended.Tag       => PortalSuspended.decoder
-       case ReadyForQuery.Tag         => ReadyForQuery.decoder
-       case RowData.Tag               => RowData.decoder
-       case RowDescription.Tag        => RowDescription.decoder
-       case _                         => UnknownMessage.decoder(tag)
+      case AuthenticationRequest.Tag => AuthenticationRequest.decoder
+      case BackendKeyData.Tag        => BackendKeyData.decoder
+      case BindComplete.Tag          => BindComplete.decoder
+      case CloseComplete.Tag         => CloseComplete.decoder
+      case CommandComplete.Tag       => CommandComplete.decoder
+      case ErrorResponse.Tag         => ErrorResponse.decoder
+      case NoData.Tag                => NoData.decoder
+      case NotificationResponse.Tag  => NotificationResponse.decoder
+      case NoticeResponse.Tag        => NoticeResponse.decoder
+      case ParameterDescription.Tag  => ParameterDescription.decoder
+      case ParameterStatus.Tag       => ParameterStatus.decoder
+      case ParseComplete.Tag         => ParseComplete.decoder
+      case PortalSuspended.Tag       => PortalSuspended.decoder
+      case ReadyForQuery.Tag         => ReadyForQuery.decoder
+      case RowData.Tag               => RowData.decoder
+      case RowDescription.Tag        => RowDescription.decoder
+      case _                         => UnknownMessage.decoder(tag)
     }
 
 }

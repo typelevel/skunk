@@ -8,7 +8,6 @@ import cats.effect._
 import cats.effect.concurrent._
 import cats.implicits._
 
-
 object Pool {
 
   /**
@@ -20,9 +19,9 @@ object Pool {
    * if `rsrc` yields instances that depend on each other).
    */
   def of[F[_]: Concurrent, A](
-    rsrc: Resource[F, A],
+    rsrc:         Resource[F, A],
     maxInstances: Long,
-    reset: A => F[Boolean]
+    reset:        A => F[Boolean]
   ): Pool[F, A] =
     Resource.make(PoolData.create(rsrc, maxInstances, reset))(_.close).map(_.resource)
 
@@ -31,7 +30,7 @@ object Pool {
    * concurrent instances, a cache to store instances for reuse, and a reset program constructor
    * for checking validity (and arbitrary cleanup) of returned instances.
    */
-  private final class PoolData[F[_]: Concurrent, A](
+  final private class PoolData[F[_]: Concurrent, A](
     underlying: Resource[F, A],
     semaphore:  Semaphore[F],
     cache:      MVar[F, List[Leak[F, A]]],
@@ -42,13 +41,12 @@ object Pool {
     // If an error is raised leaking the resource we give up the permit and re-throw
     private def take(factory: F[Leak[F, A]]): F[Leak[F, A]] =
       for {
-        _   <- semaphore.acquire
-        q   <- cache.take
-        lfa <-
-          q match {
-            case a :: as => cache.put(as).as(a)
-            case Nil     => cache.put(Nil) *> factory.onError { case _ => semaphore.release }
-          }
+        _ <- semaphore.acquire
+        q <- cache.take
+        lfa <- q match {
+                case a :: as => cache.put(as).as(a)
+                case Nil     => cache.put(Nil) *> factory.onError { case _ => semaphore.release }
+              }
       } yield lfa
 
     // Add a leaked resource to the pool and release a permit
@@ -65,7 +63,7 @@ object Pool {
     def close: F[Unit] =
       for {
         leaks <- cache.take
-        _     <- leaks.traverse(_.release.attempt) // on error no big deal?
+        _ <- leaks.traverse(_.release.attempt) // on error no big deal?
       } yield ()
 
     // View this bundle of nastiness as a resource
@@ -77,12 +75,12 @@ object Pool {
   private object PoolData {
 
     def create[F[_]: Concurrent, A](
-      rsrc: Resource[F, A],
+      rsrc:         Resource[F, A],
       maxInstances: Long,
-      reset: A => F[Boolean]
+      reset:        A => F[Boolean]
     ): F[PoolData[F, A]] =
       for {
-        sem   <- Semaphore[F](maxInstances)
+        sem <- Semaphore[F](maxInstances)
         cache <- MVar[F].of(List.empty[Leak[F, A]])
       } yield new PoolData(rsrc, sem, cache, reset)
 

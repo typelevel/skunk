@@ -11,15 +11,18 @@ object Pretty {
   def formatMessageAtPosition(source: String, message: String, pos: Int): String = {
 
     // Add the error message
-    val s1 = source.lines.toList.foldLeft((0, "")) { case ((n, acc), s) =>
-      val nʹ = n + s.length + 1
-      (nʹ, s"$acc\n" + {
-          if (pos > 0 && pos >= n && pos <= nʹ) {
-            s"$s\n${" " * (pos - n - 1)}${Console.CYAN}└─── $message${Console.RESET}${Console.GREEN}"
-          } else s
-        }
-      )
-    } ._2.drop(1)
+    val s1 = source.lines.toList
+      .foldLeft((0, "")) {
+        case ((n, acc), s) =>
+          val nʹ = n + s.length + 1
+          (nʹ, s"$acc\n" + {
+            if (pos > 0 && pos >= n && pos <= nʹ) {
+              s"$s\n${" " * (pos - n - 1)}${Console.CYAN}└─── $message${Console.RESET}${Console.GREEN}"
+            } else s
+          })
+      }
+      ._2
+      .drop(1)
 
     // Remove leading and trailing empty lines
     val s2 =
@@ -36,10 +39,12 @@ object Pretty {
   }
 
   def wrap(w: Int, s: String, delim: String = "\n"): String =
-    if (w >= s.length) s else {
+    if (w >= s.length) s
+    else {
       s.lastIndexWhere(_ == ' ', w) match {
         case -1 => wrap(w + 1, s, delim)
-        case n  => val (s1, s2) = s.splitAt(n)
+        case n =>
+          val (s1, s2) = s.splitAt(n)
           s1 + delim + wrap(w, s2.trim, delim)
       }
     }

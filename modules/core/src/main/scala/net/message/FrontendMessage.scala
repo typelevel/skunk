@@ -32,13 +32,13 @@ object FrontendMessage {
 
   def tagged[A](tag: Byte)(enc: Encoder[A]): FrontendMessage[A] =
     new FrontendMessage[A] {
-      override val encoder: Encoder[A] = enc
+      override val encoder:     Encoder[A] = enc
       override val fullEncoder: Encoder[A] = Encoder(a => byte.encode(tag) |+| lengthPrefixed(enc).encode(a))
     }
 
   def untagged[A](enc: Encoder[A]): FrontendMessage[A] =
     new FrontendMessage[A] {
-      override val encoder: Encoder[A] = enc
+      override val encoder:     Encoder[A] = enc
       override val fullEncoder: Encoder[A] = lengthPrefixed(enc)
     }
 

@@ -4,12 +4,12 @@
 
 package skunk
 
-import cats.{ Contravariant, Functor, ~> }
+import cats.{Contravariant, Functor, ~>}
 import cats.arrow.Profunctor
 import cats.effect.Resource
 import cats.implicits._
 import fs2.Stream
-import skunk.data.{ Identifier, Notification }
+import skunk.data.{Identifier, Notification}
 import skunk.net.Protocol
 import skunk.util.Origin
 
@@ -69,7 +69,7 @@ trait Channel[F[_], A, B] { outer =>
   def dimap[C, D](f: C => A)(g: B => D): Channel[F, C, D] =
     new Channel[F, C, D] {
       def listen(maxQueued: Int): Stream[F, D] = outer.listen(maxQueued).map(g)
-      def notify(message: C): F[Unit] = outer.notify(f(message))
+      def notify(message:   C):   F[Unit]      = outer.notify(f(message))
     }
 
   /**
@@ -79,7 +79,7 @@ trait Channel[F[_], A, B] { outer =>
   def mapK[G[_]](fk: F ~> G): Channel[G, A, B] =
     new Channel[G, A, B] {
       def listen(maxQueued: Int): Stream[G, B] = outer.listen(maxQueued).translate(fk)
-      def notify(message: A): G[Unit] = fk(outer.notify(message))
+      def notify(message:   A):   G[Unit]      = fk(outer.notify(message))
     }
 
 }
@@ -95,23 +95,23 @@ object Channel {
   def fromNameAndProtocol[F[_]: Functor](name: Identifier, proto: Protocol[F]): Channel[F, String, Notification] =
     new Channel[F, String, Notification] {
 
-    val listen: F[Unit] =
-      proto.execute(Command(s"LISTEN ${name.value}", Origin.unknown, Void.codec)).void
+      val listen: F[Unit] =
+        proto.execute(Command(s"LISTEN ${name.value}", Origin.unknown, Void.codec)).void
 
-    val unlisten: F[Unit] =
-      proto.execute(Command(s"UNLISTEN ${name.value}", Origin.unknown, Void.codec)).void
+      val unlisten: F[Unit] =
+        proto.execute(Command(s"UNLISTEN ${name.value}", Origin.unknown, Void.codec)).void
 
-    def listen(maxQueued: Int): Stream[F, Notification] =
-      for {
-        _ <- Stream.resource(Resource.make(listen)(_ => unlisten))
-        n <- proto.notifications(maxQueued).filter(_.channel === name)
-      } yield n
+      def listen(maxQueued: Int): Stream[F, Notification] =
+        for {
+          _ <- Stream.resource(Resource.make(listen)(_ => unlisten))
+          n <- proto.notifications(maxQueued).filter(_.channel === name)
+        } yield n
 
-    def notify(message: String): F[Unit] =
-      // TODO: escape the message
-      proto.execute(Command(s"NOTIFY ${name.value}, '$message'", Origin.unknown, Void.codec)).void
+      def notify(message: String): F[Unit] =
+        // TODO: escape the message
+        proto.execute(Command(s"NOTIFY ${name.value}, '$message'", Origin.unknown, Void.codec)).void
 
-  }
+    }
 
   /**
    * `Channel[F, T, ?]` is a covariant functor for all `F` and `T`.

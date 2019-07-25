@@ -8,8 +8,8 @@ import skunk.net.message._
 import skunk.util.Namer
 
 package object protocol {
-import natchez.Trace
-import skunk.util.Origin
+  import natchez.Trace
+  import skunk.util.Origin
 
   def exchange[F[_]: Trace, A](label: String)(fa: F[A])(
     implicit exchange: Exchange[F]
@@ -25,14 +25,14 @@ import skunk.util.Origin
     ev.history(max)
 
   def expect[F[_], B](f: PartialFunction[BackendMessage, B])(
-    implicit ev: MessageSocket[F],
-             or: Origin
+    implicit ev:         MessageSocket[F],
+    or:                  Origin
   ): F[B] =
     ev.expect(f)
 
   def flatExpect[F[_], B](f: PartialFunction[BackendMessage, F[B]])(
-    implicit ev: MessageSocket[F],
-             or: Origin
+    implicit ev:             MessageSocket[F],
+    or:                      Origin
   ): F[B] =
     ev.flatExpect(f)
 

@@ -8,14 +8,14 @@ import cats.implicits._
 import skunk.util.Text
 
 class StartupException private[skunk] (
-  info: Map[Char, String],
+  info:       Map[Char, String],
   properties: Map[String, String]
 ) extends PostgresErrorException(
-  sql = "", // grim, fix this
-  sqlOrigin = None,
-  info = info,
-  history = Nil
-) {
+    sql       = "", // grim, fix this
+    sqlOrigin = None,
+    info      = info,
+    history   = Nil
+  ) {
 
   import Text.green
   implicit def stringToText(s: String): Text = Text(s)

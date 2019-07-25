@@ -5,10 +5,10 @@
 package example
 
 import cats.Monad
-import cats.effect.{ ExitCode, IO, IOApp, Resource }
+import cats.effect.{ExitCode, IO, IOApp, Resource}
 import skunk.Session
 import skunk.implicits._
-import skunk.codec.numeric.{ int4, float8 }
+import skunk.codec.numeric.{float8, int4}
 import natchez.Trace.Implicits.noop
 
 object Math2 extends IOApp {
@@ -18,12 +18,12 @@ object Math2 extends IOApp {
       host     = "localhost",
       port     = 5432,
       user     = "postgres",
-      database = "world",
+      database = "world"
     )
 
   // An algebra for doing math.
   trait Math[F[_]] {
-    def add(a: Int, b: Int): F[Int]
+    def add(a:  Int, b: Int): F[Int]
     def sqrt(d: Double): F[Double]
   }
 
@@ -36,23 +36,22 @@ object Math2 extends IOApp {
 
     def fromSession[F[_]: Monad](sess: Session[F]): Resource[F, Math[F]] =
       for {
-        pAdd  <- sess.prepare(Statements.add)
+        pAdd <- sess.prepare(Statements.add)
         pSqrt <- sess.prepare(Statements.sqrt)
-      } yield
-        new Math[F] {
-          def add(a: Int, b: Int) = pAdd.unique(a ~ b)
-          def sqrt(d: Double)     = pSqrt.unique(d)
-        }
+      } yield new Math[F] {
+        def add(a:  Int, b: Int) = pAdd.unique(a ~ b)
+        def sqrt(d: Double) = pSqrt.unique(d)
+      }
 
   }
 
   def run(args: List[String]): IO[ExitCode] =
     session.flatMap(Math.fromSession(_)).use { m =>
       for {
-        n  <- m.add(42, 71)
-        d  <- m.sqrt(2)
+        n <- m.add(42, 71)
+        d <- m.sqrt(2)
         d2 <- m.sqrt(42)
-        _  <- IO(println(s"The answers were $n and $d and $d2"))
+        _ <- IO(println(s"The answers were $n and $d and $d2"))
       } yield ExitCode.Success
     }
 

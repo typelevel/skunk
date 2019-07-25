@@ -16,7 +16,7 @@ object Minimal1 extends IOApp {
     Session.single(
       host     = "localhost",
       user     = "postgres",
-      database = "world",
+      database = "world"
     )
 
   def run(args: List[String]): IO[ExitCode] =

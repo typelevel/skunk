@@ -8,10 +8,10 @@ import cats._
 import cats.arrow.Profunctor
 import cats.effect._
 import cats.implicits._
-import fs2.{ Chunk, Stream }
+import fs2.{Chunk, Stream}
 import skunk.exception.SkunkException
 import skunk.net.Protocol
-import skunk.util.{ CallSite, Origin }
+import skunk.util.{CallSite, Origin}
 
 /**
  * A prepared query, valid for the life of its originating `Session`.
@@ -53,7 +53,7 @@ object PreparedQuery {
   def fromProto[F[_]: Bracket[?[_], Throwable], A, B](proto: Protocol.PreparedQuery[F, A, B]): PreparedQuery[F, A, B] =
     new PreparedQuery[F, A, B] {
 
-     override def cursor(args: A)(implicit or: Origin): Resource[F, Cursor[F, B]] =
+      override def cursor(args: A)(implicit or: Origin): Resource[F, Cursor[F, B]] =
         proto.bind(args, or).map { p =>
           new Cursor[F, B] {
             override def fetch(maxRows: Int): F[(List[B], Boolean)] =
@@ -64,10 +64,11 @@ object PreparedQuery {
       override def stream(args: A, chunkSize: Int)(implicit or: Origin): Stream[F, B] =
         Stream.resource(proto.bind(args, or)).flatMap { cursor =>
           def chunks: Stream[F, B] =
-            Stream.eval(cursor.execute(chunkSize)).flatMap { case (bs, more) =>
-              val s = Stream.chunk(Chunk.seq(bs))
-              if (more) s ++ chunks
-              else s
+            Stream.eval(cursor.execute(chunkSize)).flatMap {
+              case (bs, more) =>
+                val s = Stream.chunk(Chunk.seq(bs))
+                if (more) s ++ chunks
+                else s
             }
           chunks
         }
@@ -78,38 +79,45 @@ object PreparedQuery {
         cursor(args).use(_.fetch(2))
 
       override def option(args: A)(implicit or: Origin): F[Option[B]] =
-        fetch2(args).flatMap { case (bs, _) =>
-          bs match {
-            case b :: Nil => b.some.pure[F]
-            case Nil      => none[B].pure[F]
-            case _        =>
-              fail("option", args, or,
-                "Expected at most one result, more returned.",
-                s"Did you mean to use ${framed("stream")}?"
-              )
-          }
+        fetch2(args).flatMap {
+          case (bs, _) =>
+            bs match {
+              case b :: Nil => b.some.pure[F]
+              case Nil      => none[B].pure[F]
+              case _ =>
+                fail(
+                  "option",
+                  args,
+                  or,
+                  "Expected at most one result, more returned.",
+                  s"Did you mean to use ${framed("stream")}?"
+                )
+            }
         }
 
       override def unique(args: A)(implicit or: Origin): F[B] =
-        fetch2(args).flatMap { case (bs, _) =>
-
-          bs match {
-            case b :: Nil => b.pure[F]
-            case Nil      =>
-              fail(
-                method = "unique",
-                args   = args,
-                or     = or,
-                m      = "Exactly one row was expected, but none were returned.",
-                h      = s"You used ${framed("unique")}. Did you mean to use ${framed("option")}?"
-              )
-            case _        =>
-              fail("unique", args, or,
-                "Exactly one row was expected, but more were returned.",
-                s"You used ${framed("unique")}. Did you mean to use ${framed("stream")}?"
-              )
+        fetch2(args).flatMap {
+          case (bs, _) =>
+            bs match {
+              case b :: Nil => b.pure[F]
+              case Nil =>
+                fail(
+                  method = "unique",
+                  args   = args,
+                  or     = or,
+                  m      = "Exactly one row was expected, but none were returned.",
+                  h      = s"You used ${framed("unique")}. Did you mean to use ${framed("option")}?"
+                )
+              case _ =>
+                fail(
+                  "unique",
+                  args,
+                  or,
+                  "Exactly one row was expected, but more were returned.",
+                  s"You used ${framed("unique")}. Did you mean to use ${framed("stream")}?"
+                )
             }
-          }
+        }
 
       private def framed(s: String): String =
         "\u001B[4m" + s + "\u001B[24m"
@@ -133,15 +141,16 @@ object PreparedQuery {
    * @group Typeclass Instances
    */
   implicit def functorPreparedQuery[F[_]: Monad, A]: Functor[PreparedQuery[F, A, ?]] =
-  new Functor[PreparedQuery[F, A, ?]] {
-    override def map[T, U](fa: PreparedQuery[F, A, T])(f: T => U): PreparedQuery[F, A, U] =
-      new PreparedQuery[F, A, U] {
-        override def cursor(args: A)(implicit or: Origin): Resource[F, Cursor[F, U]] = fa.cursor(args).map(_.map(f))
-        override def stream(args: A, chunkSize: Int)(implicit or: Origin): Stream[F, U] = fa.stream(args, chunkSize).map(f)
-        override def option(args: A)(implicit or: Origin): F[Option[U]] = fa.option(args).map(_.map(f))
-        override def unique(args: A)(implicit or: Origin): F[U] = fa.unique(args).map(f)
-      }
-  }
+    new Functor[PreparedQuery[F, A, ?]] {
+      override def map[T, U](fa: PreparedQuery[F, A, T])(f: T => U): PreparedQuery[F, A, U] =
+        new PreparedQuery[F, A, U] {
+          override def cursor(args: A)(implicit or: Origin): Resource[F, Cursor[F, U]] = fa.cursor(args).map(_.map(f))
+          override def stream(args: A, chunkSize:   Int)(implicit or: Origin): Stream[F, U] =
+            fa.stream(args, chunkSize).map(f)
+          override def option(args: A)(implicit or: Origin): F[Option[U]] = fa.option(args).map(_.map(f))
+          override def unique(args: A)(implicit or: Origin): F[U]         = fa.unique(args).map(f)
+        }
+    }
 
   /**
    * `PreparedQuery[F, ?, B]` is a contravariant functor for all `F`.
@@ -152,9 +161,10 @@ object PreparedQuery {
       override def contramap[T, U](fa: PreparedQuery[F, T, B])(f: U => T): PreparedQuery[F, U, B] =
         new PreparedQuery[F, U, B] {
           override def cursor(args: U)(implicit or: Origin): Resource[F, Cursor[F, B]] = fa.cursor(f(args))
-          override def stream(args: U, chunkSize: Int)(implicit or: Origin): Stream[F, B] = fa.stream(f(args), chunkSize)
+          override def stream(args: U, chunkSize:   Int)(implicit or: Origin): Stream[F, B] =
+            fa.stream(f(args), chunkSize)
           override def option(args: U)(implicit or: Origin): F[Option[B]] = fa.option(f(args))
-          override def unique(args: U)(implicit or: Origin): F[B] = fa.unique(f(args))
+          override def unique(args: U)(implicit or: Origin): F[B]         = fa.unique(f(args))
         }
     }
 
@@ -181,9 +191,11 @@ object PreparedQuery {
       implicit ev: Bracket[F, Throwable]
     ): PreparedQuery[G, A, B] =
       new PreparedQuery[G, A, B] {
-        override def cursor(args: A)(implicit or: Origin): Resource[G,Cursor[G,B]] = outer.cursor(args).mapK(fk).map(_.mapK(fk))
+        override def cursor(args: A)(implicit or: Origin): Resource[G, Cursor[G, B]] =
+          outer.cursor(args).mapK(fk).map(_.mapK(fk))
         override def option(args: A)(implicit or: Origin): G[Option[B]] = fk(outer.option(args))
-        override def stream(args: A, chunkSize: Int)(implicit or: Origin): Stream[G,B] = outer.stream(args, chunkSize).translate(fk)
+        override def stream(args: A, chunkSize:   Int)(implicit or: Origin): Stream[G, B] =
+          outer.stream(args, chunkSize).translate(fk)
         override def unique(args: A)(implicit or: Origin): G[B] = fk(outer.unique(args))
       }
 

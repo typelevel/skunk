@@ -17,17 +17,17 @@ object Channel extends IOApp {
       host     = "localhost",
       port     = 5432,
       user     = "postgres",
-      database = "world",
+      database = "world"
     )
 
   def run(args: List[String]): IO[ExitCode] =
     session.use { s =>
       s.channel(id"foo")
-       .listen(42)
-       .take(3)
-       .evalMap(n => IO(println(s"⭐️⭐  $n")))
-       .compile
-       .drain
+        .listen(42)
+        .take(3)
+        .evalMap(n => IO(println(s"⭐️⭐  $n")))
+        .compile
+        .drain
     } as ExitCode.Success
 
 }

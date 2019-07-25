@@ -9,7 +9,7 @@ import scodec.codecs._
 
 final case class ErrorResponse(info: Map[Char, String]) extends BackendMessage {
   override def toString: String =
-    info.map { case (k, v) => s"$k -> $v" } .mkString("ErrorResponse(", ", ", "")
+    info.map { case (k, v) => s"$k -> $v" }.mkString("ErrorResponse(", ", ", "")
 }
 
 object ErrorResponse {

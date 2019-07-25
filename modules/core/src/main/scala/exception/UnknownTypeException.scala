@@ -13,16 +13,16 @@ case class UnknownTypeException(
   query: skunk.Statement[_],
   types: List[(Type, Option[Int])]
 ) extends SkunkException(
-  // format: off
+    // format: off
   sql       = Some(query.sql),
   message   = "Unknown type(s) in statement.",
   detail    = Some("Skunk could not determine the Postgres oid for one or more parameter types."),
   hint      = Some("A referenced type does not exist, was created after this session was initiated, or is in a namespace that's not on the search path."),
-  sqlOrigin = Some(query.origin),
+  sqlOrigin = Some(query.origin)
   // format: on
-) {
+  ) {
 
-  import Text.{ green, cyan, empty }
+  import Text.{cyan, empty, green}
   implicit def stringToText(s: String): Text = Text(s)
 
   def unk(f: RowDescription.Field): Text =
@@ -30,14 +30,17 @@ case class UnknownTypeException(
 
   private def describe(i: Int, t: Type, oo: Option[Int]): List[Text] =
     oo match {
-      case Some(oid) => List(green(s"$$${i+1}"), t.name, empty)
-      case None      => List(green(s"$$${i+1}"), t.name, cyan("── unknown type"))
+      case Some(oid) => List(green(s"$$${i + 1}"), t.name, empty)
+      case None      => List(green(s"$$${i + 1}"), t.name, cyan("── unknown type"))
     }
 
   private def columns: String =
     s"""|Parameter indices and types are
         |
-        |  ${Text.grid(types.zipWithIndex.map { case ((t, o), i) => describe(i, t, o) }).intercalate(Text("\n|  ")).render}
+        |  ${Text
+         .grid(types.zipWithIndex.map { case ((t, o), i) => describe(i, t, o) })
+         .intercalate(Text("\n|  "))
+         .render}
         |
         |""".stripMargin
 
@@ -45,4 +48,3 @@ case class UnknownTypeException(
     super.sections :+ columns
 
 }
-

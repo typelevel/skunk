@@ -24,17 +24,17 @@ object Startup {
           val sm = StartupMessage(user, database)
           for {
             _ <- Trace[F].put(
-                   "user"     -> user,
-                   "database" -> database
-                 )
+                  "user"     -> user,
+                  "database" -> database
+                )
             _ <- send(sm)
             _ <- expect { case AuthenticationOk => }
             _ <- flatExpect {
-                   case ReadyForQuery(_) => ().pure[F]
-                   case ErrorResponse(info) =>
+                  case ReadyForQuery(_) => ().pure[F]
+                  case ErrorResponse(info) =>
                     val e = new StartupException(info, sm.properties)
                     e.raiseError[F, Unit]
-                 }
+                }
           } yield ()
         }
     }

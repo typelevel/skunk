@@ -12,13 +12,13 @@ import skunk.data.TypedRowDescription.Field
 
 case class UnexpectedRowsException(
   command: Command[_],
-  rd:      TypedRowDescription,
+  rd:      TypedRowDescription
 ) extends SkunkException(
-  sql       = Some(command.sql),
-  message   = "Statement returns data.",
-  hint      = Some(s"This ${framed("command")} returns rows and should be a ${framed("query")}."),
-  sqlOrigin = Some(command.origin),
-) {
+    sql       = Some(command.sql),
+    message   = "Statement returns data.",
+    hint      = Some(s"This ${framed("command")} returns rows and should be a ${framed("query")}."),
+    sqlOrigin = Some(command.origin)
+  ) {
 
   import Text.green
   implicit def stringToText(s: String): Text = Text(s)
@@ -37,4 +37,3 @@ case class UnexpectedRowsException(
     super.sections :+ columns
 
 }
-

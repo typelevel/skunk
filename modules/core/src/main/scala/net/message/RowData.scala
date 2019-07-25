@@ -24,4 +24,3 @@ object RowData {
   final val decoder: Decoder[RowData] = int16.flatMap(field.replicateA(_)).map(apply)
 
 }
-

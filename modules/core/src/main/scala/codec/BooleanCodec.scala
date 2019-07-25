@@ -10,9 +10,8 @@ import skunk.data.Type
 trait BooleanCodec {
 
   val bool: Codec[Boolean] =
-   Codec.simple(
-      b => if (b) "t" else "f",
-      {
+    Codec.simple(
+      b => if (b) "t" else "f", {
         case "t" => Right(true)
         case "f" => Right(false)
         case s   => Left(s"Expected 't' or 'f', got $s")

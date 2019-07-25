@@ -47,4 +47,3 @@ object TransactionStatusTest extends SkunkTest {
   }
 
 }
-

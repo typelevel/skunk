@@ -18,8 +18,8 @@ object Identifier {
 
   private[skunk] val dummy: Identifier = new Identifier("dummy") {}
 
-  val maxLen: Int = 63
-  val pat: Regex = "([a-z_][a-z_0-9$]*)".r
+  val maxLen: Int   = 63
+  val pat:    Regex = "([a-z_][a-z_0-9$]*)".r
 
   implicit val EqIdentifier: Eq[Identifier] =
     Eq.by(_.value)

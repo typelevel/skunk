@@ -16,12 +16,14 @@ abstract class CodecTest(strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly)
   def codecTest[A: Eq](codec: Codec[A])(as: A*): Unit =
     sessionTest(s"${codec.types.mkString(", ")}") { s =>
       s.prepare(sql"select $codec".query(codec)).use { ps =>
-        as.toList.traverse { a =>
-          for {
-            aʹ <- ps.unique(a)
-            _  <- assertEqual(s"$a", aʹ, a)
-          } yield a
-        } .map(_.mkString(", "))
+        as.toList
+          .traverse { a =>
+            for {
+              aʹ <- ps.unique(a)
+              _ <- assertEqual(s"$a", aʹ, a)
+            } yield a
+          }
+          .map(_.mkString(", "))
       }
     }
 

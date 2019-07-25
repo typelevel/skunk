@@ -37,7 +37,15 @@ object RowDescription {
       Field.decoder.replicateA(n).map(RowDescription(_))
     }
 
-  final case class Field(name: String, tableOid: Int, columnAttr: Int, typeOid: Int, typeSize: Int, typeMod: Int, format: Int /* always 0 */) {
+  final case class Field(
+    name:       String,
+    tableOid:   Int,
+    columnAttr: Int,
+    typeOid:    Int,
+    typeSize:   Int,
+    typeMod:    Int,
+    format:     Int /* always 0 */
+  ) {
     override def toString: String = s"Field($name, $typeOid)"
   }
 

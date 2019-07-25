@@ -7,22 +7,24 @@ package skunk.exception
 import cats.implicits._
 import skunk.data.Type
 import skunk.Query
-import skunk.util.{ CallSite, Origin, Pretty }
+import skunk.util.{CallSite, Origin, Pretty}
 import natchez.Fields
 import natchez.TraceValue
 
-class SkunkException protected[skunk](
+class SkunkException protected[skunk] (
   val sql:             Option[String],
   val message:         String,
-  val position:        Option[Int]                  = None,
-  val detail:          Option[String]               = None,
-  val hint:            Option[String]               = None,
-  val history:         List[Either[Any, Any]]       = Nil,
+  val position:        Option[Int] = None,
+  val detail:          Option[String] = None,
+  val hint:            Option[String] = None,
+  val history:         List[Either[Any, Any]] = Nil,
   val arguments:       List[(Type, Option[String])] = Nil,
-  val sqlOrigin:       Option[Origin]               = None,
-  val argumentsOrigin: Option[Origin]               = None,
-  val callSite:        Option[CallSite]             = None
-) extends Exception(message) with Fields with scala.util.control.NoStackTrace {
+  val sqlOrigin:       Option[Origin] = None,
+  val argumentsOrigin: Option[Origin] = None,
+  val callSite:        Option[CallSite] = None
+) extends Exception(message)
+  with Fields
+  with scala.util.control.NoStackTrace {
 
   override def fields: Map[String, TraceValue] = {
 
@@ -37,9 +39,10 @@ class SkunkException protected[skunk](
     hint    .foreach(a => map += "error.hint"     -> a)
     // format: on
 
-    (arguments.zipWithIndex).foreach { case ((typ, os), n) =>
-      map += s"error.argument.${n + 1}.type"  -> typ.name
-      map += s"error.argument.${n + 1}.value" -> os.getOrElse[String]("NULL")
+    (arguments.zipWithIndex).foreach {
+      case ((typ, os), n) =>
+        map += s"error.argument.${n + 1}.type"  -> typ.name
+        map += s"error.argument.${n + 1}.value" -> os.getOrElse[String]("NULL")
     }
 
     sqlOrigin.foreach { o =>
@@ -62,16 +65,18 @@ class SkunkException protected[skunk](
   }
 
   protected def title: String =
-    callSite.fold(getClass.getSimpleName) { case CallSite(name, origin) =>
-      s"Skunk encountered a problem related to use of ${framed(name)}\n  at $origin"
+    callSite.fold(getClass.getSimpleName) {
+      case CallSite(name, origin) =>
+        s"Skunk encountered a problem related to use of ${framed(name)}\n  at $origin"
     }
 
   protected def width = 80 // wrap here
 
   def labeled(label: String, s: String): String =
-    if (s.isEmpty) "" else {
+    if (s.isEmpty) ""
+    else {
       "\n|" +
-      label + Console.CYAN + Pretty.wrap(
+        label + Console.CYAN + Pretty.wrap(
         width - label.length,
         s,
         s"${Console.RESET}\n${Console.CYAN}" + label.map(_ => ' ')
@@ -80,7 +85,10 @@ class SkunkException protected[skunk](
 
   protected def header: String =
     s"""|$title
-        |${labeled("  Problem: ", message)}${labeled("   Detail: ", detail.orEmpty)}${labeled("     Hint: ", hint.orEmpty)}
+        |${labeled("  Problem: ", message)}${labeled("   Detail: ", detail.orEmpty)}${labeled(
+         "     Hint: ",
+         hint.orEmpty
+       )}
         |
         |""".stripMargin
 
@@ -95,38 +103,39 @@ class SkunkException protected[skunk](
     }
 
   protected def exchanges: String =
-    if (history.isEmpty) "" else
-    s"""|Recent message exchanges:
-        |
-        |  ${history.map(_.fold(a => s"→ ${Console.BOLD}$a${Console.RESET}", "← " + _)).mkString("", "\n|  ", "")}
-        |
-        |""".stripMargin
+    if (history.isEmpty) ""
+    else
+      s"""|Recent message exchanges:
+          |
+          |  ${history.map(_.fold(a => s"→ ${Console.BOLD}$a${Console.RESET}", "← " + _)).mkString("", "\n|  ", "")}
+          |
+          |""".stripMargin
 
   protected def args: String = {
 
     def formatValue(s: String) =
       s"${Console.GREEN}$s${Console.RESET}"
 
-    if (arguments.isEmpty) "" else
-    s"""|and the arguments ${argumentsOrigin.fold("were")(or => s"were provided\n  at $or")}
-        |
-        |  ${arguments.zipWithIndex.map { case ((t, s), n) => f"$$${n+1} $t%-10s ${s.fold("NULL")(formatValue)}" } .mkString("\n|  ") }
-        |
-        |""".stripMargin
+    if (arguments.isEmpty) ""
+    else
+      s"""|and the arguments ${argumentsOrigin.fold("were")(or => s"were provided\n  at $or")}
+          |
+          |  ${arguments.zipWithIndex
+           .map { case ((t, s), n) => f"$$${n + 1} $t%-10s ${s.fold("NULL")(formatValue)}" }
+           .mkString("\n|  ")}
+          |
+          |""".stripMargin
   }
 
   protected def sections: List[String] =
     List(header, statement, args) //, exchanges)
 
   final override def toString =
-    sections
-      .combineAll
-      .lines
+    sections.combineAll.lines
       .map("🔥  " + _)
       .mkString("\n", "\n", s"\n\n${getClass.getName}: $message")
 
 }
-
 
 object SkunkException {
 
@@ -149,17 +158,17 @@ object SkunkException {
     )
 
   def fromQuery[A](
-    message:    String,
-    query:      Query[A, _],
-    callSite:   Option[CallSite],
-    hint:       Option[String] = None,
+    message:  String,
+    query:    Query[A, _],
+    callSite: Option[CallSite],
+    hint:     Option[String] = None
   ) =
     new SkunkException(
-      sql             = Some(query.sql),
-      message         = message,
-      sqlOrigin       = Some(query.origin),
-      callSite        = callSite,
-      hint            = hint,
+      sql       = Some(query.sql),
+      message   = message,
+      sqlOrigin = Some(query.origin),
+      callSite  = callSite,
+      hint      = hint
     )
 
 }

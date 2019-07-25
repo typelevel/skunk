@@ -11,27 +11,27 @@ import skunk.data.Type
 import skunk.util.Origin
 
 // TODO: turn this into an ADT of structured error types
-class PostgresErrorException private[skunk](
+class PostgresErrorException private[skunk] (
   sql:             String,
   sqlOrigin:       Option[Origin],
   info:            Map[Char, String],
   history:         List[Either[Any, Any]],
   arguments:       List[(Type, Option[String])] = Nil,
-  argumentsOrigin: Option[Origin]               = None
+  argumentsOrigin: Option[Origin] = None
 ) extends SkunkException(
-  sql       = Some(sql),
-  message   = {
-    val m = info.getOrElse('M', sys.error("Invalid ErrorInfo: no message"))
-    m.take(1).toUpperCase + m.drop(1) + "."
-  },
-  position        = info.get('P').map(_.toInt),
-  detail          = info.get('D'),
-  hint            = info.get('H'),
-  history         = history,
-  arguments       = arguments,
-  sqlOrigin       = sqlOrigin,
-  argumentsOrigin = argumentsOrigin,
-) {
+    sql = Some(sql),
+    message = {
+      val m = info.getOrElse('M', sys.error("Invalid ErrorInfo: no message"))
+      m.take(1).toUpperCase + m.drop(1) + "."
+    },
+    position        = info.get('P').map(_.toInt),
+    detail          = info.get('D'),
+    hint            = info.get('H'),
+    history         = history,
+    arguments       = arguments,
+    sqlOrigin       = sqlOrigin,
+    argumentsOrigin = argumentsOrigin
+  ) {
 
   override def fields: Map[String, TraceValue] = {
     var map = super.fields
@@ -138,7 +138,6 @@ class PostgresErrorException private[skunk](
   def routine: Option[String] =
     info.get('R')
 
-
   // These will likely get abstracted up and out, but for now we'll do it here in a single
   // error class.
 
@@ -173,15 +172,14 @@ class PostgresErrorException private[skunk](
 object PostgresErrorException {
 
   def raiseError[F[_]: cats.MonadError[?[_], Throwable], A](
-  sql:             String,
-  sqlOrigin:       Option[Origin],
-  info:            Map[Char, String],
-  history:         List[Either[Any, Any]],
-  arguments:       List[(Type, Option[String])] = Nil,
-  argumentsOrigin: Option[Origin]               = None
+    sql:             String,
+    sqlOrigin:       Option[Origin],
+    info:            Map[Char, String],
+    history:         List[Either[Any, Any]],
+    arguments:       List[(Type, Option[String])] = Nil,
+    argumentsOrigin: Option[Origin] = None
   ): F[A] =
     new PostgresErrorException(sql, sqlOrigin, info, history, arguments, argumentsOrigin)
       .raiseError[F, A]
-
 
 }

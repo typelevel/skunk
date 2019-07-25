@@ -7,7 +7,6 @@ package skunk.net.message
 import scodec.Decoder
 import scodec.codecs.bytes
 
-
 /**
  * Specifies that SASL authentication has completed.
  * @param data SASL outcome "additional data", specific to the SASL mechanism being used.

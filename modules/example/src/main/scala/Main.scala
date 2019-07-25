@@ -65,42 +65,40 @@ object Main extends IOApp {
       port     = 5432,
       user     = "postgres",
       database = "world",
-      max      = 10,
+      max      = 10
     )
 
   def run(args: List[String]): IO[ExitCode] =
     pool.use { p =>
       p.use { s =>
         for {
-          f1  <- s.parameter("client_encoding").evalMap(clientEncodingChanged).compile.drain.start
-          st  <- s.transactionStatus.get
+          f1 <- s.parameter("client_encoding").evalMap(clientEncodingChanged).compile.drain.start
+          st <- s.transactionStatus.get
           enc <- s.parameters.get.map(_.get("client_encoding"))
-          _   <- putStrLn(s"Logged in! Transaction status is $st and client_encoding is $enc")
-          f2  <- s.channel(id"foo").listen(10).through(anyLinesStdOut).compile.drain.start
-          rs  <- s.execute(sql"select name, code, indepyear, population from country limit 20".query(country))
-          _   <- rs.traverse(putStrLn)
-          _   <- s.execute(sql"set seed = 0.123".command)
-          _   <- s.execute(sql"set client_encoding = ISO8859_1".command)
-          _   <- s.channel(id"foo").notify("here is a message")
-          _   <- s.execute(sql"select current_user".query(name))
-          _   <- s.prepare(q).use(hmm(_))
-          _   <- s.prepare(in(3)).use { _.stream(List("FRA", "USA", "GAB"), 100).through(anyLinesStdOut).compile.drain }
-          _   <- f2.cancel // otherwise it will run forever
-          _   <- f1.cancel // otherwise it will run forever
-          _   <- s.execute(sql"select 'x'::bpchar(10)".query(bpchar(10)))
-          _   <- s.prepare(sql"select 1".query(int4)).use { _.stream(Void, 10).through(anyLinesStdOut).compile.drain }
-          _   <- putStrLn("Done.")
+          _ <- putStrLn(s"Logged in! Transaction status is $st and client_encoding is $enc")
+          f2 <- s.channel(id"foo").listen(10).through(anyLinesStdOut).compile.drain.start
+          rs <- s.execute(sql"select name, code, indepyear, population from country limit 20".query(country))
+          _ <- rs.traverse(putStrLn)
+          _ <- s.execute(sql"set seed = 0.123".command)
+          _ <- s.execute(sql"set client_encoding = ISO8859_1".command)
+          _ <- s.channel(id"foo").notify("here is a message")
+          _ <- s.execute(sql"select current_user".query(name))
+          _ <- s.prepare(q).use(hmm(_))
+          _ <- s.prepare(in(3)).use { _.stream(List("FRA", "USA", "GAB"), 100).through(anyLinesStdOut).compile.drain }
+          _ <- f2.cancel // otherwise it will run forever
+          _ <- f1.cancel // otherwise it will run forever
+          _ <- s.execute(sql"select 'x'::bpchar(10)".query(bpchar(10)))
+          _ <- s.prepare(sql"select 1".query(int4)).use { _.stream(Void, 10).through(anyLinesStdOut).compile.drain }
+          _ <- putStrLn("Done.")
         } yield ExitCode.Success
       } *>
-      putStrLn("------------------------- STARTING SECOND SESSION --------") *>
-      p.use { s =>
-        for {
-          _   <- s.execute(sql"set seed = 0.123".command)
-          _   <- s.execute(sql"set client_encoding = ISO8859_1".command)
-        } yield ExitCode.Success
-      }
+        putStrLn("------------------------- STARTING SECOND SESSION --------") *>
+        p.use { s =>
+          for {
+            _ <- s.execute(sql"set seed = 0.123".command)
+            _ <- s.execute(sql"set client_encoding = ISO8859_1".command)
+          } yield ExitCode.Success
+        }
     }
 
 }
-
-

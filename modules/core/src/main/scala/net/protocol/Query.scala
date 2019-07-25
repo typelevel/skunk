@@ -6,17 +6,17 @@ package skunk.net.protocol
 
 import cats.MonadError
 import cats.implicits._
-import skunk.{ Command, Void }
+import skunk.{Command, Void}
 import skunk.data.Completion
-import skunk.exception.{ ColumnAlignmentException, NoDataException, PostgresErrorException }
-import skunk.net.message.{ Query => QueryMessage, _ }
+import skunk.exception.{ColumnAlignmentException, NoDataException, PostgresErrorException}
+import skunk.net.message.{Query => QueryMessage, _}
 import skunk.net.MessageSocket
 import skunk.util.Typer
 import skunk.exception.UnknownOidException
 import natchez.Trace
 
 trait Query[F[_]] {
-  def apply(command: Command[Void]): F[Completion]
+  def apply(command:  Command[Void]): F[Completion]
   def apply[B](query: skunk.Query[Void, B], ty: Typer): F[List[B]]
 }
 
@@ -32,7 +32,6 @@ object Query {
             // If we get a RowDescription back it means we have a valid query as far as Postgres is
             // concerned, and we will soon receive zero or more RowData followed by CommandComplete.
             case rd @ RowDescription(_) =>
-
               // If our decoder lines up with the RowDescription we can decode the rows, otherwise
               // we have to discard them and then raise an error. All the args are necessary context
               // if we have a decoding failure and need to report an error.
@@ -47,7 +46,7 @@ object Query {
                       argsOrigin     = None,
                       encoder        = Void.codec,
                       rowDescription = td,
-                      decoder        = query.decoder,
+                      decoder        = query.decoder
                     ).map(_._1) <* expect { case ReadyForQuery(_) => }
                   } else {
                     discard *> ColumnAlignmentException(query, td).raiseError[F, List[B]]
@@ -68,13 +67,13 @@ object Query {
             case ErrorResponse(e) =>
               for {
                 hi <- history(Int.MaxValue)
-                _  <- expect { case ReadyForQuery(_) => }
+                _ <- expect { case ReadyForQuery(_) => }
                 rs <- (new PostgresErrorException(
-                        sql       = query.sql,
-                        sqlOrigin = Some(query.origin),
-                        info      = e,
-                        history   = hi,
-                      )).raiseError[F, List[B]]
+                       sql       = query.sql,
+                       sqlOrigin = Some(query.origin),
+                       info      = e,
+                       history   = hi
+                     )).raiseError[F, List[B]]
               } yield rs
 
             // We can get a warning if this was actually a command and something wasn't quite
@@ -83,56 +82,57 @@ object Query {
             case NoticeResponse(e) =>
               for {
                 hi <- history(Int.MaxValue)
-                _  <- expect { case CommandComplete(_) => }
-                _  <- expect { case ReadyForQuery(_) => }
+                _ <- expect { case CommandComplete(_) => }
+                _ <- expect { case ReadyForQuery(_)   => }
                 rs <- (new PostgresErrorException(
-                        sql       = query.sql,
-                        sqlOrigin = Some(query.origin),
-                        info      = e,
-                        history   = hi,
-                      )).raiseError[F, List[B]]
+                       sql       = query.sql,
+                       sqlOrigin = Some(query.origin),
+                       info      = e,
+                       history   = hi
+                     )).raiseError[F, List[B]]
               } yield rs
 
           }
         }
 
       override def apply(command: Command[Void]): F[Completion] =
-          exchange("query") {
-            send(QueryMessage(command.sql)) *> flatExpect {
+        exchange("query") {
+          send(QueryMessage(command.sql)) *> flatExpect {
 
-              case CommandComplete(c) =>
-                for {
-                  _ <- expect { case ReadyForQuery(_) => }
-                } yield c
+            case CommandComplete(c) =>
+              for {
+                _ <- expect { case ReadyForQuery(_) => }
+              } yield c
 
-              case ErrorResponse(e) =>
-                for {
-                  _ <- expect { case ReadyForQuery(_) => }
-                  h <- history(Int.MaxValue)
-                  c <- new PostgresErrorException(command.sql, Some(command.origin), e, h, Nil, None).raiseError[F, Completion]
-                } yield c
+            case ErrorResponse(e) =>
+              for {
+                _ <- expect { case ReadyForQuery(_) => }
+                h <- history(Int.MaxValue)
+                c <- new PostgresErrorException(command.sql, Some(command.origin), e, h, Nil, None)
+                      .raiseError[F, Completion]
+              } yield c
 
-              case NoticeResponse(e) =>
-                for {
-                  _ <- expect { case CommandComplete(_) => }
-                  _ <- expect { case ReadyForQuery(_) =>  }
-                  h <- history(Int.MaxValue)
-                  c <- new PostgresErrorException(command.sql, Some(command.origin), e, h, Nil, None).raiseError[F, Completion]
-                } yield c
+            case NoticeResponse(e) =>
+              for {
+                _ <- expect { case CommandComplete(_) => }
+                _ <- expect { case ReadyForQuery(_)   => }
+                h <- history(Int.MaxValue)
+                c <- new PostgresErrorException(command.sql, Some(command.origin), e, h, Nil, None)
+                      .raiseError[F, Completion]
+              } yield c
 
-              // TODO: case RowDescription => oops, this returns rows, it needs to be a query
+            // TODO: case RowDescription => oops, this returns rows, it needs to be a query
 
-            }
           }
+        }
 
-        // If there is an error we just want to receive and discard everything until we have seen
-        // CommandComplete followed by ReadyForQuery.
-        val discard: F[Unit] =
-          receive.flatMap {
-            case rd @ RowData(_)         => discard
-            case      CommandComplete(_) => expect { case ReadyForQuery(_) => }
-          }
-
+      // If there is an error we just want to receive and discard everything until we have seen
+      // CommandComplete followed by ReadyForQuery.
+      val discard: F[Unit] =
+        receive.flatMap {
+          case rd @ RowData(_)    => discard
+          case CommandComplete(_) => expect { case ReadyForQuery(_) => }
+        }
 
     }
 

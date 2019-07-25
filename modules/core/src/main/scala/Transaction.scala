@@ -73,9 +73,9 @@ trait Transaction[F[_]] { outer =>
   def mapK[G[_]](fk: F ~> G): Transaction[G] =
     new Transaction[G] {
       override type Savepoint = outer.Savepoint
-      override def commit(implicit o: Origin): G[Completion] = fk(outer.commit)
-      override def rollback(implicit o: Origin): G[Completion] = fk(outer.rollback)
-      override def rollback(savepoint: Savepoint)(implicit o: Origin): G[Completion] = fk(outer.rollback(savepoint))
+      override def commit(implicit o:    Origin): G[Completion] = fk(outer.commit)
+      override def rollback(implicit o:  Origin): G[Completion] = fk(outer.rollback)
+      override def rollback(savepoint:   Savepoint)(implicit o: Origin): G[Completion] = fk(outer.rollback(savepoint))
       override def savepoint(implicit o: Origin): G[Savepoint] = fk(outer.savepoint)
       override def status: G[TransactionStatus] = fk(outer.status)
     }
@@ -93,7 +93,7 @@ object Transaction {
 
     def assertIdle(cs: CallSite): F[Unit] =
       s.transactionStatus.get.flatMap {
-        case Idle              => ().pure[F]
+        case Idle => ().pure[F]
         case Active =>
           new SkunkException(
             sql      = None,
@@ -112,7 +112,7 @@ object Transaction {
 
     def assertActive(cs: CallSite): F[Unit] =
       s.transactionStatus.get.flatMap {
-        case Idle   =>
+        case Idle =>
           new SkunkException(
             sql      = None,
             message  = "No transaction.",
@@ -145,58 +145,58 @@ object Transaction {
 
     val acquire: F[Transaction[F]] =
       assertIdle(CallSite("begin", Origin.unknown)) *>
-      s.execute(internal"BEGIN".command).map { _ =>
-        new Transaction[F] {
+        s.execute(internal"BEGIN".command).map { _ =>
+          new Transaction[F] {
 
-          override type Savepoint = String
+            override type Savepoint = String
 
-          override def status: F[TransactionStatus] =
-            s.transactionStatus.get
+            override def status: F[TransactionStatus] =
+              s.transactionStatus.get
 
-          override def commit(implicit o: Origin): F[Completion] =
-            assertActive(o.toCallSite("commit")) *>
-            doCommit
+            override def commit(implicit o: Origin): F[Completion] =
+              assertActive(o.toCallSite("commit")) *>
+                doCommit
 
-          override def rollback(implicit o: Origin): F[Completion] =
-            assertActiveOrError(o.toCallSite("rollback")) *>
-            doRollback
+            override def rollback(implicit o: Origin): F[Completion] =
+              assertActiveOrError(o.toCallSite("rollback")) *>
+                doRollback
 
-          override def rollback(savepoint: Savepoint)(implicit o: Origin): F[Completion] =
-            assertActiveOrError(o.toCallSite("savepoint")) *>
-            s.execute(internal"ROLLBACK TO ${savepoint}".command)
+            override def rollback(savepoint: Savepoint)(implicit o: Origin): F[Completion] =
+              assertActiveOrError(o.toCallSite("savepoint")) *>
+                s.execute(internal"ROLLBACK TO ${savepoint}".command)
 
-          override def savepoint(implicit o: Origin): F[Savepoint] =
-            for {
-              _ <- assertActive(o.toCallSite("savepoint"))
-              i <- n.nextName("savepoint")
-              _ <- s.execute(internal"SAVEPOINT $i".command)
-            } yield i
+            override def savepoint(implicit o: Origin): F[Savepoint] =
+              for {
+                _ <- assertActive(o.toCallSite("savepoint"))
+                i <- n.nextName("savepoint")
+                _ <- s.execute(internal"SAVEPOINT $i".command)
+              } yield i
 
+          }
         }
-      }
 
     val release: (Transaction[F], ExitCase[Throwable]) => F[Unit] = (_, ec) =>
       s.transactionStatus.get.flatMap {
-        case Idle              =>
+        case Idle =>
           // This means the user committed manually, so there's nothing to do
           ().pure[F]
         case Failed =>
           ec match {
             // This is the normal failure case
-            case Error(t)  => doRollback *> t.raiseError[F, Unit]
+            case Error(t) => doRollback *> t.raiseError[F, Unit]
             // This is possible if you swallow an error
             case Completed => doRollback.void
             // This is possible if you swallow an error and the someone cancels the fiber
-            case Canceled  => doRollback.void
+            case Canceled => doRollback.void
           }
         case Active =>
           ec match {
             // This is the normal success case
             case Completed => doCommit.void
             // If someone cancels the fiber we roll back
-            case Canceled  => doRollback.void
+            case Canceled => doRollback.void
             // If an error escapes we roll back
-            case Error(t)  => doRollback *> t.raiseError[F, Unit]
+            case Error(t) => doRollback *> t.raiseError[F, Unit]
           }
       }
 
@@ -205,4 +205,3 @@ object Transaction {
   }
 
 }
-

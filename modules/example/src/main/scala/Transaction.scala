@@ -16,7 +16,7 @@ object Transaction extends IOApp {
       host     = "localhost",
       port     = 5432,
       user     = "postgres",
-      database = "world",
+      database = "world"
     )
 
   def runS[F[_]: Concurrent: ContextShift]: F[_] =

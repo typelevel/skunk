@@ -8,7 +8,7 @@ import cats.effect._
 import cats.implicits._
 import fs2.concurrent.InspectableQueue
 import scodec.codecs._
-import skunk.net.message.{ Sync => _, _ }
+import skunk.net.message.{Sync => _, _}
 import skunk.util.Origin
 import java.nio.channels.AsynchronousChannelGroup
 import scala.concurrent.duration.FiniteDuration
@@ -28,7 +28,7 @@ trait MessageSocket[F[_]] {
   /** Destructively read the last `n` messages from the circular buffer. */
   def history(max: Int): F[List[Either[Any, Any]]]
 
-  def expect[B](f: PartialFunction[BackendMessage, B])(implicit or: Origin): F[B]
+  def expect[B](f:     PartialFunction[BackendMessage, B])(implicit or:    Origin): F[B]
   def flatExpect[B](f: PartialFunction[BackendMessage, F[B]])(implicit or: Origin): F[B]
 
 }
@@ -36,16 +36,16 @@ trait MessageSocket[F[_]] {
 object MessageSocket {
 
   def fromBitVectorSocket[F[_]: Concurrent](
-    bvs: BitVectorSocket[F],
+    bvs:   BitVectorSocket[F],
     debug: Boolean
   ): F[MessageSocket[F]] =
     InspectableQueue.circularBuffer[F, Either[Any, Any]](10).map { cb =>
       new AbstractMessageSocket[F] with MessageSocket[F] {
 
         /**
-        * Messages are prefixed with a 5-byte header consisting of a tag (byte) and a length (int32,
-        * total including self but not including the tag) in network order.
-        */
+         * Messages are prefixed with a 5-byte header consisting of a tag (byte) and a length (int32,
+         * total including self but not including the tag) in network order.
+         */
         val receiveImpl: F[BackendMessage] = {
           val header = byte ~ int32
           bvs.read(5).flatMap { bits =>
@@ -58,8 +58,8 @@ object MessageSocket {
         override val receive: F[BackendMessage] =
           for {
             msg <- receiveImpl
-            _   <- cb.enqueue1(Right(msg))
-            _   <- Sync[F].delay(println(s" ← ${Console.GREEN}$msg${Console.RESET}")).whenA(debug)
+            _ <- cb.enqueue1(Right(msg))
+            _ <- Sync[F].delay(println(s" ← ${Console.GREEN}$msg${Console.RESET}")).whenA(debug)
           } yield msg
 
         override def send[A](a: A)(implicit ev: FrontendMessage[A]): F[Unit] =
@@ -76,17 +76,16 @@ object MessageSocket {
     }
 
   def apply[F[_]: Concurrent: ContextShift](
-    host: String,
-    port: Int,
-    debug: Boolean,
+    host:         String,
+    port:         Int,
+    debug:        Boolean,
     readTimeout:  FiniteDuration,
     writeTimeout: FiniteDuration,
-    acg:  AsynchronousChannelGroup
+    acg:          AsynchronousChannelGroup
   ): Resource[F, MessageSocket[F]] =
     for {
       bvs <- BitVectorSocket(host, port, readTimeout, writeTimeout, acg)
-      ms  <- Resource.liftF(fromBitVectorSocket(bvs, debug))
+      ms <- Resource.liftF(fromBitVectorSocket(bvs, debug))
     } yield ms
-
 
 }

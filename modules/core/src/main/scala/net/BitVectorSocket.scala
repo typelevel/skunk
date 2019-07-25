@@ -95,7 +95,7 @@ object BitVectorSocket {
     port:         Int,
     readTimeout:  FiniteDuration,
     writeTimeout: FiniteDuration,
-    acg:          AsynchronousChannelGroup,
+    acg:          AsynchronousChannelGroup
   ): Resource[F, BitVectorSocket[F]] = {
     implicit val _acg: AsynchronousChannelGroup = acg
 
@@ -106,4 +106,3 @@ object BitVectorSocket {
   }
 
 }
-

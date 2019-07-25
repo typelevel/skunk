@@ -9,13 +9,13 @@ import cats.MonadError
 import skunk.~
 import skunk.data.Completion
 import skunk.net.MessageSocket
-import skunk.net.Protocol.{ PreparedCommand, PreparedQuery, CommandPortal, QueryPortal }
-import skunk.util.{ Origin, Namer }
+import skunk.net.Protocol.{CommandPortal, PreparedCommand, PreparedQuery, QueryPortal}
+import skunk.util.{Namer, Origin}
 import skunk.util.Typer
 import natchez.Trace
 
 trait Prepare[F[_]] {
-  def apply[A](command: skunk.Command[A], ty: Typer): Resource[F, PreparedCommand[F, A]]
+  def apply[A](command:  skunk.Command[A], ty:  Typer): Resource[F, PreparedCommand[F, A]]
   def apply[A, B](query: skunk.Query[A, B], ty: Typer): Resource[F, PreparedQuery[F, A, B]]
 }
 
@@ -27,7 +27,7 @@ object Prepare {
       override def apply[A](command: skunk.Command[A], ty: Typer): Resource[F, PreparedCommand[F, A]] =
         for {
           id <- Parse[F].apply(command, ty)
-          _  <- Resource.liftF(Describe[F].apply(command, id, ty))
+          _ <- Resource.liftF(Describe[F].apply(command, id, ty))
         } yield new PreparedCommand[F, A](id, command) { pc =>
           def bind(args: A, origin: Origin): Resource[F, CommandPortal[F, A]] =
             Bind[F].apply(this, args, origin).map {
@@ -52,6 +52,6 @@ object Prepare {
             }
         }
 
-      }
+    }
 
 }

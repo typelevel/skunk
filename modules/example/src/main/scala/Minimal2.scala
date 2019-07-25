@@ -24,7 +24,7 @@ object Minimal2 extends IOApp {
       host     = "localhost",
       port     = 5432,
       user     = "postgres",
-      database = "world",
+      database = "world"
       // debug    = true
     )
 
@@ -43,12 +43,12 @@ object Minimal2 extends IOApp {
   def lookup[F[_]: Sync: Trace](pat: String, s: Session[F]): F[Unit] =
     Trace[F].span("lookup") {
       Trace[F].put("pattern" -> pat) *>
-      s.prepare(select).use { pq =>
-        pq.stream(pat, 1024)
-          .evalMap(c => Sync[F].delay(println(s"⭐️⭐  $c")))
-          .compile
-          .drain
-      }
+        s.prepare(select).use { pq =>
+          pq.stream(pat, 1024)
+            .evalMap(c => Sync[F].delay(println(s"⭐️⭐  $c")))
+            .compile
+            .drain
+        }
     }
 
   def runF[F[_]: Concurrent: ContextShift: Trace: Par]: F[ExitCode] =
@@ -69,7 +69,7 @@ object Minimal2 extends IOApp {
     tracer[IO].use { t =>
       t.root("root").use { s =>
         runF[Kleisli[IO, Span[IO], ?]].run(s) *>
-        runF[Kleisli[IO, Span[IO], ?]].run(s)
+          runF[Kleisli[IO, Span[IO], ?]].run(s)
       }
     }
 
