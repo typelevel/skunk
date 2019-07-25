@@ -46,6 +46,7 @@ object Type {
   implicit val EqType: Eq[Type] =
     Eq.fromUniversalEquals
 
+  // format: off
   // Built-in Parameterized Types
   def bpchar(n: Int)          = Type(s"bpchar($n)")
   def varchar(n: Int)         = Type(s"varchar($n)")
@@ -216,6 +217,7 @@ object Type {
   val _record          = Type("_record",        List(Type("record")))
   val _cstring         = Type("_cstring",       List(Type("cstring")))
 
+  // format: on
 }
 
 

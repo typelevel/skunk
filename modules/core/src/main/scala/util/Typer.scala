@@ -51,6 +51,7 @@ object Typer {
   val Static: Typer = new Typer {
     import Type._
 
+    // format: off
     val staticByOid: Map[Int, Type] =
       Map(
 
@@ -97,14 +98,15 @@ object Typer {
         3807 -> _jsonb,        2949 -> _txid_snapshot, 3905 -> _int4range,    3907 -> _numrange,
         3909 -> _tsrange,      3911 -> _tstzrange,     3913 -> _daterange,    3927 -> _int8range,
         2287 -> _record,       1263 -> _cstring,
-
      )
+     // format: on
 
     val staticByName: Map[String, Int] =
      staticByOid.map { case (k, v) => v.name -> k }
 
     /** These types are parameterized and need special handling. */
     object Oid {
+      // format: off
       val (bit,         _bit)         = (1560, 1561)
       val (bpchar,      _bpchar)      = (1042, 1014)
       val (interval,    _interval)    = (1186, 1187)
@@ -115,6 +117,7 @@ object Typer {
       val (timetz,      _timetz)      = (1266, 1270)
       val (varbit,      _varbit)      = (1562, 1563)
       val (varchar,     _varchar)     = (1043, 1015)
+      // format: on
     }
 
     def oidForType(tpe: Type): Option[Int] =
@@ -143,6 +146,7 @@ object Typer {
               Type(s"_numeric($p,$s)", List(e))
             }
           }
+
 
         case Oid.bpchar      => if (typeMod == -1) Some(Type("bpchar"))      else Some(Type(s"bpchar(${typeMod - 4})"))
         case Oid.time        => if (typeMod == -1) Some(Type("time"))        else Some(Type(s"time($typeMod)"))

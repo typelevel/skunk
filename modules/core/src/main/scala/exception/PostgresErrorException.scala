@@ -40,6 +40,7 @@ class PostgresErrorException private[skunk](
     map += "error.postgres.severity" -> severity
     map += "error.postgres.code"     -> code
 
+    // format: off
     internalPosition.foreach(a => map += "error.postgres.internalPosition" -> a)
     internalQuery   .foreach(a => map += "error.postgres.internalQuery"    -> a)
     where           .foreach(a => map += "error.postgres.where"            -> a)
@@ -51,7 +52,7 @@ class PostgresErrorException private[skunk](
     fileName        .foreach(a => map += "error.postgres.fileName"         -> a)
     line            .foreach(a => map += "error.postgres.line"             -> a)
     routine         .foreach(a => map += "error.postgres.routine"          -> a)
-
+    // format: on
     map
   }
 
