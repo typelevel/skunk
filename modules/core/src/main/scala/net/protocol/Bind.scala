@@ -29,7 +29,7 @@ object Bind {
   def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket: Namer: Trace]: Bind[F] =
     new Bind[F] {
 
-      def apply[A](
+      override def apply[A](
         statement:  PreparedStatement[F, A],
         args:       A,
         argsOrigin: Origin

@@ -30,9 +30,9 @@ import skunk.util.Origin
  * @group Statements
  */
 final case class Command[A](
-  sql:     String,
-  origin:  Origin,
-  encoder: Encoder[A]
+  override val sql:     String,
+  override val origin:  Origin,
+  override val encoder: Encoder[A]
 ) extends Statement[A] {
 
   /**
@@ -55,7 +55,7 @@ object Command {
    */
   implicit val CommandContravariant: Contravariant[Command] =
     new Contravariant[Command] {
-      def contramap[A, B](fa: Command[A])(f: B => A) =
+      override def contramap[A, B](fa: Command[A])(f: B => A): Command[B] =
         fa.contramap(f)
     }
 

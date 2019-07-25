@@ -19,7 +19,7 @@ object Startup {
 
   def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket: Trace]: Startup[F] =
     new Startup[F] {
-      def apply(user: String, database: String): F[Unit] =
+      override def apply(user: String, database: String): F[Unit] =
         exchange("startup") {
           val sm = StartupMessage(user, database)
           for {

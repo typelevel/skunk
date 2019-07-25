@@ -21,7 +21,7 @@ final case class Type(name: String, componentTypes: List[Type] = Nil) {
   def foldM[F[_]: Monad, B](f: (String, List[B]) => F[B]): F[B] =
     componentTypes.traverse(_.foldM(f)).flatMap(f(name, _))
 
-  override def toString =
+  override def toString: String =
     fold[String] {
       case (s, Nil) => s
       case (s, ss)  => s + ss.mkString(" { ", ", ", " }")

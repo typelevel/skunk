@@ -6,7 +6,7 @@ package skunk.exception
 
 import skunk.Query
 
-case class NoDataException(
+final case class NoDataException(
   query: Query[_, _],
 ) extends SkunkException(
   sql       = Some(query.sql),

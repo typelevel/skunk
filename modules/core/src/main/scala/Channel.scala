@@ -68,8 +68,8 @@ trait Channel[F[_], A, B] { outer =>
    */
   def dimap[C, D](f: C => A)(g: B => D): Channel[F, C, D] =
     new Channel[F, C, D] {
-      def listen(maxQueued: Int) = outer.listen(maxQueued).map(g)
-      def notify(message: C) = outer.notify(f(message))
+      def listen(maxQueued: Int): Stream[F, D] = outer.listen(maxQueued).map(g)
+      def notify(message: C): F[Unit] = outer.notify(f(message))
     }
 
   /**
@@ -101,13 +101,13 @@ object Channel {
     val unlisten: F[Unit] =
       proto.execute(Command(s"UNLISTEN ${name.value}", Origin.unknown, Void.codec)).void
 
-    def listen(maxQueued: Int) =
+    def listen(maxQueued: Int): Stream[F, Notification] =
       for {
         _ <- Stream.resource(Resource.make(listen)(_ => unlisten))
         n <- proto.notifications(maxQueued).filter(_.channel === name)
       } yield n
 
-    def notify(message: String) =
+    def notify(message: String): F[Unit] =
       // TODO: escape the message
       proto.execute(Command(s"NOTIFY ${name.value}, '$message'", Origin.unknown, Void.codec)).void
 
@@ -119,7 +119,7 @@ object Channel {
    */
   implicit def functorChannel[F[_], T]: Functor[Channel[F, T, ?]] =
     new Functor[Channel[F, T, ?]] {
-      def map[A, B](fa: Channel[F, T, A])(f: A => B) =
+      def map[A, B](fa: Channel[F, T, A])(f: A => B): Channel[F, T, B] =
         fa.map(f)
     }
 
@@ -129,7 +129,7 @@ object Channel {
    */
   implicit def contravariantChannel[F[_], T]: Contravariant[Channel[F, ?, T]] =
     new Contravariant[Channel[F, ?, T]] {
-      def contramap[A, B](fa: Channel[F, A, T])(f: B => A) =
+      def contramap[A, B](fa: Channel[F, A, T])(f: B => A): Channel[F, B, T] =
         fa.contramap(f)
     }
 
@@ -139,7 +139,7 @@ object Channel {
    */
   implicit def profunctorChannel[F[_]]: Profunctor[Channel[F, ?, ?]] =
     new Profunctor[Channel[F, ?, ?]] {
-      def dimap[A, B, C, D](fab: Channel[F, A, B])(f: C => A)(g: B => D) =
+      def dimap[A, B, C, D](fab: Channel[F, A, B])(f: C => A)(g: B => D): Channel[F, C, D] =
         fab.dimap(f)(g)
     }
 

@@ -4,11 +4,12 @@
 
 package skunk.net.message
 
+import scodec.Decoder
 import scodec.codecs._
 
 case class ParameterStatus(name: String, value: String) extends BackendMessage
 
 object ParameterStatus {
   final val Tag = 'S'
-  def decoder = (cstring ~ cstring).map(apply)
+  val decoder: Decoder[ParameterStatus] = (cstring ~ cstring).map(apply)
 }

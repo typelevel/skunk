@@ -33,7 +33,7 @@ case class UnexpectedRowsException(
         |
         |""".stripMargin
 
-  override def sections =
+  override def sections: List[String] =
     super.sections :+ columns
 
 }

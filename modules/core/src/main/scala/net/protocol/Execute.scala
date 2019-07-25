@@ -24,7 +24,7 @@ object Execute {
   def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket: Trace]: Execute[F] =
     new Unroll[F] with Execute[F] {
 
-      def apply[A](portal: Protocol.CommandPortal[F, A]): F[Completion] =
+      override def apply[A](portal: Protocol.CommandPortal[F, A]): F[Completion] =
         exchange("execute") {
           for {
             _  <- send(ExecuteMessage(portal.id.value, 0))
@@ -36,7 +36,7 @@ object Execute {
           } yield c
         }
 
-      def apply[A, B](portal: Protocol.QueryPortal[F, A, B], maxRows: Int, ty: Typer): F[List[B] ~ Boolean] =
+      override def apply[A, B](portal: Protocol.QueryPortal[F, A, B], maxRows: Int, ty: Typer): F[List[B] ~ Boolean] =
         exchange("execute") {
           for {
             _  <- Trace[F].put(

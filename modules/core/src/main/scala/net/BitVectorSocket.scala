@@ -37,7 +37,7 @@ object BitVectorSocket {
     AsynchronousChannelGroup.withThreadPool(Executors.newCachedThreadPool {
       new ThreadFactory {
         var n = 1
-        def newThread(r: Runnable): Thread = {
+        override def newThread(r: Runnable): Thread = {
           val t = new Thread(r, s"BitVectorSocket.GlobalACG-$n")
           t.setDaemon(true)
           n += 1
@@ -71,10 +71,10 @@ object BitVectorSocket {
             else ev.raiseError(new Exception(s"Fatal: EOF before $n bytes could be read.Bytes"))
         }
 
-      def read(nBytes: Int): F[BitVector] =
+      override def read(nBytes: Int): F[BitVector] =
         readBytes(nBytes).map(BitVector(_))
 
-      def write(bits: BitVector): F[Unit] =
+      override def write(bits: BitVector): F[Unit] =
         socket.write(Chunk.array(bits.toByteArray), Some(writeTimeout))
 
     }
@@ -97,7 +97,7 @@ object BitVectorSocket {
     writeTimeout: FiniteDuration,
     acg:          AsynchronousChannelGroup,
   ): Resource[F, BitVectorSocket[F]] = {
-    implicit val _acg = acg
+    implicit val _acg: AsynchronousChannelGroup = acg
 
     // TODO: trap IO exceptions here and raise a skunk error that includes all the connect args.
     //       suggest connecting with psql -h <host> -p <port> -U <user> -d <database>

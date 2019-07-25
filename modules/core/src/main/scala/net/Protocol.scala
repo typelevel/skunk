@@ -204,32 +204,32 @@ object Protocol {
         implicit val na: Namer[F] = nam
         implicit val ExchangeF: protocol.Exchange[F] =
           new protocol.Exchange[F] {
-            def apply[A](fa: F[A]): F[A] =
+            override def apply[A](fa: F[A]): F[A] =
               sem.withPermit(fa).uncancelable
           }
 
-        def notifications(maxQueued: Int): Stream[F, Notification] =
+        override def notifications(maxQueued: Int): Stream[F, Notification] =
           bms.notifications(maxQueued)
 
-        def parameters: Signal[F, Map[String, String]] =
+        override def parameters: Signal[F, Map[String, String]] =
           bms.parameters
 
-        def prepare[A](command: Command[A], ty: Typer): Resource[F, PreparedCommand[F, A]] =
+        override def prepare[A](command: Command[A], ty: Typer): Resource[F, PreparedCommand[F, A]] =
           protocol.Prepare[F].apply(command, ty)
 
-        def prepare[A, B](query: Query[A, B], ty: Typer): Resource[F, PreparedQuery[F, A, B]] =
+        override def prepare[A, B](query: Query[A, B], ty: Typer): Resource[F, PreparedQuery[F, A, B]] =
           protocol.Prepare[F].apply(query, ty)
 
-        def execute(command: Command[Void]): F[Completion] =
+        override def execute(command: Command[Void]): F[Completion] =
           protocol.Query[F].apply(command)
 
-        def execute[B](query: Query[Void, B], ty: Typer): F[List[B]] =
+        override def execute[B](query: Query[Void, B], ty: Typer): F[List[B]] =
           protocol.Query[F].apply(query, ty)
 
-        def startup(user: String, database: String): F[Unit] =
+        override def startup(user: String, database: String): F[Unit] =
           protocol.Startup[F].apply(user, database)
 
-        def transactionStatus: Signal[F, TransactionStatus] =
+        override def transactionStatus: Signal[F, TransactionStatus] =
           bms.transactionStatus
 
       }

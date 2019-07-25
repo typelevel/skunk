@@ -4,6 +4,7 @@
 
 package skunk.net.message
 
+import scodec.Decoder
 import scodec.codecs.bytes
 
 /**
@@ -14,5 +15,5 @@ final case class AuthenticationSASLContinue(data: Array[Byte]) extends Authentic
 
 object AuthenticationSASLContinue {
   final val Tagʹ = 11
-  val decoderʹ = bytes.map(bv => AuthenticationSASLContinue(bv.toArray))
+  val decoderʹ: Decoder[AuthenticationSASLContinue] = bytes.map(bv => AuthenticationSASLContinue(bv.toArray))
 }

@@ -42,9 +42,9 @@ object Cursor {
    */
   implicit def functorCursor[F[_]: Functor]: Functor[Cursor[F, ?]] =
     new Functor[Cursor[F, ?]] {
-      def map[A, B](fa: Cursor[F, A])(f: A => B) =
+      override def map[A, B](fa: Cursor[F, A])(f: A => B): Cursor[F, B] =
         new Cursor[F, B] {
-          def fetch(maxRows: Int) =
+          override def fetch(maxRows: Int): F[(List[B], Boolean)] =
             fa.fetch(maxRows).map {
               case (as, b) => (as.map(f), b)
             }

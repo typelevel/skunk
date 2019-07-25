@@ -8,5 +8,5 @@ import scodec.Decoder
 
 case object CloseComplete extends BackendMessage {
   final val Tag = '3'
-  def decoder = Decoder.point(CloseComplete)
+  val decoder: Decoder[CloseComplete.type] = Decoder.point(CloseComplete)
 }

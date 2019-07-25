@@ -49,7 +49,7 @@ class DecodeException[F[_], A, B](
     rowDescription
   )
 
-  val MaxValue = 15
+  val MaxValue: Int = 15
 
   // Truncate column values at MaxValue char
   private val dataʹ = Nested(data).map { s =>
@@ -76,7 +76,7 @@ class DecodeException[F[_], A, B](
         |  ${Text.grid(rowDescription.fields.zipWithIndex.zip(dataʹ).map(describe)).intercalate(plain("\n|  ")).render}
         |""".stripMargin
 
-  override def sections =
+  override def sections: List[String] =
     super.sections :+ row
 
 }

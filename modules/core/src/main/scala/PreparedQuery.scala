@@ -50,18 +50,18 @@ trait PreparedQuery[F[_], A, B] {
 /** @group Companions */
 object PreparedQuery {
 
-  def fromProto[F[_]: Bracket[?[_], Throwable], A, B](proto: Protocol.PreparedQuery[F, A, B]) =
+  def fromProto[F[_]: Bracket[?[_], Throwable], A, B](proto: Protocol.PreparedQuery[F, A, B]): PreparedQuery[F, A, B] =
     new PreparedQuery[F, A, B] {
 
-      def cursor(args: A)(implicit or: Origin): Resource[F, Cursor[F, B]] =
+     override def cursor(args: A)(implicit or: Origin): Resource[F, Cursor[F, B]] =
         proto.bind(args, or).map { p =>
           new Cursor[F, B] {
-            def fetch(maxRows: Int) =
+            override def fetch(maxRows: Int): F[(List[B], Boolean)] =
               p.execute(maxRows)
           }
         }
 
-      def stream(args: A, chunkSize: Int)(implicit or: Origin) =
+      override def stream(args: A, chunkSize: Int)(implicit or: Origin): Stream[F, B] =
         Stream.resource(proto.bind(args, or)).flatMap { cursor =>
           def chunks: Stream[F, B] =
             Stream.eval(cursor.execute(chunkSize)).flatMap { case (bs, more) =>
@@ -77,7 +77,7 @@ object PreparedQuery {
       private def fetch2(args: A)(implicit or: Origin): F[(List[B], Boolean)] =
         cursor(args).use(_.fetch(2))
 
-      def option(args: A)(implicit or: Origin) =
+      override def option(args: A)(implicit or: Origin): F[Option[B]] =
         fetch2(args).flatMap { case (bs, _) =>
           bs match {
             case b :: Nil => b.some.pure[F]
@@ -90,7 +90,7 @@ object PreparedQuery {
           }
         }
 
-      def unique(args: A)(implicit or: Origin) =
+      override def unique(args: A)(implicit or: Origin): F[B] =
         fetch2(args).flatMap { case (bs, _) =>
 
           bs match {
@@ -111,7 +111,7 @@ object PreparedQuery {
             }
           }
 
-      private def framed(s: String) =
+      private def framed(s: String): String =
         "\u001B[4m" + s + "\u001B[24m"
 
       private def fail[T](method: String, args: A, or: Origin, m: String, h: String): F[T] =
@@ -134,12 +134,12 @@ object PreparedQuery {
    */
   implicit def functorPreparedQuery[F[_]: Monad, A]: Functor[PreparedQuery[F, A, ?]] =
   new Functor[PreparedQuery[F, A, ?]] {
-    def map[T, U](fa: PreparedQuery[F, A, T])(f: T => U) =
+    override def map[T, U](fa: PreparedQuery[F, A, T])(f: T => U): PreparedQuery[F, A, U] =
       new PreparedQuery[F, A, U] {
-        def cursor(args: A)(implicit or: Origin) = fa.cursor(args).map(_.map(f))
-        def stream(args: A, chunkSize: Int)(implicit or: Origin) = fa.stream(args, chunkSize).map(f)
-        def option(args: A)(implicit or: Origin) = fa.option(args).map(_.map(f))
-        def unique(args: A)(implicit or: Origin) = fa.unique(args).map(f)
+        override def cursor(args: A)(implicit or: Origin): Resource[F, Cursor[F, U]] = fa.cursor(args).map(_.map(f))
+        override def stream(args: A, chunkSize: Int)(implicit or: Origin): Stream[F, U] = fa.stream(args, chunkSize).map(f)
+        override def option(args: A)(implicit or: Origin): F[Option[U]] = fa.option(args).map(_.map(f))
+        override def unique(args: A)(implicit or: Origin): F[U] = fa.unique(args).map(f)
       }
   }
 
@@ -149,12 +149,12 @@ object PreparedQuery {
    */
   implicit def contravariantPreparedQuery[F[_], B]: Contravariant[PreparedQuery[F, ?, B]] =
     new Contravariant[PreparedQuery[F, ?, B]] {
-      def contramap[T, U](fa: PreparedQuery[F, T, B])(f: U => T) =
+      override def contramap[T, U](fa: PreparedQuery[F, T, B])(f: U => T): PreparedQuery[F, U, B] =
         new PreparedQuery[F, U, B] {
-          def cursor(args: U)(implicit or: Origin) = fa.cursor(f(args))
-          def stream(args: U, chunkSize: Int)(implicit or: Origin) = fa.stream(f(args), chunkSize)
-          def option(args: U)(implicit or: Origin) = fa.option(f(args))
-          def unique(args: U)(implicit or: Origin) = fa.unique(f(args))
+          override def cursor(args: U)(implicit or: Origin): Resource[F, Cursor[F, B]] = fa.cursor(f(args))
+          override def stream(args: U, chunkSize: Int)(implicit or: Origin): Stream[F, B] = fa.stream(f(args), chunkSize)
+          override def option(args: U)(implicit or: Origin): F[Option[B]] = fa.option(f(args))
+          override def unique(args: U)(implicit or: Origin): F[B] = fa.unique(f(args))
         }
     }
 
@@ -164,11 +164,11 @@ object PreparedQuery {
    */
   implicit def profunctorPreparedQuery[F[_]: Monad]: Profunctor[PreparedQuery[F, ?, ?]] =
     new Profunctor[PreparedQuery[F, ?, ?]] {
-      def dimap[A, B, C, D](fab: PreparedQuery[F, A, B])(f: (C) ⇒ A)(g: (B) ⇒ D) =
+      override def dimap[A, B, C, D](fab: PreparedQuery[F, A, B])(f: C ⇒ A)(g: B ⇒ D): PreparedQuery[F, C, D] =
         contravariantPreparedQuery[F, B].contramap(fab)(f).map(g) // y u no work contravariant syntax
-      override def lmap[A, B, C](fab: PreparedQuery[F, A, B])(f: (C) ⇒ A) =
+      override def lmap[A, B, C](fab: PreparedQuery[F, A, B])(f: C ⇒ A): PreparedQuery[F, C, B] =
         contravariantPreparedQuery[F, B].contramap(fab)(f)
-      override def rmap[A, B, C](fab: PreparedQuery[F, A, B])(f: (B) ⇒ C) = fab.map(f)
+      override def rmap[A, B, C](fab: PreparedQuery[F, A, B])(f: B ⇒ C): PreparedQuery[F, A, C] = fab.map(f)
     }
 
   implicit class PreparedQueryOps[F[_], A, B](outer: PreparedQuery[F, A, B]) {
@@ -181,10 +181,10 @@ object PreparedQuery {
       implicit ev: Bracket[F, Throwable]
     ): PreparedQuery[G, A, B] =
       new PreparedQuery[G, A, B] {
-        def cursor(args: A)(implicit or: Origin): Resource[G,Cursor[G,B]] = outer.cursor(args).mapK(fk).map(_.mapK(fk))
-        def option(args: A)(implicit or: Origin): G[Option[B]] = fk(outer.option(args))
-        def stream(args: A, chunkSize: Int)(implicit or: Origin): Stream[G,B] = outer.stream(args, chunkSize).translate(fk)
-        def unique(args: A)(implicit or: Origin): G[B] = fk(outer.unique(args))
+        override def cursor(args: A)(implicit or: Origin): Resource[G,Cursor[G,B]] = outer.cursor(args).mapK(fk).map(_.mapK(fk))
+        override def option(args: A)(implicit or: Origin): G[Option[B]] = fk(outer.option(args))
+        override def stream(args: A, chunkSize: Int)(implicit or: Origin): Stream[G,B] = outer.stream(args, chunkSize).translate(fk)
+        override def unique(args: A)(implicit or: Origin): G[B] = fk(outer.unique(args))
       }
 
   }

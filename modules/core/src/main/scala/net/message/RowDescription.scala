@@ -12,7 +12,7 @@ import skunk.data.TypedRowDescription
 import skunk.util.Typer
 
 case class RowDescription(fields: List[RowDescription.Field]) extends BackendMessage {
-  override def toString = s"RowDescription(${fields.mkString("; ")})"
+  override def toString: String = s"RowDescription(${fields.mkString("; ")})"
 
   /**
    * Attempt to type each field, returning a `TypedRowDescription` on success or a list of aligned
@@ -38,8 +38,7 @@ object RowDescription {
     }
 
   final case class Field(name: String, tableOid: Int, columnAttr: Int, typeOid: Int, typeSize: Int, typeMod: Int, format: Int /* always 0 */) {
-    override def toString =
-      s"Field($name, $typeOid)"
+    override def toString: String = s"Field($name, $typeOid)"
   }
 
   object Field {

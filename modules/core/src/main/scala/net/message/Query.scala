@@ -4,7 +4,6 @@
 
 package skunk.net.message
 
-import java.util.Arrays
 import scodec.Attempt
 import scodec.bits._
 import scodec._
@@ -17,7 +16,7 @@ object Query {
     FrontendMessage.tagged('Q') {
       Encoder { q =>
         val barr  = q.sql.getBytes("UTF8")
-        val barrʹ = Arrays.copyOf(barr, barr.length + 1) // add NUL
+        val barrʹ = java.util.Arrays.copyOf(barr, barr.length + 1) // add NUL
         Attempt.Successful(BitVector(barrʹ))
       }
     }

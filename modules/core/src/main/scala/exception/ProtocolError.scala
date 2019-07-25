@@ -31,7 +31,7 @@ class ProtocolError protected[skunk](
 
   final protected def header: String =
     s"""|$title
-        |${labeled("  Message: ", message.toString())}
+        |${labeled("  Message: ", message.toString)}
         |
         |This is an ${Console.UNDERLINED}implementation error${Console.RESET} in Skunk.
         |Please report a bug with the full contents of this error message.
@@ -40,7 +40,7 @@ class ProtocolError protected[skunk](
   protected def sections: List[String] =
     List(header) //, exchanges)
 
-  final override def toString =
+  final override def toString: String =
     sections
       .combineAll
       .lines

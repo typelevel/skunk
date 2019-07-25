@@ -17,7 +17,7 @@ object Namer {
   def apply[F[_]: Sync]: F[Namer[F]] =
     Ref[F].of(1).map { ctr =>
       new Namer[F] {
-        def nextName(prefix: String) =
+        override def nextName(prefix: String): F[String] =
           ctr.modify(n => (n + 1, s"${prefix}_$n"))
       }
     }

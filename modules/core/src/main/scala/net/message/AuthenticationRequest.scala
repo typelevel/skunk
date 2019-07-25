@@ -29,7 +29,7 @@ object AuthenticationRequest {
         case AuthenticationGSSContinue.Tagʹ       => AuthenticationGSSContinue.decoderʹ
         case AuthenticationSASL.Tagʹ              => AuthenticationSASL.decoderʹ
         case AuthenticationSASLContinue.Tagʹ      => AuthenticationSASLContinue.decoderʹ
-        case AuthenticationSASLFinal.Tagʹ => AuthenticationSASLFinal.decoderʹ
+        case AuthenticationSASLFinal.Tagʹ         => AuthenticationSASLFinal.decoderʹ
       }
     }
 }

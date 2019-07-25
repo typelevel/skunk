@@ -23,7 +23,7 @@ class StartupException private[skunk] (
   private def describe(k: String, v: String): List[Text] =
     List(green(k), "=", green(v))
 
-  override def header = "Startup negotiation failed.\n\n" + super.header
+  override def header: String = "Startup negotiation failed.\n\n" + super.header
 
   // grim, fix this too
   override def statement: String =

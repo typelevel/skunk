@@ -24,7 +24,7 @@ class SkunkException protected[skunk](
   val callSite:        Option[CallSite]             = None
 ) extends Exception(message) with Fields with scala.util.control.NoStackTrace {
 
-  def fields: Map[String, TraceValue] = {
+  override def fields: Map[String, TraceValue] = {
 
     var map: Map[String, TraceValue] = Map.empty
 

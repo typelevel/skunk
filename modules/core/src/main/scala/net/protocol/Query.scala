@@ -25,7 +25,7 @@ object Query {
   def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket: Trace]: Query[F] =
     new Unroll[F] with Query[F] {
 
-      def apply[B](query: skunk.Query[Void, B], ty: Typer): F[List[B]] =
+      override def apply[B](query: skunk.Query[Void, B], ty: Typer): F[List[B]] =
         exchange("query") {
           send(QueryMessage(query.sql)) *> flatExpect {
 
@@ -96,7 +96,7 @@ object Query {
           }
         }
 
-        def apply(command: Command[Void]): F[Completion] =
+      override def apply(command: Command[Void]): F[Completion] =
           exchange("query") {
             send(QueryMessage(command.sql)) *> flatExpect {
 

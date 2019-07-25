@@ -35,15 +35,15 @@ object PreparedCommand {
   /** `PreparedCommand[F, ?]` is a contravariant functor for all `F`. */
   implicit def contravariantPreparedCommand[F[_]]: Contravariant[PreparedCommand[F, ?]] =
     new Contravariant[PreparedCommand[F, ?]] {
-      def contramap[A, B](fa: PreparedCommand[F,A])(f: B => A) =
+      override def contramap[A, B](fa: PreparedCommand[F,A])(f: B => A): PreparedCommand[F, B] =
         new PreparedCommand[F, B] {
-          def execute(args: B)(implicit origin: Origin) = fa.execute(f(args))
+          override def execute(args: B)(implicit origin: Origin): F[Completion] = fa.execute(f(args))
         }
     }
 
-  def fromProto[F[_]: Bracket[?[_], Throwable], A](pc: Protocol.PreparedCommand[F, A]) =
+  def fromProto[F[_]: Bracket[?[_], Throwable], A](pc: Protocol.PreparedCommand[F, A]): PreparedCommand[F, A] =
     new PreparedCommand[F, A] {
-      def execute(args: A)(implicit origin: Origin) =
+      override def execute(args: A)(implicit origin: Origin): F[Completion] =
         pc.bind(args, origin).use(_.execute)
     }
 

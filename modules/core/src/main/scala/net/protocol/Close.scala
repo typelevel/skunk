@@ -21,13 +21,13 @@ object Close {
   def apply[F[_]: FlatMap: Exchange: MessageSocket: Trace]: Close[F] =
     new Close[F] {
 
-      def apply(portalId: Protocol.PortalId): F[Unit] =
+      override def apply(portalId: Protocol.PortalId): F[Unit] =
         exchange("close-portal") {
           Trace[F].put("portal" -> portalId.value) *>
           close(CloseMessage.portal(portalId.value))
         }
 
-      def apply(statementId: Protocol.StatementId): F[Unit] =
+      override def apply(statementId: Protocol.StatementId): F[Unit] =
         exchange("close-statement") {
           Trace[F].put("statement" -> statementId.value) *>
           close(CloseMessage.statement(statementId.value))

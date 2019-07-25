@@ -4,6 +4,7 @@
 
 package skunk.net.message
 
+import scodec.Decoder
 import scodec.codecs.bytes
 
 /**
@@ -14,5 +15,5 @@ final case class AuthenticationMD5Password(salt: Array[Byte]) extends Authentica
 
 object AuthenticationMD5Password {
   final val Tagʹ = 5
-  val decoderʹ = bytes(4).map(bs => AuthenticationMD5Password(bs.toArray))
+  val decoderʹ: Decoder[AuthenticationMD5Password] = bytes(4).map(bs => AuthenticationMD5Password(bs.toArray))
 }

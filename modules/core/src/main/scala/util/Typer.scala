@@ -19,9 +19,9 @@ trait Typer { self =>
 
   def orElse(that: Typer): Typer =
     new Typer {
-      def typeForOid(oid: Int, typeMod: Int): Option[Type] =
+      override def typeForOid(oid: Int, typeMod: Int): Option[Type] =
         self.typeForOid(oid, typeMod) orElse that.typeForOid(oid, typeMod)
-      def oidForType(tpe: Type): Option[Int] =
+      override def oidForType(tpe: Type): Option[Int] =
         self.oidForType(tpe) orElse that.oidForType(tpe)
     }
 
@@ -224,7 +224,7 @@ object Typer {
 
         val arrayLookup: Map[Int, Int] =
           tim.values.collect {
-            case TypeInfo(elem, name, Some(parent), _) => parent -> elem
+            case TypeInfo(elem, _, Some(parent), _) => parent -> elem
           } .toMap
 
         def baseLookup(oid: Int): Option[Type] =

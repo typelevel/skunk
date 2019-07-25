@@ -55,21 +55,21 @@ object MessageSocket {
           }
         }
 
-        val receive: F[BackendMessage] =
+        override val receive: F[BackendMessage] =
           for {
             msg <- receiveImpl
             _   <- cb.enqueue1(Right(msg))
             _   <- Sync[F].delay(println(s" ← ${Console.GREEN}$msg${Console.RESET}")).whenA(debug)
           } yield msg
 
-        def send[A](a: A)(implicit ev: FrontendMessage[A]): F[Unit] =
+        override def send[A](a: A)(implicit ev: FrontendMessage[A]): F[Unit] =
           for {
             _ <- Sync[F].delay(println(s" → ${Console.YELLOW}$a${Console.RESET}")).whenA(debug)
             _ <- bvs.write(ev.fullEncoder.encode(a).require)
             _ <- cb.enqueue1(Left(a))
           } yield ()
 
-        def history(max: Int) =
+        override def history(max: Int): F[List[Either[Any, Any]]] =
           cb.dequeueChunk1(max: Int).map(_.toList)
 
       }

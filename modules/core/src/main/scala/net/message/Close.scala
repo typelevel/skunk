@@ -7,7 +7,7 @@ package skunk.net.message
 import scodec.codecs._
 
 sealed abstract case class Close(variant: Byte, name: String) {
-  override def toString = s"Close(${variant.toChar},$name)"
+  override def toString: String = s"Close(${variant.toChar},$name)"
 }
 
 object Close {
