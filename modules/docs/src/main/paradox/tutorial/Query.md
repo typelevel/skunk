@@ -59,7 +59,7 @@ Observe the following:
 - At ① we request that rows be decoded by `varchar ~ int4` into Scala type `String ~ Int`.
 - At ② we `map` to our `Country` data type, yielding a `Query[Void, Country]`.
 
-So that is is one way to do it.
+So that is one way to do it.
 
 ### Mapping Decoder Results
 

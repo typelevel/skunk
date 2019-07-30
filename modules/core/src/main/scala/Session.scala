@@ -98,28 +98,28 @@ trait Session[F[_]] {
   def transactionStatus: Signal[F, TransactionStatus]
 
   /**
-   * Excute a non-parameterized query and yield all results. If you have parameters or wish to limit
+   * Execute a non-parameterized query and yield all results. If you have parameters or wish to limit
    * returned rows use `prepare` instead.
    * @group Queries
    */
   def execute[A](query: Query[Void, A]): F[List[A]]
 
   /**
-   * Excute a non-parameterized query and yield exactly one row, raising an exception if there are
+   * Execute a non-parameterized query and yield exactly one row, raising an exception if there are
    * more or fewer. If you have parameters use `prepare` instead.
    * @group Queries
    */
   def unique[A](query: Query[Void, A]): F[A]
 
   /**
-   * Excute a non-parameterized query and yield at most one row, raising an exception if there are
+   * Execute a non-parameterized query and yield at most one row, raising an exception if there are
    * more. If you have parameters use `prepare` instead.
    * @group Queries
    */
   def option[A](query: Query[Void, A]): F[Option[A]]
 
   /**
-   * Excute a non-parameterized command and yield a `Completion`. If you have parameters use
+   * Execute a non-parameterized command and yield a `Completion`. If you have parameters use
    * `prepare` instead.
    * @group Commands
    */
@@ -159,7 +159,7 @@ trait Session[F[_]] {
    *   - If the block exits normally, and the session transaction status is
    *     - `Active`, then the transaction will be committed.
    *     - `Idle`, then this means the user terminated the
-   *       transaction explicitly inside the block and there is is nothing to be done.
+   *       transaction explicitly inside the block and there is nothing to be done.
    *     - `Error` then this means the user encountered and
    *       handled an error but left the transaction in a failed state, and the transaction will
    *       be rolled back.
@@ -180,12 +180,12 @@ object Session {
 
   /**
    * Resource yielding a `SessionPool` managing up to `max` concurrent `Session`s.
-   * @param host  Postgres server host
-   * @param port  Postgres port, default 5432
-   * @param user
-   * @param database
-   * @param max
-   * @param check Check all `prepare` and `execute` statements for consistency with the schema. This
+   * @param host      Postgres server host
+   * @param port      Postgres port, default 5432
+   * @param user      Postgres user
+   * @param database  Postgres database
+   * @param max       Postgres maximum concurrent sessions count
+   * @param check     Check all `prepare` and `execute` statements for consistency with the schema. This
    *   is true by default and is recommended for development work. You may wish to turn this off in
    *   production but honestly it's really cheap and probably worth keeping.
    * @group Constructors
