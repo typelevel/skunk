@@ -1,7 +1,7 @@
 language: scala
 
 jdk:
-  - oraclejdk8
+  - openjdk8
 
 before_install:
   - git fetch --tags
