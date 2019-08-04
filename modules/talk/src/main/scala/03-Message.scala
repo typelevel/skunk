@@ -190,7 +190,7 @@ object Message3 extends IOApp {
 // like the timezone and character encoding and database version, and these messages can actually
 // arrive at any time, asynchronously. So if someone changes the server timezone you'll get an
 // asynchronous message. So handling asynchronous messages like this is an interesting challenge and
-// we'll return to in in a few minutes.
+// we'll return to in a few minutes.
 // The 'K' is a backend key that you can use to cancel running queries. You connect on another
 // socket and pass that key and the server will try to kill whatever's going on in this channel.
 // And the 'Z' is the ready for query message that says we're all set up and can now do some
