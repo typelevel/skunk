@@ -17,9 +17,9 @@ import skunk.data.Identifier
  * very good yet, but the message formats are well documented at the linked pages below. It's a
  * straightforward mapping.
  *
- * It's probably useful to point out that `Codec`, `Encoder`, and `Decoder` in this packge are from
+ * It's probably useful to point out that `Codec`, `Encoder`, and `Decoder` in this package are from
  * [[http://scodec.org/ scodec]]. They're '''not''' the data types of the same name and same general
- * design that are defined above in the `skunk` packgage. I realize this is confusing, but it
+ * design that are defined above in the `skunk` package. I realize this is confusing, but it
  * shouldn't be a concern for anyone other than people working on the wire protocol, which never
  * changes (heh-heh) so it shouldn't be a big deal.
  *

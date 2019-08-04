@@ -42,7 +42,7 @@ object Describe {
                       rd.typed(ty) match {
                         // We shouldn't have a row description at all, but if we can't decode its
                         // types then *that's* the error we will raise; only if we decode it
-                        // successfully will we raise the underlying error. Seems a little confusing
+                        // successfully we will raise the underlying error. Seems a little confusing
                         // but it's a very unlikely case so I think we're ok for the time being.
                         case Left(err) => UnknownOidException(promote(cmd), err).raiseError[F, Unit]
                         case Right(td) => UnexpectedRowsException(cmd, td).raiseError[F, Unit]

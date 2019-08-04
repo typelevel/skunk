@@ -86,7 +86,7 @@ trait Protocol[F[_]] {
   def execute[A](query: Query[Void, A], ty: Typer): F[List[A]]
 
   /**
-   * Initiate the session. This must be the first thing you do. This is very basic at the momemnt.
+   * Initiate the session. This must be the first thing you do. This is very basic at the moment.
    */
   def startup(user: String, database: String): F[Unit]
 
@@ -136,7 +136,7 @@ object Protocol {
    * A prepared query.
    * @param id the Postgres identifier of this statement.
    * @param query the userland `Query` used to construct this `PreparedQuery`.
-   * @param rowDescription a `RowDescription` specifyin this `PreparedQuery`'s output format.'.
+   * @param rowDescription a `RowDescription` specifying this `PreparedQuery`'s output format.'.
    */
   abstract class PreparedQuery[F[_], A, B](
     val id:             StatementId,

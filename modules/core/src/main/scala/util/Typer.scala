@@ -130,7 +130,7 @@ object Typer {
           if (typeMod == -1) Some(Type("numeric"))
           else {
             val p = ((typeMod - 4) >> 16) & 65535
-            val s = ((typeMod - 4)) & 65535
+            val s = (typeMod - 4) & 65535
             Some(Type(s"numeric($p,$s)"))
           }
 
@@ -139,7 +139,7 @@ object Typer {
             if (typeMod == -1) Type("_numeric", List(e))
             else {
               val p = ((typeMod - 4) >> 16) & 65535
-              val s = ((typeMod - 4)) & 65535
+              val s = (typeMod - 4) & 65535
               Type(s"_numeric($p,$s)", List(e))
             }
           }
@@ -185,7 +185,7 @@ object Typer {
         """).query(typeinfo)
 
       p.execute(query, Typer.Static).map { tis =>
-        tis.map(ti => (ti.oid -> ti)).toMap
+        tis.map(ti => ti.oid -> ti).toMap
       }
 
     }

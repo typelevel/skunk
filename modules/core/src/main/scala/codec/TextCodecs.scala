@@ -16,7 +16,7 @@ trait TextCodecs {
   val bpchar:  Codec[String] = Codec.simple(_.toString, _.toString.asRight, Type.bpchar)
   def bpchar(n: Int):  Codec[String] = Codec.simple(_.toString, _.toString.asRight, Type.bpchar(n))
 
-  val name:    Codec[String] = Codec.simple(_.toString, _.toString.asRight, Type.name) // TODO: I think this might be `Indentifier`
+  val name:    Codec[String] = Codec.simple(_.toString, _.toString.asRight, Type.name) // TODO: I think this might be `Identifier`
   val text:    Codec[String] = Codec.simple(_.toString, _.toString.asRight, Type.text)
 
 }
