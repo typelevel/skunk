@@ -121,7 +121,7 @@ lazy val core = project
       "org.scodec"    %% "scodec-core"  % "1.11.4",
       "org.scodec"    %% "scodec-cats"  % "0.8.0",
       "com.beachape"  %% "enumeratum"   % "1.5.13",
-      "org.tpolecat"  %% "natchez-core" % "0.0.5",
+      "org.tpolecat"  %% "natchez-core" % "0.0.7",
       "io.chrisdavenport" %% "cats-par" % "0.2.1",
     )
   )
@@ -155,8 +155,8 @@ lazy val example = project
   .settings(
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "org.tpolecat"  %% "natchez-honeycomb" % "0.0.5",
-      "org.tpolecat"  %% "natchez-jaeger"    % "0.0.5",
+      "org.tpolecat"  %% "natchez-honeycomb" % "0.0.7",
+      "org.tpolecat"  %% "natchez-jaeger"    % "0.0.7",
     )
   )
 
