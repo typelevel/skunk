@@ -20,7 +20,7 @@ import cats.effect.{ExitCode, IO}
 
 object Socket1 {
 
-  // So we need to do pure fuctional socket programming. How do we want to think about this?
+  // So we need to do pure functional socket programming. How do we want to think about this?
   // The way the Postgres protocol works we really only need two operations, something like this.
 
 trait Socket[F[_]] {
@@ -52,7 +52,7 @@ object Socket2 {
 
     // So it turns out there's already an implementation of something like this, provided by fs2.
     // One difference is that it uses a thing called a `Chunk` instead of a byte array. A chunk is
-    // an immutable sequence of bytes. Another difference is that whe we read a chunk we get back
+    // an immutable sequence of bytes. Another difference is that when we read a chunk we get back
     // None if the socket terminates before we have read enough bytes. So let's go with this for
     // now.
 

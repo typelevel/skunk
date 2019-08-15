@@ -116,7 +116,7 @@ import cats.effect.Resource
  *   val d: Encoder[Int] ~ Encoder[String] ~ Encoder[Boolean] =
  *     ((int4, bpchar), bit)
  *   }}}
- *   It is possible tha we will end up switching to `shapeless.HList` but this is good for now.
+ *   It is possible that we will end up switching to `shapeless.HList` but this is good for now.
  *
  * @groupdesc Companions Companion objects for the traits and classes above.
  * @groupname Companions Companion Objects
