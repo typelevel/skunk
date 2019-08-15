@@ -17,7 +17,7 @@ trait BackendMessage
 object BackendMessage {
 
   /**
-   * Return the [un-prefixed] payload decoder for the given message tag. If the tag is unkown the
+   * Return the [un-prefixed] payload decoder for the given message tag. If the tag is unknown the
    * payload will be decoded as an `UnknownMessage`.
    */
   def decoder(tag: Byte): Decoder[BackendMessage] =

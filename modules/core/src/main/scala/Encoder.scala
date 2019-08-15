@@ -97,7 +97,7 @@ trait Encoder[A] { outer =>
   // now we can say (int4 ~ varchar ~ bool).row.list(2) to get ($1, $2, $3), ($4, $5, $6)
 
   override def toString =
-    s"Encoder(${types.toList.mkString(", ")})"
+    s"Encoder(${types.mkString(", ")})"
 
 }
 

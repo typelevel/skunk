@@ -41,7 +41,7 @@ object Message1 {
     //   // ...
     // }
 
-    // The game here is to use big encoders to buid up smaller ones, so let's do that. We encode
+    // The game here is to use big encoders to build up smaller ones, so let's do that. We encode
     // each part of the message payload and then concatenate the BitVectors together. BitVector is
     // structured in such a way that this is a fast operation.
 
@@ -189,8 +189,8 @@ object Message3 extends IOApp {
 // The 'S's are all parameter status messages that tell you things about the database configuration,
 // like the timezone and character encoding and database version, and these messages can actually
 // arrive at any time, asynchronously. So if someone changes the server timezone you'll get an
-// asynchronous message. So handling asynchronous messages like this is an interestin challenge and
-// we'll return to in in a few minutes.
+// asynchronous message. So handling asynchronous messages like this is an interesting challenge and
+// we'll return to in a few minutes.
 // The 'K' is a backend key that you can use to cancel running queries. You connect on another
 // socket and pass that key and the server will try to kill whatever's going on in this channel.
 // And the 'Z' is the ready for query message that says we're all set up and can now do some

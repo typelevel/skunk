@@ -3,7 +3,7 @@
 This section explains how to construct and execute queries.
 
 @@@ note { title=Definition }
-A *query* is a SQL statement that can returns rows.
+A *query* is a SQL statement that can return rows.
 @@@
 
 ## Single-Column Query
@@ -50,7 +50,7 @@ Observe that the argument to `query` is a pair of decoders conjoined with the `~
 
 ### Mapping Query Results
 
-Decoding into a twiddle list isn't ideal, so let's define a `Country` data type. We can them call `map` on our query to adapt the row type.
+Decoding into a twiddle list isn't ideal, so let's define a `Country` data type. We can then call `map` on our query to adapt the row type.
 
 @@snip [Query.scala](/modules/docs/src/main/scala/tutorial/Query.scala) { #query-c }
 
@@ -59,7 +59,7 @@ Observe the following:
 - At ① we request that rows be decoded by `varchar ~ int4` into Scala type `String ~ Int`.
 - At ② we `map` to our `Country` data type, yielding a `Query[Void, Country]`.
 
-So that is is one way to do it.
+So that is one way to do it.
 
 ### Mapping Decoder Results
 

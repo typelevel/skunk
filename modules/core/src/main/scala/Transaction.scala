@@ -32,7 +32,7 @@ trait Transaction[F[_]] { outer =>
 
   /**
    * Current transaction status. It is not usually necessary to check because transactions will be
-   * commited or rolled back automatically, but if your are committing manually and you logic is
+   * committed or rolled back automatically, but if you are committing manually and your logic is
    * sufficiently complex it may be helpful.
    * @group XA
    */
