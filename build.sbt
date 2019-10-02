@@ -90,8 +90,8 @@ lazy val skunk = project
   .enablePlugins(AutomateHeaderPlugin)
   .settings(commonSettings)
   .settings(publish / skip := true)
-  .dependsOn(macros, core, tests, example, talk)
-  .aggregate(macros, core, tests, example, talk)
+  .dependsOn(macros, core, tests, example)
+  .aggregate(macros, core, tests, example)
 
 lazy val macros = project
   .in(file("modules/macros"))
@@ -157,13 +157,6 @@ lazy val example = project
       "org.tpolecat"  %% "natchez-jaeger"    % "0.0.10",
     )
   )
-
-lazy val talk = project
-  .in(file("modules/talk"))
-  .dependsOn(core)
-  .enablePlugins(AutomateHeaderPlugin)
-  .settings(commonSettings)
-  .settings(publish / skip := true)
 
 lazy val docs = project
   .in(file("modules/docs"))
