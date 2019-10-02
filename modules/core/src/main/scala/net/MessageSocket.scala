@@ -10,8 +10,8 @@ import fs2.concurrent.InspectableQueue
 import scodec.codecs._
 import skunk.net.message.{ Sync => _, _ }
 import skunk.util.Origin
-import java.nio.channels.AsynchronousChannelGroup
 import scala.concurrent.duration.FiniteDuration
+import fs2.io.tcp.SocketGroup
 
 /** A higher-level `BitVectorSocket` that speaks in terms of `Message`. */
 trait MessageSocket[F[_]] {
@@ -76,15 +76,15 @@ object MessageSocket {
     }
 
   def apply[F[_]: Concurrent: ContextShift](
-    host: String,
-    port: Int,
-    debug: Boolean,
+    host:         String,
+    port:         Int,
+    debug:        Boolean,
     readTimeout:  FiniteDuration,
     writeTimeout: FiniteDuration,
-    acg:  AsynchronousChannelGroup
+    sg:           SocketGroup
   ): Resource[F, MessageSocket[F]] =
     for {
-      bvs <- BitVectorSocket(host, port, readTimeout, writeTimeout, acg)
+      bvs <- BitVectorSocket(host, port, readTimeout, writeTimeout, sg)
       ms  <- Resource.liftF(fromBitVectorSocket(bvs, debug))
     } yield ms
 
