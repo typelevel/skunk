@@ -13,14 +13,13 @@ import skunk.data._
 import skunk.net.Protocol
 import skunk.util.{ Origin, Pool }
 import skunk.util.Namer
-import skunk.net.BitVectorSocket
-import java.nio.channels.AsynchronousChannelGroup
 import scala.concurrent.duration._
 import fs2.Pipe
 import skunk.util.Typer
 import skunk.util.Typer.Strategy.BuiltinsOnly
 import skunk.util.Typer.Strategy.SearchPath
 import natchez.Trace
+import fs2.io.tcp.SocketGroup
 
 /**
  * Represents a live connection to a Postgres database. Operations provided here are safe to use
@@ -228,12 +227,15 @@ object Session {
     debug:        Boolean = false,
     readTimeout:  FiniteDuration           = Int.MaxValue.seconds,
     writeTimeout: FiniteDuration           = 5.seconds,
-    acg:          AsynchronousChannelGroup = BitVectorSocket.GlobalACG,
     strategy:     Typer.Strategy           = Typer.Strategy.BuiltinsOnly
   ): Resource[F, Session[F]] =
     for {
+      // TODO: ok this blocker and SocketGroup need to be on a factory or something. Need to make
+      // pooling the default or something. Ok for now though.
+      b   <- Blocker[F]
+      sg  <- SocketGroup[F](b)
       nam <- Resource.liftF(Namer[F])
-      ps  <- Protocol[F](host, port, debug, nam, readTimeout, writeTimeout, acg)
+      ps  <- Protocol[F](host, port, debug, nam, readTimeout, writeTimeout, sg)
       _   <- Resource.liftF(ps.startup(user, database))
       // TODO: password negotiation, SASL, etc.
       s   <- Resource.liftF(fromProtocol(ps, nam, strategy))

@@ -16,6 +16,7 @@ import java.nio.channels._
 import java.util.concurrent.Executors
 import scala.concurrent.duration._
 import java.util.concurrent.ThreadFactory
+import fs2.io.tcp.SocketGroup
 
 /** A higher-level `Socket` interface defined in terms of `BitVector`. */
 trait BitVectorSocket[F[_]] {
@@ -95,15 +96,9 @@ object BitVectorSocket {
     port:         Int,
     readTimeout:  FiniteDuration,
     writeTimeout: FiniteDuration,
-    acg:          AsynchronousChannelGroup,
-  ): Resource[F, BitVectorSocket[F]] = {
-    implicit val _acg: AsynchronousChannelGroup = acg
-
-    // TODO: trap IO exceptions here and raise a skunk error that includes all the connect args.
-    //       suggest connecting with psql -h <host> -p <port> -U <user> -d <database>
-    Socket.client[F](new InetSocketAddress(host, port)).map(fromSocket(_, readTimeout, writeTimeout))
-
-  }
+    sg:           SocketGroup,
+  ): Resource[F, BitVectorSocket[F]] =
+    sg.client[F](new InetSocketAddress(host, port)).map(fromSocket(_, readTimeout, writeTimeout))
 
 }
 

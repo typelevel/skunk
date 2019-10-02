@@ -25,7 +25,7 @@ lazy val commonSettings = Seq(
   ),
 
   // Compilation
-  scalaVersion       := "2.12.8",
+  scalaVersion       := "2.12.10",
   crossScalaVersions := Seq(scalaVersion.value),
   scalacOptions     ++= Seq(
     "-deprecation",                      // Emit warning and location for usages of deprecated APIs.
@@ -115,12 +115,12 @@ lazy val core = project
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core"    % "2.0.0",
       "org.typelevel" %% "cats-effect"  % "2.0.0",
-      "co.fs2"        %% "fs2-core"     % "1.0.5",
-      "co.fs2"        %% "fs2-io"       % "1.0.5",
+      "co.fs2"        %% "fs2-core"     % "2.0.1",
+      "co.fs2"        %% "fs2-io"       % "2.0.1",
       "org.scodec"    %% "scodec-core"  % "1.11.4",
       "org.scodec"    %% "scodec-cats"  % "0.8.0",
       "com.beachape"  %% "enumeratum"   % "1.5.13",
-      "org.tpolecat"  %% "natchez-core" % "0.0.5",
+      "org.tpolecat"  %% "natchez-core" % "0.0.10",
     )
   )
 
@@ -153,8 +153,8 @@ lazy val example = project
   .settings(
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "org.tpolecat"  %% "natchez-honeycomb" % "0.0.5",
-      "org.tpolecat"  %% "natchez-jaeger"    % "0.0.5",
+      "org.tpolecat"  %% "natchez-honeycomb" % "0.0.10",
+      "org.tpolecat"  %% "natchez-jaeger"    % "0.0.10",
     )
   )
 

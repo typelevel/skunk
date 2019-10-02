@@ -12,10 +12,10 @@ import fs2.Stream
 import skunk.{ Command, Query, Statement, ~, Void }
 import skunk.data._
 import skunk.util.{ Namer, Origin }
-import java.nio.channels.AsynchronousChannelGroup
 import scala.concurrent.duration.FiniteDuration
 import skunk.util.Typer
 import natchez.Trace
+import fs2.io.tcp.SocketGroup
 
 /**
  * Interface for a Postgres database, expressed through high-level operations that rely on exchange
@@ -190,10 +190,10 @@ object Protocol {
     nam:          Namer[F],
     readTimeout:  FiniteDuration,
     writeTimeout: FiniteDuration,
-    acg:          AsynchronousChannelGroup
+    sg:           SocketGroup
   ): Resource[F, Protocol[F]] =
     for {
-      bms <- BufferedMessageSocket[F](host, port, 256, debug, readTimeout, writeTimeout, acg) // TODO: should we expose the queue size?
+      bms <- BufferedMessageSocket[F](host, port, 256, debug, readTimeout, writeTimeout, sg) // TODO: should we expose the queue size?
       sem <- Resource.liftF(Semaphore[F](1))
     } yield
       new Protocol[F] {
