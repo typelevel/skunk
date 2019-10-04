@@ -60,7 +60,7 @@ object Query {
 
             // If we get CommandComplete it means our Query was actually a Command. Postgres doesn't
             // distinguish these but we do, so this is an error.
-            case CommandComplete(completion) =>
+            case CommandComplete(_) =>
               expect { case ReadyForQuery(_) => } *> NoDataException(query).raiseError[F, List[B]]
 
             // If we get an ErrorResponse it means there was an error in the query. In this case we
@@ -129,8 +129,8 @@ object Query {
         // CommandComplete followed by ReadyForQuery.
         val discard: F[Unit] =
           receive.flatMap {
-            case rd @ RowData(_)         => discard
-            case      CommandComplete(_) => expect { case ReadyForQuery(_) => }
+            case RowData(_)         => discard
+            case CommandComplete(_) => expect { case ReadyForQuery(_) => }
           }
 
 

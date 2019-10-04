@@ -8,7 +8,7 @@ import cats.effect.Resource
 import cats.implicits._
 import cats.MonadError
 import skunk.exception.PostgresErrorException
-import skunk.net.message.{ Parse => ParseMessage, _ }
+import skunk.net.message.{ Parse => ParseMessage, Close => _, _ }
 import skunk.net.MessageSocket
 import skunk.net.Protocol.StatementId
 import skunk.Statement

@@ -58,7 +58,7 @@ object Text {
 
   def grid(rows: List[List[Text]]): List[Text] = {
     val lengths  = Nested(rows).map(_.length).value
-    val paddings = Stream.from(0).map(i => lengths.map(_.lift(i).orEmpty).max)
+    val paddings = LazyList.from(0).map(i => lengths.map(_.lift(i).orEmpty).max)
     rows.map(_.zipWithIndex.map { case (s, n) => s.padTo(paddings(n)) }.intercalate(Text("  ")))
   }
 
