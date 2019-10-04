@@ -11,7 +11,7 @@ object Pretty {
   def formatMessageAtPosition(source: String, message: String, pos: Int): String = {
 
     // Add the error message
-    val s1 = source.lines.toList.foldLeft((0, "")) { case ((n, acc), s) =>
+    val s1 = source.linesIterator.toList.foldLeft((0, "")) { case ((n, acc), s) =>
       val nʹ = n + s.length + 1
       (nʹ, s"$acc\n" + {
           if (pos > 0 && pos >= n && pos <= nʹ) {
@@ -23,12 +23,12 @@ object Pretty {
 
     // Remove leading and trailing empty lines
     val s2 =
-      s1.lines.toList.dropWhile(_.trim.isEmpty).reverse.dropWhile(_.trim.isEmpty).reverse.mkString("\n")
+      s1.linesIterator.toList.dropWhile(_.trim.isEmpty).reverse.dropWhile(_.trim.isEmpty).reverse.mkString("\n")
 
     // Normalize tabs
     val s3 = {
-      val drop = s2.lines.map(_.takeWhile(_ == ' ').length).min
-      s2.lines.map(s => s"  ${Console.GREEN}" + s.drop(drop) + Console.RESET).mkString("\n")
+      val drop = s2.linesIterator.map(_.takeWhile(_ == ' ').length).min
+      s2.linesIterator.map(s => s"  ${Console.GREEN}" + s.drop(drop) + Console.RESET).mkString("\n")
     }
 
     s3

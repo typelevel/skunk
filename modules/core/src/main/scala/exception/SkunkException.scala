@@ -119,7 +119,7 @@ class SkunkException protected[skunk](
   final override def toString =
     sections
       .combineAll
-      .lines
+      .linesIterator
       .map("🔥  " + _)
       .mkString("\n", "\n", s"\n\n${getClass.getName}: $message")
 

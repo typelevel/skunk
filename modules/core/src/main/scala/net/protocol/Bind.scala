@@ -8,7 +8,7 @@ import cats.effect.Resource
 import cats.implicits._
 import cats.MonadError
 import skunk.exception.PostgresErrorException
-import skunk.net.message.{ Bind => BindMessage, _ }
+import skunk.net.message.{ Bind => BindMessage, Close => _, _ }
 import skunk.net.MessageSocket
 import skunk.net.Protocol.{ PreparedStatement, PortalId }
 import skunk.util.{ Origin, Namer }
