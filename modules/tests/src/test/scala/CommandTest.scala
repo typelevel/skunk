@@ -6,8 +6,8 @@ package tests
 
 import skunk._
 import skunk.codec.all._
-import skunk.implicits._
 import skunk.data.Completion
+import skunk.implicits._
 
 case object CommandTest extends SkunkTest {
 
@@ -17,12 +17,21 @@ case object CommandTest extends SkunkTest {
          VALUES ($int4, $varchar, $varchar, $varchar, $int8)
        """.command
 
-  sessionTest("insert values") { s =>
+  val deleteCity: Command[Int] =
+    sql"""
+         DELETE FROM city
+         WHERE id = $int4
+       """.command
+
+  sessionTest("insert and delete record") { s =>
     for {
       c <- s.prepare(insertCity).use { cmd =>
-             cmd.execute(4080 ~ "Garin" ~ "ARG" ~ "Escobar" ~ 11405)
+             cmd.execute(5000 ~ "Garin" ~ "ARG" ~ "Escobar" ~ 11405)
            }
       _ <- assert("completion",  c == Completion.Insert)
+      _ <- s.prepare(deleteCity).use { cmd =>
+             cmd.execute(5000)
+           }
       _ <- s.assertHealthy
     } yield "ok"
   }
