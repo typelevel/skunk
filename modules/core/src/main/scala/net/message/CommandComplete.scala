@@ -40,7 +40,7 @@ object CommandComplete {
     val Select: Regex = """SELECT (\d+)""".r
     val Delete: Regex = """DELETE (\d+)""".r
     val Update: Regex = """UPDATE (\d+)""".r
-    val Insert: Regex = """INSERT ((?s).*)""".r
+    val Insert: Regex = """INSERT (\d+ \d+)""".r
   }
 
   //TODO: maybe make lazy val
@@ -57,7 +57,7 @@ object CommandComplete {
     case Patterns.Select(s) => apply(Completion.Select(s.toInt))
     case Patterns.Delete(s) => apply(Completion.Delete(s.toInt))
     case Patterns.Update(s) => apply(Completion.Delete(s.toInt))
-    case Patterns.Insert(_) => apply(Completion.Insert)
+    case Patterns.Insert(s) => apply(Completion.Insert(s.drop(2).toInt))
     // more .. fill in as we hit them
   }
 

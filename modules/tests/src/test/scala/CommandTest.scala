@@ -28,7 +28,7 @@ case object CommandTest extends SkunkTest {
       c <- s.prepare(insertCity).use { cmd =>
              cmd.execute(5000 ~ "Garin" ~ "ARG" ~ "Escobar" ~ 11405)
            }
-      _ <- assert("completion",  c == Completion.Insert)
+      _ <- assert("completion",  c == Completion.Insert(1))
       _ <- s.prepare(deleteCity).use { cmd =>
              cmd.execute(5000)
            }
