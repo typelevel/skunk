@@ -90,7 +90,7 @@ import cats.effect.Resource
  *   resources that ultimately depend on their originating `Session`.
  *
  * @groupprio Codecs 30
- * @groupdesc Codecs When you construct a statement each parameter is specified via an `Ecoder`, and
+ * @groupdesc Codecs When you construct a statement each parameter is specified via an `Encoder`, and
  *   row data is specified via a `Decoder`. In some cases encoders and decoders are symmetric and
  *   are defined together, as a `Codec`. There are many variants of this pattern in functional
  *   Scala libraries; this is closest in spirit to the strategy adopted by scodec.
