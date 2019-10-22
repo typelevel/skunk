@@ -87,9 +87,20 @@ lazy val refined = project
     libraryDependencies += "eu.timepit" %% "refined" % "0.9.10",
   )
 
+
+lazy val generic = project
+  .in(file("modules/generic"))
+  .dependsOn(core)
+  .enablePlugins(AutomateHeaderPlugin)
+  .settings(commonSettings)
+  .settings(
+    name := "skunk-generic",
+    libraryDependencies += "com.chuusai" %% "shapeless" % "2.3.3"
+  )
+
 lazy val tests = project
   .in(file("modules/tests"))
-  .dependsOn(core)
+  .dependsOn(core, generic)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(commonSettings)
   .settings(
