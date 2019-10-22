@@ -32,24 +32,24 @@ object Twiddler {
       def from(o: Out) = o :: HNil
     }
 
-  implicit def inductive[A <: HList, IO <: HList, LO](
+  implicit def inductive[A <: HList, IO <: HList, LO, TO](
     implicit in: Init.Aux[A, IO],
              la: Last.Aux[A, LO],
-             tw: Twiddler[IO],
+             tw: Twiddler.Aux[IO, TO],
              pp: Prepend.Aux[IO, LO :: HNil, A]
-  ): Aux[A, (tw.Out, la.Out)] =
+  ): Aux[A, (TO, LO)] =
     new Twiddler[A] {
-      type Out = (tw.Out, la.Out)
+      type Out = (TO, LO)
       def from(o: Out): A = tw.from(o._1) :+ o._2
       def to(h: A): Out = (tw.to(in(h)), la(h))
     }
 
-  implicit def generic[A, R](
+  implicit def generic[A, R, TO](
     implicit ge: Generic.Aux[A, R],
-             tw: Twiddler[R]
-  ): Aux[A, tw.Out] =
+             tw: Twiddler.Aux[R, TO]
+  ): Aux[A, TO] =
     new Twiddler[A] {
-      type Out = tw.Out
+      type Out = TO
       def to(h: A): Out = tw.to(ge.to(h))
       def from(o: Out): A = ge.from(tw.from(o))
     }
@@ -61,7 +61,8 @@ object Y {
     case class City(id: Int, name: String, code: String, district: String, pop: Int)
 
     // will not typecheck outside this package
-    val t: Twiddler.Aux[City, ((((Int, String), String), String), Int)] = Twiddler[City]
+    val t0 = Twiddler[City]
+    val t: Twiddler.Aux[City, ((((Int, String), String), String), Int)] = t0
 
 }
 
