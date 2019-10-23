@@ -8,16 +8,14 @@ import skunk._
 import skunk.codec.all._
 import skunk.data.Completion
 import skunk.implicits._
+import skunk.generic.implicits._
 
 case object CommandTest extends SkunkTest {
 
   case class City(id: Int, name: String, code: String, district: String, pop: Int)
 
-  val city = (int4 ~ varchar ~ bpchar(3) ~ varchar ~ int4).imap {
-    case i ~ n ~ c ~ d ~ p => City(i, n, c, d, p) }
-  {
-    case c                 => c.id ~ c.name ~ c.code ~ c.district ~ c.pop
-  }
+  val city: Codec[City] =
+    (int4 ~ varchar ~ bpchar(3) ~ varchar ~ int4).gimap[City]
 
   val Garin = City(5000, "Garin", "ARG", "Escobar", 11405)
 
