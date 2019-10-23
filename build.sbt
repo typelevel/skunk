@@ -43,8 +43,8 @@ lazy val skunk = project
   .enablePlugins(AutomateHeaderPlugin)
   .settings(commonSettings)
   .settings(publish / skip := true)
-  .dependsOn(macros, core, tests, refined, example)
-  .aggregate(macros, core, tests, refined, example)
+  .dependsOn(macros, core, generic, tests, refined, example)
+  .aggregate(macros, core, generic, tests, refined, example)
 
 lazy val macros = project
   .in(file("modules/macros"))

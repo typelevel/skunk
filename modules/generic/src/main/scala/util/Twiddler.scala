@@ -2,7 +2,7 @@
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
-package foo.bar
+package skunk.generic.util
 
 import shapeless.{ HList, ::, HNil, Generic }
 import shapeless.ops.hlist.Init

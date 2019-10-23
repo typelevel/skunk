@@ -2,11 +2,11 @@
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
-package skunk.generic.syntax
+package skunk
 
-trait ToAllOps
-  extends ToCodecOps
-     with ToEncoderOps
-     with ToDecoderOps
+package object generic {
 
-object all extends ToAllOps
+  object implicits
+    extends syntax.ToAllOps
+
+}
