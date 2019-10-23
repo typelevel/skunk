@@ -138,7 +138,7 @@ object StringContextOps {
     }
 
     def identifier_impl(): Tree = {
-      val Apply(_, List(Apply(_, List(s @ Literal(Constant(part: String)))))) = c.prefix.tree
+      val Apply(_, List(Apply(_, List(Literal(Constant(part: String)))))) = c.prefix.tree
       Identifier.fromString(part) match {
         case Left(s) => c.abort(c.enclosingPosition, s)
         case Right(Identifier(s)) => q"_root_.skunk.data.Identifier.fromString($s).fold(sys.error, identity)"

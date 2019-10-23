@@ -7,6 +7,7 @@ package skunk
 import cats._
 import cats.implicits._
 import skunk.data.Type
+import skunk.util.Twiddler
 
 /**
  * Decoder of Postgres text-format data into Scala types.
@@ -26,7 +27,11 @@ trait Decoder[A] { outer =>
       override val types: List[Type] = outer.types
     }
 
-  /** `Decoder` is semigroupal: a pair of decoders make a decoder for a pair. */
+  /** Adapt this `Decoder` from twiddle-list type A to isomorphic case-class type `B`. */
+  def gmap[B](implicit ev: Twiddler.Aux[B, A]): Decoder[B] =
+    map(ev.from)
+
+    /** `Decoder` is semigroupal: a pair of decoders make a decoder for a pair. */
   def product[B](fb: Decoder[B]): Decoder[(A, B)] =
     new Decoder[(A, B)] {
       override def decode(offset: Int, ss: List[Option[String]]): Either[Decoder.Error, (A, B)] = {

@@ -164,11 +164,11 @@ object PreparedQuery {
    */
   implicit def profunctorPreparedQuery[F[_]: Monad]: Profunctor[PreparedQuery[F, ?, ?]] =
     new Profunctor[PreparedQuery[F, ?, ?]] {
-      override def dimap[A, B, C, D](fab: PreparedQuery[F, A, B])(f: C ⇒ A)(g: B ⇒ D): PreparedQuery[F, C, D] =
+      override def dimap[A, B, C, D](fab: PreparedQuery[F, A, B])(f: C => A)(g: B => D): PreparedQuery[F, C, D] =
         contravariantPreparedQuery[F, B].contramap(fab)(f).map(g) // y u no work contravariant syntax
-      override def lmap[A, B, C](fab: PreparedQuery[F, A, B])(f: C ⇒ A): PreparedQuery[F, C, B] =
+      override def lmap[A, B, C](fab: PreparedQuery[F, A, B])(f: C => A): PreparedQuery[F, C, B] =
         contravariantPreparedQuery[F, B].contramap(fab)(f)
-      override def rmap[A, B, C](fab: PreparedQuery[F, A, B])(f: B ⇒ C): PreparedQuery[F, A, C] = fab.map(f)
+      override def rmap[A, B, C](fab: PreparedQuery[F, A, B])(f: B => C): PreparedQuery[F, A, C] = fab.map(f)
     }
 
   implicit class PreparedQueryOps[F[_], A, B](outer: PreparedQuery[F, A, B]) {

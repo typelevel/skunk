@@ -28,8 +28,8 @@ case class UnknownTypeException(
 
   private def describe(i: Int, t: Type, oo: Option[Int]): List[Text] =
     oo match {
-      case Some(oid) => List(green(s"$$${i+1}"), t.name, empty)
-      case None      => List(green(s"$$${i+1}"), t.name, cyan("── unknown type"))
+      case Some(_) => List(green(s"$$${i+1}"), t.name, empty)
+      case None    => List(green(s"$$${i+1}"), t.name, cyan("── unknown type"))
     }
 
   private def columns: String =

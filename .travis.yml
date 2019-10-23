@@ -19,7 +19,7 @@ jobs:
   include:
     # stage="test" if no stage is specified
     - env: TEST="build"
-      script: sbt headerCheck test docs/paradox
+      script: sbt headerCheck +test docs/paradox
     # run ci-release only if previous stages passed
     - stage: release
       script: sbt ci-release

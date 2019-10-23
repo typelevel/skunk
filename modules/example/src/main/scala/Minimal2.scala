@@ -4,6 +4,7 @@
 
 package example
 
+import cats.Parallel
 import cats.effect._
 import cats.implicits._
 import skunk._
@@ -12,10 +13,8 @@ import skunk.codec.all._
 import natchez.Trace
 import cats.data.Kleisli
 import natchez.Span
-import cats.temp.par._
 import natchez.honeycomb.Honeycomb
 import natchez.EntryPoint
-// import natchez.jaeger.JaegerTracer
 
 object Minimal2 extends IOApp {
 
@@ -51,7 +50,7 @@ object Minimal2 extends IOApp {
       }
     }
 
-  def runF[F[_]: Concurrent: ContextShift: Trace: Par]: F[ExitCode] =
+  def runF[F[_]: Concurrent: ContextShift: Trace: Parallel]: F[ExitCode] =
     session.use { s =>
       List("A%", "B%").parTraverse(p => lookup(p, s))
     } as ExitCode.Success

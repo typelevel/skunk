@@ -8,6 +8,7 @@ import cats._
 import cats.data._
 import cats.implicits._
 import skunk.data.Type
+import skunk.util.Twiddler
 
 /**
  * Symmetric encoder and decoder of Postgres text-format data to and from Scala types.
@@ -40,6 +41,10 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
   def imap[B](f: A => B)(g: B => A): Codec[B] =
     Codec(b => encode(g(b)), decode(_, _).map(f), types)
 
+  /** Adapt this `Codec` from twiddle-list type A to isomorphic case-class type `B`. */
+  def gimap[B](implicit ev: Twiddler.Aux[B, A]): Codec[B] =
+    imap(ev.from)(ev.to)
+
   /** Lift this `Codec` into `Option`, where `None` is mapped to and from a vector of `NULL`. */
   override def opt: Codec[Option[A]] =
     new Codec[Option[A]] {
@@ -69,7 +74,10 @@ object Codec {
       override def encode(a: A): List[Option[String]] = encode0(a)
       override def decode(offset: Int, ss: List[Option[String]]): Either[Decoder.Error, A] = decode0(offset, ss)
       override val types: List[Type] = oids0
-      override val sql: State[Int, String]   = State((n: Int) => (n + 1, s"$$$n"))
+      override val sql: State[Int, String] = State { (n: Int) =>
+        val len = types.length
+        (n + len, (1 to len).map(i => s"$$$i").mkString(", "))
+      }
     }
   /** @group Constructors */
   def simple[A](encode: A => String, decode: String => Either[String, A], oid: Type): Codec[A] =

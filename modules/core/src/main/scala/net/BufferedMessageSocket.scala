@@ -13,8 +13,8 @@ import fs2.concurrent._
 import fs2.Stream
 import skunk.data._
 import skunk.net.message._
-import java.nio.channels.AsynchronousChannelGroup
 import scala.concurrent.duration.FiniteDuration
+import fs2.io.tcp.SocketGroup
 
 /**
  * A `MessageSocket` that buffers incoming messages, removing and handling asynchronous back-end
@@ -82,10 +82,10 @@ object BufferedMessageSocket {
     debug:        Boolean,
     readTimeout:  FiniteDuration,
     writeTimeout: FiniteDuration,
-    acg:          AsynchronousChannelGroup
+    sg:           SocketGroup
   ): Resource[F, BufferedMessageSocket[F]] =
     for {
-      ms  <- MessageSocket(host, port, debug, readTimeout, writeTimeout, acg)
+      ms  <- MessageSocket(host, port, debug, readTimeout, writeTimeout, sg)
       ams <- Resource.make(BufferedMessageSocket.fromMessageSocket[F](ms, queueSize))(_.terminate)
     } yield ams
 
