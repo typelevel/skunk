@@ -43,8 +43,8 @@ lazy val skunk = project
   .enablePlugins(AutomateHeaderPlugin)
   .settings(commonSettings)
   .settings(publish / skip := true)
-  .dependsOn(macros, core, generic, tests, refined, example)
-  .aggregate(macros, core, generic, tests, refined, example)
+  .dependsOn(macros, core, tests, refined, example)
+  .aggregate(macros, core, tests, refined, example)
 
 lazy val macros = project
   .in(file("modules/macros"))
@@ -87,20 +87,9 @@ lazy val refined = project
     libraryDependencies += "eu.timepit" %% "refined" % "0.9.10",
   )
 
-
-lazy val generic = project
-  .in(file("modules/generic"))
-  .dependsOn(core)
-  .enablePlugins(AutomateHeaderPlugin)
-  .settings(commonSettings)
-  .settings(
-    name := "skunk-generic",
-    libraryDependencies += "com.chuusai" %% "shapeless" % "2.3.3"
-  )
-
 lazy val tests = project
   .in(file("modules/tests"))
-  .dependsOn(core, generic)
+  .dependsOn(core)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(commonSettings)
   .settings(

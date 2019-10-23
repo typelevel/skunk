@@ -2,17 +2,19 @@
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
-package skunk.generic.util
+package skunk.util
 
 import shapeless.{ HList, ::, HNil, Generic }
 import shapeless.ops.hlist.Init
 import shapeless.ops.hlist.Last
 import shapeless.ops.hlist.Prepend
+import scala.annotation.implicitNotFound
 
 /**
  * Witness that type `A` is isomorphic to a left-associated HList formed from pairs; i.e.,
  * A :: B :: C :: D :: HNil ~ (((A, B), C), D)
  */
+@implicitNotFound("Cannot construct a mapping between ${A} (which must be a twiddle-list type) and the specified target type (which must be an case class of the same structure).")
 trait Twiddler[A] {
   type Out
   def to(h: A): Out

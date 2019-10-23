@@ -9,6 +9,7 @@ import cats.data.State
 import cats.implicits._
 import skunk.data.Type
 import skunk.util.Typer
+import skunk.util.Twiddler
 
 /**
  * Encoder of Postgres text-format data from Scala types.
@@ -50,6 +51,10 @@ trait Encoder[A] { outer =>
       override val types: List[Type] = outer.types
       override val sql: State[Int, String] = outer.sql
     }
+
+  /** Adapt this `Encoder` from twiddle-list type A to isomorphic case-class type `B`. */
+  def gcontramap[B](implicit ev: Twiddler.Aux[B, A]): Encoder[B] =
+    contramap(ev.to)
 
   /** `Encoder` is semigroupal: a pair of encoders make a encoder for a pair. */
   def product[B](fb: Encoder[B]): Encoder[(A, B)] =

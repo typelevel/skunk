@@ -8,7 +8,6 @@ import skunk._
 import skunk.codec.all._
 import skunk.data.Completion
 import skunk.implicits._
-import skunk.generic.implicits._
 
 case object CommandTest extends SkunkTest {
 

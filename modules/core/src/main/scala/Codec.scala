@@ -8,6 +8,7 @@ import cats._
 import cats.data._
 import cats.implicits._
 import skunk.data.Type
+import skunk.util.Twiddler
 
 /**
  * Symmetric encoder and decoder of Postgres text-format data to and from Scala types.
@@ -39,6 +40,10 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
   /** Contramap inputs from, and map outputs to, a new type `B`, yielding a `Codec[B]`. */
   def imap[B](f: A => B)(g: B => A): Codec[B] =
     Codec(b => encode(g(b)), decode(_, _).map(f), types)
+
+  /** Adapt this `Codec` from twiddle-list type A to isomorphic case-class type `B`. */
+  def gimap[B](implicit ev: Twiddler.Aux[B, A]): Codec[B] =
+    imap(ev.from)(ev.to)
 
   /** Lift this `Codec` into `Option`, where `None` is mapped to and from a vector of `NULL`. */
   override def opt: Codec[Option[A]] =
