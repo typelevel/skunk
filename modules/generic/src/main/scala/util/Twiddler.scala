@@ -55,14 +55,3 @@ object Twiddler {
     }
 
 }
-
-object Y {
-
-    case class City(id: Int, name: String, code: String, district: String, pop: Int)
-
-    // will not typecheck outside this package
-    val t0 = Twiddler[City]
-    val t: Twiddler.Aux[City, ((((Int, String), String), String), Int)] = t0
-
-}
-
