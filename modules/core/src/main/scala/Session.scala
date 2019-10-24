@@ -194,7 +194,7 @@ object Session {
     port:     Int,
     user:     String,
     database: String,
-    max:      Long,
+    max:      Int,
   ): SessionPool[F] = {
 
     val reset: Session[F] => F[Boolean] = s =>

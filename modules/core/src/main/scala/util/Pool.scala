@@ -1,90 +1,114 @@
-// Copyright (c) 2018 by Rob Norris
-// This software is licensed under the MIT License (MIT).
-// For more information see LICENSE or https://opensource.org/licenses/MIT
-
 package skunk.util
 
-import cats.effect._
-import cats.effect.concurrent._
+import cats.effect.Concurrent
+import cats.effect.concurrent.Deferred
+import cats.effect.concurrent.Ref
+import cats.effect.Resource
 import cats.implicits._
-
 
 object Pool {
 
+  // I think maybe we just want to log warnings when `reset` and `free` fail, because there isn't
+  // really anything the user can do about it.
+
   /**
-   * Resource that yields a non-blocking **pooled** version of `rsrc`, with up to `maxInstances`
-   * live instances permitted, constructed lazily. A released instance is returned to the pool if
-   * `reset` yields `true` (the typical case), otherwise it is discarded. This gives the pool a
-   * chance to verify that an instance is valid, and reset it to a "clean" state if necessary. All
-   * instances are released when the pool is released, in an undefined order (i.e., don't use this
-   * if `rsrc` yields instances that depend on each other).
+   * A pooled resource (which is itself a managed resource).
+   * @param rsrc the underlying resource to be pooled
+   * @param size maximum size of the pool (must be positive)
+   * @param reset a cleanup/health-check to be done before elements are returned to the pool;
+   *   yielding false here means the element should be freed and removed from the pool.
    */
   def of[F[_]: Concurrent, A](
-    rsrc: Resource[F, A],
-    maxInstances: Long,
+    rsrc:  Resource[F, A],
+    size:  Int,
     reset: A => F[Boolean]
-  ): Pool[F, A] =
-    Resource.make(PoolData.create(rsrc, maxInstances, reset))(_.close).map(_.resource)
+  ): Resource[F, Resource[F, A]] = {
 
-  /**
-   * Internal state used by a pool. We need an underlying resource, a counting semaphore to limit
-   * concurrent instances, a cache to store instances for reuse, and a reset program constructor
-   * for checking validity (and arbitrary cleanup) of returned instances.
-   */
-  private final class PoolData[F[_]: Concurrent, A](
-    underlying: Resource[F, A],
-    semaphore:  Semaphore[F],
-    cache:      MVar[F, List[Leak[F, A]]],
-    reset:      A => F[Boolean]
-  ) {
+    // Just in case.
+    assert(size > 0, s"Pool size must be positive (you passed $size).")
 
-    // Take a permit and yield a leaked resource from the queue, or leak a new one if necessary
-    // If an error is raised leaking the resource we give up the permit and re-throw
-    private def take(factory: F[Leak[F, A]]): F[Leak[F, A]] =
-      for {
-        _   <- semaphore.acquire
-        q   <- cache.take
-        lfa <-
-          q match {
-            case a :: as => cache.put(as).as(a)
-            case Nil     => cache.put(Nil) *> factory.onError { case _ => semaphore.release }
-          }
-      } yield lfa
+    // The type of thing allocated by rsrc.
+    type Alloc = (A, F[Unit])
 
-    // Add a leaked resource to the pool and release a permit
-    private def release(leak: Leak[F, A]): F[Unit] =
-      cache.take.flatMap { q =>
-        reset(leak.value).attempt.flatMap {
-          case Right(true)  => cache.put(leak :: q) *> semaphore.release
-          case Right(false) => cache.put(q)         *> semaphore.release
-          case Left(e)      => cache.put(q)         *> semaphore.release *> Concurrent[F].raiseError(e)
+    // Our pool state is a pair of queues, implemented as lists because I am lazy and it's not
+    // going to matter.
+    type State = (
+      List[Option[Alloc]],     // deque of alloc slots (filled on the left, empty on the right)
+      List[Deferred[F, Alloc]] // queue of deferrals awaiting allocs
+    )
+
+    // We can construct a pool given a Ref containing our initial state.
+    def poolImpl(ref: Ref[F, State]): Resource[F, A] = {
+
+      // To give out an alloc we create a deferral first, which we will need if there are no slots
+      // available. If there is a filled slot, remove it and yield its alloc. If there is an empty
+      // slot, remove it and allocate (error here is raised to the user). If there are no slots,
+      // enqueue the deferral and wait on it, which will [semantically] block the caller until an
+      // alloc is returned to the pool.
+      val give: F[Alloc] =
+        Deferred[F, Alloc].flatMap { d =>
+          ref.modify {
+            case (Some(a) :: os, ds) => ((os, ds), a.pure[F])      // re-use
+            case (None    :: os, ds) => ((os, ds), rsrc.allocated) // allocate
+            case (Nil,           ds) => ((Nil, ds :+ d), d.get)    // enqueue
+          } .flatten
         }
+
+      // To take back an alloc we nominally just hand it out or push it back onto the queue, but
+      // there are a bunch of error conditions to consider. This operation is a finalizer and
+      // cannot be canceled, so we don't need to worry about that case here.
+      def take(a: Alloc): F[Unit] =
+        reset(a._1).flatMap {
+
+          // `reset` succeeded, so hand the alloc out to the next waiting deferral if there is one,
+          // otherwise return it to the head of the pool.
+          case true  =>
+            ref.modify {
+              case (os, d :: ds) => ((os, ds), d.complete(a))          // hand it back out
+              case (os, Nil)     => ((Some(a) :: os, Nil), ().pure[F]) // return to pool
+            }
+
+          // `reset` failed, so enqueue a new empty slot and finalize the alloc. If there is a
+          // finalization error it will be raised to the caller.
+          case false =>
+            ref.modify { case (os, ds) =>  ((os :+ None, ds), a._2) }
+
+        } .flatten.onError {
+
+          // `reset` raised an error. Enqueue a new empty slot, finalize the alloc, and re-raise. If
+          // there is an error in finalization it will trump the `reset` error.
+          case t =>
+            ref.modify { case (os, ds) => ((os :+ None, ds), a._2 *> t.raiseError[F, Unit]) }
+               .flatten
+
+        }
+
+      Resource.make(give)(take).map(_._1)
+
+    }
+
+    // The pool itself is really just a wrapper for its state ref.
+    def alloc: F[Ref[F, State]] =
+      Ref[F].of((List.fill(size)(None), Nil))
+
+    // When the pool shuts down we finalize all the allocs, which should have been returned by now.
+    // Any remaining deferrals are simply abandoned. Would be nice if we could interrupt them.
+    def free(ref: Ref[F, State]): F[Unit] =
+      ref.get.flatMap {
+
+        // We could check here to ensure that os.length = size and log an error if an entry is
+        // missing. This would indicate a leak. If there is an error in `free` it will halt
+        // finalization of remaining allocs and will be re-raised to the caller, which is a bit
+        // harsh. We might want to accumulate failures and raise one big error when we're done.
+        case (os, _) =>
+          os.traverse_ {
+            case Some((_, free)) => free
+            case None            => ().pure[F]
+          }
+
       }
 
-    // Release all resources
-    def close: F[Unit] =
-      for {
-        leaks <- cache.take
-        _     <- leaks.traverse(_.release.attempt) // on error no big deal?
-      } yield ()
-
-    // View this bundle of nastiness as a resource
-    def resource: Resource[F, A] =
-      Resource.make(take(Leak.of(underlying)))(release).map(_.value)
-
-  }
-
-  private object PoolData {
-
-    def create[F[_]: Concurrent, A](
-      rsrc: Resource[F, A],
-      maxInstances: Long,
-      reset: A => F[Boolean]
-    ): F[PoolData[F, A]] =
-      for {
-        sem   <- Semaphore[F](maxInstances)
-        cache <- MVar[F].of(List.empty[Leak[F, A]])
-      } yield new PoolData(rsrc, sem, cache, reset)
+    Resource.make(alloc)(free).map(poolImpl)
 
   }
 
