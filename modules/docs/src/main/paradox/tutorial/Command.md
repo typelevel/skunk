@@ -46,3 +46,10 @@ In this case the result will be `Delete(0)` since there are no countries named `
 @@snip [Command.scala](/modules/docs/src/main/scala/tutorial/Command.scala) { #command-e }
 
 ### Contramapping Encoders
+
+## Summary of Command Types
+
+## Full Example
+
+## Experiment
+
