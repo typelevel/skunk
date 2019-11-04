@@ -13,12 +13,13 @@ object Pool {
   final case class ResourceLeak(expected: Int, actual: Int)
     extends SkunkException(
       sql     = None,
-      message = s"Resource leak detected. Pool is of size $expected but only $actual active slots were available on finalization.",
+      message = s"A resource leak was detected during pool finalization.",
+      detail  = Some(s"Expected $expected active slots, found $actual."),
       hint    = Some("""
-      The most
-      common
-      blah.
-      """)
+        |The most common causes of resource leaks are (a) using a pool on a fiber that was neither
+        |joined or canceled prior to pool finalization, and (b) using `Resource.allocated` and
+        |failing to finalize allocated resources prior to pool finalization.
+      """.stripMargin.trim.linesIterator.mkString(" "))
     )
 
   /**
