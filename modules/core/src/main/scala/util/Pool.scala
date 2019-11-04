@@ -15,7 +15,9 @@ object Pool {
       sql     = None,
       message = s"Resource leak detected. Pool is of size $expected but only $actual active slots were available on finalization.",
       hint    = Some("""
-      This should not be possible unless you are using   `allocated` and fail to finalize the resource. Prefer `use` over `allocated`.
+      The most
+      common
+      blah.
       """)
     )
 
@@ -45,7 +47,7 @@ object Pool {
       List[Deferred[F, Alloc]] // queue of deferrals awaiting allocs
     )
 
-    def raise[A](e: Exception): F[A] =
+    def raise[B](e: Exception): F[B] =
       Concurrent[F].raiseError(e)
 
     // We can construct a pool given a Ref containing our initial state.
@@ -59,10 +61,10 @@ object Pool {
       val give: F[Alloc] =
         Deferred[F, Alloc].flatMap { d =>
           ref.modify {
-            case (Nil,           ds) => ((Nil, ds :+ d), d.get)    // enqueue
+            case (Nil,           ds) => ((Nil, ds :+ d), d.get)    // enqueue … todo: should we allow a timeout here?
             case (Some(a) :: os, ds) => ((os, ds), a.pure[F])      // re-use
             case (None    :: os, ds) => ((os, ds),
-              // allocate, but if allocation fails put a new None at the end of the queue, otherwise
+              // Allocate, but if allocation fails put a new None at the end of the queue, otherwise
               // we will have leaked a slot.
               rsrc.allocated.onError { e =>
                 ref.update { case (os, ds) => (os :+ None, ds) }
