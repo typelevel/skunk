@@ -5,11 +5,19 @@ import cats.effect.concurrent.Deferred
 import cats.effect.concurrent.Ref
 import cats.effect.Resource
 import cats.implicits._
+import skunk.exception.SkunkException
 
 object Pool {
 
-  // I think maybe we just want to log warnings when `reset` and `free` fail, because there isn't
-  // really anything the user can do about it.
+  /** Class of exceptions raised when a resource leak is detected on pool finalization. */
+  final case class ResourceLeak(expected: Int, actual: Int)
+    extends SkunkException(
+      sql     = None,
+      message = s"Resource leak detected. Pool is of size $expected but only $actual active slots were available on finalization.",
+      hint    = Some("""
+      This should not be possible unless you are using   `allocated` and fail to finalize the resource. Prefer `use` over `allocated`.
+      """)
+    )
 
   /**
    * A pooled resource (which is itself a managed resource).
@@ -20,7 +28,7 @@ object Pool {
    */
   def of[F[_]: Concurrent, A](
     rsrc:  Resource[F, A],
-    size:  Int,
+    size:  Int)(
     reset: A => F[Boolean]
   ): Resource[F, Resource[F, A]] = {
 
@@ -37,6 +45,9 @@ object Pool {
       List[Deferred[F, Alloc]] // queue of deferrals awaiting allocs
     )
 
+    def raise[A](e: Exception): F[A] =
+      Concurrent[F].raiseError(e)
+
     // We can construct a pool given a Ref containing our initial state.
     def poolImpl(ref: Ref[F, State]): Resource[F, A] = {
 
@@ -48,9 +59,15 @@ object Pool {
       val give: F[Alloc] =
         Deferred[F, Alloc].flatMap { d =>
           ref.modify {
-            case (Some(a) :: os, ds) => ((os, ds), a.pure[F])      // re-use
-            case (None    :: os, ds) => ((os, ds), rsrc.allocated) // allocate
             case (Nil,           ds) => ((Nil, ds :+ d), d.get)    // enqueue
+            case (Some(a) :: os, ds) => ((os, ds), a.pure[F])      // re-use
+            case (None    :: os, ds) => ((os, ds),
+              // allocate, but if allocation fails put a new None at the end of the queue, otherwise
+              // we will have leaked a slot.
+              rsrc.allocated.onError { e =>
+                ref.update { case (os, ds) => (os :+ None, ds) }
+              }
+            )
           } .flatten
         }
 
@@ -59,7 +76,6 @@ object Pool {
       // cannot be canceled, so we don't need to worry about that case here.
       def take(a: Alloc): F[Unit] =
         reset(a._1).flatMap {
-
           // `reset` succeeded, so hand the alloc out to the next waiting deferral if there is one,
           // otherwise return it to the head of the pool.
           case true  =>
@@ -101,6 +117,7 @@ object Pool {
         // finalization of remaining allocs and will be re-raised to the caller, which is a bit
         // harsh. We might want to accumulate failures and raise one big error when we're done.
         case (os, _) =>
+          raise(ResourceLeak(size, os.length)).whenA(os.length != size) *>
           os.traverse_ {
             case Some((_, free)) => free
             case None            => ().pure[F]

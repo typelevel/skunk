@@ -11,6 +11,7 @@ import sbt.testing.{ Framework, _ }
 import sbt.testing.Status._
 import scala.concurrent.ExecutionContext
 import scala.Console._
+import scala.reflect.ClassTag
 
 trait FTest {
   protected[ffstest] var tests = List.empty[(String, IO[_])]
@@ -24,6 +25,16 @@ trait FTest {
   def assertEqual[A: Eq](msg: => String, actual: A, expected: A): IO[Unit] =
     if (expected === actual) IO.pure(())
     else fail(msg + s"\n  expected: $expected\n   actual: $actual")
+
+  implicit class SkunkTestIOOps[A](fa: IO[A]) {
+    def assertFailsWith[E: ClassTag]: IO[E] = assertFailsWith[E](false)
+    def assertFailsWith[E: ClassTag](show: Boolean): IO[E] =
+      fa.attempt.flatMap {
+        case Left(e: E) => IO(e.printStackTrace()).whenA(show) *> e.pure[IO]
+        case Left(e)    => IO.raiseError(e)
+        case Right(a)   => fail[E](s"Expected ${implicitly[ClassTag[E]].runtimeClass.getName}, got $a")
+      }
+  }
 
 }
 
@@ -83,6 +94,8 @@ case class FTask(taskDef: TaskDef, testClassLoader: ClassLoader) extends Task {
     obj.tests.foreach { case (name, fa) =>
       type AE = AssertionError // to make the lines shorter below :-\
       FTask.timed(obj.ioContextShift.shift *> fa).attempt.unsafeRunSync match {
+        case Right((ms, ())) => report(GREEN, s"✓ $name ($ms ms)",      FEvent(Success, duration = ms))
+        case Right((ms, a: Throwable)) => report(GREEN, s"✓ $name («${a.getClass.getSimpleName}», $ms ms)", FEvent(Success, duration = ms))
         case Right((ms, a)) => report(GREEN, s"✓ $name ($a, $ms ms)",      FEvent(Success, duration = ms))
         case Left(e: AE)    => report(RED,   s"✗ $name (${e.getMessage})", FEvent(Failure))
         case Left(e)        => report(RED,   s"? $name (${e.getMessage})", FEvent(Error, throwable = e)) // todo: stacktrace

@@ -6,7 +6,6 @@ package tests
 
 import cats.effect.{ IO, Resource }
 import cats.implicits._
-import scala.reflect.ClassTag
 import skunk.Session
 import skunk.data._
 import skunk.codec.all._
@@ -41,16 +40,6 @@ abstract class SkunkTest(strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly)
         _ <- assert("sanity check", n === "SkunkTest Health Check")
       } yield ()
 
-  }
-
-  implicit class SkunkTestIOOps[A](fa: IO[A]) {
-    def assertFailsWith[E: ClassTag]: IO[E] = assertFailsWith[E](false)
-    def assertFailsWith[E: ClassTag](show: Boolean): IO[E] =
-      fa.attempt.flatMap {
-        case Left(e: E) => IO(e.printStackTrace()).whenA(show) *> e.pure[IO]
-        case Left(e)    => IO.raiseError(e)
-        case Right(a)   => fail[E](s"Expected SqlException, got $a")
-      }
   }
 
 }

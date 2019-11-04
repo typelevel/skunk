@@ -204,7 +204,7 @@ object Session {
         _ <- s.execute(Command("RESET ALL", Origin.unknown, Void.codec))
       } yield true
 
-    Pool.of(single(host, port, user, database), max, reset)
+    Pool.of(single(host, port, user, database), max)(reset)
 
   }
 
