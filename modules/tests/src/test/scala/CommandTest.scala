@@ -24,6 +24,15 @@ case object CommandTest extends SkunkTest {
          VALUES ($city)
        """.command
 
+  // https://github.com/tpolecat/skunk/issues/83
+  val insertCity2: Command[City] =
+    sql"""
+        INSERT INTO city
+        VALUES ($int4, $varchar, ${bpchar(3)}, $varchar, $int4)
+      """.command.contramap {
+            case c => c.id ~ c.name ~ c.code ~ c.district ~ c.pop
+          }
+
   val selectCity: Query[Int, City] =
     sql"""
           SELECT * FROM city
@@ -39,6 +48,17 @@ case object CommandTest extends SkunkTest {
   sessionTest("insert and delete record") { s =>
     for {
       c <- s.prepare(insertCity).use(_.execute(Garin))
+      _ <- assert("completion",  c == Completion.Insert(1))
+      c <- s.prepare(selectCity).use(_.unique(Garin.id))
+      _ <- assert("read", c == Garin)
+      _ <- s.prepare(deleteCity).use(_.execute(Garin.id))
+      _ <- s.assertHealthy
+    } yield "ok"
+  }
+
+  sessionTest("insert and delete record with contramapped command") { s =>
+    for {
+      c <- s.prepare(insertCity2).use(_.execute(Garin))
       _ <- assert("completion",  c == Completion.Insert(1))
       c <- s.prepare(selectCity).use(_.unique(Garin.id))
       _ <- assert("read", c == Garin)

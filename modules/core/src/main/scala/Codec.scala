@@ -76,9 +76,10 @@ object Codec {
       override val types: List[Type] = oids0
       override val sql: State[Int, String] = State { (n: Int) =>
         val len = types.length
-        (n + len, (1 to len).map(i => s"$$$i").mkString(", "))
+        (n + len, (n until n + len).map(i => s"$$$i").mkString(", "))
       }
     }
+
   /** @group Constructors */
   def simple[A](encode: A => String, decode: String => Either[String, A], oid: Type): Codec[A] =
     apply(
