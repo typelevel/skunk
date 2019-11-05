@@ -13,14 +13,16 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.OffsetDateTime
 import java.time.OffsetTime
+import java.time.temporal.TemporalAccessor
+
 import skunk.data.Type
 
 trait TemporalCodecs {
 
-  private def temporal[A](format: String, parse: (String, DateTimeFormatter) => A, tpe: Type): Codec[A] = {
+  private def temporal[A <: TemporalAccessor](format: String, parse: (String, DateTimeFormatter) => A, tpe: Type): Codec[A] = {
     val fmt = DateTimeFormatter.ofPattern(format)
     Codec.simple(
-      a => format.format(a),
+      a => fmt.format(a),
       s => Either.catchOnly[DateTimeParseException](parse(s, fmt)).leftMap(_.toString),
       tpe
     )
