@@ -81,7 +81,8 @@ case object PoolTest extends FTest {
   test("unmoored fiber can cause a leak, which will be detected on finalization") {
     ints.map(Pool.of(_, 3)(_ => true.pure[IO])).flatMap { factory =>
       factory.use { pool =>
-        pool.use(_ => IO.never).start
+        pool.use(_ => IO.never).start *>
+        IO.sleep(100.milli) // ensure that the fiber has a chance to run
       } .assertFailsWith[ResourceLeak].flatMap {
         case ResourceLeak(expected, actual) =>
           assert("expected 1 leakage", expected - actual == 1)
