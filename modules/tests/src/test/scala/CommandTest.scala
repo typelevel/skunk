@@ -45,6 +45,28 @@ case object CommandTest extends SkunkTest {
          WHERE id = $int4
        """.command
 
+  val createTable: Command[Void] =
+    sql"""
+      CREATE TABLE IF NOT EXISTS earth (
+          id integer NOT NULL
+      )
+      """.command
+
+  val dropTable: Command[Void] =
+    sql"""
+      DROP TABLE earth
+      """.command
+
+  sessionTest("create and drop table") { s =>
+    for {
+      c <- s.execute(createTable)
+      _ <- assert("completion",  c == Completion.CreateTable)
+      c <- s.execute(dropTable)
+      _ <- assert("completion",  c == Completion.DropTable)
+      _ <- s.assertHealthy
+    } yield "ok"
+  }
+
   sessionTest("insert and delete record") { s =>
     for {
       c <- s.prepare(insertCity).use(_.execute(Garin))

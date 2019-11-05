@@ -19,5 +19,7 @@ object Completion {
   case object Unlisten           extends Completion
   case class  Update(count: Int) extends Completion
   case class  Insert(count: Int) extends Completion
+  case object CreateTable        extends Completion
+  case object DropTable          extends Completion
   // more ...
 }
