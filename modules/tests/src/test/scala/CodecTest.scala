@@ -7,8 +7,10 @@ package tests
 import cats.Eq
 import cats.implicits._
 import skunk._
+import skunk.codec.all._
 import skunk.implicits._
 import skunk.util.Typer
+import ffstest.FTest
 
 /** Tests that we check if we can round-trip values via codecs. */
 abstract class CodecTest(strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly) extends SkunkTest(strategy) {
@@ -34,5 +36,23 @@ abstract class CodecTest(strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly)
         }
       }
     }
+
+}
+
+case object CodecTest extends FTest {
+
+  val c = int2 ~ (int4 ~ float4) ~ varchar
+
+  test("composed codec generates correct sql") {
+    assertEqual("sql", c.sql.runA(1).value, "$1, $2, $3, $4")
+  }
+
+  test("contramapped codec generated corrext sql") {
+    assertEqual("sql", c.contramap[Short ~ (Int ~ Double) ~ String](identity).sql.runA(1).value, "$1, $2, $3, $4")
+  }
+
+  test("imapped codec generated corrext sql") {
+    assertEqual("sql", c.imap[Short ~ (Int ~ Double) ~ String](identity)(identity).sql.runA(1).value, "$1, $2, $3, $4")
+  }
 
 }
