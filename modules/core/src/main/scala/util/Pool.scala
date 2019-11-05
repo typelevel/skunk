@@ -71,7 +71,7 @@ object Pool {
             case (None    :: os, ds) => ((os, ds),
               // Allocate, but if allocation fails put a new None at the end of the queue, otherwise
               // we will have leaked a slot.
-              rsrc.allocated.onError { e =>
+              rsrc.allocated.onError { case _ =>
                 ref.update { case (os, ds) => (os :+ None, ds) }
               }
             )
