@@ -97,3 +97,27 @@ val myenum = enum[MyEnum](_.label, MyEnum.fromLabel, Type("myenum"))
 
 - This codec constructor is importable from `skunk.codec.enum._` or `skunk.codec.all._`.
 - See [§8.7](https://www.postgresql.org/docs/11/datatype-enum.html) in the Postgres documentation for more information on the enumerated data types.
+
+## JSON Types
+
+| ANSI SQL Type   | Postgres Type    | Scala Type      |
+|-----------------|------------------|-----------------|
+| n/a             | `json`           | `io.circe.Json` |
+| n/a             | `jsonb`          | `io.circe.Json` |
+
+JSON support is provided by the `skunk-circe` module which must be added as a dependency. The `json` and `jsonb` codecs map to the `io.circe.Json` data type, but you can map to any data type with `io.circe.Encoder` and `io.circe.Decoder` instances by passing a type argument.
+
+```scala
+// Codec for Int ~ Json as (int4, jsonb)
+val codec1: Codec[Int ~ Json] = int4 ~ jsonb
+
+// Codec for Int ~ MyType as (int4, jsonb)
+// Assuming we have io.circe.Encoder and io.circe.Decoder instances.
+val codec2: Codec[Int ~ MyType] = int4 ~ jsonb[MyType]
+```
+
+#### Notes
+
+- This codec constructor is importable from `skunk.circe.codec.json._` or `skunk.circe.codec.all._`.
+- See [§8.14](https://www.postgresql.org/docs/11/datatype-json.html) in the Postgres documentation for more information on JSON data types.
+
