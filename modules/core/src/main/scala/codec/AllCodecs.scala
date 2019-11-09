@@ -10,5 +10,6 @@ trait AllCodecs
      with TemporalCodecs
      with BooleanCodec
      with EnumCodec
+     with UuidCodec
 
 object all extends AllCodecs
