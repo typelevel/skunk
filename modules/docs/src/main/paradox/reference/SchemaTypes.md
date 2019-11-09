@@ -98,6 +98,20 @@ val myenum = enum[MyEnum](_.label, MyEnum.fromLabel, Type("myenum"))
 - This codec constructor is importable from `skunk.codec.enum._` or `skunk.codec.all._`.
 - See [§8.7](https://www.postgresql.org/docs/11/datatype-enum.html) in the Postgres documentation for more information on the enumerated data types.
 
+
+## UUID Type
+
+| ANSI SQL Type   | Postgres Type    | Scala Type       |
+|-----------------|------------------|------------------|
+| n/a             | `uuid`           | `java.util.UUID` |
+
+#### Notes
+
+- This codec constructor is importable from `skunk.codec.uuid._` or `skunk.codec.all._`.
+- See [§8.12](https://www.postgresql.org/docs/11/datatype-uuid.html) in the Postgres documentation for more information on the enumerated data types.
+
+
+
 ## JSON Types
 
 | ANSI SQL Type   | Postgres Type    | Scala Type      |
