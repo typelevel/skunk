@@ -1,9 +1,11 @@
 --
 -- H2 port of the PostgreSQL port of the MySQL "World" database.
 --
--- The sample data used in the world database is Copyright Statistics 
+-- The sample data used in the world database is Copyright Statistics
 -- Finland, http://www.stat.fi/worldinfigures.
 --
+
+CREATE TYPE myenum AS ENUM ('foo', 'bar');
 
 CREATE TABLE IF NOT EXISTS city (
     id integer NOT NULL,

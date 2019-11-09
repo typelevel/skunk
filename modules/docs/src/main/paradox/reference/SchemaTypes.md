@@ -76,7 +76,7 @@ an equivalent Scala data type and codec could be defined like this.
 
 ```scala
 // An enumerated type
-sealed abstract class MyEnum(label: String)
+sealed abstract class MyEnum(val label: String)
 object MyEnum {
 
   case object Foo extends MyEnum("foo")
@@ -93,9 +93,28 @@ object MyEnum {
 val myenum = enum[MyEnum](_.label, MyEnum.fromLabel, Type("myenum"))
 ```
 
+Alternatively you can use [Enumeratum](https://github.com/lloydmeta/enumeratum) to define your enumerated type.
+
+```scala
+// An enumerated type defined with Enumeratum, with lower-case labels
+sealed trait MyEnum extends EnumEntry with Lowercase
+
+object MyEnum extends Enum[MyEnum] {
+
+  case object Foo extends MyEnum
+  case object Bar extends MyEnum
+
+  val values = findValues
+
+}
+
+// A codec that maps Postgres type `myenum` to Scala type `MyEnum`
+val myenum = enum(MyEnum, Type("myenum"))
+
 #### Notes
 
 - This codec constructor is importable from `skunk.codec.enum._` or `skunk.codec.all._`.
+- [Enumeratum](https://github.com/lloydmeta/enumeratum) is a transitive dependency of Skunk.
 - See [§8.7](https://www.postgresql.org/docs/11/datatype-enum.html) in the Postgres documentation for more information on the enumerated data types.
 
 
