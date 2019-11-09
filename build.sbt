@@ -43,8 +43,8 @@ lazy val skunk = project
   .enablePlugins(AutomateHeaderPlugin)
   .settings(commonSettings)
   .settings(publish / skip := true)
-  .dependsOn(macros, core, tests, refined, example)
-  .aggregate(macros, core, tests, refined, example)
+  .dependsOn(macros, core, tests, circe, refined, example)
+  .aggregate(macros, core, tests, circe, refined, example)
 
 lazy val macros = project
   .in(file("modules/macros"))
@@ -87,9 +87,21 @@ lazy val refined = project
     libraryDependencies += "eu.timepit" %% "refined" % "0.9.10",
   )
 
+lazy val circe = project
+  .in(file("modules/circe"))
+  .dependsOn(core)
+  .enablePlugins(AutomateHeaderPlugin)
+  .settings(commonSettings)
+  .settings(
+    libraryDependencies ++= Seq(
+      "io.circe" %% "circe-core"   % "0.12.3",
+      "io.circe" %% "circe-parser" % "0.12.3"
+    )
+  )
+
 lazy val tests = project
   .in(file("modules/tests"))
-  .dependsOn(core)
+  .dependsOn(core, circe)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(commonSettings)
   .settings(
