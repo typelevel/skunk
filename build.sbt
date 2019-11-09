@@ -93,6 +93,7 @@ lazy val circe = project
   .enablePlugins(AutomateHeaderPlugin)
   .settings(commonSettings)
   .settings(
+    name := "skunk-circe",
     libraryDependencies ++= Seq(
       "io.circe" %% "circe-core"   % "0.12.3",
       "io.circe" %% "circe-parser" % "0.12.3"
