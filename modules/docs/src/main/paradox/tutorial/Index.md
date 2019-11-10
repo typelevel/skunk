@@ -13,4 +13,6 @@ This section contains instructions and examples to get you started. It's written
 
 @@@
 
-@@toc
+## Table of Contents
+
+@@toc { depth=2 }

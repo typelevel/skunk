@@ -14,5 +14,7 @@ This section contains detailed discussions of Skunk's core abstractions and mach
 
 @@@
 
-@@toc
+## Table of Contents
+
+@@toc { depth=2 }
 

@@ -110,6 +110,7 @@ object MyEnum extends Enum[MyEnum] {
 
 // A codec that maps Postgres type `myenum` to Scala type `MyEnum`
 val myenum = enum(MyEnum, Type("myenum"))
+```
 
 #### Notes
 
@@ -138,7 +139,15 @@ val myenum = enum(MyEnum, Type("myenum"))
 | n/a             | `json`           | `io.circe.Json` |
 | n/a             | `jsonb`          | `io.circe.Json` |
 
-JSON support is provided by the `skunk-circe` module which must be added as a dependency. The `json` and `jsonb` codecs map to the `io.circe.Json` data type, but you can map to any data type with `io.circe.Encoder` and `io.circe.Decoder` instances by passing a type argument.
+JSON support is provided by the `skunk-circe` module which must be added as a dependency.
+
+@@dependency[sbt,Maven,Gradle] {
+  group="$org$"
+  artifact="$circe-dep$"
+  version="$version$"
+}
+
+The `json` and `jsonb` codecs map to the `io.circe.Json` data type, but you can map to any data type with `io.circe.Encoder` and `io.circe.Decoder` instances by passing a type argument to `json` or `jsonb`.
 
 ```scala
 // Codec for Int ~ Json as (int4, jsonb)
