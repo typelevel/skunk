@@ -4,12 +4,6 @@
 
 Skunk is a data access library for Scala + Postgres.
 
-This library is experimental and is changing rapidly. Do not use it.
-
-Still here? Ok.
-
-- See the [manual](http://tpolecat.github.io/skunk) (under construction).
-- The [scaladoc](https://javadoc.io/doc/org.tpolecat/skunk-core_2.12) … start with the `skunk` package, then look at `Session`.
-- The [examples](modules/example/src/main/scala).
+Please proceed to the [microsite](http://tpolecat.github.io/skunk) for more information.
 
 Please drop a :star: if this project interests you. I need encouragement.
