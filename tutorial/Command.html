@@ -2,7 +2,7 @@
 <html class="no-js" lang="en">
 
 <head>
-<title>Commands · Skunk Guide</title>
+<title>Commands · Skunk</title>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="description" content='docs'/>
@@ -28,7 +28,7 @@
 <nav class="off-canvas-nav">
 <div class="nav-home">
 <a href="../index.html" >
-<span class="home-icon">⌂</span>Skunk Guide
+<span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
 0.0.6
@@ -69,7 +69,7 @@
 H3.6C3.048,13,3,13.447,3,14c0,0.553,0.048,1,0.6,1H16.4c0.552,0,0.6-0.447,0.6-1C17,13.447,16.952,13,16.4,13z M3.6,7H16.4
 C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.048,7,3.6,7z"/></svg>
 </a>
-<div class="title"><a href="../index.html">Skunk Guide</a></div>
+<div class="title"><a href="../index.html">Skunk</a></div>
 
 <!--
 <a href="https://www.example.com" class="logo show-for-medium">logo</a>
@@ -83,7 +83,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <nav class="site-nav">
 <div class="nav-home">
 <a href="../index.html" >
-<span class="home-icon">⌂</span>Skunk Guide
+<span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
 0.0.6
@@ -125,7 +125,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <div class="medium-12 show-for-medium column">
 <div class="nav-breadcrumbs">
 <ul>
-  <li><a href="../index.html">Skunk Guide</a></li>
+  <li><a href="../index.html">Skunk</a></li>
   <li><a href="../tutorial/Index.html">Tutorial</a></li>
   <li>Commands</li>
 </ul>
@@ -140,7 +140,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <p>A <em>command</em> is a SQL statement that does not return rows.</p></div>
 <h2><a href="#simple-command" name="simple-command" class="anchor"><span class="anchor-link"></span></a>Simple Command</h2>
 <p>Here we will issue a command that sets the session&rsquo;s random number seed.</p>
-<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/v0.0.6/modules/docs/src/main/scala/tutorial/Command.scala#L14-L21" target="_blank" title="Go to snippet source"></a><code class="language-scala">import cats.effect.IO
+<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/scala/tutorial/Command.scala#L14-L21" target="_blank" title="Go to snippet source"></a><code class="language-scala">import cats.effect.IO
 import skunk._
 import skunk.implicits._
 import skunk.codec.all._
@@ -156,24 +156,24 @@ val a: Command[Void] =
 <p>The command above is a <em>simple command</em>.</p><div class="callout note "><div class="callout-title">Definition</div>
 <p>A <em>simple command</em> is a command with no parameters.</p></div>
 <p>The same <a href="https://www.postgresql.org/docs/10/protocol-flow.html#id-1.10.5.7.4">protocol</a> that executes simple queries also executes of simple commands. Such commands can be passed directly to <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.0.6/skunk/Session.html#execute" title="skunk.Session"><code>Session.execute</code></a>.</p>
-<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/v0.0.6/modules/docs/src/main/scala/tutorial/Command.scala#L26-L27" target="_blank" title="Go to snippet source"></a><code class="language-scala">// assume s: Session[IO]
+<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/scala/tutorial/Command.scala#L26-L27" target="_blank" title="Go to snippet source"></a><code class="language-scala">// assume s: Session[IO]
 s.execute(a) // IO[Completion]</code></pre>
 <p>On success a command will yield a <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.0.6/skunk/data/Completion.html" title="skunk.data.Completion"><code>Completion</code></a>, which is an ADT that encodes responses from various commands. In this case our completion is simply the value <code>Completion.Set</code>.</p>
 <p>Let&rsquo;s try a simple <code>DELETE</code> command.</p>
-<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/v0.0.6/modules/docs/src/main/scala/tutorial/Command.scala#L32-L33" target="_blank" title="Go to snippet source"></a><code class="language-scala">val b: Command[Void] =
+<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/scala/tutorial/Command.scala#L32-L33" target="_blank" title="Go to snippet source"></a><code class="language-scala">val b: Command[Void] =
   sql&quot;DELETE FROM country WHERE name = &#39;xyzzy&#39;&quot;.command</code></pre>
 <p>In this case the result will be <code>Delete(0)</code> since there are no countries named <code>xyzzy</code>. But there should be.</p>
 <h2><a href="#parameterized-command" name="parameterized-command" class="anchor"><span class="anchor-link"></span></a>Parameterized Command</h2>
-<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/v0.0.6/modules/docs/src/main/scala/tutorial/Command.scala#L37-L38" target="_blank" title="Go to snippet source"></a><code class="language-scala">val c: Command[String] =
+<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/scala/tutorial/Command.scala#L37-L38" target="_blank" title="Go to snippet source"></a><code class="language-scala">val c: Command[String] =
   sql&quot;DELETE FROM country WHERE name = $varchar&quot;.command</code></pre>
-<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/v0.0.6/modules/docs/src/main/scala/tutorial/Command.scala#L42-L47" target="_blank" title="Go to snippet source"></a><code class="language-scala">def update: Command[String ~ String] =
+<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/scala/tutorial/Command.scala#L42-L47" target="_blank" title="Go to snippet source"></a><code class="language-scala">def update: Command[String ~ String] =
   sql&quot;&quot;&quot;
     UPDATE country
     SET    headofstate = $varchar
     WHERE  code = ${bpchar(3)}
   &quot;&quot;&quot;.command</code></pre>
 <h3><a href="#contramapping-commands" name="contramapping-commands" class="anchor"><span class="anchor-link"></span></a>Contramapping Commands</h3>
-<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/v0.0.6/modules/docs/src/main/scala/tutorial/Command.scala#L51-L59" target="_blank" title="Go to snippet source"></a><code class="language-scala">case class Info(code: String, hos: String)
+<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/scala/tutorial/Command.scala#L51-L59" target="_blank" title="Go to snippet source"></a><code class="language-scala">case class Info(code: String, hos: String)
 
 def update2: Command[Info] =
   sql&quot;&quot;&quot;
@@ -187,7 +187,7 @@ def update2: Command[Info] =
 <h2><a href="#full-example" name="full-example" class="anchor"><span class="anchor-link"></span></a>Full Example</h2>
 <h2><a href="#experiment" name="experiment" class="anchor"><span class="anchor-link"></span></a>Experiment</h2>
 <div class="source-github">
-The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/v0.0.6/modules/docs/src/main/paradox/tutorial/Command.md">here</a>.
+The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/paradox/tutorial/Command.md">here</a>.
 </div>
 
 <div class="nav-next">

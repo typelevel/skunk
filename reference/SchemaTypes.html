@@ -2,7 +2,7 @@
 <html class="no-js" lang="en">
 
 <head>
-<title>Schema Types · Skunk Guide</title>
+<title>Schema Types · Skunk</title>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="description" content='docs'/>
@@ -28,7 +28,7 @@
 <nav class="off-canvas-nav">
 <div class="nav-home">
 <a href="../index.html" >
-<span class="home-icon">⌂</span>Skunk Guide
+<span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
 0.0.6
@@ -69,7 +69,7 @@
 H3.6C3.048,13,3,13.447,3,14c0,0.553,0.048,1,0.6,1H16.4c0.552,0,0.6-0.447,0.6-1C17,13.447,16.952,13,16.4,13z M3.6,7H16.4
 C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.048,7,3.6,7z"/></svg>
 </a>
-<div class="title"><a href="../index.html">Skunk Guide</a></div>
+<div class="title"><a href="../index.html">Skunk</a></div>
 
 <!--
 <a href="https://www.example.com" class="logo show-for-medium">logo</a>
@@ -83,7 +83,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <nav class="site-nav">
 <div class="nav-home">
 <a href="../index.html" >
-<span class="home-icon">⌂</span>Skunk Guide
+<span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
 0.0.6
@@ -125,7 +125,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <div class="medium-12 show-for-medium column">
 <div class="nav-breadcrumbs">
 <ul>
-  <li><a href="../index.html">Skunk Guide</a></li>
+  <li><a href="../index.html">Skunk</a></li>
   <li><a href="../reference/Index.html">Reference</a></li>
   <li>Schema Types</li>
 </ul>
@@ -337,46 +337,79 @@ object MyEnum extends Enum[MyEnum] {
 
 // A codec that maps Postgres type `myenum` to Scala type `MyEnum`
 val myenum = enum(MyEnum, Type(&quot;myenum&quot;))
-
-#### Notes
-
-- This codec constructor is importable from `skunk.codec.enum._` or `skunk.codec.all._`.
-- [Enumeratum](https://github.com/lloydmeta/enumeratum) is a transitive dependency of Skunk.
-- See [§8.7](https://www.postgresql.org/docs/11/datatype-enum.html) in the Postgres documentation for more information on the enumerated data types.
-
-
-## UUID Type
-
-| ANSI SQL Type   | Postgres Type    | Scala Type       |
-|-----------------|------------------|------------------|
-| n/a             | `uuid`           | `java.util.UUID` |
-
-#### Notes
-
-- This codec constructor is importable from `skunk.codec.uuid._` or `skunk.codec.all._`.
-- See [§8.12](https://www.postgresql.org/docs/11/datatype-uuid.html) in the Postgres documentation for more information on the enumerated data types.
-
-
-
-## JSON Types
-
-| ANSI SQL Type   | Postgres Type    | Scala Type      |
-|-----------------|------------------|-----------------|
-| n/a             | `json`           | `io.circe.Json` |
-| n/a             | `jsonb`          | `io.circe.Json` |
-
-JSON support is provided by the `skunk-circe` module which must be added as a dependency. The `json` and `jsonb` codecs map to the `io.circe.Json` data type, but you can map to any data type with `io.circe.Encoder` and `io.circe.Decoder` instances by passing a type argument.
-
 </code></pre>
-<p>// Codec for Int ~ Json as (int4, jsonb) val codec1: Codec[Int ~ Json] = int4 ~ jsonb</p>
-<p>// Codec for Int ~ MyType as (int4, jsonb) // Assuming we have io.circe.Encoder and io.circe.Decoder instances. val codec2: Codec[Int ~ MyType] = int4 ~ jsonb[MyType] ```</p>
+<h4><a href="#notes" name="notes" class="anchor"><span class="anchor-link"></span></a>Notes</h4>
+<ul>
+  <li>This codec constructor is importable from <code>skunk.codec.enum._</code> or <code>skunk.codec.all._</code>.</li>
+  <li><a href="https://github.com/lloydmeta/enumeratum">Enumeratum</a> is a transitive dependency of Skunk.</li>
+  <li>See <a href="https://www.postgresql.org/docs/11/datatype-enum.html">§8.7</a> in the Postgres documentation for more information on the enumerated data types.</li>
+</ul>
+<h2><a href="#uuid-type" name="uuid-type" class="anchor"><span class="anchor-link"></span></a>UUID Type</h2>
+<table>
+  <thead>
+    <tr>
+      <th>ANSI SQL Type </th>
+      <th>Postgres Type </th>
+      <th>Scala Type </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>n/a </td>
+      <td><code>uuid</code> </td>
+      <td><code>java.util.UUID</code> </td>
+    </tr>
+  </tbody>
+</table>
+<h4><a href="#notes" name="notes" class="anchor"><span class="anchor-link"></span></a>Notes</h4>
+<ul>
+  <li>This codec constructor is importable from <code>skunk.codec.uuid._</code> or <code>skunk.codec.all._</code>.</li>
+  <li>See <a href="https://www.postgresql.org/docs/11/datatype-uuid.html">§8.12</a> in the Postgres documentation for more information on the enumerated data types.</li>
+</ul>
+<h2><a href="#json-types" name="json-types" class="anchor"><span class="anchor-link"></span></a>JSON Types</h2>
+<table>
+  <thead>
+    <tr>
+      <th>ANSI SQL Type </th>
+      <th>Postgres Type </th>
+      <th>Scala Type </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>n/a </td>
+      <td><code>json</code> </td>
+      <td><code>io.circe.Json</code> </td>
+    </tr>
+    <tr>
+      <td>n/a </td>
+      <td><code>jsonb</code> </td>
+      <td><code>io.circe.Json</code> </td>
+    </tr>
+  </tbody>
+</table>
+<p>JSON support is provided by the <code>skunk-circe</code> module which must be added as a dependency.</p><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">libraryDependencies += "org.tpolecat" %% "skunk-circe" % "0.0.6"</code></pre></dd><dt>Maven</dt><dd><pre class="prettyprint"><code class="language-xml">&lt;dependency&gt;
+  &lt;groupId&gt;org.tpolecat&lt;/groupId&gt;
+  &lt;artifactId&gt;skunk-circe_2.13&lt;/artifactId&gt;
+  &lt;version&gt;0.0.6&lt;/version&gt;
+&lt;/dependency&gt;</code></pre></dd><dt>Gradle</dt><dd><pre class="prettyprint"><code class="language-gradle">dependencies {
+  compile group: 'org.tpolecat', name: 'skunk-circe_2.13', version: '0.0.6'
+}</code></pre></dd></dl>
+<p>The <code>json</code> and <code>jsonb</code> codecs map to the <code>io.circe.Json</code> data type, but you can map to any data type with <code>io.circe.Encoder</code> and <code>io.circe.Decoder</code> instances by passing a type argument to <code>json</code> or <code>jsonb</code>.</p>
+<pre class="prettyprint"><code class="language-scala">// Codec for Int ~ Json as (int4, jsonb)
+val codec1: Codec[Int ~ Json] = int4 ~ jsonb
+
+// Codec for Int ~ MyType as (int4, jsonb)
+// Assuming we have io.circe.Encoder and io.circe.Decoder instances.
+val codec2: Codec[Int ~ MyType] = int4 ~ jsonb[MyType]
+</code></pre>
 <h4><a href="#notes" name="notes" class="anchor"><span class="anchor-link"></span></a>Notes</h4>
 <ul>
   <li>This codec constructor is importable from <code>skunk.circe.codec.json._</code> or <code>skunk.circe.codec.all._</code>.</li>
   <li>See <a href="https://www.postgresql.org/docs/11/datatype-json.html">§8.14</a> in the Postgres documentation for more information on JSON data types.</li>
 </ul>
 <div class="source-github">
-The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/v0.0.6/modules/docs/src/main/paradox/reference/SchemaTypes.md">here</a>.
+The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/paradox/reference/SchemaTypes.md">here</a>.
 </div>
 
 </div>
@@ -393,6 +426,8 @@ The source code for this page can be found <a href="https://github.com/tpolecat/
     <li><a href="../reference/SchemaTypes.html#date-time-types" class="header">Date/Time Types</a></li>
     <li><a href="../reference/SchemaTypes.html#boolean-type" class="header">Boolean Type</a></li>
     <li><a href="../reference/SchemaTypes.html#enumerated-types" class="header">Enumerated Types</a></li>
+    <li><a href="../reference/SchemaTypes.html#uuid-type" class="header">UUID Type</a></li>
+    <li><a href="../reference/SchemaTypes.html#json-types" class="header">JSON Types</a></li>
   </ul></li>
 </ul>
 </div>

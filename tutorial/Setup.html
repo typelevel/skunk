@@ -2,7 +2,7 @@
 <html class="no-js" lang="en">
 
 <head>
-<title>Setup · Skunk Guide</title>
+<title>Setup · Skunk</title>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="description" content='docs'/>
@@ -28,7 +28,7 @@
 <nav class="off-canvas-nav">
 <div class="nav-home">
 <a href="../index.html" >
-<span class="home-icon">⌂</span>Skunk Guide
+<span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
 0.0.6
@@ -69,7 +69,7 @@
 H3.6C3.048,13,3,13.447,3,14c0,0.553,0.048,1,0.6,1H16.4c0.552,0,0.6-0.447,0.6-1C17,13.447,16.952,13,16.4,13z M3.6,7H16.4
 C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.048,7,3.6,7z"/></svg>
 </a>
-<div class="title"><a href="../index.html">Skunk Guide</a></div>
+<div class="title"><a href="../index.html">Skunk</a></div>
 
 <!--
 <a href="https://www.example.com" class="logo show-for-medium">logo</a>
@@ -83,7 +83,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <nav class="site-nav">
 <div class="nav-home">
 <a href="../index.html" >
-<span class="home-icon">⌂</span>Skunk Guide
+<span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
 0.0.6
@@ -125,7 +125,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <div class="medium-12 show-for-medium column">
 <div class="nav-breadcrumbs">
 <ul>
-  <li><a href="../index.html">Skunk Guide</a></li>
+  <li><a href="../index.html">Skunk</a></li>
   <li><a href="../tutorial/Index.html">Tutorial</a></li>
   <li>Setup</li>
 </ul>
@@ -143,16 +143,16 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 </code></pre>
 <p>If you wish to use your own Postgres server you can download <code>world/world.sql</code> from the Skunk repository and load it up yourself.</p>
 <h2><a href="#scala-setup" name="scala-setup" class="anchor"><span class="anchor-link"></span></a>Scala Setup</h2>
-<p>Create a new project with Skunk as a dependency.</p><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">libraryDependencies += "org.tpolecat" % "skunk-core_2.12" % "0.0.6"</code></pre></dd><dt>Maven</dt><dd><pre class="prettyprint"><code class="language-xml">&lt;dependency&gt;
+<p>Create a new project with Skunk as a dependency.</p><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">libraryDependencies += "org.tpolecat" % "$core-name$_2.12" % "0.0.6"</code></pre></dd><dt>Maven</dt><dd><pre class="prettyprint"><code class="language-xml">&lt;dependency&gt;
   &lt;groupId&gt;org.tpolecat&lt;/groupId&gt;
-  &lt;artifactId&gt;skunk-core_2.12&lt;/artifactId&gt;
+  &lt;artifactId&gt;$core-name$_2.12&lt;/artifactId&gt;
   &lt;version&gt;0.0.6&lt;/version&gt;
 &lt;/dependency&gt;</code></pre></dd><dt>Gradle</dt><dd><pre class="prettyprint"><code class="language-gradle">dependencies {
-  compile group: 'org.tpolecat', name: 'skunk-core_2.12', version: '0.0.6'
+  compile group: 'org.tpolecat', name: '$core-name$_2.12', version: '0.0.6'
 }</code></pre></dd></dl>
 <h2><a href="#verify-your-setup" name="verify-your-setup" class="anchor"><span class="anchor-link"></span></a>Verify Your Setup</h2>
 <p>Try out this minimal <a href="https://typelevel.org/cats-effect/datatypes/ioapp.html">IOApp</a> that connects to the database and selects the current date.</p>
-<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/v0.0.6/modules/docs/src/main/scala/tutorial/Setup.scala#L8-L32" target="_blank" title="Go to snippet source"></a><code class="language-scala">import cats.effect._
+<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/scala/tutorial/Setup.scala#L8-L32" target="_blank" title="Go to snippet source"></a><code class="language-scala">import cats.effect._
 import skunk._
 import skunk.implicits._
 import skunk.codec.all._
@@ -199,7 +199,7 @@ object Hello extends IOApp {
 </ul>
 <p>We will see more examples later in the tutorial.</p>
 <div class="source-github">
-The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/v0.0.6/modules/docs/src/main/paradox/tutorial/Setup.md">here</a>.
+The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/paradox/tutorial/Setup.md">here</a>.
 </div>
 
 <div class="nav-next">

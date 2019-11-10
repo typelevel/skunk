@@ -2,7 +2,7 @@
 <html class="no-js" lang="en">
 
 <head>
-<title>Queries · Skunk Guide</title>
+<title>Queries · Skunk</title>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="description" content='docs'/>
@@ -28,7 +28,7 @@
 <nav class="off-canvas-nav">
 <div class="nav-home">
 <a href="../index.html" >
-<span class="home-icon">⌂</span>Skunk Guide
+<span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
 0.0.6
@@ -69,7 +69,7 @@
 H3.6C3.048,13,3,13.447,3,14c0,0.553,0.048,1,0.6,1H16.4c0.552,0,0.6-0.447,0.6-1C17,13.447,16.952,13,16.4,13z M3.6,7H16.4
 C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.048,7,3.6,7z"/></svg>
 </a>
-<div class="title"><a href="../index.html">Skunk Guide</a></div>
+<div class="title"><a href="../index.html">Skunk</a></div>
 
 <!--
 <a href="https://www.example.com" class="logo show-for-medium">logo</a>
@@ -83,7 +83,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <nav class="site-nav">
 <div class="nav-home">
 <a href="../index.html" >
-<span class="home-icon">⌂</span>Skunk Guide
+<span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
 0.0.6
@@ -125,7 +125,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <div class="medium-12 show-for-medium column">
 <div class="nav-breadcrumbs">
 <ul>
-  <li><a href="../index.html">Skunk Guide</a></li>
+  <li><a href="../index.html">Skunk</a></li>
   <li><a href="../tutorial/Index.html">Tutorial</a></li>
   <li>Queries</li>
 </ul>
@@ -140,7 +140,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <p>A <em>query</em> is a SQL statement that can return rows.</p></div>
 <h2><a href="#single-column-query" name="single-column-query" class="anchor"><span class="anchor-link"></span></a>Single-Column Query</h2>
 <p>First let&rsquo;s look at a query that selects a single column and decodes rows as Scala strings. We will also include the imports we need for the examples in this section.</p>
-<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/v0.0.6/modules/docs/src/main/scala/tutorial/Query.scala#L13-L21" target="_blank" title="Go to snippet source"></a><code class="language-scala">import cats.effect.IO
+<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/scala/tutorial/Query.scala#L13-L21" target="_blank" title="Go to snippet source"></a><code class="language-scala">import cats.effect.IO
 import fs2.Stream
 import skunk._
 import skunk.implicits._
@@ -159,7 +159,7 @@ val a: Query[Void, String] =
 <p>The query above is a <em>simple query</em>.</p><div class="callout note "><div class="callout-title">Definition</div>
 <p>A <em>simple query</em> is a query with no parameters.</p></div>
 <p>Postgres provides a <a href="https://www.postgresql.org/docs/10/protocol-flow.html#id-1.10.5.7.4">protocol</a> for execution of simple queries, returning all rows at once (Skunk returns them as a list). Such queries can be passed directly to <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.0.6/skunk/Session.html#execute" title="skunk.Session"><code>Session#execute</code></a>.</p>
-<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/v0.0.6/modules/docs/src/main/scala/tutorial/Query.scala#L26-L27" target="_blank" title="Go to snippet source"></a><code class="language-scala">// assume s: Session[IO]
+<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/scala/tutorial/Query.scala#L26-L27" target="_blank" title="Go to snippet source"></a><code class="language-scala">// assume s: Session[IO]
 s.execute(a) // IO[List[String]]</code></pre>
 <p><a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.0.6/skunk/Session.html" title="skunk.Session"><code>Session</code></a> provides the following methods for direct execution of simple queries. See the Scaladoc for more information.</p>
 <table>
@@ -190,12 +190,12 @@ s.execute(a) // IO[List[String]]</code></pre>
 </table>
 <h2><a href="#multi-column-query" name="multi-column-query" class="anchor"><span class="anchor-link"></span></a>Multi-Column Query</h2>
 <p>Our next example selects two columns.</p>
-<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/v0.0.6/modules/docs/src/main/scala/tutorial/Query.scala#L32-L33" target="_blank" title="Go to snippet source"></a><code class="language-scala">val b: Query[Void, String ~ Int] =
+<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/scala/tutorial/Query.scala#L32-L33" target="_blank" title="Go to snippet source"></a><code class="language-scala">val b: Query[Void, String ~ Int] =
   sql&quot;SELECT name, population FROM country&quot;.query(varchar ~ int4)</code></pre>
 <p>Observe that the argument to <code>query</code> is a pair of decoders conjoined with the <code>~</code> operator, yielding a return type of <code>String ~ Int</code>, which is an alias for <code>(String, Int)</code>. See the section on <a href="../reference/TwiddleLists.html">twiddle lists</a> for more information on this mechanism.</p>
 <h3><a href="#mapping-query-results" name="mapping-query-results" class="anchor"><span class="anchor-link"></span></a>Mapping Query Results</h3>
 <p>Decoding into a twiddle list isn&rsquo;t ideal, so let&rsquo;s define a <code>Country</code> data type. We can then call <code>map</code> on our query to adapt the row type.</p>
-<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/v0.0.6/modules/docs/src/main/scala/tutorial/Query.scala#L37-L42" target="_blank" title="Go to snippet source"></a><code class="language-scala">case class Country(name: String, population: Int)
+<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/scala/tutorial/Query.scala#L37-L42" target="_blank" title="Go to snippet source"></a><code class="language-scala">case class Country(name: String, population: Int)
 
 val c: Query[Void, Country] =
   sql&quot;SELECT name, population FROM country&quot;
@@ -208,8 +208,8 @@ val c: Query[Void, Country] =
 </ul>
 <p>So that is one way to do it.</p>
 <h3><a href="#mapping-decoder-results" name="mapping-decoder-results" class="anchor"><span class="anchor-link"></span></a>Mapping Decoder Results</h3>
-<p>A more reusable way to do this is to define a <code>Decoder[Country]</code> based on the <code>varchar ~ varchar</code> decoder. We can then decode directly into our <code>Country</code> data type.</p>
-<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/v0.0.6/modules/docs/src/main/scala/tutorial/Query.scala#L46-L50" target="_blank" title="Go to snippet source"></a><code class="language-scala">val country: Decoder[Country] =
+<p>A more reusable way to do this is to define a <code>Decoder[Country]</code> based on the <code>varchar ~ int4</code> decoder. We can then decode directly into our <code>Country</code> data type.</p>
+<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/scala/tutorial/Query.scala#L46-L50" target="_blank" title="Go to snippet source"></a><code class="language-scala">val country: Decoder[Country] =
   (varchar ~ int4).map { case (n, p) =&gt; Country(n, p) }     // (1)
 
 val d: Query[Void, Country] =
@@ -220,11 +220,11 @@ val d: Query[Void, Country] =
   <li>At ② we use our <code>country</code> decoder directly, yielding a <code>Query[Void, Country]</code>.</li>
 </ul>
 <p>And again we can pass the query to <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.0.6/skunk/Session.html#execute" title="skunk.Session"><code>Session#execute</code></a>.</p>
-<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/v0.0.6/modules/docs/src/main/scala/tutorial/Query.scala#L55-L56" target="_blank" title="Go to snippet source"></a><code class="language-scala">// assume s: Session[IO]
+<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/scala/tutorial/Query.scala#L55-L56" target="_blank" title="Go to snippet source"></a><code class="language-scala">// assume s: Session[IO]
 s.execute(d) // IO[List[Country]]</code></pre>
 <h2><a href="#parameterized-query" name="parameterized-query" class="anchor"><span class="anchor-link"></span></a>Parameterized Query</h2>
 <p>Now let&rsquo;s add a parameter to the query. We&rsquo;ll also reformat the query to be more readable.</p>
-<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/v0.0.6/modules/docs/src/main/scala/tutorial/Query.scala#L61-L66" target="_blank" title="Go to snippet source"></a><code class="language-scala">val e: Query[String, Country] =
+<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/scala/tutorial/Query.scala#L61-L66" target="_blank" title="Go to snippet source"></a><code class="language-scala">val e: Query[String, Country] =
   sql&quot;&quot;&quot;
     SELECT name, population
     FROM   country
@@ -237,7 +237,7 @@ s.execute(d) // IO[List[Country]]</code></pre>
 <p>An <em>extended query</em> is a query with parameters, or a simple query that is executed via the extended query protocol.</p></div>
 <p>Postgres provides a <a href="https://www.postgresql.org/docs/10/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY">protocol</a> for executing extended queries which is more involved than simple query protocol. It provides for prepared statements that can be reused with different sets of arguments, and provides cursors which allow results to be paged and streamed in constant space.</p>
 <p>Here we use the extended query protocol to stream directly to the console using constant space.</p>
-<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/v0.0.6/modules/docs/src/main/scala/tutorial/Query.scala#L71-L77" target="_blank" title="Go to snippet source"></a><code class="language-scala">// assume s: Session[IO]
+<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/scala/tutorial/Query.scala#L71-L77" target="_blank" title="Go to snippet source"></a><code class="language-scala">// assume s: Session[IO]
 s.prepare(e).use { ps =&gt;
   ps.stream(&quot;U%&quot;, 64)
     .evalMap(c =&gt; IO(println(c)))
@@ -246,7 +246,7 @@ s.prepare(e).use { ps =&gt;
 } // IO[Unit]</code></pre>
 <p>Observe that <code>prepare</code> returns a <code>Resource</code> that prepares the statement before use and then frees it on completion. Here we use <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.0.6/skunk/PreparedQuery.html#stream" title="skunk.PreparedQuery"><code>PreparedQuery#stream</code></a> to pass our parameter <code>&quot;U%&quot;</code> and then create a stream that fetches rows in blocks of 64 and prints them to the console.</p>
 <p>Note that when using <code>Resource</code> and <code>Stream</code> together it is often convenient to express the entire program in terms of <code>Stream</code>.</p>
-<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/v0.0.6/modules/docs/src/main/scala/tutorial/Query.scala#L83-L91" target="_blank" title="Go to snippet source"></a><code class="language-scala">// assume s: Session[IO]
+<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/scala/tutorial/Query.scala#L83-L91" target="_blank" title="Go to snippet source"></a><code class="language-scala">// assume s: Session[IO]
 val stream: Stream[IO, Unit] =
   for {
     ps &lt;- Stream.resource(s.prepare(e))
@@ -290,7 +290,7 @@ stream.compile.drain // IO[Unit]</code></pre>
 </table>
 <h2><a href="#multi-parameter-query" name="multi-parameter-query" class="anchor"><span class="anchor-link"></span></a>Multi-Parameter Query</h2>
 <p>Multiple parameters work analogously to multiple columns.</p>
-<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/v0.0.6/modules/docs/src/main/scala/tutorial/Query.scala#L97-L103" target="_blank" title="Go to snippet source"></a><code class="language-scala">val f: Query[String ~ Int, Country] =
+<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/scala/tutorial/Query.scala#L97-L103" target="_blank" title="Go to snippet source"></a><code class="language-scala">val f: Query[String ~ Int, Country] =
   sql&quot;&quot;&quot;
     SELECT name, population
     FROM   country
@@ -298,7 +298,7 @@ stream.compile.drain // IO[Unit]</code></pre>
     AND    population &lt; $int4
   &quot;&quot;&quot;.query(country)</code></pre>
 <p>Observe that we have two parameter encoders <code>varchar</code> and <code>int4</code> (in that order), whose corresponding Scala input type is <code>String ~ Int</code>. See the section on <a href="../reference/TwiddleLists.html">twiddle lists</a> for more information.</p>
-<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/v0.0.6/modules/docs/src/main/scala/tutorial/Query.scala#L108-L114" target="_blank" title="Go to snippet source"></a><code class="language-scala">// assume s: Session[IO]
+<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/scala/tutorial/Query.scala#L108-L114" target="_blank" title="Go to snippet source"></a><code class="language-scala">// assume s: Session[IO]
 s.prepare(f).use { ps =&gt;
   ps.stream(&quot;U%&quot; ~ 2000000, 64)
     .evalMap(c =&gt; IO(println(c)))
@@ -322,7 +322,7 @@ s.prepare(f).use { ps =&gt;
 </ul>
 <h2><a href="#full-example" name="full-example" class="anchor"><span class="anchor-link"></span></a>Full Example</h2>
 <p>Here is a complete program listing that demonstrates our knowledge thus far.</p>
-<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/v0.0.6/modules/docs/src/main/scala/tutorial/Query2.scala#L7-L69" target="_blank" title="Go to snippet source"></a><code class="language-scala">import cats.effect._
+<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/scala/tutorial/Query2.scala#L7-L69" target="_blank" title="Go to snippet source"></a><code class="language-scala">import cats.effect._
 import skunk._
 import skunk.implicits._
 import skunk.codec.all._
@@ -496,7 +496,7 @@ Country(United States Minor Outlying Islands,UMI,0)
   </tbody>
 </table>
 <div class="source-github">
-The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/v0.0.6/modules/docs/src/main/paradox/tutorial/Query.md">here</a>.
+The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/paradox/tutorial/Query.md">here</a>.
 </div>
 
 <div class="nav-next">
