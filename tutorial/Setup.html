@@ -12,7 +12,6 @@
 <script type="text/javascript" src="../js/page.js"></script>
 <script type="text/javascript" src="../js/warnOldVersion.js"></script>
 <script type="text/javascript" src="../js/groups.js"></script>
-<link rel="stylesheet" type="text/css" href="../lib/normalize.css/normalize.css"/>
 <link rel="stylesheet" type="text/css" href="../lib/foundation/dist/foundation.min.css"/>
 <link rel="stylesheet" type="text/css" href="../css/page.css"/>
 
@@ -32,7 +31,7 @@
 <span class="home-icon">⌂</span>Skunk Guide
 </a>
 <div class="version-number">
-0.0.3
+0.0.6
 </div>
 </div>
 <div class="nav-toc">
@@ -44,6 +43,7 @@
     <li><a href="../tutorial/Command.html" class="page">Commands</a></li>
     <li><a href="../tutorial/Transactions.html" class="page">Transactions</a></li>
     <li><a href="../tutorial/Channels.html" class="page">Channels</a></li>
+    <li><a href="../tutorial/Tracing.html" class="page">Tracing</a></li>
   </ul></li>
   <li><a href="../reference/Index.html" class="page">Reference</a>
   <ul>
@@ -86,7 +86,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Skunk Guide
 </a>
 <div class="version-number">
-0.0.3
+0.0.6
 </div>
 </div>
 <div class="nav-toc">
@@ -98,6 +98,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     <li><a href="../tutorial/Command.html" class="page">Commands</a></li>
     <li><a href="../tutorial/Transactions.html" class="page">Transactions</a></li>
     <li><a href="../tutorial/Channels.html" class="page">Channels</a></li>
+    <li><a href="../tutorial/Tracing.html" class="page">Tracing</a></li>
   </ul></li>
   <li><a href="../reference/Index.html" class="page">Reference</a>
   <ul>
@@ -142,24 +143,25 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 </code></pre>
 <p>If you wish to use your own Postgres server you can download <code>world/world.sql</code> from the Skunk repository and load it up yourself.</p>
 <h2><a href="#scala-setup" name="scala-setup" class="anchor"><span class="anchor-link"></span></a>Scala Setup</h2>
-<p>Create a new project with Skunk as a dependency.</p><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">libraryDependencies += "org.tpolecat" %% "skunk-core" % "0.0.3"</code></pre></dd><dt>Maven</dt><dd><pre class="prettyprint"><code class="language-xml">&lt;dependency&gt;
+<p>Create a new project with Skunk as a dependency.</p><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">libraryDependencies += "org.tpolecat" % "skunk-core_2.12" % "0.0.6"</code></pre></dd><dt>Maven</dt><dd><pre class="prettyprint"><code class="language-xml">&lt;dependency&gt;
   &lt;groupId&gt;org.tpolecat&lt;/groupId&gt;
   &lt;artifactId&gt;skunk-core_2.12&lt;/artifactId&gt;
-  &lt;version&gt;0.0.3&lt;/version&gt;
+  &lt;version&gt;0.0.6&lt;/version&gt;
 &lt;/dependency&gt;</code></pre></dd><dt>Gradle</dt><dd><pre class="prettyprint"><code class="language-gradle">dependencies {
-  compile group: 'org.tpolecat', name: 'skunk-core_2.12', version: '0.0.3'
+  compile group: 'org.tpolecat', name: 'skunk-core_2.12', version: '0.0.6'
 }</code></pre></dd></dl>
 <h2><a href="#verify-your-setup" name="verify-your-setup" class="anchor"><span class="anchor-link"></span></a>Verify Your Setup</h2>
 <p>Try out this minimal <a href="https://typelevel.org/cats-effect/datatypes/ioapp.html">IOApp</a> that connects to the database and selects the current date.</p>
-<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/scala/tutorial/Setup.scala#L8-L31" target="_blank" title="Go to snippet source"></a><code class="language-scala">import cats.effect._
+<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/v0.0.6/modules/docs/src/main/scala/tutorial/Setup.scala#L8-L32" target="_blank" title="Go to snippet source"></a><code class="language-scala">import cats.effect._
 import skunk._
 import skunk.implicits._
 import skunk.codec.all._
+import natchez.Trace.Implicits.noop                          // (1)
 
 object Hello extends IOApp {
 
   val session: Resource[IO, Session[IO]] =
-    Session.single(                                         // (1)
+    Session.single(                                          // (2)
       host     = &quot;localhost&quot;,
       port     = 5432,
       user     = &quot;postgres&quot;,
@@ -167,22 +169,23 @@ object Hello extends IOApp {
     )
 
   def run(args: List[String]): IO[ExitCode] =
-    session.use { s =&gt;                                      // (2)
+    session.use { s =&gt;                                       // (3)
       for {
-        s &lt;- s.unique(sql&quot;select xcurrent_date&quot;.query(date)) // (3)
-        _ &lt;- IO(println(s&quot;The current date is $s.&quot;))        // (4)
+        s &lt;- s.unique(sql&quot;select xcurrent_date&quot;.query(date)) // (4)
+        _ &lt;- IO(println(s&quot;The current date is $s.&quot;))
       } yield ExitCode.Success
     }
 
 }</code></pre>
 <p>Let&rsquo;s examine the code above.</p>
 <ul>
-  <li>At ① we define a <a href="https://typelevel.org/cats-effect/datatypes/resource.html">Resource</a> that yields un-pooled <a href="../reference/Sessions.html">Session</a> values and ensures that they are closed after use. We specify the host, port, user, and database.</li>
+  <li>At ① we import the no-op <code>Tracer</code>, which allows us to run Skunk programs with execution tracing disabled. We will revisit <a href="Tracing.html">Tracing</a> in a later section.</li>
+  <li>At ② we define a <a href="https://typelevel.org/cats-effect/datatypes/resource.html">Resource</a> that yields un-pooled <a href="../reference/Sessions.html">Session</a> values and ensures that they are closed after use. We specify the host, port, user, and database.</li>
 </ul><div class="callout note "><div class="callout-title">Note</div>
 <p>Skunk does not support authenticated (or encrypted) connections yet. You must connect with a user who can log in without a password.</p></div>
 <ul>
-  <li>At ② we <code>use</code> the resource, specifying a block to execute during the <code>Session</code>&rsquo;s lifetime. No matter how the block terminates (success, failure, cancellation) the <code>Session</code> will be closed properly.</li>
-  <li>At ③ we use the <a href="../reference/Fragments.html">sql interpolator</a> to construct a <code>Query</code> that selects a single column of schema type <code>date</code> (which maps to JDK type <a href="https://docs.oracle.com/javase/8/docs/api/?java/time/LocalDate.html">LocalDate</a>), then we ask the session to execute it, expecting a <em>unique</em> value back; i.e., exactly one row.</li>
+  <li>At ③ we <code>use</code> the resource, specifying a block to execute during the <code>Session</code>&rsquo;s lifetime. No matter how the block terminates (success, failure, cancellation) the <code>Session</code> will be closed properly.</li>
+  <li>At ④ we use the <a href="../reference/Fragments.html">sql interpolator</a> to construct a <code>Query</code> that selects a single column of schema type <code>date</code> (which maps to JDK type <a href="https://docs.oracle.com/javase/8/docs/api/?java/time/LocalDate.html" title="java.time.LocalDate"><code>LocalDate</code></a>), then we ask the session to execute it, expecting a <em>unique</em> value back; i.e., exactly one row.</li>
 </ul>
 <p>When we run the program we will see the current date.</p>
 <pre><code>The current date is 2019-05-11.
@@ -190,12 +193,13 @@ object Hello extends IOApp {
 <h2><a href="#experiment" name="experiment" class="anchor"><span class="anchor-link"></span></a>Experiment</h2>
 <p>Here are some modifications that will cause runtime failures. Give them a try and see how Skunk responds.</p>
 <ul>
+  <li>Try running with an invalid user or database name.</li>
   <li>Introduce a typo into the SQL string.</li>
   <li>Change the decoder from <code>date</code> to another type like <code>timestamp</code>.</li>
 </ul>
 <p>We will see more examples later in the tutorial.</p>
 <div class="source-github">
-The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/paradox/tutorial/Setup.md">here</a>.
+The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/v0.0.6/modules/docs/src/main/paradox/tutorial/Setup.md">here</a>.
 </div>
 
 <div class="nav-next">
@@ -281,7 +285,7 @@ The source code for this page can be found <a href="https://github.com/tpolecat/
 <script type="text/javascript" src="../lib/prettify/prettify.js"></script>
 <script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
 <script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
-<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.3', 'https://github.com/tpolecat/skunk')});</script>
+<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.6', 'https://github.com/tpolecat/skunk')});</script>
 
 
 </html>

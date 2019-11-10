@@ -2,11 +2,11 @@
 <html class="no-js" lang="en">
 
 <head>
-<title>Identifiers · Skunk Guide</title>
+<title>Tracing · Skunk Guide</title>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="description" content='docs'/>
-<link rel="canonical" href="https://github.com/tpolecat/skunkreference/Identifiers.html"/>
+<link rel="canonical" href="https://github.com/tpolecat/skunktutorial/Tracing.html"/>
 <link href="https://fonts.googleapis.com/css?family=Roboto:100normal,100italic,300normal,300italic,400normal,400italic,500normal,500italic,700normal,700italic,900normal,900italicc" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="../lib/jquery/jquery.min.js"></script>
 <script type="text/javascript" src="../js/page.js"></script>
@@ -43,7 +43,7 @@
     <li><a href="../tutorial/Command.html" class="page">Commands</a></li>
     <li><a href="../tutorial/Transactions.html" class="page">Transactions</a></li>
     <li><a href="../tutorial/Channels.html" class="page">Channels</a></li>
-    <li><a href="../tutorial/Tracing.html" class="page">Tracing</a></li>
+    <li><a href="../tutorial/Tracing.html" class="active page">Tracing</a></li>
   </ul></li>
   <li><a href="../reference/Index.html" class="page">Reference</a>
   <ul>
@@ -51,7 +51,7 @@
     <li><a href="../reference/TwiddleLists.html" class="page">Twiddle Lists</a></li>
     <li><a href="../reference/Codecs.html" class="page">Codecs</a></li>
     <li><a href="../reference/Fragments.html" class="page">Fragments</a></li>
-    <li><a href="../reference/Identifiers.html" class="active page">Identifiers</a></li>
+    <li><a href="../reference/Identifiers.html" class="page">Identifiers</a></li>
     <li><a href="../reference/Concurrency.html" class="page">Concurrency</a></li>
     <li><a href="../reference/SchemaTypes.html" class="page">Schema Types</a></li>
   </ul></li>
@@ -98,7 +98,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     <li><a href="../tutorial/Command.html" class="page">Commands</a></li>
     <li><a href="../tutorial/Transactions.html" class="page">Transactions</a></li>
     <li><a href="../tutorial/Channels.html" class="page">Channels</a></li>
-    <li><a href="../tutorial/Tracing.html" class="page">Tracing</a></li>
+    <li><a href="../tutorial/Tracing.html" class="active page">Tracing</a></li>
   </ul></li>
   <li><a href="../reference/Index.html" class="page">Reference</a>
   <ul>
@@ -106,7 +106,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     <li><a href="../reference/TwiddleLists.html" class="page">Twiddle Lists</a></li>
     <li><a href="../reference/Codecs.html" class="page">Codecs</a></li>
     <li><a href="../reference/Fragments.html" class="page">Fragments</a></li>
-    <li><a href="../reference/Identifiers.html" class="active page">Identifiers</a></li>
+    <li><a href="../reference/Identifiers.html" class="page">Identifiers</a></li>
     <li><a href="../reference/Concurrency.html" class="page">Concurrency</a></li>
     <li><a href="../reference/SchemaTypes.html" class="page">Schema Types</a></li>
   </ul></li>
@@ -126,8 +126,8 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <div class="nav-breadcrumbs">
 <ul>
   <li><a href="../index.html">Skunk Guide</a></li>
-  <li><a href="../reference/Index.html">Reference</a></li>
-  <li>Identifiers</li>
+  <li><a href="../tutorial/Index.html">Tutorial</a></li>
+  <li>Tracing</li>
 </ul>
 </div>
 </div>
@@ -135,16 +135,42 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 
 <div class="page-content row">
 <div class="small-12 large-9 column" id="docs">
-<h1><a href="#identifiers" name="identifiers" class="anchor"><span class="anchor-link"></span></a>Identifiers</h1>
+<h1><a href="#tracing" name="tracing" class="anchor"><span class="anchor-link"></span></a>Tracing</h1>
+<p>Skunk uses structured tracing instead of logging, using the <a href="">Natchez Trace</a> tracing library.</p>
+<h2><a href="#i-dont-care" name="i-dont-care" class="anchor"><span class="anchor-link"></span></a>I Don&rsquo;t Care</h2>
+<p>If you don&rsquo;t care about tracing you have two choices:</p>
+<ul>
+  <li>Use the <strong>no-op tracer</strong> to disable tracing entirely.</li>
+  <li>Use the <strong>log tracer</strong> to log completed traces to a <a href="">log4cats</a> logger.</li>
+</ul>
+<h2><a href="#tracing-with-jaeger" name="tracing-with-jaeger" class="anchor"><span class="anchor-link"></span></a>Tracing with Jaeger</h2>
+<p>Easy because there&rsquo;s a docker container.</p>
+<h2><a href="#tracing-example" name="tracing-example" class="anchor"><span class="anchor-link"></span></a>Tracing Example</h2>
+<p>&hellip; program that adds its own events to the trace</p>
 <div class="source-github">
-The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/v0.0.6/modules/docs/src/main/paradox/reference/Identifiers.md">here</a>.
+The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/v0.0.6/modules/docs/src/main/paradox/tutorial/Tracing.md">here</a>.
 </div>
 
 <div class="nav-next">
-<p><strong>Next:</strong> <a href="../reference/Concurrency.html">Concurrency</a></p>
+<p><strong>Next:</strong> <a href="../reference/Index.html">Reference</a></p>
 </div>
 </div>
 <div class="large-3 show-for-large column" data-sticky-container>
+<nav class="sidebar sticky" data-sticky data-anchor="docs" data-sticky-on="large">
+<div class="page-nav">
+<div class="nav-title">On this page:</div>
+<div class="nav-toc">
+<ul>
+  <li><a href="../tutorial/Tracing.html#tracing" class="header">Tracing</a>
+  <ul>
+    <li><a href="../tutorial/Tracing.html#i-dont-care" class="header">I Don&rsquo;t Care</a></li>
+    <li><a href="../tutorial/Tracing.html#tracing-with-jaeger" class="header">Tracing with Jaeger</a></li>
+    <li><a href="../tutorial/Tracing.html#tracing-example" class="header">Tracing Example</a></li>
+  </ul></li>
+</ul>
+</div>
+</div>
+</nav>
 </div>
 </div>
 

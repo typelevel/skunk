@@ -12,7 +12,6 @@
 <script type="text/javascript" src="../js/page.js"></script>
 <script type="text/javascript" src="../js/warnOldVersion.js"></script>
 <script type="text/javascript" src="../js/groups.js"></script>
-<link rel="stylesheet" type="text/css" href="../lib/normalize.css/normalize.css"/>
 <link rel="stylesheet" type="text/css" href="../lib/foundation/dist/foundation.min.css"/>
 <link rel="stylesheet" type="text/css" href="../css/page.css"/>
 
@@ -32,7 +31,7 @@
 <span class="home-icon">⌂</span>Skunk Guide
 </a>
 <div class="version-number">
-0.0.3
+0.0.6
 </div>
 </div>
 <div class="nav-toc">
@@ -44,6 +43,7 @@
     <li><a href="../tutorial/Command.html" class="page">Commands</a></li>
     <li><a href="../tutorial/Transactions.html" class="page">Transactions</a></li>
     <li><a href="../tutorial/Channels.html" class="page">Channels</a></li>
+    <li><a href="../tutorial/Tracing.html" class="page">Tracing</a></li>
   </ul></li>
   <li><a href="../reference/Index.html" class="page">Reference</a>
   <ul>
@@ -86,7 +86,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Skunk Guide
 </a>
 <div class="version-number">
-0.0.3
+0.0.6
 </div>
 </div>
 <div class="nav-toc">
@@ -98,6 +98,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     <li><a href="../tutorial/Command.html" class="page">Commands</a></li>
     <li><a href="../tutorial/Transactions.html" class="page">Transactions</a></li>
     <li><a href="../tutorial/Channels.html" class="page">Channels</a></li>
+    <li><a href="../tutorial/Tracing.html" class="page">Tracing</a></li>
   </ul></li>
   <li><a href="../reference/Index.html" class="page">Reference</a>
   <ul>
@@ -147,22 +148,58 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
   <li><a href="../tutorial/Query.html" class="page">Queries</a>
   <ul>
     <li><a href="../tutorial/Query.html#single-column-query" class="header">Single-Column Query</a></li>
-    <li><a href="../tutorial/Query.html#multi-column-query" class="header">Multi-Column Query</a></li>
+    <li><a href="../tutorial/Query.html#multi-column-query" class="header">Multi-Column Query</a>
+    <ul>
+      <li><a href="../tutorial/Query.html#mapping-query-results" class="header">Mapping Query Results</a></li>
+      <li><a href="../tutorial/Query.html#mapping-decoder-results" class="header">Mapping Decoder Results</a></li>
+    </ul></li>
     <li><a href="../tutorial/Query.html#parameterized-query" class="header">Parameterized Query</a></li>
     <li><a href="../tutorial/Query.html#multi-parameter-query" class="header">Multi-Parameter Query</a></li>
+    <li><a href="../tutorial/Query.html#summary-of-query-types" class="header">Summary of Query Types</a></li>
     <li><a href="../tutorial/Query.html#full-example" class="header">Full Example</a></li>
+    <li><a href="../tutorial/Query.html#experiment" class="header">Experiment</a></li>
   </ul></li>
   <li><a href="../tutorial/Command.html" class="page">Commands</a>
   <ul>
     <li><a href="../tutorial/Command.html#simple-command" class="header">Simple Command</a></li>
-    <li><a href="../tutorial/Command.html#paramererized-command" class="header">Paramererized Command</a></li>
+    <li><a href="../tutorial/Command.html#parameterized-command" class="header">Parameterized Command</a>
+    <ul>
+      <li><a href="../tutorial/Command.html#contramapping-commands" class="header">Contramapping Commands</a></li>
+      <li><a href="../tutorial/Command.html#contramapping-encoders" class="header">Contramapping Encoders</a></li>
+    </ul></li>
+    <li><a href="../tutorial/Command.html#summary-of-command-types" class="header">Summary of Command Types</a></li>
+    <li><a href="../tutorial/Command.html#full-example" class="header">Full Example</a></li>
+    <li><a href="../tutorial/Command.html#experiment" class="header">Experiment</a></li>
   </ul></li>
-  <li><a href="../tutorial/Transactions.html" class="page">Transactions</a></li>
-  <li><a href="../tutorial/Channels.html" class="page">Channels</a></li>
+  <li><a href="../tutorial/Transactions.html" class="page">Transactions</a>
+  <ul>
+    <li><a href="../tutorial/Transactions.html#a-simple-transaction" class="header">A Simple Transaction</a>
+    <ul>
+      <li><a href="../tutorial/Transactions.html#transaction-finalization" class="header">Transaction Finalization</a></li>
+    </ul></li>
+    <li><a href="../tutorial/Transactions.html#savepoints" class="header">Savepoints</a>
+    <ul>
+      <li><a href="../tutorial/Transactions.html#a-retry-combinator" class="header">A Retry Combinator</a></li>
+    </ul></li>
+    <li><a href="../tutorial/Transactions.html#full-example" class="header">Full Example</a></li>
+    <li><a href="../tutorial/Transactions.html#experiment" class="header">Experiment</a></li>
+  </ul></li>
+  <li><a href="../tutorial/Channels.html" class="page">Channels</a>
+  <ul>
+    <li><a href="../tutorial/Channels.html#simple-channel-example" class="header">Simple Channel Example</a></li>
+    <li><a href="../tutorial/Channels.html#transactional-behavior" class="header">Transactional Behavior</a></li>
+    <li><a href="../tutorial/Channels.html#experiment" class="header">Experiment</a></li>
+  </ul></li>
+  <li><a href="../tutorial/Tracing.html" class="page">Tracing</a>
+  <ul>
+    <li><a href="../tutorial/Tracing.html#i-dont-care" class="header">I Don&rsquo;t Care</a></li>
+    <li><a href="../tutorial/Tracing.html#tracing-with-jaeger" class="header">Tracing with Jaeger</a></li>
+    <li><a href="../tutorial/Tracing.html#tracing-example" class="header">Tracing Example</a></li>
+  </ul></li>
 </ul>
 </div>
 <div class="source-github">
-The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/paradox/tutorial/Index.md">here</a>.
+The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/v0.0.6/modules/docs/src/main/paradox/tutorial/Index.md">here</a>.
 </div>
 
 <div class="nav-next">
@@ -232,7 +269,7 @@ The source code for this page can be found <a href="https://github.com/tpolecat/
 <script type="text/javascript" src="../lib/prettify/prettify.js"></script>
 <script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
 <script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
-<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.3', 'https://github.com/tpolecat/skunk')});</script>
+<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.6', 'https://github.com/tpolecat/skunk')});</script>
 
 
 </html>

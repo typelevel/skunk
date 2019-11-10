@@ -12,7 +12,6 @@
 <script type="text/javascript" src="../js/page.js"></script>
 <script type="text/javascript" src="../js/warnOldVersion.js"></script>
 <script type="text/javascript" src="../js/groups.js"></script>
-<link rel="stylesheet" type="text/css" href="../lib/normalize.css/normalize.css"/>
 <link rel="stylesheet" type="text/css" href="../lib/foundation/dist/foundation.min.css"/>
 <link rel="stylesheet" type="text/css" href="../css/page.css"/>
 
@@ -32,7 +31,7 @@
 <span class="home-icon">⌂</span>Skunk Guide
 </a>
 <div class="version-number">
-0.0.3
+0.0.6
 </div>
 </div>
 <div class="nav-toc">
@@ -44,6 +43,7 @@
     <li><a href="../tutorial/Command.html" class="page">Commands</a></li>
     <li><a href="../tutorial/Transactions.html" class="page">Transactions</a></li>
     <li><a href="../tutorial/Channels.html" class="page">Channels</a></li>
+    <li><a href="../tutorial/Tracing.html" class="page">Tracing</a></li>
   </ul></li>
   <li><a href="../reference/Index.html" class="page">Reference</a>
   <ul>
@@ -86,7 +86,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Skunk Guide
 </a>
 <div class="version-number">
-0.0.3
+0.0.6
 </div>
 </div>
 <div class="nav-toc">
@@ -98,6 +98,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     <li><a href="../tutorial/Command.html" class="page">Commands</a></li>
     <li><a href="../tutorial/Transactions.html" class="page">Transactions</a></li>
     <li><a href="../tutorial/Channels.html" class="page">Channels</a></li>
+    <li><a href="../tutorial/Tracing.html" class="page">Tracing</a></li>
   </ul></li>
   <li><a href="../reference/Index.html" class="page">Reference</a>
   <ul>
@@ -135,8 +136,78 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <div class="page-content row">
 <div class="small-12 large-9 column" id="docs">
 <h1><a href="#twiddle-lists" name="twiddle-lists" class="anchor"><span class="anchor-link"></span></a>Twiddle Lists</h1>
+<p>A twiddle list is a left-associated chain of pairs. It can be arbitrarily long, and the type grows to track the elements.</p>
+<pre class="prettyprint"><code class="language-scala">val x: (((Int, String), Boolean), Double) =
+  (((42, &quot;hi&quot;), true), 1.23)
+</code></pre>
+<p>The reason it is useful is that (when combined with a single value as the dengenerate case) it lets us represent non-empty heterogeneous lists. It is sometimes called the &ldquo;poor-man&rsquo;s <code>HList</code>&rdquo; and it is not unique to Skunk (<a href="">scodec</a> also uses it).</p>
+<p>By providing a bit of syntax we can write twiddle lists much more succinctly.</p>
+<pre class="prettyprint"><code class="language-scala">type ~[+A, +B] = (A, B)
+
+final class IdOps[A](a: A) {
+  def ~[B](b: B): A ~ B = (a, b)
+}
+
+// ~ is left-associative so this is exactly the same as `x` above.
+val x: Int ~ String ~ Boolean ~ Double =
+  42 ~ &quot;hi&quot; ~ true ~ 1.23
+</code></pre>
+<p>And with the following definition we can also pattern-match.</p>
+<pre class="prettyprint"><code class="language-scala">object ~ {
+  def unapply[A, B](t: A ~ B): Some[A ~ B] = Some(t)
+}
+
+// Deconstruct `x`
+x match {
+  case n ~ s ~ b ~ d =&gt; ...
+}
+</code></pre>
+<p>Skunk uses twiddle-lists for parameter encoders and row decoders, and via this machiner twiddle list types appear as type arguments for <code>Query</code> and <code>Command</code>.</p>
+<pre class="prettyprint"><code class="language-scala">val q: Query[Short ~ String, String ~ Int] =
+  sql&quot;&quot;&quot;
+    SELECT name, age
+    FROM   person
+    WHERE  age &lt; $int2
+    AND    status = $
+  &quot;&quot;&quot;.query(varchar ~ int4)
+</code></pre>
+<h2><a href="#isomorphism-with-case-classes" name="isomorphism-with-case-classes" class="anchor"><span class="anchor-link"></span></a>Isomorphism with Case Classes</h2>
+<p>A twiddle list of type <code>A ~ B ~ C</code> has the same structure as a case class with fields of type <code>A</code>, <code>B</code>, and <code>C</code>, and we can trivially map back and forth.</p>
+<pre class="prettyprint"><code class="language-scala">case class Person(name: String, age: Int, active: Boolean)
+
+def fromTwiddle(t: String ~ Int ~ Boolean): Person =
+  t match {
+    case s ~ n ~ b =&gt; Person(s, n, v)
+  }
+
+def toTwiddle(p: Person): String ~ Int ~ Boolean =
+  p.name ~ p.age ~ p.active
+</code></pre>
+<p>Because this mapping is useful and entirely mechanical Skunk provides a typeclass that does it for you.</p>
+<pre class="prettyprint"><code class="language-scala">@ val bob = Person(&quot;Bob&quot;, 42, true)
+bob: Person = Person(&quot;Bob&quot;, 42, true)
+
+@ val tw = skunk.util.Twiddler[Person]
+tw: util.Twiddler.Aux[Person, ((String, Int), Boolean)] = skunk.util.Twiddler$$anon$3@41d1bcbd
+
+@ tw.to(bob)
+res5: ((String, Int), Boolean) = ((&quot;Bob&quot;, 42), true)
+
+@ tw.from(res5)
+res6: Person = Person(&quot;Bob&quot;, 42, true)
+</code></pre>
+<p><code>Decoder</code>s, <code>Encoder</code>s, and <code>Codec</code>s use this facility to provide <code>gmap</code>, <code>gcontramap</code>, and <code>gimap</code>, respectively, which allow quick adaptation of a twiddle-list <code>Codec</code> (for instance) to one that maps to/from a case class. The <code>g</code> stands for &ldquo;generic&rdquo;.</p>
+<pre class="prettyprint"><code class="language-scala">// Note that the ~ method on Codec is an alias for Apply.product,
+// so Codec[A] ~ Codec[B] yields Codec[A ~ B].
+@ val codec = varchar ~ int4 ~ bool
+codec: Codec[((String, Int), Boolean)] = Codec(varchar, int4, bool)
+
+// Since `Person` has the same structure we can gimap to it.
+@ codec.gimap[Person]
+res7: Codec[Person] = Codec(varchar, int4, bool)
+</code></pre>
 <div class="source-github">
-The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/paradox/reference/TwiddleLists.md">here</a>.
+The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/v0.0.6/modules/docs/src/main/paradox/reference/TwiddleLists.md">here</a>.
 </div>
 
 <div class="nav-next">
@@ -144,6 +215,19 @@ The source code for this page can be found <a href="https://github.com/tpolecat/
 </div>
 </div>
 <div class="large-3 show-for-large column" data-sticky-container>
+<nav class="sidebar sticky" data-sticky data-anchor="docs" data-sticky-on="large">
+<div class="page-nav">
+<div class="nav-title">On this page:</div>
+<div class="nav-toc">
+<ul>
+  <li><a href="../reference/TwiddleLists.html#twiddle-lists" class="header">Twiddle Lists</a>
+  <ul>
+    <li><a href="../reference/TwiddleLists.html#isomorphism-with-case-classes" class="header">Isomorphism with Case Classes</a></li>
+  </ul></li>
+</ul>
+</div>
+</div>
+</nav>
 </div>
 </div>
 
@@ -206,7 +290,7 @@ The source code for this page can be found <a href="https://github.com/tpolecat/
 <script type="text/javascript" src="../lib/prettify/prettify.js"></script>
 <script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
 <script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
-<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.3', 'https://github.com/tpolecat/skunk')});</script>
+<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.6', 'https://github.com/tpolecat/skunk')});</script>
 
 
 </html>

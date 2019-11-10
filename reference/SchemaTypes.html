@@ -12,7 +12,6 @@
 <script type="text/javascript" src="../js/page.js"></script>
 <script type="text/javascript" src="../js/warnOldVersion.js"></script>
 <script type="text/javascript" src="../js/groups.js"></script>
-<link rel="stylesheet" type="text/css" href="../lib/normalize.css/normalize.css"/>
 <link rel="stylesheet" type="text/css" href="../lib/foundation/dist/foundation.min.css"/>
 <link rel="stylesheet" type="text/css" href="../css/page.css"/>
 
@@ -32,7 +31,7 @@
 <span class="home-icon">⌂</span>Skunk Guide
 </a>
 <div class="version-number">
-0.0.3
+0.0.6
 </div>
 </div>
 <div class="nav-toc">
@@ -44,6 +43,7 @@
     <li><a href="../tutorial/Command.html" class="page">Commands</a></li>
     <li><a href="../tutorial/Transactions.html" class="page">Transactions</a></li>
     <li><a href="../tutorial/Channels.html" class="page">Channels</a></li>
+    <li><a href="../tutorial/Tracing.html" class="page">Tracing</a></li>
   </ul></li>
   <li><a href="../reference/Index.html" class="page">Reference</a>
   <ul>
@@ -86,7 +86,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Skunk Guide
 </a>
 <div class="version-number">
-0.0.3
+0.0.6
 </div>
 </div>
 <div class="nav-toc">
@@ -98,6 +98,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     <li><a href="../tutorial/Command.html" class="page">Commands</a></li>
     <li><a href="../tutorial/Transactions.html" class="page">Transactions</a></li>
     <li><a href="../tutorial/Channels.html" class="page">Channels</a></li>
+    <li><a href="../tutorial/Tracing.html" class="page">Tracing</a></li>
   </ul></li>
   <li><a href="../reference/Index.html" class="page">Reference</a>
   <ul>
@@ -305,7 +306,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 </code></pre>
 <p>an equivalent Scala data type and codec could be defined like this.</p>
 <pre class="prettyprint"><code class="language-scala">// An enumerated type
-sealed abstract class MyEnum(label: String)
+sealed abstract class MyEnum(val label: String)
 object MyEnum {
 
   case object Foo extends MyEnum(&quot;foo&quot;)
@@ -321,13 +322,61 @@ object MyEnum {
 // A codec that maps Postgres type `myenum` to Scala type `MyEnum`
 val myenum = enum[MyEnum](_.label, MyEnum.fromLabel, Type(&quot;myenum&quot;))
 </code></pre>
+<p>Alternatively you can use <a href="https://github.com/lloydmeta/enumeratum">Enumeratum</a> to define your enumerated type.</p>
+<pre class="prettyprint"><code class="language-scala">// An enumerated type defined with Enumeratum, with lower-case labels
+sealed trait MyEnum extends EnumEntry with Lowercase
+
+object MyEnum extends Enum[MyEnum] {
+
+  case object Foo extends MyEnum
+  case object Bar extends MyEnum
+
+  val values = findValues
+
+}
+
+// A codec that maps Postgres type `myenum` to Scala type `MyEnum`
+val myenum = enum(MyEnum, Type(&quot;myenum&quot;))
+
+#### Notes
+
+- This codec constructor is importable from `skunk.codec.enum._` or `skunk.codec.all._`.
+- [Enumeratum](https://github.com/lloydmeta/enumeratum) is a transitive dependency of Skunk.
+- See [§8.7](https://www.postgresql.org/docs/11/datatype-enum.html) in the Postgres documentation for more information on the enumerated data types.
+
+
+## UUID Type
+
+| ANSI SQL Type   | Postgres Type    | Scala Type       |
+|-----------------|------------------|------------------|
+| n/a             | `uuid`           | `java.util.UUID` |
+
+#### Notes
+
+- This codec constructor is importable from `skunk.codec.uuid._` or `skunk.codec.all._`.
+- See [§8.12](https://www.postgresql.org/docs/11/datatype-uuid.html) in the Postgres documentation for more information on the enumerated data types.
+
+
+
+## JSON Types
+
+| ANSI SQL Type   | Postgres Type    | Scala Type      |
+|-----------------|------------------|-----------------|
+| n/a             | `json`           | `io.circe.Json` |
+| n/a             | `jsonb`          | `io.circe.Json` |
+
+JSON support is provided by the `skunk-circe` module which must be added as a dependency. The `json` and `jsonb` codecs map to the `io.circe.Json` data type, but you can map to any data type with `io.circe.Encoder` and `io.circe.Decoder` instances by passing a type argument.
+
+</code></pre>
+<p>// Codec for Int ~ Json as (int4, jsonb) val codec1: Codec[Int ~ Json] = int4 ~ jsonb</p>
+<p>// Codec for Int ~ MyType as (int4, jsonb) // Assuming we have io.circe.Encoder and io.circe.Decoder instances. val codec2: Codec[Int ~ MyType] = int4 ~ jsonb[MyType] ```</p>
 <h4><a href="#notes" name="notes" class="anchor"><span class="anchor-link"></span></a>Notes</h4>
 <ul>
-  <li>This codec constructor is importable from <code>skunk.codec.enum._</code> or <code>skunk.codec.all._</code>.</li>
-  <li>See <a href="https://www.postgresql.org/docs/11/datatype-enum.html">§8.7</a> in the Postgres documentation for more information on the enumerated data types.</li>
+  <li>This codec constructor is importable from <code>skunk.circe.codec.json._</code> or <code>skunk.circe.codec.all._</code>.</li>
+  <li>See <a href="https://www.postgresql.org/docs/11/datatype-json.html">§8.14</a> in the Postgres documentation for more information on JSON data types.</li>
 </ul>
 <div class="source-github">
-The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/paradox/reference/SchemaTypes.md">here</a>.
+The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/v0.0.6/modules/docs/src/main/paradox/reference/SchemaTypes.md">here</a>.
 </div>
 
 </div>
@@ -411,7 +460,7 @@ The source code for this page can be found <a href="https://github.com/tpolecat/
 <script type="text/javascript" src="../lib/prettify/prettify.js"></script>
 <script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
 <script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
-<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.3', 'https://github.com/tpolecat/skunk')});</script>
+<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.6', 'https://github.com/tpolecat/skunk')});</script>
 
 
 </html>

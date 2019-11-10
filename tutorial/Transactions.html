@@ -12,7 +12,6 @@
 <script type="text/javascript" src="../js/page.js"></script>
 <script type="text/javascript" src="../js/warnOldVersion.js"></script>
 <script type="text/javascript" src="../js/groups.js"></script>
-<link rel="stylesheet" type="text/css" href="../lib/normalize.css/normalize.css"/>
 <link rel="stylesheet" type="text/css" href="../lib/foundation/dist/foundation.min.css"/>
 <link rel="stylesheet" type="text/css" href="../css/page.css"/>
 
@@ -32,7 +31,7 @@
 <span class="home-icon">⌂</span>Skunk Guide
 </a>
 <div class="version-number">
-0.0.3
+0.0.6
 </div>
 </div>
 <div class="nav-toc">
@@ -44,6 +43,7 @@
     <li><a href="../tutorial/Command.html" class="page">Commands</a></li>
     <li><a href="../tutorial/Transactions.html" class="active page">Transactions</a></li>
     <li><a href="../tutorial/Channels.html" class="page">Channels</a></li>
+    <li><a href="../tutorial/Tracing.html" class="page">Tracing</a></li>
   </ul></li>
   <li><a href="../reference/Index.html" class="page">Reference</a>
   <ul>
@@ -86,7 +86,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Skunk Guide
 </a>
 <div class="version-number">
-0.0.3
+0.0.6
 </div>
 </div>
 <div class="nav-toc">
@@ -98,6 +98,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     <li><a href="../tutorial/Command.html" class="page">Commands</a></li>
     <li><a href="../tutorial/Transactions.html" class="active page">Transactions</a></li>
     <li><a href="../tutorial/Channels.html" class="page">Channels</a></li>
+    <li><a href="../tutorial/Tracing.html" class="page">Tracing</a></li>
   </ul></li>
   <li><a href="../reference/Index.html" class="page">Reference</a>
   <ul>
@@ -135,8 +136,60 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <div class="page-content row">
 <div class="small-12 large-9 column" id="docs">
 <h1><a href="#transactions" name="transactions" class="anchor"><span class="anchor-link"></span></a>Transactions</h1>
+<p>&hellip;intro to transactions</p><div class="callout warning "><div class="callout-title">Warning</div>
+<p>There is never more than one transaction in progress on a given session, and all operations on that session during the transaction&rsquo;s lifespan will take part in the transaction. <strong>It is recommended that sessions not be used concurrently in the presence of transactions</strong>.</p></div>
+<p>See <a href="https://www.postgresql.org/docs/10/tutorial-transactions.html">§3.4</a> in the PostgreSQL documentation for an introduction to transactions. The text that follows assumes you have a working knowledge of the information in that section.</p>
+<h2><a href="#a-simple-transaction" name="a-simple-transaction" class="anchor"><span class="anchor-link"></span></a>A Simple Transaction</h2>
+<p>&hellip; code example</p>
+<h3><a href="#transaction-finalization" name="transaction-finalization" class="anchor"><span class="anchor-link"></span></a>Transaction Finalization</h3>
+<p>If the <code>use</code> block exits normally there are three cases to consider, based on the session&rsquo;s transaction status on exit.</p>
+<ul>
+  <li><strong>Active</strong> means all went well and the transaction will be committed. This is the typical success case.</li>
+  <li><strong>Error</strong> means the user encountered and handled an error, but left the transaction in a failed state. In this case the transaction will be rolled back.</li>
+  <li><strong>Idle</strong> means the user terminated the transaction explicitly inside the block and there is nothing to be done.</li>
+</ul>
+<p>If the block exits due to cancellation or an error and the session transaction status is <strong>Active</strong> or <strong>Error</strong> (the common failure case) then the transaction will be rolled back and any error will be re-raised.</p>
+<p>Transaction finalization is summarized in the following matrix.</p>
+<table>
+  <thead>
+    <tr>
+      <th>Status </th>
+      <th>Normal Exit </th>
+      <th>Cancellation </th>
+      <th>Error Raised </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Idle</strong> </td>
+      <td>— </td>
+      <td>— </td>
+      <td>re-raise </td>
+    </tr>
+    <tr>
+      <td><strong>Active</strong> </td>
+      <td>commit </td>
+      <td>roll back </td>
+      <td>roll back, re-raise </td>
+    </tr>
+    <tr>
+      <td><strong>Error</strong> </td>
+      <td>roll back </td>
+      <td>roll back </td>
+      <td>roll back, re-raise </td>
+    </tr>
+  </tbody>
+</table>
+<h2><a href="#savepoints" name="savepoints" class="anchor"><span class="anchor-link"></span></a>Savepoints</h2>
+<p>talk about savepoints</p>
+<h3><a href="#a-retry-combinator" name="a-retry-combinator" class="anchor"><span class="anchor-link"></span></a>A Retry Combinator</h3>
+<h2><a href="#full-example" name="full-example" class="anchor"><span class="anchor-link"></span></a>Full Example</h2>
+<h2><a href="#experiment" name="experiment" class="anchor"><span class="anchor-link"></span></a>Experiment</h2>
+<ul>
+  <li>PostgreSQL does not permit nested transactions. What happens if you attempt this?</li>
+</ul>
 <div class="source-github">
-The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/paradox/tutorial/Transactions.md">here</a>.
+The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/v0.0.6/modules/docs/src/main/paradox/tutorial/Transactions.md">here</a>.
 </div>
 
 <div class="nav-next">
@@ -144,6 +197,22 @@ The source code for this page can be found <a href="https://github.com/tpolecat/
 </div>
 </div>
 <div class="large-3 show-for-large column" data-sticky-container>
+<nav class="sidebar sticky" data-sticky data-anchor="docs" data-sticky-on="large">
+<div class="page-nav">
+<div class="nav-title">On this page:</div>
+<div class="nav-toc">
+<ul>
+  <li><a href="../tutorial/Transactions.html#transactions" class="header">Transactions</a>
+  <ul>
+    <li><a href="../tutorial/Transactions.html#a-simple-transaction" class="header">A Simple Transaction</a></li>
+    <li><a href="../tutorial/Transactions.html#savepoints" class="header">Savepoints</a></li>
+    <li><a href="../tutorial/Transactions.html#full-example" class="header">Full Example</a></li>
+    <li><a href="../tutorial/Transactions.html#experiment" class="header">Experiment</a></li>
+  </ul></li>
+</ul>
+</div>
+</div>
+</nav>
 </div>
 </div>
 
@@ -206,7 +275,7 @@ The source code for this page can be found <a href="https://github.com/tpolecat/
 <script type="text/javascript" src="../lib/prettify/prettify.js"></script>
 <script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
 <script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
-<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.3', 'https://github.com/tpolecat/skunk')});</script>
+<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.6', 'https://github.com/tpolecat/skunk')});</script>
 
 
 </html>
