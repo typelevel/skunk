@@ -63,7 +63,7 @@ So that is one way to do it.
 
 ### Mapping Decoder Results
 
-A more reusable way to do this is to define a `Decoder[Country]` based on the `varchar ~ varchar` decoder. We can then decode directly into our `Country` data type.
+A more reusable way to do this is to define a `Decoder[Country]` based on the `varchar ~ int4` decoder. We can then decode directly into our `Country` data type.
 
 @@snip [Query.scala](/modules/docs/src/main/scala/tutorial/Query.scala) { #query-d }
 
