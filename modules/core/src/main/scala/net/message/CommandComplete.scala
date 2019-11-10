@@ -61,6 +61,8 @@ object CommandComplete {
     case Patterns.Update(s) => apply(Completion.Delete(s.toInt))
     case Patterns.Insert(s) => apply(Completion.Insert(s.drop(2).toInt))
     // more .. fill in as we hit them
+
+    case s                  => apply(Completion.Unknown(s))
   }
 
 }
