@@ -178,68 +178,86 @@ trait Session[F[_]] {
 object Session {
 
   /**
-   * Resource yielding a `SessionPool` managing up to `max` concurrent `Session`s.
-   * @param host      Postgres server host
-   * @param port      Postgres port, default 5432
-   * @param user      Postgres user
-   * @param database  Postgres database
-   * @param max       Postgres maximum concurrent sessions count
-   * @param check     Check all `prepare` and `execute` statements for consistency with the schema. This
-   *   is true by default and is recommended for development work. You may wish to turn this off in
-   *   production but honestly it's really cheap and probably worth keeping.
+   * Resource yielding a `SessionPool` managing up to `max` concurrent `Session`s. Typically you
+   * will `use` this resource once on application startup and pass the resulting
+   * `Resource[F, Session[F]]` to the rest of your program.
+   *
+   * Note that calling `.flatten` on the nested `Resource` returned by this method may seem
+   * reasonable, but it will result in a resource that allocates a new pool for each session, which
+   * is probably not what you want.
+   * @param host          Postgres server host
+   * @param port          Postgres port, default 5432
+   * @param user          Postgres user
+   * @param database      Postgres database
+   * @param max           Maximum concurrent sessions
+   * @param debug
+   * @param readTimeout
+   * @param writeTimeout
+   * @param strategy
    * @group Constructors
    */
   def pooled[F[_]: Concurrent: ContextShift: Trace](
-    host:     String,
-    port:     Int,
-    user:     String,
-    database: String,
-    max:      Int,
-  ): SessionPool[F] = {
+    host:         String,
+    port:         Int            = 5432,
+    user:         String,
+    database:     String,
+    max:          Int,
+    debug:        Boolean        = false,
+    readTimeout:  FiniteDuration = Int.MaxValue.seconds,
+    writeTimeout: FiniteDuration = 5.seconds,
+    strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly
+  ): Resource[F, Resource[F, Session[F]]] = {
 
-    val reset: Session[F] => F[Boolean] = s =>
+    def session(socketGroup:  SocketGroup): Resource[F, Session[F]] =
       for {
-        // todo: unsubscribe all
-        // todo: sync, rollback if necessary
-        _ <- s.execute(Command("RESET ALL", Origin.unknown, Void.codec))
-      } yield true
+        namer <- Resource.liftF(Namer[F])
+        proto <- Protocol[F](host, port, debug, namer, readTimeout, writeTimeout, socketGroup)
+        _     <- Resource.liftF(proto.startup(user, database))
+        sess  <- Resource.liftF(fromProtocol(proto, namer, strategy))
+      } yield sess
 
-    Pool.of(single(host, port, user, database), max)(reset)
+    val reset: Session[F] => F[Boolean] = { s =>
+      // todo: unsubscribe all
+      // todo: sync, rollback if necessary
+      s.execute(Command("RESET ALL", Origin.unknown, Void.codec)).as(true)
+    }
+
+    // One blocker and SocketGroup per pool.
+    for {
+      blocker <- Blocker[F]
+      sockGrp <- SocketGroup[F](blocker)
+      pool    <- Pool.of(session(sockGrp), max)(reset)
+    } yield pool
 
   }
 
   /**
-   * Resource yielding a new, unpooled `Session` with the given connect information and statement
-   * checking policy.
-   * @param host     Postgres server host
-   * @param port     Postgres port, default `5432`
-   * @param user     Postgres user
-   * @param database Postgres database
-   * @param debug    If `true` Skunk will log all message exchanges to the console, default `false`.
-   *   This is useful if you're working on Skunk itself but should be disabled otherwise.
-   * @group Constructors
+   * Resource yielding logically unpooled sessions. This can be convenient for demonstrations and
+   * programs that only need a single session. In reality each session is managed by its own
+   * single-session pool. This method is shorthand for `Session.pooled(..., max = 1, ...).flatten`.
+   * @see pooled
    */
   def single[F[_]: Concurrent: ContextShift: Trace](
     host:         String,
-    port:         Int                      = 5432,
+    port:         Int             = 5432,
     user:         String,
     database:     String,
-    debug:        Boolean = false,
-    readTimeout:  FiniteDuration           = Int.MaxValue.seconds,
-    writeTimeout: FiniteDuration           = 5.seconds,
-    strategy:     Typer.Strategy           = Typer.Strategy.BuiltinsOnly
+    debug:        Boolean         = false,
+    readTimeout:  FiniteDuration  = Int.MaxValue.seconds,
+    writeTimeout: FiniteDuration  = 5.seconds,
+    strategy:     Typer.Strategy  = Typer.Strategy.BuiltinsOnly
   ): Resource[F, Session[F]] =
-    for {
-      // TODO: ok this blocker and SocketGroup need to be on a factory or something. Need to make
-      // pooling the default or something. Ok for now though.
-      b   <- Blocker[F]
-      sg  <- SocketGroup[F](b)
-      nam <- Resource.liftF(Namer[F])
-      ps  <- Protocol[F](host, port, debug, nam, readTimeout, writeTimeout, sg)
-      _   <- Resource.liftF(ps.startup(user, database))
-      // TODO: password negotiation, SASL, etc.
-      s   <- Resource.liftF(fromProtocol(ps, nam, strategy))
-    } yield s
+    pooled(
+      host         = host,
+      port         = port,
+      user         = user,
+      database     = database,
+      max          = 1,
+      debug        = debug,
+      readTimeout  = readTimeout,
+      writeTimeout = writeTimeout,
+      strategy     = strategy
+    ).flatten
 
   /**
    * Construct a `Session` by wrapping an existing `Protocol`, which we assume has already been
