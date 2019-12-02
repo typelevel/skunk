@@ -10,77 +10,133 @@ import skunk._
 import natchez.Trace.Implicits.noop
 import skunk.exception.SkunkException
 import skunk.exception.StartupException
+import java.net.ConnectException
+import java.nio.channels.UnresolvedAddressException
 
 case object StartupTest extends ffstest.FTest {
 
   // Different ports for different authentication schemes.
   object Port {
-    val MD5   = 5432
-    val Trust = 5433
+    val Invalid = 5431
+    val MD5     = 5432
+    val Trust   = 5433
   }
 
-  def session(user: String, password: Option[String], port: Int, database: String = "world"): Resource[IO, Session[IO]] =
-    Session.single(
-      host     = "localhost",
-      user     = user,
-      database = database,
-      password = password,
-      port     = port,
-    )
-
   test("md5 - successful login") {
-    session("jimmy", Some("banana"), Port.MD5).use(_ => IO.unit)
+    Session.single[IO](
+      host     = "localhost",
+      user     = "jimmy",
+      database = "world",
+      password = Some("banana"),
+      port     = Port.MD5,
+    ).use(_ => IO.unit)
   }
 
   test("md5 - non-existent database") {
-    for {
-      e <- session("jimmy", Some("banana"), Port.MD5, database = "blah").use(_ => IO.unit).assertFailsWith[StartupException]
-      _ <- assertEqual("code", e.code, "3D000")
-    } yield ()
+    Session.single[IO](
+      host     = "localhost",
+      user     = "jimmy",
+      database = "blah",
+      password = Some("banana"),
+      port     = Port.MD5,
+    ).use(_ => IO.unit)
+     .assertFailsWith[StartupException]
+     .flatMap(e => assertEqual("code", e.code, "3D000"))
   }
 
   test("md5 - missing password") {
-    for {
-      e <- session("jimmy", None, Port.MD5).use(_ => IO.unit).assertFailsWith[SkunkException]
-      _ <- assertEqual("message", e.message, "Password required.")
-    } yield ()
+    Session.single[IO](
+      host     = "localhost",
+      user     = "jimmy",
+      database = "blah",
+      password = None,
+      port     = Port.MD5,
+    ).use(_ => IO.unit)
+     .assertFailsWith[SkunkException]
+     .flatMap(e => assertEqual("message", e.message, "Password required."))
   }
 
   test("md5 - incorrect user") {
-    for {
-      e <- session("frank", Some("apple"), Port.MD5).use(_ => IO.unit).assertFailsWith[StartupException]
-      _ <- assertEqual("code", e.code, "28P01")
-    } yield ()
+    Session.single[IO](
+      host     = "localhost",
+      user     = "frank",
+      database = "world",
+      password = Some("banana"),
+      port     = Port.MD5,
+    ).use(_ => IO.unit)
+     .assertFailsWith[StartupException]
+     .flatMap(e => assertEqual("code", e.code, "28P01"))
   }
 
   test("md5 - incorrect password") {
-    for {
-      e <- session("jimmy", Some("apple"), Port.MD5).use(_ => IO.unit).assertFailsWith[StartupException]
-      _ <- assertEqual("code", e.code, "28P01")
-    } yield ()
+    Session.single[IO](
+      host     = "localhost",
+      user     = "jimmy",
+      database = "world",
+      password = Some("apple"),
+      port     = Port.MD5,
+    ).use(_ => IO.unit)
+     .assertFailsWith[StartupException]
+     .flatMap(e => assertEqual("code", e.code, "28P01"))
   }
 
   test("trust - successful login") {
-    session("postgres", None, Port.Trust).use(_ => IO.unit)
+    Session.single[IO](
+      host     = "localhost",
+      user     = "postgres",
+      database = "world",
+      port     = Port.Trust,
+    ).use(_ => IO.unit)
   }
 
   // TODO: should this be an error?
   test("trust - successful login, ignored password") {
-    session("postgres", Some("ignored"), Port.Trust).use(_ => IO.unit)
+    Session.single[IO](
+      host     = "localhost",
+      user     = "postgres",
+      database = "world",
+      password = Some("ignored"),
+      port     = Port.Trust,
+    ).use(_ => IO.unit)
   }
 
   test("trust - non-existent database") {
-    for {
-      e <- session("postgres", None, Port.Trust, database = "blah").use(_ => IO.unit).assertFailsWith[StartupException]
-      _ <- assertEqual("code", e.code, "3D000")
-    } yield ()
+    Session.single[IO](
+      host     = "localhost",
+      user     = "postgres",
+      database = "bogus",
+      port     = Port.Trust,
+    ).use(_ => IO.unit)
+     .assertFailsWith[StartupException]
+     .flatMap(e => assertEqual("code", e.code, "3D000"))
   }
 
   test("trust - incorrect user") {
-    for {
-      e <- session("frank", Some("apple"), Port.Trust).use(_ => IO.unit).assertFailsWith[StartupException]
-      _ <- assertEqual("code", e.code, "28000")
-    } yield ()
+    Session.single[IO](
+      host     = "localhost",
+      user     = "bogus",
+      database = "world",
+      port     = Port.Trust,
+    ).use(_ => IO.unit)
+     .assertFailsWith[StartupException]
+     .flatMap(e => assertEqual("code", e.code, "28000"))
+  }
+
+  test("invalid port") {
+    Session.single[IO](
+      host     = "localhost",
+      user     = "bob",
+      database = "nobody cares",
+      port     = Port.Invalid
+    ).use(_ => IO.unit).assertFailsWith[ConnectException]
+  }
+
+  test("invalid host") {
+    Session.single[IO](
+      host     = "blergh",
+      user     = "bob",
+      database = "nobody cares",
+    ).use(_ => IO.unit).assertFailsWith[UnresolvedAddressException]
   }
 
 }
