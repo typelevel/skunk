@@ -7,4 +7,7 @@ services:
     ports:
       - 5432:5432
     environment:
-      POSTGRES_DB: 'world'
+      POSTGRES_USER: jimmy
+      POSTGRES_PASSWORD: banana
+      POSTGRES_DB: world
+

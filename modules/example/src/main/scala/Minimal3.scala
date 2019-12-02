@@ -19,8 +19,9 @@ object Minimal3 extends IOApp {
     Session.single(
       host     = "localhost",
       port     = 5432,
-      user     = "postgres",
+      user     = "jimmy",
       database = "world",
+      password = Some("banana")
     )
 
   case class Country(code: String, name: String, pop: Long)

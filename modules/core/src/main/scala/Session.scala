@@ -201,6 +201,7 @@ object Session {
     port:         Int            = 5432,
     user:         String,
     database:     String,
+    password:     Option[String] = none,
     max:          Int,
     debug:        Boolean        = false,
     readTimeout:  FiniteDuration = Int.MaxValue.seconds,
@@ -212,7 +213,7 @@ object Session {
       for {
         namer <- Resource.liftF(Namer[F])
         proto <- Protocol[F](host, port, debug, namer, readTimeout, writeTimeout, socketGroup)
-        _     <- Resource.liftF(proto.startup(user, database))
+        _     <- Resource.liftF(proto.startup(user, database, password))
         sess  <- Resource.liftF(fromProtocol(proto, namer, strategy))
       } yield sess
 
@@ -239,19 +240,21 @@ object Session {
    */
   def single[F[_]: Concurrent: ContextShift: Trace](
     host:         String,
-    port:         Int             = 5432,
+    port:         Int            = 5432,
     user:         String,
     database:     String,
-    debug:        Boolean         = false,
-    readTimeout:  FiniteDuration  = Int.MaxValue.seconds,
-    writeTimeout: FiniteDuration  = 5.seconds,
-    strategy:     Typer.Strategy  = Typer.Strategy.BuiltinsOnly
+    password:     Option[String] = none,
+    debug:        Boolean        = false,
+    readTimeout:  FiniteDuration = Int.MaxValue.seconds,
+    writeTimeout: FiniteDuration = 5.seconds,
+    strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly
   ): Resource[F, Session[F]] =
     pooled(
       host         = host,
       port         = port,
       user         = user,
       database     = database,
+      password     = password,
       max          = 1,
       debug        = debug,
       readTimeout  = readTimeout,

@@ -19,8 +19,9 @@ abstract class SkunkTest(strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly)
     Session.single(
       host     = "localhost",
       port     = 5432,
-      user     = "postgres",
+      user     = "jimmy",
       database = "world",
+      password = Some("banana"),
       strategy = strategy
       // debug = true
     )

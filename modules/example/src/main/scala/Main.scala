@@ -63,8 +63,9 @@ object Main extends IOApp {
     Session.pooled(
       host     = "localhost",
       port     = 5432,
-      user     = "postgres",
+      user     = "jimmy",
       database = "world",
+      password = Some("banana"),
       max      = 10,
     )
 

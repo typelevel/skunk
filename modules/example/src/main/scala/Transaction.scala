@@ -15,8 +15,9 @@ object Transaction extends IOApp {
     Session.single(
       host     = "localhost",
       port     = 5432,
-      user     = "postgres",
+      user     = "jimmy",
       database = "world",
+      password = Some("banana"),
     )
 
   def runS[F[_]: Concurrent: ContextShift]: F[_] =
@@ -32,6 +33,6 @@ object Transaction extends IOApp {
     }
 
   def run(args: List[String]): IO[ExitCode] =
-    runS[IO].attempt.as(ExitCode.Success)
+    runS[IO].as(ExitCode.Success)
 
 }

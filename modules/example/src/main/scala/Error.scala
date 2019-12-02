@@ -17,7 +17,7 @@ object Error extends IOApp {
     Session.single(
       host     = "localhost",
       port     = 5432,
-      user     = "postgres",
+      user     = "jimmy",
       database = "world",
     )
 
