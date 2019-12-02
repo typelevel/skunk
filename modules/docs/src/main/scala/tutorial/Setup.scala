@@ -17,14 +17,15 @@ object Hello extends IOApp {
     Session.single(                                          // (2)
       host     = "localhost",
       port     = 5432,
-      user     = "postgres",
-      database = "world"
+      user     = "jimmy",
+      database = "world",
+      password = Some("banana"),
     )
 
   def run(args: List[String]): IO[ExitCode] =
     session.use { s =>                                       // (3)
       for {
-        s <- s.unique(sql"select xcurrent_date".query(date)) // (4)
+        s <- s.unique(sql"select current_date".query(date))  // (4)
         _ <- IO(println(s"The current date is $s."))
       } yield ExitCode.Success
     }

@@ -60,8 +60,9 @@ object Encoding extends IOApp {
   val session: Resource[IO, Session[IO]] =
     Session.single(
       host     = "localhost",
-      user     = "postgres",
+      user     = "jimmy",
       database = "world",
+      password = Some("banana"),
       debug    = true,
     )
 

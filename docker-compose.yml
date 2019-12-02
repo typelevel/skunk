@@ -1,10 +1,13 @@
 version: '3'
 services:
   postgres:
-    image: postgres:9.5
+    image: postgres:11
     volumes:
       - ./world/world.sql:/docker-entrypoint-initdb.d/world.sql
     ports:
       - 5432:5432
     environment:
-      POSTGRES_DB: 'world'
+      POSTGRES_USER: jimmy
+      POSTGRES_PASSWORD: banana
+      POSTGRES_DB: world
+

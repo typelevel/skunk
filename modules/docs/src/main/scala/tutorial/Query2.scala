@@ -17,8 +17,9 @@ object QueryExample extends IOApp {
   val session: Resource[IO, Session[IO]] =
     Session.single(
       host     = "localhost",
-      user     = "postgres",
-      database = "world"
+      user     = "jimmy",
+      database = "world",
+      password = Some("banana")
     )
 
   // a data model
