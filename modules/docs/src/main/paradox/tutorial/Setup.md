@@ -18,7 +18,7 @@ Create a new project with Skunk as a dependency.
 
 @@dependency[sbt,Maven,Gradle] {
   group="$org$"
-  artifact="$core-name$_2.12"
+  artifact="$core-dep$"
   version="$version$"
 }
 
@@ -31,10 +31,12 @@ Try out this minimal [IOApp](https://typelevel.org/cats-effect/datatypes/ioapp.h
 Let's examine the code above.
 
 - At ① we import the no-op `Tracer`, which allows us to run Skunk programs with execution tracing disabled. We will revisit @ref:[Tracing](Tracing.md) in a later section.
-- At ② we define a [Resource](https://typelevel.org/cats-effect/datatypes/resource.html)  that yields un-pooled @ref:[Session](../reference/Sessions.md) values and ensures that they are closed after use. We specify the host, port, user, and database.
+- At ② we define a [Resource](https://typelevel.org/cats-effect/datatypes/resource.html)  that yields un-pooled @ref:[Session](../reference/Sessions.md) values and ensures that they are closed after use. We specify the host, port, user, database, and password.
 
 @@@ note
-Skunk does not support authenticated (or encrypted) connections yet. You must connect with a user who can log in without a password.
+Skunk currently allows logging in with no password using the `trust` authentication scheme, or logging in with a password using the `md5` authentication scheme. The former and latter schemes are what you get with the official Postgres Docker image, depending on whether you specify `POSTGRES_PASSWORD` or not.
+
+Skunk does not yet support SSL connections.
 @@@
 
 - At ③ we `use` the resource, specifying a block to execute during the `Session`'s lifetime. No matter how the block terminates (success, failure, cancellation) the `Session` will be closed properly.
@@ -50,7 +52,7 @@ The current date is 2019-05-11.
 
 Here are some modifications that will cause runtime failures. Give them a try and see how Skunk responds.
 
-- Try running with an invalid user or database name.
+- Try running with an invalid user, password, or database name.
 - Introduce a typo into the SQL string.
 - Change the decoder from `date` to another type like `timestamp`.
 
