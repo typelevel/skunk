@@ -1,7 +1,7 @@
 version: '3'
 services:
   postgres:
-    image: postgres:9.5
+    image: postgres:11
     volumes:
       - ./world/world.sql:/docker-entrypoint-initdb.d/world.sql
     ports:
