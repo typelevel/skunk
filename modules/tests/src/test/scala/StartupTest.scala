@@ -13,36 +13,73 @@ import skunk.exception.StartupException
 
 case object StartupTest extends ffstest.FTest {
 
-  def session(user: String, password: Option[String]): Resource[IO, Session[IO]] =
+  // Different ports for different authentication schemes.
+  object Port {
+    val MD5   = 5432
+    val Trust = 5433
+  }
+
+  def session(user: String, password: Option[String], port: Int, database: String = "world"): Resource[IO, Session[IO]] =
     Session.single(
       host     = "localhost",
       user     = user,
-      database = "world",
+      database = database,
       password = password,
+      port     = port,
     )
 
-  test("successful login") {
-    session("jimmy", Some("banana")).use(_ => IO.unit)
+  test("md5 - successful login") {
+    session("jimmy", Some("banana"), Port.MD5).use(_ => IO.unit)
   }
 
-  test("missing password") {
+  test("md5 - non-existent database") {
     for {
-      e <- session("jimmy", None).use(_ => IO.unit).assertFailsWith[SkunkException]
+      e <- session("jimmy", Some("banana"), Port.MD5, database = "blah").use(_ => IO.unit).assertFailsWith[StartupException]
+      _ <- assertEqual("code", e.code, "3D000")
+    } yield ()
+  }
+
+  test("md5 - missing password") {
+    for {
+      e <- session("jimmy", None, Port.MD5).use(_ => IO.unit).assertFailsWith[SkunkException]
       _ <- assertEqual("message", e.message, "Password required.")
     } yield ()
   }
 
-  test("incorrect user") {
+  test("md5 - incorrect user") {
     for {
-      e <- session("frank", Some("apple")).use(_ => IO.unit).assertFailsWith[StartupException]
+      e <- session("frank", Some("apple"), Port.MD5).use(_ => IO.unit).assertFailsWith[StartupException]
       _ <- assertEqual("code", e.code, "28P01")
     } yield ()
   }
 
-  test("incorrect password") {
+  test("md5 - incorrect password") {
     for {
-      e <- session("jimmy", Some("apple")).use(_ => IO.unit).assertFailsWith[StartupException]
+      e <- session("jimmy", Some("apple"), Port.MD5).use(_ => IO.unit).assertFailsWith[StartupException]
       _ <- assertEqual("code", e.code, "28P01")
+    } yield ()
+  }
+
+  test("trust - successful login") {
+    session("postgres", None, Port.Trust).use(_ => IO.unit)
+  }
+
+  // TODO: should this be an error?
+  test("trust - successful login, ignored password") {
+    session("postgres", Some("ignored"), Port.Trust).use(_ => IO.unit)
+  }
+
+  test("trust - non-existent database") {
+    for {
+      e <- session("postgres", None, Port.Trust, database = "blah").use(_ => IO.unit).assertFailsWith[StartupException]
+      _ <- assertEqual("code", e.code, "3D000")
+    } yield ()
+  }
+
+  test("trust - incorrect user") {
+    for {
+      e <- session("frank", Some("apple"), Port.Trust).use(_ => IO.unit).assertFailsWith[StartupException]
+      _ <- assertEqual("code", e.code, "28000")
     } yield ()
   }
 
