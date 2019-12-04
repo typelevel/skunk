@@ -56,8 +56,18 @@ object Command extends IOApp {
       SET    headofstate = $varchar
       WHERE  code = ${bpchar(3)}
     """.command
-       .contramap { info => info.hos ~ info.code }
+       .contramap { case Info(code, hos) => code ~ hos }
   //#command-e
+
+  //#command-f
+  def update3: Command[Info] =
+    sql"""
+      UPDATE country
+      SET    headofstate = $varchar
+      WHERE  code = ${bpchar(3)}
+    """.command
+       .gcontramap[Info]
+  //#command-f
 
   val session: Resource[IO, Session[IO]] =
     Session.single(

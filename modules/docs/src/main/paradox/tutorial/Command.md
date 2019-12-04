@@ -8,7 +8,7 @@ A *command* is a SQL statement that does not return rows.
 
 ## Simple Command
 
-Here we will issue a command that sets the session's random number seed.
+First let's look at a command that sets the session's random number seed. We will also include the imports we need for the examples in this section.
 
 @@snip [Command.scala](/modules/docs/src/main/scala/tutorial/Command.scala) { #command-a }
 
@@ -33,19 +33,39 @@ Let's try a simple `DELETE` command.
 
 @@snip [Command.scala](/modules/docs/src/main/scala/tutorial/Command.scala) { #command-b }
 
-In this case the result will be `Delete(0)` since there are no countries named `xyzzy`. But there should be.
+In this case the result will be `Delete(0)` since there are no countries named `xyzzy`.
 
 ## Parameterized Command
 
+Now let's add a parameter to the command.
+
 @@snip [Command.scala](/modules/docs/src/main/scala/tutorial/Command.scala) { #command-c }
+
+Observe that we have interpolated a value called `varchar`, which has type `Encoder[String]`. This works the same way as with queries. See the previous chapter for more information about statement parameters.
+
+The command above is an *extended command*.
+
+@@@ note { title=Definition }
+An *extended command* is a command with parameters, or a simple command that is executed via the extended query protocol.
+@@@
+
+Here is a command with two parameters.
 
 @@snip [Command.scala](/modules/docs/src/main/scala/tutorial/Command.scala) { #command-d }
 
+Note that `varchar` and `bpchar(3)` both encode Scala values of type `String`.
+
 ### Contramapping Commands
+
+Similar to mapping the _output_ of a Query, we can `contramap` the _input_ to a command or query. Here we provide a function that turns an `Info` into a `String ~ String`.
 
 @@snip [Command.scala](/modules/docs/src/main/scala/tutorial/Command.scala) { #command-e }
 
-### Contramapping Encoders
+However in this case the mapping is entirely mechanical. Similar to `gmap` on query results, we can skip the boilerplate and `gcontramap` directly to an isomosphic case class.
+
+@@snip [Command.scala](/modules/docs/src/main/scala/tutorial/Command.scala) { #command-f }
+
+
 
 ## Summary of Command Types
 

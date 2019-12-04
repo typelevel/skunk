@@ -29,7 +29,7 @@ Skunk is published for Scala $scala-versions$ and can be included in your projec
 
 ## How to Learn
 
-To learn about Skunk please read to the @ref:[Tutorial](tutorial/Index.md) and maybe peruse the @ref:[Reference](tutorial/Index.md) material.
+To learn about Skunk please read the @ref:[Tutorial](tutorial/Index.md) and maybe peruse the @ref:[Reference](tutorial/Index.md) material.
 
 Other resources:
 

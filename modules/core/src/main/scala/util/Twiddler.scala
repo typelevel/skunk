@@ -14,7 +14,7 @@ import scala.annotation.implicitNotFound
  * Witness that type `A` is isomorphic to a left-associated HList formed from pairs; i.e.,
  * A :: B :: C :: D :: HNil ~ (((A, B), C), D)
  */
-@implicitNotFound("Cannot construct a mapping between ${A} (which must be a twiddle-list type) and the specified target type (which must be an case class of the same structure).")
+@implicitNotFound("Cannot construct a mapping between ${A} (which must be a twiddle-list type) and the specified target type (which must be a case class of the same structure).")
 trait Twiddler[A] {
   type Out
   def to(h: A): Out

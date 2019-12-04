@@ -6,6 +6,7 @@ package skunk
 
 import cats.Contravariant
 import skunk.util.Origin
+import skunk.util.Twiddler
 
 /**
  * SQL and parameter encoder for a statement that returns no rows. We assume that `sql` has the
@@ -42,6 +43,9 @@ final case class Command[A](
    */
   def contramap[B](f: B => A): Command[B] =
     Command(sql, origin, encoder.contramap(f))
+
+  def gcontramap[B](implicit ev: Twiddler.Aux[B, A]): Command[B] =
+    contramap(ev.to)
 
 }
 

@@ -76,6 +76,16 @@ And again we can pass the query to @scaladoc[Session#execute](skunk.Session#exec
 
 @@snip [Query.scala](/modules/docs/src/main/scala/tutorial/Query.scala) { #query-d-exec }
 
+### Mapping Decoder Results Generically
+
+Because `Country` is a simple case class we can generate the mapping code mechanically. To do this, use `gmap` and specify the target data type.
+
+@@snip [Query.scala](/modules/docs/src/main/scala/tutorial/Query.scala) { #query-d2 }
+
+Alternatively, instead of constructing a named decoder you can `gmap` the `Query` itself.
+
+@@snip [Query.scala](/modules/docs/src/main/scala/tutorial/Query.scala) { #query-d3 }
+
 ## Parameterized Query
 
 Now let's add a parameter to the query. We'll also reformat the query to be more readable.

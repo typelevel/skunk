@@ -6,6 +6,7 @@ package skunk
 
 import cats.arrow.Profunctor
 import skunk.util.Origin
+import skunk.util.Twiddler
 
 /**
  * SQL, parameter encoder, and row decoder for a statement that returns rows. We assume that `sql`
@@ -54,12 +55,18 @@ final case class Query[A, B](
   def contramap[C](f: C => A): Query[C, B] =
     dimap[C, B](f)(identity)
 
+  def gcontramap[C](implicit ev: Twiddler.Aux[C, A]): Query[C, B] =
+    contramap(ev.to)
+
   /**
    * Query is a covariant functor in `B`.
    * @group Transformations
    */
   def map[D](g: B => D): Query[A, D] =
     dimap[A, D](identity)(g)
+
+  def gmap[D](implicit ev: Twiddler.Aux[D, B]): Query[A, D] =
+    map(ev.from)
 
 }
 
