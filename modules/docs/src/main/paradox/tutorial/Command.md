@@ -23,17 +23,11 @@ The command above is a *simple command*.
 A *simple command* is a command with no parameters.
 @@@
 
-The same [protocol](https://www.postgresql.org/docs/10/protocol-flow.html#id-1.10.5.7.4) that executes simple queries also executes of simple commands. Such commands can be passed directly to @scaladoc[Session.execute](skunk.Session#execute).
+The same [protocol](https://www.postgresql.org/docs/10/protocol-flow.html#id-1.10.5.7.4) that executes simple queries also executes simple commands. Such commands can be passed directly to @scaladoc[Session.execute](skunk.Session#execute).
 
 @@snip [Command.scala](/modules/docs/src/main/scala/tutorial/Command.scala) { #command-a-exec }
 
 On success a command will yield a @scaladoc[Completion](skunk.data.Completion), which is an ADT that encodes responses from various commands. In this case our completion is simply the value `Completion.Set`.
-
-Let's try a simple `DELETE` command.
-
-@@snip [Command.scala](/modules/docs/src/main/scala/tutorial/Command.scala) { #command-b }
-
-In this case the result will be `Delete(0)` since there are no countries named `xyzzy`.
 
 ## Parameterized Command
 
@@ -49,15 +43,19 @@ The command above is an *extended command*.
 An *extended command* is a command with parameters, or a simple command that is executed via the extended query protocol.
 @@@
 
-Here is a command with two parameters.
+The same protocol Postgres provides for executing extended queries is also used for extended commands, but because the return value is always a single `Completion` the end-user API is more limited.
 
-@@snip [Command.scala](/modules/docs/src/main/scala/tutorial/Command.scala) { #command-d }
+Here we use the extended protocol to attempt some deletions.
 
-Note that `varchar` and `bpchar(3)` both encode Scala values of type `String`.
+@@snip [Command.scala](/modules/docs/src/main/scala/tutorial/Command.scala) { #command-c2 }
+
+If we're slighly more clever we can do this with `traverse` and return a list of `Completion`.
+
+@@snip [Command.scala](/modules/docs/src/main/scala/tutorial/Command.scala) { #command-c3 }
 
 ### Contramapping Commands
 
-Similar to mapping the _output_ of a Query, we can `contramap` the _input_ to a command or query. Here we provide a function that turns an `Info` into a `String ~ String`.
+Similar to `map`ping the _output_ of a Query, we can `contramap` the _input_ to a command or query. Here we provide a function that turns an `Info` into a `String ~ String`, yielding a `Command[Info]`.
 
 @@snip [Command.scala](/modules/docs/src/main/scala/tutorial/Command.scala) { #command-e }
 
@@ -66,8 +64,21 @@ However in this case the mapping is entirely mechanical. Similar to `gmap` on qu
 @@snip [Command.scala](/modules/docs/src/main/scala/tutorial/Command.scala) { #command-f }
 
 
+## Encoding Values
+
+(show how to do `(foo ~ bar).values`)
 
 ## Summary of Command Types
+
+The *simple command protocol* (i.e., `Session#execute`) is slightly more efficient in terms of message exchange, so use it if:
+
+- Your command has no parameters; and
+- you will be using the query only once per session.
+
+The *extend command protocol* (i.e., `Session#prepare`) is more powerful and more general, but requires additional network exchanges. Use it if:
+
+- Your command has parameters; and/or
+- you will be using the command more than once per session.
 
 ## Full Example
 

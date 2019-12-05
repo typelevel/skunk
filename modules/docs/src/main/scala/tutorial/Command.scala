@@ -12,6 +12,7 @@ object Command extends IOApp {
 
   //#command-a
   import cats.effect.IO
+  import cats.implicits._
   import skunk._
   import skunk.implicits._
   import skunk.codec.all._
@@ -38,6 +39,23 @@ object Command extends IOApp {
     sql"DELETE FROM country WHERE name = $varchar".command
   //#command-c
 
+  def foo(s: Session[IO]) = {
+    //#command-c2
+    // assume s: Session[IO]
+    s.prepare(c).use { pc =>
+      pc.execute("xyzzy") *>
+      pc.execute("fnord") *>
+      pc.execute("blech")
+    } // IO[Completion]
+    //#command-c2
+    //#command-c3
+    // assume s: Session[IO]
+    s.prepare(c).use { pc =>
+      List("xyzzy", "fnord", "blech").traverse(s => pc.execute(s))
+    } // IO[List[Completion]]
+    //#command-c3
+  }
+
   //#command-d
   def update: Command[String ~ String] =
     sql"""
@@ -55,8 +73,8 @@ object Command extends IOApp {
       UPDATE country
       SET    headofstate = $varchar
       WHERE  code = ${bpchar(3)}
-    """.command
-       .contramap { case Info(code, hos) => code ~ hos }
+    """.command // Command[String ~ String]
+       .contramap { case Info(code, hos) => code ~ hos } // Command[Info]
   //#command-e
 
   //#command-f
@@ -65,8 +83,8 @@ object Command extends IOApp {
       UPDATE country
       SET    headofstate = $varchar
       WHERE  code = ${bpchar(3)}
-    """.command
-       .gcontramap[Info]
+    """.command          // Command[String ~ String]
+       .gcontramap[Info] // Command[Info]
   //#command-f
 
   val session: Resource[IO, Session[IO]] =
