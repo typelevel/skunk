@@ -4,7 +4,7 @@ Welcome to the Wonderful World of Skunk! This section will help you get everythi
 
 ## Database Setup
 
-In order to run the tutorial examples you will need a Postgres server with the `world` database loaded up, writable by the `jimmy` user, who must be able to log in without password `banana`. Our [Docker](http://docker.com) image does exactly that.
+In order to run the tutorial examples you will need a Postgres server with the `world` database loaded up, writable by the `jimmy` user, who must be able to log in with password `banana`. Our [Docker](http://docker.com) image does exactly that.
 
 ```
 docker run -p5432:5432 -d tpolecat/skunk-world
