@@ -25,11 +25,6 @@ object QueryExample extends IOApp {
   // a data model
   case class Country(name: String, code: String, population: Int)
 
-  // a decoder
-  val country: Decoder[Country] =
-    (varchar ~ bpchar(3) ~ int4)
-      .map { case n ~ c ~ p => Country(n, c, p) }
-
   // a simple query
   val simple: Query[Void, OffsetDateTime] =
     sql"select current_timestamp".query(timestamptz)
@@ -40,7 +35,8 @@ object QueryExample extends IOApp {
       SELECT name, code, population
       FROM   country
       WHERE  name like $text
-    """.query(country)
+    """.query(varchar ~ bpchar(3) ~ int4)
+       .gmap[Country]
 
   // run our simple query
   def doSimple(s: Session[IO]): IO[Unit] =

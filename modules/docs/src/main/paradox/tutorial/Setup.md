@@ -4,7 +4,7 @@ Welcome to the Wonderful World of Skunk! This section will help you get everythi
 
 ## Database Setup
 
-In order to run the tutorial examples you will need a Postgres server with the `world` database loaded up, writable by the `postgres` user, who must be able to log in without a password. Our [Docker](http://docker.com) image does exactly that.
+In order to run the tutorial examples you will need a Postgres server with the `world` database loaded up, writable by the `jimmy` user, who must be able to log in with password `banana`. Our [Docker](http://docker.com) image does exactly that.
 
 ```
 docker run -p5432:5432 -d tpolecat/skunk-world
@@ -34,7 +34,7 @@ Let's examine the code above.
 - At ② we define a [Resource](https://typelevel.org/cats-effect/datatypes/resource.html)  that yields un-pooled @ref:[Session](../reference/Sessions.md) values and ensures that they are closed after use. We specify the host, port, user, database, and password.
 
 @@@ note
-Skunk currently allows logging in with no password using the `trust` authentication scheme, or logging in with a password using the `md5` authentication scheme. The former and latter schemes are what you get with the official Postgres Docker image, depending on whether you specify `POSTGRES_PASSWORD` or not.
+Skunk currently allows logging in with no password using the `trust` authentication scheme, or logging in with a password using the `md5` authentication scheme. The official Postgres Docker image uses `trust` by default, and `md5` if you specify `POSTGRES_PASSWORD`.
 
 Skunk does not yet support SSL connections.
 @@@

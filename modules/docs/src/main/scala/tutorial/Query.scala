@@ -57,6 +57,21 @@ object Query extends IOApp {
     //#query-d-exec
   }
 
+  {
+  //#query-d2
+  val country: Decoder[Country] =
+    (varchar ~ int4).gmap[Country]
+  //#query-d2
+  country
+  }
+
+  //#query-d3
+  val c2: Query[Void, Country] =
+    sql"SELECT name, population FROM country"
+      .query(varchar ~ int4)
+      .gmap[Country]
+  //#query-d3
+
   //#query-e
   val e: Query[String, Country] =
     sql"""

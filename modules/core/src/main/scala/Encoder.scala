@@ -83,6 +83,9 @@ trait Encoder[A] { outer =>
    */
   def list(n: Int): Encoder[List[A]] =
     new Encoder[List[A]] {
+      // N.B. this is error-prone because we have no static checking on the length. It should be a
+      // well-explained runtime error to encode a list of the wrong length. This means we need to
+      // encode into Either, as we do with decoding.
       def encode(as: List[A]) = as.flatMap(outer.encode)
       val types = (0 until n).toList.flatMap(_ => outer.types)
       val sql   = outer.sql.replicateA(n).map(_.mkString(", "))
