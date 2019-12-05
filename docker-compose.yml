@@ -1,5 +1,6 @@
 version: '3'
 services:
+  # main instance for testing
   postgres:
     image: postgres:11
     volumes:
@@ -10,4 +11,10 @@ services:
       POSTGRES_USER: jimmy
       POSTGRES_PASSWORD: banana
       POSTGRES_DB: world
-
+  # for testing password-free login
+  trust:
+    image: postgres:11
+    ports:
+      - 5433:5432
+    environment:
+      POSTGRES_DB: world

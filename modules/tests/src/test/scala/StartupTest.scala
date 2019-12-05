@@ -10,40 +10,133 @@ import skunk._
 import natchez.Trace.Implicits.noop
 import skunk.exception.SkunkException
 import skunk.exception.StartupException
+import java.net.ConnectException
+import java.nio.channels.UnresolvedAddressException
 
 case object StartupTest extends ffstest.FTest {
 
-  def session(user: String, password: Option[String]): Resource[IO, Session[IO]] =
-    Session.single(
+  // Different ports for different authentication schemes.
+  object Port {
+    val Invalid = 5431
+    val MD5     = 5432
+    val Trust   = 5433
+  }
+
+  test("md5 - successful login") {
+    Session.single[IO](
       host     = "localhost",
-      user     = user,
+      user     = "jimmy",
       database = "world",
-      password = password,
-    )
-
-  test("successful login") {
-    session("jimmy", Some("banana")).use(_ => IO.unit)
+      password = Some("banana"),
+      port     = Port.MD5,
+    ).use(_ => IO.unit)
   }
 
-  test("missing password") {
-    for {
-      e <- session("jimmy", None).use(_ => IO.unit).assertFailsWith[SkunkException]
-      _ <- assertEqual("message", e.message, "Password required.")
-    } yield ()
+  test("md5 - non-existent database") {
+    Session.single[IO](
+      host     = "localhost",
+      user     = "jimmy",
+      database = "blah",
+      password = Some("banana"),
+      port     = Port.MD5,
+    ).use(_ => IO.unit)
+     .assertFailsWith[StartupException]
+     .flatMap(e => assertEqual("code", e.code, "3D000"))
   }
 
-  test("incorrect user") {
-    for {
-      e <- session("frank", Some("apple")).use(_ => IO.unit).assertFailsWith[StartupException]
-      _ <- assertEqual("code", e.code, "28P01")
-    } yield ()
+  test("md5 - missing password") {
+    Session.single[IO](
+      host     = "localhost",
+      user     = "jimmy",
+      database = "blah",
+      password = None,
+      port     = Port.MD5,
+    ).use(_ => IO.unit)
+     .assertFailsWith[SkunkException]
+     .flatMap(e => assertEqual("message", e.message, "Password required."))
   }
 
-  test("incorrect password") {
-    for {
-      e <- session("jimmy", Some("apple")).use(_ => IO.unit).assertFailsWith[StartupException]
-      _ <- assertEqual("code", e.code, "28P01")
-    } yield ()
+  test("md5 - incorrect user") {
+    Session.single[IO](
+      host     = "localhost",
+      user     = "frank",
+      database = "world",
+      password = Some("banana"),
+      port     = Port.MD5,
+    ).use(_ => IO.unit)
+     .assertFailsWith[StartupException]
+     .flatMap(e => assertEqual("code", e.code, "28P01"))
+  }
+
+  test("md5 - incorrect password") {
+    Session.single[IO](
+      host     = "localhost",
+      user     = "jimmy",
+      database = "world",
+      password = Some("apple"),
+      port     = Port.MD5,
+    ).use(_ => IO.unit)
+     .assertFailsWith[StartupException]
+     .flatMap(e => assertEqual("code", e.code, "28P01"))
+  }
+
+  test("trust - successful login") {
+    Session.single[IO](
+      host     = "localhost",
+      user     = "postgres",
+      database = "world",
+      port     = Port.Trust,
+    ).use(_ => IO.unit)
+  }
+
+  // TODO: should this be an error?
+  test("trust - successful login, ignored password") {
+    Session.single[IO](
+      host     = "localhost",
+      user     = "postgres",
+      database = "world",
+      password = Some("ignored"),
+      port     = Port.Trust,
+    ).use(_ => IO.unit)
+  }
+
+  test("trust - non-existent database") {
+    Session.single[IO](
+      host     = "localhost",
+      user     = "postgres",
+      database = "bogus",
+      port     = Port.Trust,
+    ).use(_ => IO.unit)
+     .assertFailsWith[StartupException]
+     .flatMap(e => assertEqual("code", e.code, "3D000"))
+  }
+
+  test("trust - incorrect user") {
+    Session.single[IO](
+      host     = "localhost",
+      user     = "bogus",
+      database = "world",
+      port     = Port.Trust,
+    ).use(_ => IO.unit)
+     .assertFailsWith[StartupException]
+     .flatMap(e => assertEqual("code", e.code, "28000"))
+  }
+
+  test("invalid port") {
+    Session.single[IO](
+      host     = "localhost",
+      user     = "bob",
+      database = "nobody cares",
+      port     = Port.Invalid
+    ).use(_ => IO.unit).assertFailsWith[ConnectException]
+  }
+
+  test("invalid host") {
+    Session.single[IO](
+      host     = "blergh",
+      user     = "bob",
+      database = "nobody cares",
+    ).use(_ => IO.unit).assertFailsWith[UnresolvedAddressException]
   }
 
 }
