@@ -138,7 +138,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <h1><a href="#setup" name="setup" class="anchor"><span class="anchor-link"></span></a>Setup</h1>
 <p>Welcome to the Wonderful World of Skunk! This section will help you get everything set up.</p>
 <h2><a href="#database-setup" name="database-setup" class="anchor"><span class="anchor-link"></span></a>Database Setup</h2>
-<p>In order to run the tutorial examples you will need a Postgres server with the <code>world</code> database loaded up, writable by the <code>postgres</code> user, who must be able to log in without a password. Our <a href="http://docker.com">Docker</a> image does exactly that.</p>
+<p>In order to run the tutorial examples you will need a Postgres server with the <code>world</code> database loaded up, writable by the <code>jimmy</code> user, who must be able to log in with password <code>banana</code>. Our <a href="http://docker.com">Docker</a> image does exactly that.</p>
 <pre><code>docker run -p5432:5432 -d tpolecat/skunk-world
 </code></pre>
 <p>If you wish to use your own Postgres server you can download <code>world/world.sql</code> from the Skunk repository and load it up yourself.</p>
@@ -152,7 +152,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 }</code></pre></dd></dl>
 <h2><a href="#verify-your-setup" name="verify-your-setup" class="anchor"><span class="anchor-link"></span></a>Verify Your Setup</h2>
 <p>Try out this minimal <a href="https://typelevel.org/cats-effect/datatypes/ioapp.html">IOApp</a> that connects to the database and selects the current date.</p>
-<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/v0.0.7/modules/docs/src/main/scala/tutorial/Setup.scala#L8-L33" target="_blank" title="Go to snippet source"></a><code class="language-scala">import cats.effect._
+<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/scala/tutorial/Setup.scala#L8-L33" target="_blank" title="Go to snippet source"></a><code class="language-scala">import cats.effect._
 import skunk._
 import skunk.implicits._
 import skunk.codec.all._
@@ -183,7 +183,7 @@ object Hello extends IOApp {
   <li>At ① we import the no-op <code>Tracer</code>, which allows us to run Skunk programs with execution tracing disabled. We will revisit <a href="Tracing.html">Tracing</a> in a later section.</li>
   <li>At ② we define a <a href="https://typelevel.org/cats-effect/datatypes/resource.html">Resource</a> that yields un-pooled <a href="../reference/Sessions.html">Session</a> values and ensures that they are closed after use. We specify the host, port, user, database, and password.</li>
 </ul><div class="callout note "><div class="callout-title">Note</div>
-<p>Skunk currently allows logging in with no password using the <code>trust</code> authentication scheme, or logging in with a password using the <code>md5</code> authentication scheme. The former and latter schemes are what you get with the official Postgres Docker image, depending on whether you specify <code>POSTGRES_PASSWORD</code> or not.</p>
+<p>Skunk currently allows logging in with no password using the <code>trust</code> authentication scheme, or logging in with a password using the <code>md5</code> authentication scheme. The official Postgres Docker image uses <code>trust</code> by default, and <code>md5</code> if you specify <code>POSTGRES_PASSWORD</code>.</p>
 <p>Skunk does not yet support SSL connections.</p></div>
 <ul>
   <li>At ③ we <code>use</code> the resource, specifying a block to execute during the <code>Session</code>&rsquo;s lifetime. No matter how the block terminates (success, failure, cancellation) the <code>Session</code> will be closed properly.</li>
@@ -201,7 +201,7 @@ object Hello extends IOApp {
 </ul>
 <p>We will see more examples later in the tutorial.</p>
 <div class="source-github">
-The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/v0.0.7/modules/docs/src/main/paradox/tutorial/Setup.md">here</a>.
+The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/paradox/tutorial/Setup.md">here</a>.
 </div>
 
 <div class="nav-next">
