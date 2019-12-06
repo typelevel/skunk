@@ -4,36 +4,41 @@
 
 package tests
 
-import io.chrisdavenport.cats.time.{offsetdatetimeInstances => _, _}
-import java.time.LocalDate
-import java.time.LocalTime
-
+import cats.Eq
+import cats.implicits._
+import io.chrisdavenport.cats.time.{ offsetdatetimeInstances => _, _ }
+import java.time._
 import skunk.codec.temporal._
-import java.time.ZoneOffset
-import cats.kernel.Eq
-import java.time.OffsetDateTime
-import java.time.Duration
 
 case object TemporalCodecTest extends CodecTest {
 
-  // instance from cats-time takes only local datetimes into consideration
-  implicit val offsetDateTimeEq = new Eq[OffsetDateTime] {
-    def eqv(x: OffsetDateTime, y: OffsetDateTime): Boolean =
-      x.toInstant() == y.toInstant()
-  }
+  // For these tests consider `OffsetDateTime`s equal if they refer to the same instant in time,
+  // rather than distinguishing the same point in time as specified in different timezones, which
+  // is the default.
+  implicit val offsetDateTimeEq: Eq[OffsetDateTime] =
+    Eq.by(_.toInstant)
 
   // Date
-  val earliestDatePostgresCanStore = LocalDate.of(-4713, 12, 31)
-  val veryBigPostgresDate = LocalDate.of(256789, 12, 31)
-  val dates = List(earliestDatePostgresCanStore, LocalDate.of(2019, 6, 17), veryBigPostgresDate)
+  val dates: List[LocalDate] =
+    List(
+      LocalDate.of(-4713, 12, 31),  // Earliest date Postgres can store
+      LocalDate.of(2019, 6, 17),    // A reasonable date.
+      LocalDate.of(256789, 12, 31), // A very distant date
+    )
 
   codecTest(date)(dates: _*)
 
-
   // Time
-  val times = List(LocalTime.MIN, LocalTime.NOON, LocalTime.of(5, 23, 58), LocalTime.of(17, 23, 58), LocalTime.MIDNIGHT)
+  val times: List[LocalTime] =
+    List(
+      LocalTime.MIN,
+      LocalTime.NOON,
+      LocalTime.of(5, 23, 58),
+      LocalTime.of(17, 23, 58),
+      LocalTime.MIDNIGHT,
+    )
 
-  codecTest(time)(times :+ LocalTime.MAX.withNano(999999000): _*)
+  codecTest(time   )(times :+ LocalTime.MAX.withNano(999999000): _*)
   codecTest(time(6))(times :+ LocalTime.MAX.withNano(999999000): _*)
   codecTest(time(5))(times :+ LocalTime.MAX.withNano(999990000): _*)
   codecTest(time(4))(times :+ LocalTime.MAX.withNano(999900000): _*)
@@ -42,14 +47,11 @@ case object TemporalCodecTest extends CodecTest {
   codecTest(time(1))(times :+ LocalTime.MAX.withNano(900000000): _*)
   codecTest(time(0))(times :+ LocalTime.MAX.withNano(0): _*)
 
-
   // Timestamp
-  val dateTimes = for { 
-    date <- dates
-    time <- times
-  } yield date.atTime(time)
+  val dateTimes: List[LocalDateTime] =
+    (dates, times).mapN(_ atTime _)
 
-  codecTest(timestamp)(dateTimes: _*)
+  codecTest(timestamp   )(dateTimes: _*)
   codecTest(timestamp(6))(dateTimes: _*)
   codecTest(timestamp(5))(dateTimes: _*)
   codecTest(timestamp(4))(dateTimes: _*)
@@ -59,13 +61,18 @@ case object TemporalCodecTest extends CodecTest {
   codecTest(timestamp(0))(dateTimes: _*)
 
   // Time with offset
-  val offsets = List(ZoneOffset.ofHours(-13), ZoneOffset.UTC, ZoneOffset.ofHours(15), ZoneOffset.ofHoursMinutes(4, 30))
-  val offsetTimes = for {
-    time   <- times
-    offset <- offsets
-  } yield time.atOffset(offset)
+  val offsets: List[ZoneOffset] =
+    List(
+      ZoneOffset.ofHours(-13),
+      ZoneOffset.UTC,
+      ZoneOffset.ofHours(15),
+      ZoneOffset.ofHoursMinutes(4, 30),
+    )
 
-  codecTest(timetz)(offsetTimes: _*)
+  val offsetTimes: List[OffsetTime] =
+    (times, offsets).mapN(_ atOffset _)
+
+  codecTest(timetz   )(offsetTimes: _*)
   codecTest(timetz(6))(offsetTimes: _*)
   codecTest(timetz(5))(offsetTimes: _*)
   codecTest(timetz(4))(offsetTimes: _*)
@@ -75,12 +82,10 @@ case object TemporalCodecTest extends CodecTest {
   codecTest(timetz(0))(offsetTimes: _*)
 
   // Timestamp with offset
-  val offsetDateTimes = for {
-    dateTime <- dateTimes
-    offset   <- offsets
-  } yield dateTime.atOffset(offset)
+  val offsetDateTimes: List[OffsetDateTime] =
+    (dateTimes, offsets).mapN(_ atOffset _)
 
-  codecTest(timestamptz)(offsetDateTimes: _*)
+  codecTest(timestamptz   )(offsetDateTimes: _*)
   codecTest(timestamptz(6))(offsetDateTimes: _*)
   codecTest(timestamptz(5))(offsetDateTimes: _*)
   codecTest(timestamptz(4))(offsetDateTimes: _*)
@@ -90,8 +95,19 @@ case object TemporalCodecTest extends CodecTest {
   codecTest(timestamptz(0))(offsetDateTimes: _*)
 
   // Interval
-  val intervals = List(Duration.ZERO, Duration.ofDays(-999999), Duration.ofDays(9999999),
-                       Duration.ofDays(9999).plusHours(21).plusMinutes(55).plusSeconds(55).plusMillis(555).plusNanos(555000))
+  val intervals: List[Duration] =
+    List(
+      Duration.ZERO,
+      Duration.ofDays(-999999),
+      Duration.ofDays(9999999),
+      Duration
+        .ofDays(9999)
+        .plusHours(21)
+        .plusMinutes(55)
+        .plusSeconds(55)
+        .plusMillis(555)
+        .plusNanos(555000),
+    )
 
   codecTest(interval)(intervals: _*)
 
