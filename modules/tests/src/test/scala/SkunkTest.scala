@@ -13,7 +13,7 @@ import skunk.implicits._
 import skunk.util.Typer
 import natchez.Trace.Implicits.noop
 
-abstract class SkunkTest(strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly) extends ffstest.FTest {
+abstract class SkunkTest(debug: Boolean = false, strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly) extends ffstest.FTest {
 
   val session: Resource[IO, Session[IO]] =
     Session.single(
@@ -23,7 +23,7 @@ abstract class SkunkTest(strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly)
       database = "world",
       password = Some("banana"),
       strategy = strategy,
-      // debug = true
+      debug    = debug
     )
 
   def sessionTest[A](name: String)(fa: Session[IO] => IO[A]): Unit =
@@ -38,7 +38,7 @@ abstract class SkunkTest(strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly)
       for {
         _ <- assertTransactionStatus("sanity check", TransactionStatus.Idle)
         n <- s.unique(sql"select 'SkunkTest Health Check'::varchar".query(varchar))
-        _ <- assert("sanity check", n === "SkunkTest Health Check")
+        _ <- assert("sanity check", n == "SkunkTest Health Check")
       } yield ()
 
   }

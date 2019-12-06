@@ -14,7 +14,10 @@ import skunk.util.Typer
 import ffstest.FTest
 
 /** Tests that we check if we can round-trip values via codecs. */
-abstract class CodecTest(strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly) extends SkunkTest(strategy) {
+abstract class CodecTest(
+  debug:    Boolean = false,
+  strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly
+) extends SkunkTest(debug, strategy) {
 
   def codecTest[A: Eq](codec: Codec[A])(as: A*): Unit =
     sessionTest(s"${codec.types.mkString(", ")}") { s =>

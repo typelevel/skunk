@@ -13,7 +13,7 @@ case object TextCodecTest extends CodecTest {
 
   // varchar
   codecTest(varchar)("", "a", "ab", "foo", "föf", "🔥 and 🌈", "مرحبا", "שלום", "你好", "'quotes'")
-  codecTest(varchar(3), "varchar(3)".some)("", "a", "ab", "foo", "föf", "🔥 a", "مرح", "שלו", "你好", "'q'")
+  codecTest(varchar(3))("", "a", "ab", "foo", "föf", "🔥 a", "مرح", "שלו", "你好", "'q'")
   sessionTest("varchar(3) (trimming)") { s =>
     for {
       a <- s.unique(sql"select 'abcdef'::varchar(3)".query(varchar(3)))
@@ -23,7 +23,7 @@ case object TextCodecTest extends CodecTest {
 
   // bpchar
   codecTest(bpchar)("", "a", "ab", "foo", "föf", "🔥 and 🌈", "مرحبا", "שלום", "你好", "'quotes'")
-  codecTest(bpchar(3), "bpchar(3)".some)("   ", "  a", " ab", "foo", "föf", "🔥 a", "مرح", "שלו", " 你好", "'q'")
+  codecTest(bpchar(3))("   ", "  a", " ab", "foo", "föf", "🔥 a", "مرح", "שלו", " 你好", "'q'")
   sessionTest("bpchar(3) (trimmimg)") { s =>
     for {
       a <- s.unique(sql"select 'abcdef'::bpchar(3)".query(bpchar(3)))
