@@ -3,6 +3,7 @@
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
 package tests
+package codec
 
 import cats.implicits._
 import io.circe.Json
