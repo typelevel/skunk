@@ -13,85 +13,139 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.OffsetDateTime
 import java.time.OffsetTime
-import java.time.temporal.TemporalAccessor
-
+import java.time.temporal.ChronoField._
 import skunk.data.Type
+import java.time.temporal.TemporalAccessor
+import java.time.format.DateTimeFormatterBuilder
+import java.time.Duration
 
 trait TemporalCodecs {
 
-  private def temporal[A <: TemporalAccessor](format: String, parse: (String, DateTimeFormatter) => A, tpe: Type): Codec[A] = {
-    val fmt = DateTimeFormatter.ofPattern(format)
+  private def temporal[A <: TemporalAccessor](formatter: DateTimeFormatter, parse: (String, DateTimeFormatter) => A, tpe: Type): Codec[A] =
     Codec.simple(
-      a => fmt.format(a),
-      s => Either.catchOnly[DateTimeParseException](parse(s, fmt)).leftMap(_.toString),
+      a => formatter.format(a),
+      s => Either.catchOnly[DateTimeParseException](parse(s, formatter)).leftMap(_.toString),
       tpe
     )
+
+  private def timeFormatter(precision: Int): DateTimeFormatter = {
+    val requiredPart = new DateTimeFormatterBuilder()
+      .appendValue(HOUR_OF_DAY, 2)
+      .appendLiteral(':')
+      .appendValue(MINUTE_OF_HOUR, 2)
+      .appendLiteral(':')
+      .appendValue(SECOND_OF_MINUTE, 2)
+
+    if(precision > 0) {
+      requiredPart.optionalStart()
+        .appendFraction(NANO_OF_SECOND, 0, precision, true)
+        .optionalEnd()
+        .toFormatter()
+    } else {
+      requiredPart.toFormatter()
+    }
   }
 
+  // Postgres does not understand dates with minus sign at the beggining
+  // Instead we need to create custom formatters and append BC/AD after the date
+  private val localDateFormatterWithoutEra =
+    new DateTimeFormatterBuilder()
+      .appendValue(YEAR_OF_ERA)
+      .appendLiteral('-')
+      .appendValue(MONTH_OF_YEAR, 2)
+      .appendLiteral('-')
+      .appendValue(DAY_OF_MONTH, 2)
+      .toFormatter()
+
+  private val eraFormatter = DateTimeFormatter.ofPattern(" G")
+
+  private val localDateFormatter =
+    new DateTimeFormatterBuilder()
+      .append(localDateFormatterWithoutEra)
+      .appendOptional(eraFormatter)
+      .toFormatter
+
+  private def localDateTimeFormatter(precision: Int) =
+    new DateTimeFormatterBuilder()
+      .append(localDateFormatterWithoutEra)
+      .appendLiteral(' ')
+      .append(timeFormatter(precision))
+      .appendOptional(eraFormatter)
+      .toFormatter()
+
+  // If the offset is only hours, postgres will return time like this: "12:40:50+13"
+  // We need to provide a custom offset format to parse this with DateTimeFormatter
+  private def offsetTimeFormatter(precision: Int) =
+    new DateTimeFormatterBuilder()
+      .append(timeFormatter(precision))
+      .appendOffset("+HH:mm", "")
+      .toFormatter
+
+  private def offsetDateTimeFormatter(precision: Int) =
+    new DateTimeFormatterBuilder()
+      .append(localDateFormatterWithoutEra)
+      .appendLiteral(' ')
+      .append(timeFormatter(precision))
+      .appendOffset("+HH:mm", "")
+      .appendOptional(eraFormatter)
+      .toFormatter
+
   val date: Codec[LocalDate] =
-    temporal("yyyy-MM-dd", LocalDate.parse, Type.date)
+    temporal(localDateFormatter, LocalDate.parse, Type.date)
 
   val time: Codec[LocalTime] =
-    temporal("HH:mm:ss.SSSSSS", LocalTime.parse, Type.time)
+    temporal(timeFormatter(6), LocalTime.parse, Type.time)
 
   def time(precision: Int): Codec[LocalTime] =
-    precision match {
-      case 0 => temporal("HH:mm:ss",        LocalTime.parse, Type.time(0))
-      case 1 => temporal("HH:mm:ss.S",      LocalTime.parse, Type.time(1))
-      case 2 => temporal("HH:mm:ss.SS",     LocalTime.parse, Type.time(2))
-      case 3 => temporal("HH:mm:ss.SSS",    LocalTime.parse, Type.time(3))
-      case 4 => temporal("HH:mm:ss.SSSS",   LocalTime.parse, Type.time(4))
-      case 5 => temporal("HH:mm:ss.SSSSS",  LocalTime.parse, Type.time(5))
-      case 6 => temporal("HH:mm:ss.SSSSSS", LocalTime.parse, Type.time(6))
-      case _ => throw new IllegalArgumentException(s"time($precision): invalid precision, expected 0-6")
+    if (precision >= 0 && precision <= 6) {
+      temporal(timeFormatter(precision), LocalTime.parse, Type.time(precision))
+    } else {
+      throw new IllegalArgumentException(s"time($precision): invalid precision, expected 0-6")
     }
 
   val timetz: Codec[OffsetTime] =
-    temporal("HH:mm:ss.SSSSSSx", OffsetTime.parse, Type.timetz)
+    temporal(offsetTimeFormatter(6), OffsetTime.parse, Type.timetz)
 
   def timetz(precision: Int): Codec[OffsetTime] =
-    precision match {
-      case 0 => temporal("HH:mm:ssx",        OffsetTime.parse, Type.timetz(0))
-      case 1 => temporal("HH:mm:ss.Sx",      OffsetTime.parse, Type.timetz(1))
-      case 2 => temporal("HH:mm:ss.SSx",     OffsetTime.parse, Type.timetz(2))
-      case 3 => temporal("HH:mm:ss.SSSx",    OffsetTime.parse, Type.timetz(3))
-      case 4 => temporal("HH:mm:ss.SSSSx",   OffsetTime.parse, Type.timetz(4))
-      case 5 => temporal("HH:mm:ss.SSSSSx",  OffsetTime.parse, Type.timetz(5))
-      case 6 => temporal("HH:mm:ss.SSSSSSx", OffsetTime.parse, Type.timetz(6))
-      case _ => throw new IllegalArgumentException(s"timetz($precision): invalid precision, expected 0-6")
+    if(precision >= 0 && precision <= 6) {
+      temporal(offsetTimeFormatter(precision), OffsetTime.parse, Type.timetz(precision))
+    } else {
+      throw new IllegalArgumentException(s"timetz($precision): invalid precision, expected 0-6")
     }
 
   val timestamp: Codec[LocalDateTime] =
-    temporal("yyyy-MM-dd HH:mm:ss.SSSSSS", LocalDateTime.parse, Type.timestamp)
+    temporal(localDateTimeFormatter(6), LocalDateTime.parse, Type.timestamp)
 
   def timestamp(precision: Int): Codec[LocalDateTime] =
-    precision match {
-      case 0 => temporal("yyyy-MM-dd HH:mm:ss",        LocalDateTime.parse, Type.timestamp(0))
-      case 1 => temporal("yyyy-MM-dd HH:mm:ss.S",      LocalDateTime.parse, Type.timestamp(1))
-      case 2 => temporal("yyyy-MM-dd HH:mm:ss.SS",     LocalDateTime.parse, Type.timestamp(2))
-      case 3 => temporal("yyyy-MM-dd HH:mm:ss.SSS",    LocalDateTime.parse, Type.timestamp(3))
-      case 4 => temporal("yyyy-MM-dd HH:mm:ss.SSSS",   LocalDateTime.parse, Type.timestamp(4))
-      case 5 => temporal("yyyy-MM-dd HH:mm:ss.SSSSS",  LocalDateTime.parse, Type.timestamp(5))
-      case 6 => temporal("yyyy-MM-dd HH:mm:ss.SSSSSS", LocalDateTime.parse, Type.timestamp(6))
-      case _ => throw new IllegalArgumentException(s"timestamp($precision): invalid precision, expected 0-6")
+    if(precision >= 0 && precision <= 6) {
+      temporal(localDateTimeFormatter(precision), LocalDateTime.parse, Type.timestamp(precision))
+    } else {
+      throw new IllegalArgumentException(s"timestamp($precision): invalid precision, expected 0-6")
     }
 
   val timestamptz: Codec[OffsetDateTime] =
-    temporal("yyyy-MM-dd HH:mm:ss.SSSSSSx", OffsetDateTime.parse, Type.timestamptz)
+    temporal(offsetDateTimeFormatter(6), OffsetDateTime.parse, Type.timestamptz)
 
-  def timestamptz(precision: Int): Codec[LocalDateTime] =
-    precision match {
-      case 0 => temporal("yyyy-MM-dd HH:mm:ssx",        LocalDateTime.parse, Type.timestamptz(0))
-      case 1 => temporal("yyyy-MM-dd HH:mm:ss.Sx",      LocalDateTime.parse, Type.timestamptz(1))
-      case 2 => temporal("yyyy-MM-dd HH:mm:ss.SSx",     LocalDateTime.parse, Type.timestamptz(2))
-      case 3 => temporal("yyyy-MM-dd HH:mm:ss.SSSx",    LocalDateTime.parse, Type.timestamptz(3))
-      case 4 => temporal("yyyy-MM-dd HH:mm:ss.SSSSx",   LocalDateTime.parse, Type.timestamptz(4))
-      case 5 => temporal("yyyy-MM-dd HH:mm:ss.SSSSSx",  LocalDateTime.parse, Type.timestamptz(5))
-      case 6 => temporal("yyyy-MM-dd HH:mm:ss.SSSSSSx", LocalDateTime.parse, Type.timestamptz(6))
-      case _ => throw new IllegalArgumentException(s"timestamptz($precision): invalid precision, expected 0-6")
+  def timestamptz(precision: Int): Codec[OffsetDateTime] =
+    if(precision >= 0 && precision <= 6) {
+      temporal(offsetDateTimeFormatter(precision), OffsetDateTime.parse, Type.timestamptz(precision))
+    } else {
+      throw new IllegalArgumentException(s"timestampz($precision): invalid precision, expected 0-6")
     }
 
-  // todo: intervals, which will need a new data type
+  private def intervalCodec(tpe: Type): Codec[Duration] = Codec.simple(
+    duration => duration.toString,
+    str => Either.catchOnly[DateTimeParseException](Duration.parse(str)).leftMap(_.toString),
+    tpe
+  )
+
+  val interval: Codec[Duration] = intervalCodec(Type.interval)
+
+  def interval(precision: Int): Codec[Duration] =
+    if(precision >= 0 && precision <= 6)
+      intervalCodec(Type.interval(precision))
+    else
+      throw new IllegalArgumentException(s"interval($precision): invalid precision, expected 0-6")
 
 }
 
