@@ -35,9 +35,9 @@ abstract class CodecTest(strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly)
     }
 
   // Test a specific special value like NaN where equals doesn't work
-  def specialValueTest[A](name: String, codec: Codec[A])(value: A, isOk: A => Boolean): Unit =
+  def specialValueTest[A](name: String, codec: Codec[A], ascription: Option[String] = None)(value: A, isOk: A => Boolean): Unit =
     sessionTest(s"${codec.types.mkString(",")}") { s =>
-      s.prepare(sql"select $codec".query(codec)).use { ps =>
+      s.prepare(sql"select $codec#${ascription.foldMap("::" + _)}".query(codec)).use { ps =>
         ps.unique(value).flatMap { a =>
           assert(name, isOk(a)).as(name)
         }

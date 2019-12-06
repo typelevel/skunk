@@ -22,7 +22,7 @@ abstract class SkunkTest(strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly)
       user     = "jimmy",
       database = "world",
       password = Some("banana"),
-      strategy = strategy
+      strategy = strategy,
       // debug = true
     )
 
