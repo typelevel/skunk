@@ -21,7 +21,7 @@ abstract class CodecTest(strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly)
       // required for parametrized types
       val sqlString = codec.types match {
         case head :: Nil => sql"select $codec::#${head.name}"
-        case _           => sql"select $codec" 
+        case _           => sql"select $codec"
       }
 
       s.prepare(sqlString.query(codec)).use { ps =>
