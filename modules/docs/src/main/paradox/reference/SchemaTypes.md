@@ -38,13 +38,14 @@ Skunk codecs have the same names as their corresponding Postgres data types. Def
 
 ## Date/Time Types
 
-| ANSI SQL Type                 | Postgres Type    | Scala Type       |
-|-------------------------------|------------------|------------------|
-| `date`                        | `date`           | `LocalDate`      |
-| `time(s)`                     | `time(s)`        | `LocalTime`      |
-| `time(s) with time zone`      | `timetz(s)`      | `OffsetTime`     |
-| `timestamp(s)`                | `timestamp(s)`   | `LocalDateTime`  |
-| `timestamp(s) with time zone` | `timestamptz(s)` | `OffsetDateTime` |
+| ANSI SQL Type                 | Postgres Type    | Scala Type                 |
+|-------------------------------|------------------|----------------------------|
+| `date`                        | `date`           | `java.time.LocalDate`      |
+| `time(s)`                     | `time(s)`        | `java.time.LocalTime`      |
+| `time(s) with time zone`      | `timetz(s)`      | `java.time.OffsetTime`     |
+| `timestamp(s)`                | `timestamp(s)`   | `java.time.LocalDateTime`  |
+| `timestamp(s) with time zone` | `timestamptz(s)` | `java.time.OffsetDateTime` |
+| n/a                           | `interval`       | `java.time.Duration`       |
 
 #### Notes
 

@@ -54,6 +54,7 @@ object Type {
   def timetz(n: Int)          = Type(s"timetz($n)")
   def timestamp(n: Int)       = Type(s"timestamp($n)")
   def timestamptz(n: Int)     = Type(s"timestamptz($n)")
+  def interval(n: Int)        = Type(s"interval($n)")
 
   // Built-in Base Types
   val abstime          = Type("abstime")

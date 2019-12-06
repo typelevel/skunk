@@ -11,12 +11,16 @@ import sbt.testing.{ Framework, _ }
 import sbt.testing.Status._
 import scala.concurrent.ExecutionContext
 import scala.Console._
+import java.util.concurrent.Executors
 import scala.reflect.ClassTag
 
 trait FTest {
   protected[ffstest] var tests = List.empty[(String, IO[_])]
-  implicit val ioContextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-  implicit val ioTimer: Timer[IO] = IO.timer(ExecutionContext.global)
+
+  private val ec: ExecutionContext = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
+  implicit val ioContextShift: ContextShift[IO] = IO.contextShift(ec)
+  implicit val ioTimer: Timer[IO] = IO.timer(ec)
+
   def test[A](name: String)(f: IO[A]): Unit = tests = tests :+ ((name, f))
   def fail[A](msg: String): IO[A] = IO.raiseError(new AssertionError(msg))
   def fail[A](msg: String, cause: Throwable): IO[A] = IO.raiseError(new AssertionError(msg, cause))
@@ -62,6 +66,10 @@ final case class FRunner(
 
 case class FTask(taskDef: TaskDef, testClassLoader: ClassLoader) extends Task {
 
+  private val ec: ExecutionContext = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
+  implicit val ioContextShift: ContextShift[IO] = IO.contextShift(ec)
+  implicit val ioTimer: Timer[IO] = IO.timer(ec)
+
   implicit def throwableToOptionThrowable(t: Throwable): OptionalThrowable =
     new OptionalThrowable(t)
 
@@ -90,16 +98,13 @@ case class FTask(taskDef: TaskDef, testClassLoader: ClassLoader) extends Task {
       eventHandler.handle(event)
     }
 
-
     obj.tests.foreach { case (name, fa) =>
       type AE = AssertionError // to make the lines shorter below :-\
-      FTask.timed(obj.ioContextShift.shift *> fa).attempt.unsafeRunSync match {
-        case Right((ms, ())) => report(GREEN, s"✓ $name ($ms ms)",      FEvent(Success, duration = ms))
-        case Right((ms, a: Throwable)) => report(GREEN, s"✓ $name («${a.getClass.getSimpleName}», $ms ms)", FEvent(Success, duration = ms))
+      FTask.timed(obj.ioContextShift.shift *> fa).attempt.map {
         case Right((ms, a)) => report(GREEN, s"✓ $name ($a, $ms ms)",      FEvent(Success, duration = ms))
         case Left(e: AE)    => report(RED,   s"✗ $name (${e.getMessage})", FEvent(Failure))
         case Left(e)        => report(RED,   s"? $name (${e.getMessage})", FEvent(Error, throwable = e)) // todo: stacktrace
-      }
+      }.unsafeRunSync
     }
 
     // maybe we're supposed to return new tasks with new taskdefs?

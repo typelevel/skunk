@@ -17,7 +17,13 @@ abstract class CodecTest(strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly)
 
   def codecTest[A: Eq](codec: Codec[A])(as: A*): Unit =
     sessionTest(s"${codec.types.mkString(", ")}") { s =>
-      s.prepare(sql"select $codec".query(codec)).use { ps =>
+      // required for parametrized types
+      val sqlString = codec.types match {
+        case head :: Nil => sql"select $codec::#${head.name}"
+        case _           => sql"select $codec" 
+      }
+
+      s.prepare(sqlString.query(codec)).use { ps =>
         as.toList.traverse { a =>
           for {
             aʹ <- ps.unique(a)
