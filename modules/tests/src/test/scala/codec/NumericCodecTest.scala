@@ -3,15 +3,13 @@
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
 package tests
+package codec
 
 import cats.implicits._
 import skunk.codec.all._
 
 /** Test that we can round=trip values via codecs. */
 case object NumericCodecTest extends CodecTest {
-
-  // Boolean
-  codecTest(bool)(true, false)
 
   // Integral
   codecTest(int2)(Short.MinValue, -1, 0, 1, Short.MaxValue)

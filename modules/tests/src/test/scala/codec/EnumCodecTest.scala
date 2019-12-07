@@ -3,6 +3,7 @@
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
 package tests
+package codec
 
 import cats.Eq
 import skunk.codec.enum._
@@ -11,7 +12,7 @@ import skunk.util.Typer.Strategy
 import enumeratum._
 import enumeratum.EnumEntry.Lowercase
 
-case object EnumCodecTest extends CodecTest(Strategy.SearchPath) {
+case object EnumCodecTest extends CodecTest(strategy = Strategy.SearchPath) {
 
   // Case 1: enum defined normally
   sealed abstract class Case1(val label: String)

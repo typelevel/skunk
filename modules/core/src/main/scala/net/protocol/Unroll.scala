@@ -67,7 +67,7 @@ private[protocol] class Unroll[F[_]: MonadError[?[_], Throwable]: MessageSocket:
           decoder.decode(0, data) match {
             case Right(a) => a.pure[F]
             case Left(e)  =>
-              send(Sync).whenA(bool) *> // if we're suspended we need to sync to get back to an ok state
+              send(Sync).whenA(bool) *> // if the portal is suspended we need to sync back up
               expect { case ReadyForQuery(_) => } *>
               new DecodeException(
                 data,

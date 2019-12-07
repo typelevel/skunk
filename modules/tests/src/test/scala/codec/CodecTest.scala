@@ -3,6 +3,7 @@
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
 package tests
+package codec
 
 import cats.Eq
 import cats.implicits._
@@ -13,14 +14,17 @@ import skunk.util.Typer
 import ffstest.FTest
 
 /** Tests that we check if we can round-trip values via codecs. */
-abstract class CodecTest(strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly) extends SkunkTest(strategy) {
+abstract class CodecTest(
+  debug:    Boolean = false,
+  strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly
+) extends SkunkTest(debug, strategy) {
 
   def codecTest[A: Eq](codec: Codec[A])(as: A*): Unit =
     sessionTest(s"${codec.types.mkString(", ")}") { s =>
       // required for parametrized types
       val sqlString = codec.types match {
         case head :: Nil => sql"select $codec::#${head.name}"
-        case _           => sql"select $codec" 
+        case _           => sql"select $codec"
       }
 
       s.prepare(sqlString.query(codec)).use { ps =>
@@ -34,9 +38,9 @@ abstract class CodecTest(strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly)
     }
 
   // Test a specific special value like NaN where equals doesn't work
-  def specialValueTest[A](name: String, codec: Codec[A])(value: A, isOk: A => Boolean): Unit =
+  def specialValueTest[A](name: String, codec: Codec[A], ascription: Option[String] = None)(value: A, isOk: A => Boolean): Unit =
     sessionTest(s"${codec.types.mkString(",")}") { s =>
-      s.prepare(sql"select $codec".query(codec)).use { ps =>
+      s.prepare(sql"select $codec#${ascription.foldMap("::" + _)}".query(codec)).use { ps =>
         ps.unique(value).flatMap { a =>
           assert(name, isOk(a)).as(name)
         }
