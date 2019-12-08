@@ -41,6 +41,7 @@ object Query {
                 case Right(td) =>
                   if (query.decoder.types === td.types) {
                     unroll(
+                      extended       = false,
                       sql            = query.sql,
                       sqlOrigin      = query.origin,
                       args           = Void,
