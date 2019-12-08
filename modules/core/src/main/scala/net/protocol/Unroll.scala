@@ -27,6 +27,7 @@ private[protocol] class Unroll[F[_]: MonadError[?[_], Throwable]: MessageSocket:
     portal:         QueryPortal[F, A, B]
   ): F[List[B] ~ Boolean] =
     unroll(
+      extended       = true,
       sql            = portal.preparedQuery.query.sql,
       sqlOrigin      = portal.preparedQuery.query.origin,
       args           = portal.arguments,
@@ -39,6 +40,7 @@ private[protocol] class Unroll[F[_]: MonadError[?[_], Throwable]: MessageSocket:
   // When we do a quick query there's no statement to hang onto all the error-reporting context
   // so we have to pass everything in manually.
   def unroll[A, B](
+    extended:       Boolean,
     sql:            String,
     sqlOrigin:      Origin,
     args:           A,
@@ -67,7 +69,7 @@ private[protocol] class Unroll[F[_]: MonadError[?[_], Throwable]: MessageSocket:
           decoder.decode(0, data) match {
             case Right(a) => a.pure[F]
             case Left(e)  =>
-              send(Sync).whenA(bool) *> // if the portal is suspended we need to sync back up
+              send(Sync).whenA(extended) *> // if it's an extended query we need to resync
               expect { case ReadyForQuery(_) => } *>
               new DecodeException(
                 data,
