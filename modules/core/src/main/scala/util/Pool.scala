@@ -66,6 +66,10 @@ object Pool {
       val give: F[Alloc] =
         Deferred[F, Alloc].flatMap { d =>
           ref.modify {
+
+            // OK I THINK WHAT WE WNAT IS DEFERRED[F, EITHER[THROWABLE, ALLOC]] AND THEN WE RETURN
+            // D.GET.FLATMAP(_.LIFTTO[F]) SO ALLOCATION ERRORS ARE ALWAYS THROWN TO THE AWAITEE ❌❌❌
+
             case (Nil,           ds) => ((Nil, ds :+ d), d.get)    // enqueue … todo: should we allow a timeout here?
             case (Some(a) :: os, ds) => ((os, ds), a.pure[F])      // re-use
             case (None    :: os, ds) => ((os, ds),
@@ -94,15 +98,26 @@ object Pool {
           // `reset` failed, so enqueue a new empty slot and finalize the alloc. If there is a
           // finalization error it will be raised to the caller.
           case false =>
-            ref.modify { case (os, ds) =>  ((os :+ None, ds), a._2) }
+
+            // ... but what about deferrals? hurr .. need to move onError
+            ref.modify {
+              case (os, Nil) =>  ((os :+ None, Nil), a._2)
+              case (os, d :: ds) =>  ((os, ds), a._2 *> // reverse probably
+                rsrc.allocated.flatMap(d.complete).void
+              )
+            }
 
         } .flatten.onError {
 
           // `reset` raised an error. Enqueue a new empty slot, finalize the alloc, and re-raise. If
           // there is an error in finalization it will trump the `reset` error.
           case t =>
-            ref.modify { case (os, ds) => ((os :+ None, ds), a._2 *> t.raiseError[F, Unit]) }
-               .flatten
+            ref.modify {
+              case (os, Nil) =>  ((os :+ None, Nil), a._2 *> t.raiseError[F, Unit])
+              case (os, d :: ds) =>  ((os, ds), a._2 *> // reverse probably
+                rsrc.allocated.flatMap(d.complete).void *> t.raiseError[F, Unit]
+              )
+            } .flatten
 
         }
 

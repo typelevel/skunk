@@ -24,11 +24,19 @@ case object PoolTest extends FTest {
     }
 
   // This test leaks
-  test("error in alloc is rethrown to caller") {
+  test("error in alloc is rethrown to caller (immediate)") {
     val rsrc = Resource.make(IO.raiseError[String](IntentionalFailure()))(_ => IO.unit)
     val pool = Pool.of(rsrc, 42)(_ => true.pure[IO])
     pool.use(_.use(_ => IO.unit)).assertFailsWith[IntentionalFailure]
   }
+
+  // test("error in alloc is rethrown to caller (deferral completion following failed cleanup)") {
+  //   fail("Not implemented.")
+  // }
+
+  // test("error in alloc is rethrown to caller (deferral completion following errored cleanup)") {
+  //   fail("Not implemented.")
+  // }
 
   test("error in free is rethrown to caller") {
     val rsrc = Resource.make("foo".pure[IO])(_ => IO.raiseError(IntentionalFailure()))
@@ -94,9 +102,14 @@ case object PoolTest extends FTest {
     }
   }
 
+  // Concurrency tests below. These are nondeterministic and need a lot of exercise.
+
+  val PoolSize = 10
+  val ConcurrentTasks = 500
+
   test("progress and safety with many fibers") {
-    ints.map(Pool.of(_, 10)(_ => true.pure[IO])).flatMap { factory =>
-      (1 to 100).toList.parTraverse_{ _ =>
+    ints.map(Pool.of(_, PoolSize)(_ => true.pure[IO])).flatMap { factory =>
+      (1 to ConcurrentTasks).toList.parTraverse_{ _ =>
         factory.use { p =>
           p.use { _ =>
             for {
@@ -110,9 +123,9 @@ case object PoolTest extends FTest {
   }
 
   test("progress and safety with many fibers and cancellation") {
-    ints.map(Pool.of(_, 10)(_ => true.pure[IO])).flatMap { factory =>
+    ints.map(Pool.of(_, PoolSize)(_ => true.pure[IO])).flatMap { factory =>
       factory.use { pool =>
-        (1 to 100).toList.parTraverse_{_ =>
+        (1 to ConcurrentTasks).toList.parTraverse_{_ =>
           for {
             t <- IO(util.Random.nextInt % 100)
             f <- pool.use(_ => IO.sleep(t.milliseconds)).start
@@ -124,9 +137,9 @@ case object PoolTest extends FTest {
   }
 
   test("progress and safety with many fibers and user failures") {
-    ints.map(Pool.of(_, 10)(_ => true.pure[IO])).flatMap { factory =>
+    ints.map(Pool.of(_, PoolSize)(_ => true.pure[IO])).flatMap { factory =>
       factory.use { pool =>
-        (1 to 100).toList.parTraverse_{ _ =>
+        (1 to ConcurrentTasks).toList.parTraverse_{ _ =>
           pool.use { _ =>
             for {
               t <- IO(util.Random.nextInt % 100)
@@ -145,8 +158,8 @@ case object PoolTest extends FTest {
       case false => IO.raiseError(IntentionalFailure())
     }
     val rsrc = Resource.make(alloc)(_ => IO.unit)
-    Pool.of(rsrc, 10)(_ => true.pure[IO]).use { pool =>
-      (1 to 100).toList.parTraverse_{ _ =>
+    Pool.of(rsrc, PoolSize)(_ => true.pure[IO]).use { pool =>
+      (1 to ConcurrentTasks).toList.parTraverse_{ _ =>
         pool.use { _ =>
           IO.unit
         } .attempt
@@ -160,8 +173,8 @@ case object PoolTest extends FTest {
       case false => IO.raiseError(IntentionalFailure())
     }
     val rsrc  = Resource.make(IO.unit)(_ => free)
-    Pool.of(rsrc, 10)(_ => true.pure[IO]).use { pool =>
-      (1 to 100).toList.parTraverse_{ _ =>
+    Pool.of(rsrc, PoolSize)(_ => true.pure[IO]).use { pool =>
+      (1 to ConcurrentTasks).toList.parTraverse_{ _ =>
         pool.use { _ =>
           IO.unit
         } .attempt
@@ -174,20 +187,19 @@ case object PoolTest extends FTest {
 
   test("progress and safety with many fibers and reset failures") {
     val reset = IO(util.Random.nextInt(3)).flatMap {
-      case 0  => true.pure[IO]
+      case 0 => true.pure[IO]
       case 1 => false.pure[IO]
       case 2 => IO.raiseError(IntentionalFailure())
     }
     val rsrc  = Resource.make(IO.unit)(_ => IO.unit)
-    Pool.of(rsrc, 10)(_ => reset).use { pool =>
-      (1 to 100).toList.parTraverse_{ _ =>
+    Pool.of(rsrc, PoolSize)(_ => reset).use { pool =>
+      (1 to ConcurrentTasks).toList.parTraverse_{ _ =>
         pool.use { _ =>
           IO.unit
-        } .attempt
+        } handleErrorWith {
+          case IntentionalFailure() => IO.unit
+        }
       }
-    } .handleErrorWith {
-      // cleanup here may raise an exception, so we need to handle that
-      case IntentionalFailure() => IO.unit
     }
   }
 
