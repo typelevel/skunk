@@ -12,10 +12,14 @@ import scala.concurrent.duration._
 import skunk.util.Pool
 import cats.effect.concurrent.Ref
 import skunk.util.Pool.ResourceLeak
+import cats.effect.concurrent.Deferred
 
 case object PoolTest extends FTest {
 
-  case class IntentionalFailure() extends Exception("intentional")
+  case class UserFailure() extends Exception("user failure")
+  case class AllocFailure() extends Exception("allocation failure")
+  case class FreeFailure() extends Exception("free failure")
+  case class ResetFailure() extends Exception("reset failure")
 
   val ints: IO[Resource[IO, Int]] =
     Ref[IO].of(1).map { ref =>
@@ -23,31 +27,71 @@ case object PoolTest extends FTest {
       Resource.make(next)(_ => IO.unit)
     }
 
+  // list of computations into computation that yields results one by one
+  def yielding[A](fas: IO[A]*): IO[IO[A]] =
+    Ref[IO].of(fas.toList).map { ref =>
+      ref.modify {
+        case Nil       => (Nil, IO.raiseError(new Exception("No more values!")))
+        case fa :: fas => (fas, fa)
+      } .flatten
+    }
+
+  def resourceYielding[A](fas: IO[A]*): IO[Resource[IO, A]] =
+    yielding(fas: _*).map(Resource.make(_)(_ => IO.unit))
+
   // This test leaks
   test("error in alloc is rethrown to caller (immediate)") {
-    val rsrc = Resource.make(IO.raiseError[String](IntentionalFailure()))(_ => IO.unit)
+    val rsrc = Resource.make(IO.raiseError[String](AllocFailure()))(_ => IO.unit)
     val pool = Pool.of(rsrc, 42)(_ => true.pure[IO])
-    pool.use(_.use(_ => IO.unit)).assertFailsWith[IntentionalFailure]
+    pool.use(_.use(_ => IO.unit)).assertFailsWith[AllocFailure].void
   }
 
-  // test("error in alloc is rethrown to caller (deferral completion following failed cleanup)") {
-  //   fail("Not implemented.")
-  // }
+  test("error in alloc is rethrown to caller (deferral completion following errored cleanup)") {
+    resourceYielding(IO(1), IO.raiseError(AllocFailure())).flatMap { r =>
+      val p = Pool.of(r, 1)(_ => IO.raiseError(ResetFailure()))
+      p.use { r =>
+        for {
+          d  <- Deferred[IO, Unit]
+          f1 <- r.use(n => assertEqual("n should be 1", n, 1) *> d.get).assertFailsWith[ResetFailure].start
+          f2 <- r.use(_ => fail[Int]("should never get here")).assertFailsWith[AllocFailure].start
+          _  <- d.complete(())
+          _  <- f1.join
+          _  <- f2.join
+        } yield ()
+      }
+    }
+  }
 
-  // test("error in alloc is rethrown to caller (deferral completion following errored cleanup)") {
-  //   fail("Not implemented.")
-  // }
+  test("error in alloc is rethrown to caller (deferral completion following failed cleanup)") {
+    resourceYielding(IO(1), IO.raiseError(AllocFailure())).flatMap { r =>
+      val p = Pool.of(r, 1)(_ => false.pure[IO])
+      p.use { r =>
+        for {
+          d  <- Deferred[IO, Unit]
+          f1 <- r.use(n => assertEqual("n should be 1", n, 1) *> d.get).start
+          f2 <- r.use(_ => fail[Int]("should never get here")).assertFailsWith[AllocFailure].start
+          _  <- d.complete(())
+          _  <- f1.join
+          _  <- f2.join
+        } yield ()
+      }
+    }
+  }
+
+  test("provoke dangling deferral cancellation") {
+    fail("not implemented")
+  }
 
   test("error in free is rethrown to caller") {
-    val rsrc = Resource.make("foo".pure[IO])(_ => IO.raiseError(IntentionalFailure()))
+    val rsrc = Resource.make("foo".pure[IO])(_ => IO.raiseError(FreeFailure()))
     val pool = Pool.of(rsrc, 42)(_ => true.pure[IO])
-    pool.use(_.use(_ => IO.unit)).assertFailsWith[IntentionalFailure]
+    pool.use(_.use(_ => IO.unit)).assertFailsWith[FreeFailure]
   }
 
   test("error in reset is rethrown to caller") {
     val rsrc = Resource.make("foo".pure[IO])(_ => IO.unit)
-    val pool = Pool.of(rsrc, 42)(_ => IO.raiseError(IntentionalFailure()))
-    pool.use(_.use(_ => IO.unit)).assertFailsWith[IntentionalFailure]
+    val pool = Pool.of(rsrc, 42)(_ => IO.raiseError(ResetFailure()))
+    pool.use(_.use(_ => IO.unit)).assertFailsWith[ResetFailure]
   }
 
   test("reuse on serial access") {
@@ -144,7 +188,7 @@ case object PoolTest extends FTest {
             for {
               t <- IO(util.Random.nextInt % 100)
               _ <- IO.sleep(t.milliseconds)
-              _ <- IO.raiseError(IntentionalFailure()).whenA(t < 50)
+              _ <- IO.raiseError(UserFailure()).whenA(t < 50)
             } yield ()
           } .attempt // swallow errors so we don't fail fast
         }
@@ -155,7 +199,7 @@ case object PoolTest extends FTest {
   test("progress and safety with many fibers and allocation failures") {
     val alloc = IO(util.Random.nextBoolean).flatMap {
       case true  => IO.unit
-      case false => IO.raiseError(IntentionalFailure())
+      case false => IO.raiseError(AllocFailure())
     }
     val rsrc = Resource.make(alloc)(_ => IO.unit)
     Pool.of(rsrc, PoolSize)(_ => true.pure[IO]).use { pool =>
@@ -170,7 +214,7 @@ case object PoolTest extends FTest {
   test("progress and safety with many fibers and freeing failures") {
     val free = IO(util.Random.nextBoolean).flatMap {
       case true  => IO.unit
-      case false => IO.raiseError(IntentionalFailure())
+      case false => IO.raiseError(FreeFailure())
     }
     val rsrc  = Resource.make(IO.unit)(_ => free)
     Pool.of(rsrc, PoolSize)(_ => true.pure[IO]).use { pool =>
@@ -181,7 +225,7 @@ case object PoolTest extends FTest {
       }
     } .handleErrorWith {
       // cleanup here may raise an exception, so we need to handle that
-      case IntentionalFailure() => IO.unit
+      case FreeFailure() => IO.unit
     }
   }
 
@@ -189,7 +233,7 @@ case object PoolTest extends FTest {
     val reset = IO(util.Random.nextInt(3)).flatMap {
       case 0 => true.pure[IO]
       case 1 => false.pure[IO]
-      case 2 => IO.raiseError(IntentionalFailure())
+      case 2 => IO.raiseError(ResetFailure())
     }
     val rsrc  = Resource.make(IO.unit)(_ => IO.unit)
     Pool.of(rsrc, PoolSize)(_ => reset).use { pool =>
@@ -197,7 +241,7 @@ case object PoolTest extends FTest {
         pool.use { _ =>
           IO.unit
         } handleErrorWith {
-          case IntentionalFailure() => IO.unit
+          case ResetFailure() => IO.unit
         }
       }
     }
