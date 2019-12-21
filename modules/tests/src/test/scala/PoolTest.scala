@@ -13,6 +13,8 @@ import skunk.util.Pool
 import cats.effect.concurrent.Ref
 import skunk.util.Pool.ResourceLeak
 import cats.effect.concurrent.Deferred
+import scala.util.Random
+import skunk.util.Pool.ShutdownException
 
 case object PoolTest extends FTest {
 
@@ -79,8 +81,23 @@ case object PoolTest extends FTest {
   }
 
   test("provoke dangling deferral cancellation") {
-    fail("not implemented")
-  }
+    ints.flatMap { r =>
+      val p = Pool.of(r, 1)(_ => false.pure[IO])
+      Deferred[IO, Either[Throwable, Int]].flatMap { d1 =>
+        p.use { r =>
+          for {
+            d <- Deferred[IO, Unit]
+            _ <- r.use(_ => d.complete(()) *> IO.never).start // leaked forever
+            _ <- d.get // make sure the resource has been allocated
+            f <- r.use(_ => fail[Int]("should never get here")).attempt.flatMap(d1.complete).start // defer
+            _ <- IO.sleep(100.milli) // ensure that the fiber has a chance to run
+          } yield f
+        } .assertFailsWith[ResourceLeak].flatMap {
+          case ResourceLeak(1, 0, 1) => d1.get.flatMap(_.liftTo[IO])
+          case e                     => e.raiseError[IO, Unit]
+        } .assertFailsWith[ShutdownException.type].void
+    }
+  }}
 
   test("error in free is rethrown to caller") {
     val rsrc = Resource.make("foo".pure[IO])(_ => IO.raiseError(FreeFailure()))
@@ -128,7 +145,7 @@ case object PoolTest extends FTest {
       factory.use { pool =>
         pool.allocated
       } .assertFailsWith[ResourceLeak].flatMap {
-        case ResourceLeak(expected, actual) =>
+        case ResourceLeak(expected, actual, _) =>
           assert("expected 1 leakage", expected - actual == 1)
       }
     }
@@ -140,7 +157,7 @@ case object PoolTest extends FTest {
         pool.use(_ => IO.never).start *>
         IO.sleep(100.milli) // ensure that the fiber has a chance to run
       } .assertFailsWith[ResourceLeak].flatMap {
-        case ResourceLeak(expected, actual) =>
+        case ResourceLeak(expected, actual, _) =>
           assert("expected 1 leakage", expected - actual == 1)
       }
     }
@@ -157,7 +174,7 @@ case object PoolTest extends FTest {
         factory.use { p =>
           p.use { _ =>
             for {
-              t <- IO(util.Random.nextInt % 100)
+              t <- IO(Random.nextInt % 100)
               _ <- IO.sleep(t.milliseconds)
             } yield ()
           }
@@ -171,7 +188,7 @@ case object PoolTest extends FTest {
       factory.use { pool =>
         (1 to ConcurrentTasks).toList.parTraverse_{_ =>
           for {
-            t <- IO(util.Random.nextInt % 100)
+            t <- IO(Random.nextInt % 100)
             f <- pool.use(_ => IO.sleep(t.milliseconds)).start
             _ <- if (t > 50) f.join else f.cancel
           } yield ()
@@ -186,7 +203,7 @@ case object PoolTest extends FTest {
         (1 to ConcurrentTasks).toList.parTraverse_{ _ =>
           pool.use { _ =>
             for {
-              t <- IO(util.Random.nextInt % 100)
+              t <- IO(Random.nextInt % 100)
               _ <- IO.sleep(t.milliseconds)
               _ <- IO.raiseError(UserFailure()).whenA(t < 50)
             } yield ()
@@ -197,7 +214,7 @@ case object PoolTest extends FTest {
   }
 
   test("progress and safety with many fibers and allocation failures") {
-    val alloc = IO(util.Random.nextBoolean).flatMap {
+    val alloc = IO(Random.nextBoolean).flatMap {
       case true  => IO.unit
       case false => IO.raiseError(AllocFailure())
     }
@@ -212,7 +229,7 @@ case object PoolTest extends FTest {
   }
 
   test("progress and safety with many fibers and freeing failures") {
-    val free = IO(util.Random.nextBoolean).flatMap {
+    val free = IO(Random.nextBoolean).flatMap {
       case true  => IO.unit
       case false => IO.raiseError(FreeFailure())
     }
@@ -230,7 +247,7 @@ case object PoolTest extends FTest {
   }
 
   test("progress and safety with many fibers and reset failures") {
-    val reset = IO(util.Random.nextInt(3)).flatMap {
+    val reset = IO(Random.nextInt(3)).flatMap {
       case 0 => true.pure[IO]
       case 1 => false.pure[IO]
       case 2 => IO.raiseError(ResetFailure())

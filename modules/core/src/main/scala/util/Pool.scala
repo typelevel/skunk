@@ -15,11 +15,11 @@ import skunk.exception.SkunkException
 object Pool {
 
   /** Class of exceptions raised when a resource leak is detected on pool finalization. */
-  final case class ResourceLeak(expected: Int, actual: Int)
+  final case class ResourceLeak(expected: Int, actual: Int, deferrals: Int)
     extends SkunkException(
       sql     = None,
       message = s"A resource leak was detected during pool finalization.",
-      detail  = Some(s"Expected $expected active slots, found $actual."),
+      detail  = Some(s"Expected $expected active slot(s) and no deferrals, found $actual slots and $deferrals deferral(s)."),
       hint    = Some("""
         |The most common causes of resource leaks are (a) using a pool on a fiber that was neither
         |joined or canceled prior to pool finalization, and (b) using `Resource.allocated` and
@@ -144,7 +144,7 @@ object Pool {
         // harsh. We might want to accumulate failures and raise one big error when we're done.
         case (os, ds) =>
           ds.traverse(_.complete(Left(ShutdownException))) *>
-          ResourceLeak(size, os.length).raiseError[F, Unit].whenA(os.length != size) *>
+          ResourceLeak(size, os.length, ds.length).raiseError[F, Unit].whenA(os.length != size) *>
           os.traverse_ {
             case Some((_, free)) => free
             case None            => ().pure[F]
