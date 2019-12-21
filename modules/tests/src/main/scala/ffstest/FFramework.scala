@@ -98,14 +98,14 @@ case class FTask(taskDef: TaskDef, testClassLoader: ClassLoader) extends Task {
       eventHandler.handle(event)
     }
 
-    obj.tests.foreach { case (name, fa) =>
+    obj.tests.parTraverse_ { case (name, fa) =>
       type AE = AssertionError // to make the lines shorter below :-\
       FTask.timed(obj.ioContextShift.shift *> fa).attempt.map {
         case Right((ms, a)) => report(GREEN, s"✓ $name ($a, $ms ms)",      FEvent(Success, duration = ms))
         case Left(e: AE)    => report(RED,   s"✗ $name (${e.getMessage})", FEvent(Failure))
         case Left(e)        => report(RED,   s"? $name (${e.getMessage})", FEvent(Error, throwable = e)) // todo: stacktrace
-      }.unsafeRunSync
-    }
+      }
+    } .unsafeRunSync
 
     // maybe we're supposed to return new tasks with new taskdefs?
     Array.empty

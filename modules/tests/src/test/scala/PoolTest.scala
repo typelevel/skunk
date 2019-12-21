@@ -12,10 +12,16 @@ import scala.concurrent.duration._
 import skunk.util.Pool
 import cats.effect.concurrent.Ref
 import skunk.util.Pool.ResourceLeak
+import cats.effect.concurrent.Deferred
+import scala.util.Random
+import skunk.util.Pool.ShutdownException
 
 case object PoolTest extends FTest {
 
-  case class IntentionalFailure() extends Exception("intentional")
+  case class UserFailure() extends Exception("user failure")
+  case class AllocFailure() extends Exception("allocation failure")
+  case class FreeFailure() extends Exception("free failure")
+  case class ResetFailure() extends Exception("reset failure")
 
   val ints: IO[Resource[IO, Int]] =
     Ref[IO].of(1).map { ref =>
@@ -23,23 +29,86 @@ case object PoolTest extends FTest {
       Resource.make(next)(_ => IO.unit)
     }
 
+  // list of computations into computation that yields results one by one
+  def yielding[A](fas: IO[A]*): IO[IO[A]] =
+    Ref[IO].of(fas.toList).map { ref =>
+      ref.modify {
+        case Nil       => (Nil, IO.raiseError(new Exception("No more values!")))
+        case fa :: fas => (fas, fa)
+      } .flatten
+    }
+
+  def resourceYielding[A](fas: IO[A]*): IO[Resource[IO, A]] =
+    yielding(fas: _*).map(Resource.make(_)(_ => IO.unit))
+
   // This test leaks
-  test("error in alloc is rethrown to caller") {
-    val rsrc = Resource.make(IO.raiseError[String](IntentionalFailure()))(_ => IO.unit)
+  test("error in alloc is rethrown to caller (immediate)") {
+    val rsrc = Resource.make(IO.raiseError[String](AllocFailure()))(_ => IO.unit)
     val pool = Pool.of(rsrc, 42)(_ => true.pure[IO])
-    pool.use(_.use(_ => IO.unit)).assertFailsWith[IntentionalFailure]
+    pool.use(_.use(_ => IO.unit)).assertFailsWith[AllocFailure].void
   }
 
+  test("error in alloc is rethrown to caller (deferral completion following errored cleanup)") {
+    resourceYielding(IO(1), IO.raiseError(AllocFailure())).flatMap { r =>
+      val p = Pool.of(r, 1)(_ => IO.raiseError(ResetFailure()))
+      p.use { r =>
+        for {
+          d  <- Deferred[IO, Unit]
+          f1 <- r.use(n => assertEqual("n should be 1", n, 1) *> d.get).assertFailsWith[ResetFailure].start
+          f2 <- r.use(_ => fail[Int]("should never get here")).assertFailsWith[AllocFailure].start
+          _  <- d.complete(())
+          _  <- f1.join
+          _  <- f2.join
+        } yield ()
+      }
+    }
+  }
+
+  test("error in alloc is rethrown to caller (deferral completion following failed cleanup)") {
+    resourceYielding(IO(1), IO.raiseError(AllocFailure())).flatMap { r =>
+      val p = Pool.of(r, 1)(_ => false.pure[IO])
+      p.use { r =>
+        for {
+          d  <- Deferred[IO, Unit]
+          f1 <- r.use(n => assertEqual("n should be 1", n, 1) *> d.get).start
+          f2 <- r.use(_ => fail[Int]("should never get here")).assertFailsWith[AllocFailure].start
+          _  <- d.complete(())
+          _  <- f1.join
+          _  <- f2.join
+        } yield ()
+      }
+    }
+  }
+
+  test("provoke dangling deferral cancellation") {
+    ints.flatMap { r =>
+      val p = Pool.of(r, 1)(_ => false.pure[IO])
+      Deferred[IO, Either[Throwable, Int]].flatMap { d1 =>
+        p.use { r =>
+          for {
+            d <- Deferred[IO, Unit]
+            _ <- r.use(_ => d.complete(()) *> IO.never).start // leaked forever
+            _ <- d.get // make sure the resource has been allocated
+            f <- r.use(_ => fail[Int]("should never get here")).attempt.flatMap(d1.complete).start // defer
+            _ <- IO.sleep(100.milli) // ensure that the fiber has a chance to run
+          } yield f
+        } .assertFailsWith[ResourceLeak].flatMap {
+          case ResourceLeak(1, 0, 1) => d1.get.flatMap(_.liftTo[IO])
+          case e                     => e.raiseError[IO, Unit]
+        } .assertFailsWith[ShutdownException.type].void
+    }
+  }}
+
   test("error in free is rethrown to caller") {
-    val rsrc = Resource.make("foo".pure[IO])(_ => IO.raiseError(IntentionalFailure()))
+    val rsrc = Resource.make("foo".pure[IO])(_ => IO.raiseError(FreeFailure()))
     val pool = Pool.of(rsrc, 42)(_ => true.pure[IO])
-    pool.use(_.use(_ => IO.unit)).assertFailsWith[IntentionalFailure]
+    pool.use(_.use(_ => IO.unit)).assertFailsWith[FreeFailure]
   }
 
   test("error in reset is rethrown to caller") {
     val rsrc = Resource.make("foo".pure[IO])(_ => IO.unit)
-    val pool = Pool.of(rsrc, 42)(_ => IO.raiseError(IntentionalFailure()))
-    pool.use(_.use(_ => IO.unit)).assertFailsWith[IntentionalFailure]
+    val pool = Pool.of(rsrc, 42)(_ => IO.raiseError(ResetFailure()))
+    pool.use(_.use(_ => IO.unit)).assertFailsWith[ResetFailure]
   }
 
   test("reuse on serial access") {
@@ -76,7 +145,7 @@ case object PoolTest extends FTest {
       factory.use { pool =>
         pool.allocated
       } .assertFailsWith[ResourceLeak].flatMap {
-        case ResourceLeak(expected, actual) =>
+        case ResourceLeak(expected, actual, _) =>
           assert("expected 1 leakage", expected - actual == 1)
       }
     }
@@ -88,19 +157,24 @@ case object PoolTest extends FTest {
         pool.use(_ => IO.never).start *>
         IO.sleep(100.milli) // ensure that the fiber has a chance to run
       } .assertFailsWith[ResourceLeak].flatMap {
-        case ResourceLeak(expected, actual) =>
+        case ResourceLeak(expected, actual, _) =>
           assert("expected 1 leakage", expected - actual == 1)
       }
     }
   }
 
+  // Concurrency tests below. These are nondeterministic and need a lot of exercise.
+
+  val PoolSize = 10
+  val ConcurrentTasks = 500
+
   test("progress and safety with many fibers") {
-    ints.map(Pool.of(_, 10)(_ => true.pure[IO])).flatMap { factory =>
-      (1 to 100).toList.parTraverse_{ _ =>
+    ints.map(Pool.of(_, PoolSize)(_ => true.pure[IO])).flatMap { factory =>
+      (1 to ConcurrentTasks).toList.parTraverse_{ _ =>
         factory.use { p =>
           p.use { _ =>
             for {
-              t <- IO(util.Random.nextInt % 100)
+              t <- IO(Random.nextInt % 100)
               _ <- IO.sleep(t.milliseconds)
             } yield ()
           }
@@ -110,11 +184,11 @@ case object PoolTest extends FTest {
   }
 
   test("progress and safety with many fibers and cancellation") {
-    ints.map(Pool.of(_, 10)(_ => true.pure[IO])).flatMap { factory =>
+    ints.map(Pool.of(_, PoolSize)(_ => true.pure[IO])).flatMap { factory =>
       factory.use { pool =>
-        (1 to 100).toList.parTraverse_{_ =>
+        (1 to ConcurrentTasks).toList.parTraverse_{_ =>
           for {
-            t <- IO(util.Random.nextInt % 100)
+            t <- IO(Random.nextInt % 100)
             f <- pool.use(_ => IO.sleep(t.milliseconds)).start
             _ <- if (t > 50) f.join else f.cancel
           } yield ()
@@ -124,14 +198,14 @@ case object PoolTest extends FTest {
   }
 
   test("progress and safety with many fibers and user failures") {
-    ints.map(Pool.of(_, 10)(_ => true.pure[IO])).flatMap { factory =>
+    ints.map(Pool.of(_, PoolSize)(_ => true.pure[IO])).flatMap { factory =>
       factory.use { pool =>
-        (1 to 100).toList.parTraverse_{ _ =>
+        (1 to ConcurrentTasks).toList.parTraverse_{ _ =>
           pool.use { _ =>
             for {
-              t <- IO(util.Random.nextInt % 100)
+              t <- IO(Random.nextInt % 100)
               _ <- IO.sleep(t.milliseconds)
-              _ <- IO.raiseError(IntentionalFailure()).whenA(t < 50)
+              _ <- IO.raiseError(UserFailure()).whenA(t < 50)
             } yield ()
           } .attempt // swallow errors so we don't fail fast
         }
@@ -140,13 +214,13 @@ case object PoolTest extends FTest {
   }
 
   test("progress and safety with many fibers and allocation failures") {
-    val alloc = IO(util.Random.nextBoolean).flatMap {
+    val alloc = IO(Random.nextBoolean).flatMap {
       case true  => IO.unit
-      case false => IO.raiseError(IntentionalFailure())
+      case false => IO.raiseError(AllocFailure())
     }
     val rsrc = Resource.make(alloc)(_ => IO.unit)
-    Pool.of(rsrc, 10)(_ => true.pure[IO]).use { pool =>
-      (1 to 100).toList.parTraverse_{ _ =>
+    Pool.of(rsrc, PoolSize)(_ => true.pure[IO]).use { pool =>
+      (1 to ConcurrentTasks).toList.parTraverse_{ _ =>
         pool.use { _ =>
           IO.unit
         } .attempt
@@ -155,39 +229,38 @@ case object PoolTest extends FTest {
   }
 
   test("progress and safety with many fibers and freeing failures") {
-    val free = IO(util.Random.nextBoolean).flatMap {
+    val free = IO(Random.nextBoolean).flatMap {
       case true  => IO.unit
-      case false => IO.raiseError(IntentionalFailure())
+      case false => IO.raiseError(FreeFailure())
     }
     val rsrc  = Resource.make(IO.unit)(_ => free)
-    Pool.of(rsrc, 10)(_ => true.pure[IO]).use { pool =>
-      (1 to 100).toList.parTraverse_{ _ =>
+    Pool.of(rsrc, PoolSize)(_ => true.pure[IO]).use { pool =>
+      (1 to ConcurrentTasks).toList.parTraverse_{ _ =>
         pool.use { _ =>
           IO.unit
         } .attempt
       }
     } .handleErrorWith {
       // cleanup here may raise an exception, so we need to handle that
-      case IntentionalFailure() => IO.unit
+      case FreeFailure() => IO.unit
     }
   }
 
   test("progress and safety with many fibers and reset failures") {
-    val reset = IO(util.Random.nextInt(3)).flatMap {
-      case 0  => true.pure[IO]
+    val reset = IO(Random.nextInt(3)).flatMap {
+      case 0 => true.pure[IO]
       case 1 => false.pure[IO]
-      case 2 => IO.raiseError(IntentionalFailure())
+      case 2 => IO.raiseError(ResetFailure())
     }
     val rsrc  = Resource.make(IO.unit)(_ => IO.unit)
-    Pool.of(rsrc, 10)(_ => reset).use { pool =>
-      (1 to 100).toList.parTraverse_{ _ =>
+    Pool.of(rsrc, PoolSize)(_ => reset).use { pool =>
+      (1 to ConcurrentTasks).toList.parTraverse_{ _ =>
         pool.use { _ =>
           IO.unit
-        } .attempt
+        } handleErrorWith {
+          case ResetFailure() => IO.unit
+        }
       }
-    } .handleErrorWith {
-      // cleanup here may raise an exception, so we need to handle that
-      case IntentionalFailure() => IO.unit
     }
   }
 
