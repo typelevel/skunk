@@ -122,8 +122,12 @@ lazy val example = project
   .settings(
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "org.tpolecat"  %% "natchez-honeycomb" % "0.0.10",
-      "org.tpolecat"  %% "natchez-jaeger"    % "0.0.10",
+      "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.10",
+      "org.tpolecat"  %% "natchez-jaeger"      % "0.0.10",
+      "org.http4s"    %% "http4s-dsl"          % "0.21.0-M6",
+      "org.http4s"    %% "http4s-blaze-server" % "0.21.0-M6",
+      "org.http4s"    %% "http4s-circe"        % "0.21.0-M6",
+      "io.circe"      %% "circe-generic"       % "0.12.3",
     )
   )
 
