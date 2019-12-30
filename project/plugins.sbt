@@ -1,4 +1,4 @@
-addSbtPlugin("com.geirsson"              % "sbt-ci-release" % "1.4.31")
+addSbtPlugin("com.geirsson"              % "sbt-ci-release" % "1.5.0")
 addSbtPlugin("de.heikoseeberger"         % "sbt-header"     % "5.3.1")
 addSbtPlugin("com.lightbend.paradox"     % "sbt-paradox"    % "0.6.8")
 addSbtPlugin("com.typesafe.sbt"          % "sbt-site"       % "1.4.0")
