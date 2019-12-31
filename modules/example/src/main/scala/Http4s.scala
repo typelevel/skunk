@@ -1,8 +1,6 @@
 package example
 
-import cats.data.Kleisli
 import cats._
-import cats.data._
 import cats.effect._
 import cats.implicits._
 import fs2.Stream
@@ -18,32 +16,36 @@ import org.http4s.implicits._
 import org.http4s.server._
 import org.http4s.server.blaze.BlazeServerBuilder
 import skunk._, skunk.implicits._, skunk.codec.all._
-import scala.util.control.NonFatal
 import natchez.honeycomb.Honeycomb
 
 object Http4sExample extends IOApp {
 
-  // A DATA MODEL WITH CIRCE JSON ENCODER
-
+  // A data model
   case class Country(code: String, name: String)
   object Country {
     implicit val encoderCountry: CEncoder[Country] = deriveEncoder
   }
 
-  // A SERVICE
-
+  // A service interface
   trait Countries[F[_]] {
     def byCode(code: String): F[Option[Country]]
     def all: Stream[F, Country]
   }
 
+  // A companion object for our service, with a constructor.
   object Countries {
 
-    def fromSession[F[_]: Bracket[?[_], Throwable]: Trace](sess: Session[F]): Countries[F] =
+    // An implementation of `Countries`, given a Skunk `Session`.
+    def fromSession[F[_]: Bracket[?[_], Throwable]: Trace](
+      sess: Session[F]
+    ): Countries[F] =
       new Countries[F] {
 
         def countryQuery[A](where: Fragment[A]): Query[A, Country] =
           sql"SELECT code, name FROM country $where".query((bpchar(3) ~ varchar).gmap[Country])
+
+        // The trace indicates that the session is returned to the pool before we're done using it!
+        // What's up with that?
 
         def all: Stream[F,Country] =
           for {
@@ -61,52 +63,21 @@ object Http4sExample extends IOApp {
       }
   }
 
-  // GENERIC TRACING MIDDLEWARE, TO BE FACTORED OUT
+  // Resource yielding a service pool.
+  def pool[F[_]: Concurrent: ContextShift: Trace]: Resource[F, Resource[F, Countries[F]]] =
+    Session.pooled[F](
+      host     = "localhost",
+      user     = "jimmy",
+      database = "world",
+      password = Some("banana"),
+      max      = 10,
+    ).map(_.map(Countries.fromSession(_)))
 
-  def natchezMiddleware[F[_]: Bracket[?[_], Throwable]: Trace](routes: HttpRoutes[F]): HttpRoutes[F] =
-    Kleisli { req =>
-
-      val addRequestFields: F[Unit] =
-        Trace[F].put(
-          Tags.http.method(req.method.name),
-          Tags.http.url(req.uri.renderString)
-        )
-
-      def addResponseFields(res: Response[F]): F[Unit] =
-        Trace[F].put(
-          Tags.http.status_code(res.status.code.toString)
-        )
-
-      def addErrorFields(e: Throwable): F[Unit] =
-        Trace[F].put(
-          Tags.error(true),
-          "error.message" -> e.getMessage,
-          "error.stacktrace" -> e.getStackTrace.mkString("\n"),
-        )
-
-      OptionT {
-        routes(req).onError {
-          case NonFatal(e)   => OptionT.liftF(addRequestFields *> addErrorFields(e))
-        } .value.flatMap {
-          case Some(handler) => addRequestFields *> addResponseFields(handler).as(handler.some)
-          case None          => Option.empty[Response[F]].pure[F]
-        }
-      }
-    }
-
-  // ROUTES DELEGATING TO THE SERVICE, WITH TRACING
-
-  def countryRoutes[F[_]: Concurrent: ContextShift: Defer: Trace]: HttpRoutes[F] = {
+  // Routes delegating to `Countries` instances, taken from a pool.
+  def countryRoutes[F[_]: Concurrent: ContextShift: Defer: Trace](
+    pool: Resource[F, Countries[F]]
+  ): HttpRoutes[F] = {
     object dsl extends Http4sDsl[F]; import dsl._
-
-    val pool: Resource[F, Countries[F]] =
-      Session.single[F](
-        host     = "localhost",
-        user     = "jimmy",
-        database = "world",
-        password = Some("banana"),
-      ).map(Countries.fromSession(_))
-
     HttpRoutes.of[F] {
       case GET -> Root / "country" / code =>
         pool.use { countries =>
@@ -115,27 +86,27 @@ object Http4sExample extends IOApp {
             case None    => NotFound(s"No country has code $code.")
           }
         }
-
       case GET -> Root / "countries" =>
         pool.use { countries =>
           Ok(countries.all.map(_.asJson))
         }
-
     }
   }
 
-  // Normal constructor for an HttpApp in F *without* a Trace constraint.
-  def app[F[_]: Concurrent: ContextShift](ep: EntryPoint[F]): Kleisli[F, Request[F], Response[F]] = {
-    Router("/" -> ep.liftT(natchezMiddleware(countryRoutes))).orNotFound // <-- Lifted routes
-  }
+  // Resource yielding a `Countries` pool becomes a resource yielding `HttpRoutes`.
+  def routes[F[_]: Concurrent: ContextShift: Trace]: Resource[F, HttpRoutes[F]] =
+    pool.map(p => natchezMiddleware(countryRoutes(p)))
 
-  // Normal server resource
-  def server[F[_]: ConcurrentEffect: Timer](routes: HttpApp[F]): Resource[F, Server[F]] =
-    BlazeServerBuilder[F]
-      .bindHttp(8080, "localhost")
-      .withHttpApp(routes)
-      .resource
+  // Given an `EntryPoint` we can discharge the `Trace` constraint on `routes`. We need to do this
+  // because `ConcurrentEffect` (required by Blaze) and `Trace` cannot be satisfied together. This
+  // is the important trick. In the call to `routes` the effect `F` will be instantiated as
+  // `Kleisli[F, Span[F], ?]` but we never have to know that.
+  def routesʹ[F[_]: Concurrent: ContextShift](
+    ep: EntryPoint[F]
+  ): Resource[F, HttpRoutes[F]] =
+    ep.liftR(routes)
 
+  // Resource yielding our Natchez `EntryPoint`.
   def entryPoint[F[_]: Sync]: Resource[F, EntryPoint[F]] =
     Honeycomb.entryPoint[F]("skunk-http4s-honeycomb") { ob =>
       Sync[F].delay {
@@ -145,10 +116,19 @@ object Http4sExample extends IOApp {
       }
     }
 
+  // Resource yielding a `Server` … nothing special here.
+  def server[F[_]: ConcurrentEffect: Timer](routes: HttpApp[F]): Resource[F, Server[F]] =
+    BlazeServerBuilder[F]
+      .bindHttp(8080, "localhost")
+      .withHttpApp(routes)
+      .resource
+
+  // Our application as a resource.
   def runR[F[_]: ConcurrentEffect: ContextShift: Timer]: Resource[F, Unit] =
     for {
       ep <- entryPoint[F]
-      _  <- server(app(ep))
+      rs <- routesʹ(ep)
+      _  <- server(Router("/" -> rs).orNotFound)
     } yield ()
 
   // Main method instantiates F to IO

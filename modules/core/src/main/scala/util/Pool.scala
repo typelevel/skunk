@@ -147,10 +147,10 @@ object Pool {
     def free(ref: Ref[F, State]): F[Unit] =
       ref.get.flatMap {
 
-        // We could check here to ensure that os.length = size and log an error if an entry is
-        // missing. This would indicate a leak. If there is an error in `free` it will halt
-        // finalization of remaining allocs and will be re-raised to the caller, which is a bit
-        // harsh. We might want to accumulate failures and raise one big error when we're done.
+        // Complete all awaiting deferrals with a `ShutdownException`, then raise an error if there
+        // are fewer slots than the pool size. Both conditions can be provoked by poor resource
+        // hygiene (via fibers typically). Then finalize any remaining pooled elements. Failure of
+        // pool finalization may result in unfinalized resources. To be improved.
         case (os, ds) =>
           ds.traverse(_.complete(Left(ShutdownException))) *>
           ResourceLeak(size, os.length, ds.length).raiseError[F, Unit].whenA(os.length != size) *>

@@ -3,8 +3,17 @@ package natchez.http4s
 import cats.~>
 import cats.data.{ Kleisli, OptionT }
 import cats.effect.Bracket
+import cats.implicits._
 import natchez.{ EntryPoint, Kernel, Span }
 import org.http4s.HttpRoutes
+import natchez.Trace
+import natchez.Tags
+import scala.util.control.NonFatal
+import org.http4s.Response
+import cats.effect.Resource
+import cats.Defer
+import natchez.TraceValue
+import cats.Monad
 
 object implicits {
 
@@ -30,10 +39,66 @@ object implicits {
     }
 
   implicit class EntryPointOps[F[_]](self: EntryPoint[F]) {
+
+    private def dummySpan(
+      implicit ev: Monad[F]
+    ): Span[F] =
+      new Span[F] {
+        val kernel: F[Kernel] = Kernel(Map.empty).pure[F]
+        def put(fields: (String, TraceValue)*): F[Unit] = Monad[F].unit
+        def span(name: String): Resource[F, Span[F]] = Monad[Resource[F, ?]].pure(this)
+      }
+
     def liftT(routes: HttpRoutes[Kleisli[F, Span[F], ?]])(
       implicit ev: Bracket[F, Throwable]
     ): HttpRoutes[F] =
       implicits.liftT(self)(routes)
+
+    /**
+     * Lift an `HttpRoutes`-yielding resource that consumes `Span`s into the bare effect. We do this
+     * by ignoring any tracing that happens during allocation and freeing of the `HttpRoutes`
+     * resource. The reasoning is that such a resource typically lives for the lifetime of the
+     * application and it's of little use to keep a span open that long.
+     */
+    def liftR(routes: Resource[Kleisli[F, Span[F], ?], HttpRoutes[Kleisli[F, Span[F], ?]]])(
+      implicit ev: Bracket[F, Throwable],
+                d: Defer[F]
+    ): Resource[F, HttpRoutes[F]] =
+      routes.map(liftT).mapK(λ[Kleisli[F, Span[F], ?] ~> F] { fa =>
+        fa.run(dummySpan)
+      })
+
   }
+
+  def natchezMiddleware[F[_]: Bracket[?[_], Throwable]: Trace](routes: HttpRoutes[F]): HttpRoutes[F] =
+    Kleisli { req =>
+
+      val addRequestFields: F[Unit] =
+        Trace[F].put(
+          Tags.http.method(req.method.name),
+          Tags.http.url(req.uri.renderString)
+        )
+
+      def addResponseFields(res: Response[F]): F[Unit] =
+        Trace[F].put(
+          Tags.http.status_code(res.status.code.toString)
+        )
+
+      def addErrorFields(e: Throwable): F[Unit] =
+        Trace[F].put(
+          Tags.error(true),
+          "error.message"    -> e.getMessage,
+          "error.stacktrace" -> e.getStackTrace.mkString("\n"),
+        )
+
+      OptionT {
+        routes(req).onError {
+          case NonFatal(e)   => OptionT.liftF(addRequestFields *> addErrorFields(e))
+        } .value.flatMap {
+          case Some(handler) => addRequestFields *> addResponseFields(handler).as(handler.some)
+          case None          => Option.empty[Response[F]].pure[F]
+        }
+      }
+    }
 
 }
