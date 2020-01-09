@@ -70,6 +70,19 @@ object implicits {
 
   }
 
+  /**
+   * A middleware that adds the following standard fields to the current span:
+   *
+   * - "http.method"      -> "GET", "PUT", etc.
+   * - "http.url"         -> request URI (not URL)
+   * - "http.status_code" -> "200", "403", etc. // why is this a string?
+   * - "error"            -> true // not present if no error
+   *
+   * In addition the following non-standard fields are added in case of error:
+   *
+   * - "error.message"    -> Exception message
+   * - "error.stacktrace" -> Exception stack trace as a multi-line string
+   */
   def natchezMiddleware[F[_]: Bracket[?[_], Throwable]: Trace](routes: HttpRoutes[F]): HttpRoutes[F] =
     Kleisli { req =>
 
