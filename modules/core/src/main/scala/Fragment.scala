@@ -59,4 +59,8 @@ object Fragment {
   private[skunk] def apply(sql: String): Fragment[Void] =
     Fragment(List(Left(sql)), Void.codec, Origin.unknown)
 
+
+  val empty: Fragment[Void] =
+    apply("")
+
 }
