@@ -218,9 +218,13 @@ object Session {
       } yield sess
 
     val reset: Session[F] => F[Boolean] = { s =>
-      // todo: unsubscribe all
       // todo: sync, rollback if necessary
-      s.execute(Command("RESET ALL", Origin.unknown, Void.codec)).as(true)
+      s.execute(Command("UNLISTEN *", Origin.unknown, Void.codec)) *>
+      s.execute(Command("RESET ALL",  Origin.unknown, Void.codec)).as(true) // TODO: we need to re-set all the params specified in StartupMessage
+      // ... this is time-consuming and should probably happen in the background, with exceptions logged but not raised to the user.
+      // ... what if session had state and knew about its starting configuration? we could then do SHOW ALL and figure out what to reset.
+      // ... OR we could say you know what, if you change configuration parameters they will persist on the cached connection. Make it
+      // the user's problem.
     }
 
     // One blocker and SocketGroup per pool.
@@ -365,6 +369,3 @@ object Session {
   }
 
 }
-
-
-

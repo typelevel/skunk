@@ -15,6 +15,7 @@ import skunk.util.Pool.ResourceLeak
 import cats.effect.concurrent.Deferred
 import scala.util.Random
 import skunk.util.Pool.ShutdownException
+import natchez.Trace.Implicits.noop
 
 case object PoolTest extends FTest {
 

@@ -49,25 +49,27 @@ object Startup {
       password: Option[String],
       salt:     Array[Byte]
     ): F[Unit] =
-      password match {
+      Trace[F].span("authenticationMD5Password") {
+        password match {
 
-        case Some(pw) =>
-          for {
-            _ <- send(PasswordMessage.md5(sm.user, pw, salt))
-            _ <- flatExpect {
-                   case AuthenticationOk => ().pure[F]
-                   case ErrorResponse(info) => new StartupException(info, sm.properties).raiseError[F, Unit]
-                 }
-          } yield ()
+          case Some(pw) =>
+            for {
+              _ <- send(PasswordMessage.md5(sm.user, pw, salt))
+              _ <- flatExpect {
+                    case AuthenticationOk => ().pure[F]
+                    case ErrorResponse(info) => new StartupException(info, sm.properties).raiseError[F, Unit]
+                  }
+            } yield ()
 
-        case None     =>
-          new SkunkException(
-            sql     = None,
-            message = "Password required.",
-            detail  = Some(s"The PostgreSQL server requested a password for '${sm.user}' but none was given."),
-            hint    = Some("Specify a password when constructing your Session or Session pool.")
-          ).raiseError[F, Unit]
+          case None     =>
+            new SkunkException(
+              sql     = None,
+              message = "Password required.",
+              detail  = Some(s"The PostgreSQL server requested a password for '${sm.user}' but none was given."),
+              hint    = Some("Specify a password when constructing your Session or Session pool.")
+            ).raiseError[F, Unit]
 
+        }
       }
 
 }
