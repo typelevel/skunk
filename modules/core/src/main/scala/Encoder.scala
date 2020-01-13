@@ -102,7 +102,7 @@ trait Encoder[A] { outer =>
       val sql: State[Int,String] = outer.sql.map(s => s"($s)")
     }
 
-  // now we can say (int4 ~ varchar ~ bool).row.list(2) to get ($1, $2, $3), ($4, $5, $6)
+  // now we can say (int4 ~ varchar ~ bool).values.list(2) to get ($1, $2, $3), ($4, $5, $6)
 
   override def toString =
     s"Encoder(${types.mkString(", ")})"
