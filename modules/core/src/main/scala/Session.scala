@@ -7,19 +7,17 @@ package skunk
 import cats._
 import cats.effect._
 import cats.implicits._
-import fs2.Stream
 import fs2.concurrent.Signal
+import fs2.io.tcp.SocketGroup
+import fs2.Pipe
+import fs2.Stream
+import natchez.Trace
+import scala.concurrent.duration._
+import skunk.codec.all.bool
 import skunk.data._
 import skunk.net.Protocol
-import skunk.util.{ Origin, Pool }
-import skunk.util.Namer
-import scala.concurrent.duration._
-import fs2.Pipe
-import skunk.util.Typer
-import skunk.util.Typer.Strategy.BuiltinsOnly
-import skunk.util.Typer.Strategy.SearchPath
-import natchez.Trace
-import fs2.io.tcp.SocketGroup
+import skunk.util._
+import skunk.util.Typer.Strategy.{ BuiltinsOnly, SearchPath }
 
 /**
  * Represents a live connection to a Postgres database. Operations provided here are safe to use
@@ -177,6 +175,40 @@ trait Session[F[_]] {
 /** @group Companions */
 object Session {
 
+  object Recyclers {
+
+    /**
+     * Ensure the session is idle, then remove all channel listeners and reset all variables to
+     * system defaults. Note that this is usually more work than you need to do. If your application
+     * isn't running arbitrary statements then `minimal` might be more efficient.
+     */
+    def full[F[_]: Monad]: Recycler[F, Session[F]] =
+      ensureIdle[F] <+> unlistenAll <+> resetAll
+
+    /**
+     * Ensure the session is idle, then run a trivial query to ensure the connection is in working
+     * order. In most cases this check is sufficient.
+     */
+    def minimal[F[_]: Monad]: Recycler[F, Session[F]] =
+      ensureIdle[F] <+> Recycler(_.unique(Query("VALUES (true)", Origin.unknown, Void.codec, bool)))
+
+    /**
+     * Yield `true` the session is idle (i.e., that there is no ongoing transaction), otherwise
+     * yield false. This check does not require network IO.
+     */
+    def ensureIdle[F[_]: Monad]: Recycler[F, Session[F]] =
+      Recycler(_.transactionStatus.get.map(_ == TransactionStatus.Idle))
+
+    /** Remove all channel listeners and yield `true`. */
+    def unlistenAll[F[_]: Functor]: Recycler[F, Session[F]] =
+      Recycler(_.execute(Command("UNLISTEN *", Origin.unknown, Void.codec)).as(true))
+
+    /** Reset all variables to system defaults and yield `true`. */
+    def resetAll[F[_]: Functor]: Recycler[F, Session[F]] =
+      Recycler(_.execute(Command("RESET ALL", Origin.unknown, Void.codec)).as(true))
+
+  }
+
   /**
    * Resource yielding a `SessionPool` managing up to `max` concurrent `Session`s. Typically you
    * will `use` this resource once on application startup and pass the resulting
@@ -210,28 +242,12 @@ object Session {
   ): Resource[F, Resource[F, Session[F]]] = {
 
     def session(socketGroup:  SocketGroup): Resource[F, Session[F]] =
-      for {
-        namer <- Resource.liftF(Namer[F])
-        proto <- Protocol[F](host, port, debug, namer, readTimeout, writeTimeout, socketGroup)
-        _     <- Resource.liftF(proto.startup(user, database, password))
-        sess  <- Resource.liftF(fromProtocol(proto, namer, strategy))
-      } yield sess
+      fromSocketGroup[F](socketGroup, host, port, user, database, password, debug, readTimeout, writeTimeout, strategy)
 
-    val reset: Session[F] => F[Boolean] = { s =>
-      // todo: sync, rollback if necessary
-      s.execute(Command("UNLISTEN *", Origin.unknown, Void.codec)) *>
-      s.execute(Command("RESET ALL",  Origin.unknown, Void.codec)).as(true) // TODO: we need to re-set all the params specified in StartupMessage
-      // ... this is time-consuming and should probably happen in the background, with exceptions logged but not raised to the user.
-      // ... what if session had state and knew about its starting configuration? we could then do SHOW ALL and figure out what to reset.
-      // ... OR we could say you know what, if you change configuration parameters they will persist on the cached connection. Make it
-      // the user's problem.
-    }
-
-    // One blocker and SocketGroup per pool.
     for {
       blocker <- Blocker[F]
       sockGrp <- SocketGroup[F](blocker)
-      pool    <- Pool.of(session(sockGrp), max)(reset)
+      pool    <- Pool.of(session(sockGrp), max)(Recyclers.full)
     } yield pool
 
   }
@@ -265,6 +281,26 @@ object Session {
       writeTimeout = writeTimeout,
       strategy     = strategy
     ).flatten
+
+
+  def fromSocketGroup[F[_]: Concurrent: ContextShift: Trace](
+    socketGroup:  SocketGroup,
+    host:         String,
+    port:         Int            = 5432,
+    user:         String,
+    database:     String,
+    password:     Option[String] = none,
+    debug:        Boolean        = false,
+    readTimeout:  FiniteDuration = Int.MaxValue.seconds,
+    writeTimeout: FiniteDuration = 5.seconds,
+    strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly
+  ): Resource[F, Session[F]] =
+    for {
+      namer <- Resource.liftF(Namer[F])
+      proto <- Protocol[F](host, port, debug, namer, readTimeout, writeTimeout, socketGroup)
+      _     <- Resource.liftF(proto.startup(user, database, password))
+      sess  <- Resource.liftF(fromProtocol(proto, namer, strategy))
+    } yield sess
 
   /**
    * Construct a `Session` by wrapping an existing `Protocol`, which we assume has already been
