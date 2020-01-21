@@ -47,7 +47,10 @@ object CommandComplete {
   def decoder: Decoder[CommandComplete] = cstring.map {
     case "BEGIN"            => apply(Completion.Begin)
     case "COMMIT"           => apply(Completion.Commit)
+    case "CREATE INDEX"     => apply(Completion.CreateIndex)
+    case "DROP INDEX"       => apply(Completion.DropIndex)
     case "LISTEN"           => apply(Completion.Listen)
+    case "LOCK TABLE"       => apply(Completion.LockTable)
     case "NOTIFY"           => apply(Completion.Notify)
     case "RESET"            => apply(Completion.Reset)
     case "SET"              => apply(Completion.Set)

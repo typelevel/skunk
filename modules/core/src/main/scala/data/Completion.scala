@@ -9,8 +9,11 @@ sealed abstract class Completion
 object Completion {
   case object Begin              extends Completion
   case object Commit             extends Completion
+  case object CreateIndex        extends Completion
   case class  Delete(count: Int) extends Completion
+  case object DropIndex          extends Completion
   case object Listen             extends Completion
+  case object LockTable          extends Completion
   case object Notify             extends Completion
   case object Reset              extends Completion
   case object Rollback           extends Completion
