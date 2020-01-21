@@ -4,6 +4,7 @@
 
 package tests
 
+import cats.effect.IO
 import skunk._
 import skunk.codec.all._
 import skunk.data.Completion
@@ -39,6 +40,13 @@ case object CommandTest extends SkunkTest {
           WHERE id = $int4
         """.query(city)
 
+  val updateCityPopulation: Command[Int ~ Int] =
+    sql"""
+         UPDATE city
+         SET population = $int4
+         WHERE id = $int4
+       """.command
+
   val deleteCity: Command[Int] =
     sql"""
          DELETE FROM city
@@ -67,12 +75,17 @@ case object CommandTest extends SkunkTest {
     } yield "ok"
   }
 
-  sessionTest("insert and delete record") { s =>
+  sessionTest("insert, update and delete record") { s =>
     for {
       c <- s.prepare(insertCity).use(_.execute(Garin))
       _ <- assert("completion",  c == Completion.Insert(1))
       c <- s.prepare(selectCity).use(_.unique(Garin.id))
       _ <- assert("read", c == Garin)
+      p <- IO(Garin.pop + 1000)
+      c <- s.prepare(updateCityPopulation).use(_.execute(p ~ Garin.id))
+      _ <- assert("completion",  c == Completion.Update(1))
+      c <- s.prepare(selectCity).use(_.unique(Garin.id))
+      _ <- assert("read", c == Garin.copy(pop = p))
       _ <- s.prepare(deleteCity).use(_.execute(Garin.id))
       _ <- s.assertHealthy
     } yield "ok"
