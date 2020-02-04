@@ -124,9 +124,9 @@ lazy val example = project
     libraryDependencies ++= Seq(
       "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.10",
       "org.tpolecat"  %% "natchez-jaeger"      % "0.0.10",
-      "org.http4s"    %% "http4s-dsl"          % "0.21.0-RC2",
-      "org.http4s"    %% "http4s-blaze-server" % "0.21.0-RC2",
-      "org.http4s"    %% "http4s-circe"        % "0.21.0-RC2",
+      "org.http4s"    %% "http4s-dsl"          % "0.21.0-RC3",
+      "org.http4s"    %% "http4s-blaze-server" % "0.21.0-RC3",
+      "org.http4s"    %% "http4s-circe"        % "0.21.0-RC3",
       "io.circe"      %% "circe-generic"       % "0.12.3",
     )
   )
