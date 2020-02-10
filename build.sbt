@@ -127,7 +127,7 @@ lazy val example = project
       "org.http4s"    %% "http4s-dsl"          % "0.21.0",
       "org.http4s"    %% "http4s-blaze-server" % "0.21.0",
       "org.http4s"    %% "http4s-circe"        % "0.21.0",
-      "io.circe"      %% "circe-generic"       % "0.12.3",
+      "io.circe"      %% "circe-generic"       % "0.13.0",
     )
   )
 
