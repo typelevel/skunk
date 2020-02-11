@@ -67,7 +67,7 @@ lazy val core = project
     description := "Tagless, non-blocking data access library for Postgres.",
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core"    % "2.1.0",
-      "org.typelevel" %% "cats-effect"  % "2.0.0",
+      "org.typelevel" %% "cats-effect"  % "2.1.1",
       "co.fs2"        %% "fs2-core"     % "2.2.2",
       "co.fs2"        %% "fs2-io"       % "2.2.2",
       "org.scodec"    %% "scodec-core"  % "1.11.4",
