@@ -67,9 +67,9 @@ lazy val core = project
     description := "Tagless, non-blocking data access library for Postgres.",
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core"    % "2.1.0",
-      "org.typelevel" %% "cats-effect"  % "2.0.0",
-      "co.fs2"        %% "fs2-core"     % "2.1.0",
-      "co.fs2"        %% "fs2-io"       % "2.1.0",
+      "org.typelevel" %% "cats-effect"  % "2.1.1",
+      "co.fs2"        %% "fs2-core"     % "2.2.2",
+      "co.fs2"        %% "fs2-io"       % "2.2.2",
       "org.scodec"    %% "scodec-core"  % "1.11.4",
       "org.scodec"    %% "scodec-cats"  % "1.0.0",
       "com.beachape"  %% "enumeratum"   % "1.5.15",
@@ -95,8 +95,8 @@ lazy val circe = project
   .settings(
     name := "skunk-circe",
     libraryDependencies ++= Seq(
-      "io.circe" %% "circe-core"   % "0.12.3",
-      "io.circe" %% "circe-parser" % "0.12.3"
+      "io.circe" %% "circe-core"   % "0.13.0",
+      "io.circe" %% "circe-parser" % "0.13.0"
     )
   )
 
@@ -124,10 +124,10 @@ lazy val example = project
     libraryDependencies ++= Seq(
       "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.10",
       "org.tpolecat"  %% "natchez-jaeger"      % "0.0.10",
-      "org.http4s"    %% "http4s-dsl"          % "0.21.0-M6",
-      "org.http4s"    %% "http4s-blaze-server" % "0.21.0-M6",
-      "org.http4s"    %% "http4s-circe"        % "0.21.0-M6",
-      "io.circe"      %% "circe-generic"       % "0.12.3",
+      "org.http4s"    %% "http4s-dsl"          % "0.21.0",
+      "org.http4s"    %% "http4s-blaze-server" % "0.21.0",
+      "org.http4s"    %% "http4s-circe"        % "0.21.0",
+      "io.circe"      %% "circe-generic"       % "0.13.0",
     )
   )
 
