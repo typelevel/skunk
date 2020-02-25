@@ -25,6 +25,9 @@ object Completion {
   case class  Insert(count: Int) extends Completion
   case object CreateTable        extends Completion
   case object DropTable          extends Completion
+  case object AlterTable         extends Completion
+  case object CreateSchema       extends Completion
+  case object DropSchema         extends Completion
   // more ...
 
   /**
