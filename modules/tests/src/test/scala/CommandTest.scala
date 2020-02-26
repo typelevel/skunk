@@ -52,17 +52,44 @@ case object CommandTest extends SkunkTest {
       )
       """.command
 
+  val alterTable: Command[Void] =
+    sql"""
+      ALTER TABLE earth RENAME COLUMN id TO pk
+      """.command
+
   val dropTable: Command[Void] =
     sql"""
       DROP TABLE earth
       """.command
 
-  sessionTest("create and drop table") { s =>
+  val createSchema: Command[Void] =
+    sql"""
+      CREATE SCHEMA public_0
+      """.command
+
+  val dropSchema: Command[Void] =
+    sql"""
+      DROP SCHEMA public_0
+      """.command
+
+  sessionTest("create, alter and drop table") { s =>
     for {
       c <- s.execute(createTable)
       _ <- assert("completion",  c == Completion.CreateTable)
+      c <- s.execute(alterTable)
+      _ <- assert("completion",  c == Completion.AlterTable)
       c <- s.execute(dropTable)
       _ <- assert("completion",  c == Completion.DropTable)
+      _ <- s.assertHealthy
+    } yield "ok"
+  }
+
+  sessionTest("create and drop schema") { s =>
+    for {
+      c <- s.execute(createSchema)
+      _ <- assert("completion",  c == Completion.CreateSchema)
+      c <- s.execute(dropSchema)
+      _ <- assert("completion",  c == Completion.DropSchema)
       _ <- s.assertHealthy
     } yield "ok"
   }
