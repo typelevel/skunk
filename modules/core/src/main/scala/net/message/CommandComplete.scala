@@ -1,4 +1,4 @@
-// Copyright (c) 2018 by Rob Norris
+// Copyright (c) 2018-2020 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
@@ -47,7 +47,10 @@ object CommandComplete {
   def decoder: Decoder[CommandComplete] = cstring.map {
     case "BEGIN"            => apply(Completion.Begin)
     case "COMMIT"           => apply(Completion.Commit)
+    case "CREATE INDEX"     => apply(Completion.CreateIndex)
+    case "DROP INDEX"       => apply(Completion.DropIndex)
     case "LISTEN"           => apply(Completion.Listen)
+    case "LOCK TABLE"       => apply(Completion.LockTable)
     case "NOTIFY"           => apply(Completion.Notify)
     case "RESET"            => apply(Completion.Reset)
     case "SET"              => apply(Completion.Set)
@@ -56,6 +59,9 @@ object CommandComplete {
     case "SAVEPOINT"        => apply(Completion.Savepoint)
     case "CREATE TABLE"     => apply(Completion.CreateTable)
     case "DROP TABLE"       => apply(Completion.DropTable)
+    case "ALTER TABLE"      => apply(Completion.AlterTable)
+    case "CREATE SCHEMA"    => apply(Completion.CreateSchema)
+    case "DROP SCHEMA"      => apply(Completion.DropSchema)
     case Patterns.Select(s) => apply(Completion.Select(s.toInt))
     case Patterns.Delete(s) => apply(Completion.Delete(s.toInt))
     case Patterns.Update(s) => apply(Completion.Delete(s.toInt))

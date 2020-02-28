@@ -1,4 +1,4 @@
-// Copyright (c) 2018 by Rob Norris
+// Copyright (c) 2018-2020 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
@@ -59,31 +59,39 @@ private[protocol] class Unroll[F[_]: MonadError[?[_], Throwable]: MessageSocket:
         case      PortalSuspended    => (accum.reverse ~ true).pure[F]
       }
 
-    accumulate(Nil).flatMap {
-      case (rows, bool) =>
-        Trace[F].put(
-          "row-count" -> rows.length,
-          "more-rows" -> bool
-        ) *>
-        rows.traverse { data =>
-          decoder.decode(0, data) match {
-            case Right(a) => a.pure[F]
-            case Left(e)  =>
-              send(Sync).whenA(extended) *> // if it's an extended query we need to resync
-              expect { case ReadyForQuery(_) => } *>
-              new DecodeException(
-                data,
-                e,
-                sql,
-                Some(sqlOrigin),
-                args,
-                argsOrigin,
-                encoder,
-                rowDescription,
-              ).raiseError[F, B]
-          }
-        } .map(_ ~ bool)
-    }
+    val rows: F[List[List[Option[String]]] ~ Boolean] =
+      Trace[F].span("read") {
+        accumulate(Nil).flatTap { case (rows, bool) =>
+          Trace[F].put(
+            "row-count" -> rows.length,
+            "more-rows" -> bool
+          )
+        }
+      }
+
+      rows.flatMap { case (rows, bool) =>
+        Trace[F].span("decode") {
+          rows.traverse { data =>
+            decoder.decode(0, data) match {
+              case Right(a) => a.pure[F]
+              case Left(e)  =>
+                send(Sync).whenA(extended) *> // if it's an extended query we need to resync
+                expect { case ReadyForQuery(_) => } *>
+                new DecodeException(
+                  data,
+                  e,
+                  sql,
+                  Some(sqlOrigin),
+                  args,
+                  argsOrigin,
+                  encoder,
+                  rowDescription,
+                ).raiseError[F, B]
+            }
+          } .map(_ ~ bool)
+        }
+
+      }
 
   }
 

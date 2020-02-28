@@ -1,4 +1,4 @@
-// Copyright (c) 2018 by Rob Norris
+// Copyright (c) 2018-2020 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
@@ -9,8 +9,11 @@ sealed abstract class Completion
 object Completion {
   case object Begin              extends Completion
   case object Commit             extends Completion
+  case object CreateIndex        extends Completion
   case class  Delete(count: Int) extends Completion
+  case object DropIndex          extends Completion
   case object Listen             extends Completion
+  case object LockTable          extends Completion
   case object Notify             extends Completion
   case object Reset              extends Completion
   case object Rollback           extends Completion
@@ -22,6 +25,9 @@ object Completion {
   case class  Insert(count: Int) extends Completion
   case object CreateTable        extends Completion
   case object DropTable          extends Completion
+  case object AlterTable         extends Completion
+  case object CreateSchema       extends Completion
+  case object DropSchema         extends Completion
   // more ...
 
   /**

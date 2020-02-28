@@ -1,4 +1,4 @@
-// Copyright (c) 2018 by Rob Norris
+// Copyright (c) 2018-2020 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
@@ -58,5 +58,9 @@ object Fragment {
 
   private[skunk] def apply(sql: String): Fragment[Void] =
     Fragment(List(Left(sql)), Void.codec, Origin.unknown)
+
+
+  val empty: Fragment[Void] =
+    apply("")
 
 }

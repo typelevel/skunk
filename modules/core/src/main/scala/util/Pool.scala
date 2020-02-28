@@ -1,4 +1,4 @@
-// Copyright (c) 2018 by Rob Norris
+// Copyright (c) 2018-2020 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
@@ -11,6 +11,7 @@ import cats.effect.implicits._
 import cats.effect.Resource
 import cats.implicits._
 import skunk.exception.SkunkException
+import natchez.Trace
 
 object Pool {
 
@@ -45,13 +46,13 @@ object Pool {
    * A pooled resource (which is itself a managed resource).
    * @param rsrc the underlying resource to be pooled
    * @param size maximum size of the pool (must be positive)
-   * @param reset a cleanup/health-check to be done before elements are returned to the pool;
+   * @param recycler a cleanup/health-check to be done before elements are returned to the pool;
    *   yielding false here means the element should be freed and removed from the pool.
    */
-  def of[F[_]: Concurrent, A](
+  def of[F[_]: Concurrent: Trace, A](
     rsrc:  Resource[F, A],
     size:  Int)(
-    reset: A => F[Boolean]
+    recycler: Recycler[F, A]
   ): Resource[F, Resource[F, A]] = {
 
     // Just in case.
@@ -75,53 +76,61 @@ object Pool {
       // slot, remove it and allocate. If there are no slots, enqueue the deferral and wait on it,
       // which will [semantically] block the caller until an alloc is returned to the pool.
       val give: F[Alloc] =
-        Deferred[F, Either[Throwable, Alloc]].flatMap { d =>
+        Trace[F].span("pool.allocate") {
+          Deferred[F, Either[Throwable, Alloc]].flatMap { d =>
 
-          // If allocation fails for any reason then there's no resource to return to the pool
-          // later, so in this case we have to append a new empty slot to the queue. We do this in
-          // a couple places here so we factored it out.
-          val restore: PartialFunction[Throwable, F[Unit]] = {
-            case _ => ref.update { case (os, ds) => (os :+ None, ds) }
+            // If allocation fails for any reason then there's no resource to return to the pool
+            // later, so in this case we have to append a new empty slot to the queue. We do this in
+            // a couple places here so we factored it out.
+            val restore: PartialFunction[Throwable, F[Unit]] = {
+              case _ => ref.update { case (os, ds) => (os :+ None, ds) }
+            }
+
+            // Here we go. The cases are a full slot (done), an empty slot (alloc), and no slots at
+            // all (defer and wait).
+            ref.modify {
+              case (Some(a) :: os, ds) => ((os, ds), a.pure[F])
+              case (None    :: os, ds) => ((os, ds), rsrc.allocated.onError(restore))
+              case (Nil,           ds) => ((Nil, ds :+ d), d.get.flatMap(_.liftTo[F].onError(restore)))
+            } .flatten
+
           }
-
-          // Here we go. The cases are a full slot (done), an empty slot (alloc), and no slots at
-          // all (defer and wait).
-          ref.modify {
-            case (Some(a) :: os, ds) => ((os, ds), a.pure[F])
-            case (None    :: os, ds) => ((os, ds), rsrc.allocated.onError(restore))
-            case (Nil,           ds) => ((Nil, ds :+ d), d.get.flatMap(_.liftTo[F].onError(restore)))
-          } .flatten
-
         }
 
       // To take back an alloc we nominally just hand it out or push it back onto the queue, but
       // there are a bunch of error conditions to consider. This operation is a finalizer and
       // cannot be canceled, so we don't need to worry about that case here.
       def take(a: Alloc): F[Unit] =
-        reset(a._1).onError {
-          case t     => dispose(a) *> t.raiseError[F, Unit]
-        } flatMap {
-          case true  => recycle(a)
-          case false => dispose(a)
+        Trace[F].span("pool.free") {
+          recycler(a._1).onError {
+            case t     => dispose(a) *> t.raiseError[F, Unit]
+          } flatMap {
+            case true  => recycle(a)
+            case false => dispose(a)
+          }
         }
 
       // Return `a` to the pool. If there are awaiting deferrals, complete the next one. Otherwise
       // push a filled slot into the queue.
       def recycle(a: Alloc): F[Unit] =
-        ref.modify {
-          case (os, d :: ds) => ((os, ds), d.complete(a.asRight))  // hand it back out
-          case (os, Nil)     => ((Some(a) :: os, Nil), ().pure[F]) // return to pool
-        } .flatten
+        Trace[F].span("recycle") {
+          ref.modify {
+            case (os, d :: ds) => ((os, ds), d.complete(a.asRight))  // hand it back out
+            case (os, Nil)     => ((Some(a) :: os, Nil), ().pure[F]) // return to pool
+          } .flatten
+        }
 
       // Something went wrong when returning `a` to the pool so let's dispose of it and figure out
       // how to clean things up. If there are no deferrals, append an empty slot to take the place
       // of `a`. If there are deferrals, remove the next one and complete it (failures in allocation
       // are handled by the awaiting deferral in `give` above). Always finalize `a`
       def dispose(a: Alloc): F[Unit] =
-        ref.modify {
-          case (os, Nil) =>  ((os :+ None, Nil), ().pure[F]) // new empty slot
-          case (os, d :: ds) =>  ((os, ds), rsrc.allocated.attempt.flatMap(d.complete)) // alloc now!
-        } .guarantee(a._2).flatten
+        Trace[F].span("dispose") {
+          ref.modify {
+            case (os, Nil) =>  ((os :+ None, Nil), ().pure[F]) // new empty slot
+            case (os, d :: ds) =>  ((os, ds), rsrc.allocated.attempt.flatMap(d.complete)) // alloc now!
+          } .guarantee(a._2).flatten
+        }
 
       // Hey, that's all we need to create our resource!
       Resource.make(give)(take).map(_._1)
@@ -138,10 +147,10 @@ object Pool {
     def free(ref: Ref[F, State]): F[Unit] =
       ref.get.flatMap {
 
-        // We could check here to ensure that os.length = size and log an error if an entry is
-        // missing. This would indicate a leak. If there is an error in `free` it will halt
-        // finalization of remaining allocs and will be re-raised to the caller, which is a bit
-        // harsh. We might want to accumulate failures and raise one big error when we're done.
+        // Complete all awaiting deferrals with a `ShutdownException`, then raise an error if there
+        // are fewer slots than the pool size. Both conditions can be provoked by poor resource
+        // hygiene (via fibers typically). Then finalize any remaining pooled elements. Failure of
+        // pool finalization may result in unfinalized resources. To be improved.
         case (os, ds) =>
           ds.traverse(_.complete(Left(ShutdownException))) *>
           ResourceLeak(size, os.length, ds.length).raiseError[F, Unit].whenA(os.length != size) *>
