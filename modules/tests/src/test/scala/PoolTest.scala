@@ -16,6 +16,7 @@ import cats.effect.concurrent.Deferred
 import scala.util.Random
 import skunk.util.Pool.ShutdownException
 import natchez.Trace.Implicits.noop
+import skunk.util.Recycler
 
 case object PoolTest extends FTest {
 
@@ -45,13 +46,13 @@ case object PoolTest extends FTest {
   // This test leaks
   test("error in alloc is rethrown to caller (immediate)") {
     val rsrc = Resource.make(IO.raiseError[String](AllocFailure()))(_ => IO.unit)
-    val pool = Pool.of(rsrc, 42)(_ => true.pure[IO])
+    val pool = Pool.of(rsrc, 42)(Recycler.success)
     pool.use(_.use(_ => IO.unit)).assertFailsWith[AllocFailure].void
   }
 
   test("error in alloc is rethrown to caller (deferral completion following errored cleanup)") {
     resourceYielding(IO(1), IO.raiseError(AllocFailure())).flatMap { r =>
-      val p = Pool.of(r, 1)(_ => IO.raiseError(ResetFailure()))
+      val p = Pool.of(r, 1)(Recycler[IO, Int](_ => IO.raiseError(ResetFailure())))
       p.use { r =>
         for {
           d  <- Deferred[IO, Unit]
@@ -67,7 +68,7 @@ case object PoolTest extends FTest {
 
   test("error in alloc is rethrown to caller (deferral completion following failed cleanup)") {
     resourceYielding(IO(1), IO.raiseError(AllocFailure())).flatMap { r =>
-      val p = Pool.of(r, 1)(_ => false.pure[IO])
+      val p = Pool.of(r, 1)(Recycler.failure)
       p.use { r =>
         for {
           d  <- Deferred[IO, Unit]
@@ -83,7 +84,7 @@ case object PoolTest extends FTest {
 
   test("provoke dangling deferral cancellation") {
     ints.flatMap { r =>
-      val p = Pool.of(r, 1)(_ => false.pure[IO])
+      val p = Pool.of(r, 1)(Recycler.failure)
       Deferred[IO, Either[Throwable, Int]].flatMap { d1 =>
         p.use { r =>
           for {
@@ -102,18 +103,18 @@ case object PoolTest extends FTest {
 
   test("error in free is rethrown to caller") {
     val rsrc = Resource.make("foo".pure[IO])(_ => IO.raiseError(FreeFailure()))
-    val pool = Pool.of(rsrc, 42)(_ => true.pure[IO])
+    val pool = Pool.of(rsrc, 42)(Recycler.success)
     pool.use(_.use(_ => IO.unit)).assertFailsWith[FreeFailure]
   }
 
   test("error in reset is rethrown to caller") {
     val rsrc = Resource.make("foo".pure[IO])(_ => IO.unit)
-    val pool = Pool.of(rsrc, 42)(_ => IO.raiseError(ResetFailure()))
+    val pool = Pool.of(rsrc, 42)(Recycler[IO, String](_ => IO.raiseError(ResetFailure())))
     pool.use(_.use(_ => IO.unit)).assertFailsWith[ResetFailure]
   }
 
   test("reuse on serial access") {
-    ints.map(Pool.of(_, 3)(_ => true.pure[IO])).flatMap { factory =>
+    ints.map(Pool.of(_, 3)(Recycler.success)).flatMap { factory =>
       factory.use { pool =>
         pool.use { n =>
           assertEqual("first num should be 1", n, 1)
@@ -126,7 +127,7 @@ case object PoolTest extends FTest {
   }
 
   test("allocation on nested access") {
-    ints.map(Pool.of(_, 3)(_ => true.pure[IO])).flatMap { factory =>
+    ints.map(Pool.of(_, 3)(Recycler.success)).flatMap { factory =>
       factory.use { pool =>
         pool.use { n =>
           assertEqual("first num should be 1", n, 1) *>
@@ -142,7 +143,7 @@ case object PoolTest extends FTest {
   }
 
   test("allocated resource can cause a leak, which will be detected on finalization") {
-    ints.map(Pool.of(_, 3)(_ => true.pure[IO])).flatMap { factory =>
+    ints.map(Pool.of(_, 3)(Recycler.success)).flatMap { factory =>
       factory.use { pool =>
         pool.allocated
       } .assertFailsWith[ResourceLeak].flatMap {
@@ -153,7 +154,7 @@ case object PoolTest extends FTest {
   }
 
   test("unmoored fiber can cause a leak, which will be detected on finalization") {
-    ints.map(Pool.of(_, 3)(_ => true.pure[IO])).flatMap { factory =>
+    ints.map(Pool.of(_, 3)(Recycler.success)).flatMap { factory =>
       factory.use { pool =>
         pool.use(_ => IO.never).start *>
         IO.sleep(100.milli) // ensure that the fiber has a chance to run
@@ -170,7 +171,7 @@ case object PoolTest extends FTest {
   val ConcurrentTasks = 500
 
   test("progress and safety with many fibers") {
-    ints.map(Pool.of(_, PoolSize)(_ => true.pure[IO])).flatMap { factory =>
+    ints.map(Pool.of(_, PoolSize)(Recycler.success)).flatMap { factory =>
       (1 to ConcurrentTasks).toList.parTraverse_{ _ =>
         factory.use { p =>
           p.use { _ =>
@@ -185,7 +186,7 @@ case object PoolTest extends FTest {
   }
 
   test("progress and safety with many fibers and cancellation") {
-    ints.map(Pool.of(_, PoolSize)(_ => true.pure[IO])).flatMap { factory =>
+    ints.map(Pool.of(_, PoolSize)(Recycler.success)).flatMap { factory =>
       factory.use { pool =>
         (1 to ConcurrentTasks).toList.parTraverse_{_ =>
           for {
@@ -199,7 +200,7 @@ case object PoolTest extends FTest {
   }
 
   test("progress and safety with many fibers and user failures") {
-    ints.map(Pool.of(_, PoolSize)(_ => true.pure[IO])).flatMap { factory =>
+    ints.map(Pool.of(_, PoolSize)(Recycler.success)).flatMap { factory =>
       factory.use { pool =>
         (1 to ConcurrentTasks).toList.parTraverse_{ _ =>
           pool.use { _ =>
@@ -220,7 +221,7 @@ case object PoolTest extends FTest {
       case false => IO.raiseError(AllocFailure())
     }
     val rsrc = Resource.make(alloc)(_ => IO.unit)
-    Pool.of(rsrc, PoolSize)(_ => true.pure[IO]).use { pool =>
+    Pool.of(rsrc, PoolSize)(Recycler.success).use { pool =>
       (1 to ConcurrentTasks).toList.parTraverse_{ _ =>
         pool.use { _ =>
           IO.unit
@@ -235,7 +236,7 @@ case object PoolTest extends FTest {
       case false => IO.raiseError(FreeFailure())
     }
     val rsrc  = Resource.make(IO.unit)(_ => free)
-    Pool.of(rsrc, PoolSize)(_ => true.pure[IO]).use { pool =>
+    Pool.of(rsrc, PoolSize)(Recycler.success).use { pool =>
       (1 to ConcurrentTasks).toList.parTraverse_{ _ =>
         pool.use { _ =>
           IO.unit
@@ -248,13 +249,13 @@ case object PoolTest extends FTest {
   }
 
   test("progress and safety with many fibers and reset failures") {
-    val reset = IO(Random.nextInt(3)).flatMap {
+    val recycle = IO(Random.nextInt(3)).flatMap {
       case 0 => true.pure[IO]
       case 1 => false.pure[IO]
       case 2 => IO.raiseError(ResetFailure())
     }
     val rsrc  = Resource.make(IO.unit)(_ => IO.unit)
-    Pool.of(rsrc, PoolSize)(_ => reset).use { pool =>
+    Pool.of(rsrc, PoolSize)(Recycler(_ => recycle)).use { pool =>
       (1 to ConcurrentTasks).toList.parTraverse_{ _ =>
         pool.use { _ =>
           IO.unit
