@@ -68,8 +68,8 @@ lazy val core = project
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core"    % "2.1.1",
       "org.typelevel" %% "cats-effect"  % "2.1.2",
-      "co.fs2"        %% "fs2-core"     % "2.2.2",
-      "co.fs2"        %% "fs2-io"       % "2.2.2",
+      "co.fs2"        %% "fs2-core"     % "2.3.0",
+      "co.fs2"        %% "fs2-io"       % "2.3.0",
       "org.scodec"    %% "scodec-core"  % "1.11.4",
       "org.scodec"    %% "scodec-cats"  % "1.0.0",
       "com.beachape"  %% "enumeratum"   % "1.5.15",
