@@ -72,7 +72,7 @@ lazy val core = project
       "co.fs2"        %% "fs2-io"       % "2.2.2",
       "org.scodec"    %% "scodec-core"  % "1.11.4",
       "org.scodec"    %% "scodec-cats"  % "1.0.0",
-      "com.beachape"  %% "enumeratum"   % "1.5.15",
+      "com.beachape"  %% "enumeratum"   % "1.6.0",
       "org.tpolecat"  %% "natchez-core" % "0.0.10",
     )
   )
