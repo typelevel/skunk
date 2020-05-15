@@ -11,5 +11,6 @@ trait AllCodecs
      with BooleanCodec
      with EnumCodec
      with UuidCodec
+     with BinaryCodecs
 
 object all extends AllCodecs
