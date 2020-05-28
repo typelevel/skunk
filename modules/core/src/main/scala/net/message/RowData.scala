@@ -4,24 +4,23 @@
 
 package skunk.net.message
 
-import cats.implicits._
 import java.nio.charset.StandardCharsets.UTF_8
 import scodec._
 import scodec.codecs._
-import scodec.interop.cats._
 
 case class RowData(fields: List[Option[String]]) extends BackendMessage
 
 object RowData {
 
-  private val field: Decoder[Option[String]] =
+  private val field: Codec[Option[String]] =
     int32.flatMap {
       case -1 => Decoder.point(None)
       case n  => bytes(n).map(bv => Some(new String(bv.toArray, UTF_8)))
-    }
+    }.decodeOnly
 
   final val Tag = 'D'
-  final val decoder: Decoder[RowData] = int16.flatMap(field.replicateA(_)).map(apply)
+  final val decoder: Decoder[RowData] = 
+    codecs.listOfN(int16, field).map(apply)
 
 }
 
