@@ -31,7 +31,7 @@
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.0.7
+0.0.10
 </div>
 </div>
 <div class="nav-toc">
@@ -49,7 +49,7 @@
   <ul>
     <li><a href="../reference/Sessions.html" class="page">Sessions</a></li>
     <li><a href="../reference/TwiddleLists.html" class="page">Twiddle Lists</a></li>
-    <li><a href="../reference/Codecs.html" class="page">Codecs</a></li>
+    <li><a href="../reference/Encoders.html" class="page">Encoders</a></li>
     <li><a href="../reference/Fragments.html" class="page">Fragments</a></li>
     <li><a href="../reference/Identifiers.html" class="page">Identifiers</a></li>
     <li><a href="../reference/Concurrency.html" class="page">Concurrency</a></li>
@@ -86,7 +86,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.0.7
+0.0.10
 </div>
 </div>
 <div class="nav-toc">
@@ -104,7 +104,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
   <ul>
     <li><a href="../reference/Sessions.html" class="page">Sessions</a></li>
     <li><a href="../reference/TwiddleLists.html" class="page">Twiddle Lists</a></li>
-    <li><a href="../reference/Codecs.html" class="page">Codecs</a></li>
+    <li><a href="../reference/Encoders.html" class="page">Encoders</a></li>
     <li><a href="../reference/Fragments.html" class="page">Fragments</a></li>
     <li><a href="../reference/Identifiers.html" class="page">Identifiers</a></li>
     <li><a href="../reference/Concurrency.html" class="page">Concurrency</a></li>
@@ -140,7 +140,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <p>A <em>command</em> is a SQL statement that does not return rows.</p></div>
 <h2><a href="#simple-command" name="simple-command" class="anchor"><span class="anchor-link"></span></a>Simple Command</h2>
 <p>First let&rsquo;s look at a command that sets the session&rsquo;s random number seed. We will also include the imports we need for the examples in this section.</p>
-<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/scala/tutorial/Command.scala#L14-L22" target="_blank" title="Go to snippet source"></a><code class="language-scala">import cats.effect.IO
+<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/v0.0.10/modules/docs/src/main/scala/tutorial/Command.scala#L14-L22" target="_blank" title="Go to snippet source"></a><code class="language-scala">import cats.effect.IO
 import cats.implicits._
 import skunk._
 import skunk.implicits._
@@ -151,38 +151,38 @@ val a: Command[Void] =
   sql&quot;SET SEED TO 0.123&quot;.command</code></pre>
 <p>Observe the following:</p>
 <ul>
-  <li>We are using the <a href="../reference/Fragments.html">sql interpolator</a> to construct a <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.0.7/skunk/Fragment.html" title="skunk.Fragment"><code>Fragment</code></a>, which we then turn into a <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.0.7/skunk/Command.html" title="skunk.Command"><code>Command</code></a> by calling the <code>command</code> method.</li>
+  <li>We are using the <a href="../reference/Fragments.html">sql interpolator</a> to construct a <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.0.10/skunk/Fragment.html" title="skunk.Fragment"><code>Fragment</code></a>, which we then turn into a <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.0.10/skunk/Command.html" title="skunk.Command"><code>Command</code></a> by calling the <code>command</code> method.</li>
   <li><code>Command</code> is parameterized by its input type. Because this command has no parameters the input type is <code>Void</code>.</li>
 </ul>
 <p>The command above is a <em>simple command</em>.</p><div class="callout note "><div class="callout-title">Definition</div>
 <p>A <em>simple command</em> is a command with no parameters.</p></div>
-<p>The same <a href="https://www.postgresql.org/docs/10/protocol-flow.html#id-1.10.5.7.4">protocol</a> that executes simple queries also executes simple commands. Such commands can be passed directly to <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.0.7/skunk/Session.html#execute" title="skunk.Session"><code>Session.execute</code></a>.</p>
-<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/scala/tutorial/Command.scala#L27-L28" target="_blank" title="Go to snippet source"></a><code class="language-scala">// assume s: Session[IO]
+<p>The same <a href="https://www.postgresql.org/docs/10/protocol-flow.html#id-1.10.5.7.4">protocol</a> that executes simple queries also executes simple commands. Such commands can be passed directly to <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.0.10/skunk/Session.html#execute" title="skunk.Session"><code>Session.execute</code></a>.</p>
+<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/v0.0.10/modules/docs/src/main/scala/tutorial/Command.scala#L27-L28" target="_blank" title="Go to snippet source"></a><code class="language-scala">// assume s: Session[IO]
 s.execute(a) // IO[Completion]</code></pre>
-<p>On success a command will yield a <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.0.7/skunk/data/Completion.html" title="skunk.data.Completion"><code>Completion</code></a>, which is an ADT that encodes responses from various commands. In this case our completion is simply the value <code>Completion.Set</code>.</p>
+<p>On success a command will yield a <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.0.10/skunk/data/Completion.html" title="skunk.data.Completion"><code>Completion</code></a>, which is an ADT that encodes responses from various commands. In this case our completion is simply the value <code>Completion.Set</code>.</p>
 <h2><a href="#parameterized-command" name="parameterized-command" class="anchor"><span class="anchor-link"></span></a>Parameterized Command</h2>
 <p>Now let&rsquo;s add a parameter to the command.</p>
-<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/scala/tutorial/Command.scala#L38-L39" target="_blank" title="Go to snippet source"></a><code class="language-scala">val c: Command[String] =
+<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/v0.0.10/modules/docs/src/main/scala/tutorial/Command.scala#L38-L39" target="_blank" title="Go to snippet source"></a><code class="language-scala">val c: Command[String] =
   sql&quot;DELETE FROM country WHERE name = $varchar&quot;.command</code></pre>
 <p>Observe that we have interpolated a value called <code>varchar</code>, which has type <code>Encoder[String]</code>. This works the same way as with queries. See the previous chapter for more information about statement parameters.</p>
 <p>The command above is an <em>extended command</em>.</p><div class="callout note "><div class="callout-title">Definition</div>
 <p>An <em>extended command</em> is a command with parameters, or a simple command that is executed via the extended query protocol.</p></div>
 <p>The same protocol Postgres provides for executing extended queries is also used for extended commands, but because the return value is always a single <code>Completion</code> the end-user API is more limited.</p>
 <p>Here we use the extended protocol to attempt some deletions.</p>
-<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/scala/tutorial/Command.scala#L44-L49" target="_blank" title="Go to snippet source"></a><code class="language-scala">// assume s: Session[IO]
+<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/v0.0.10/modules/docs/src/main/scala/tutorial/Command.scala#L44-L49" target="_blank" title="Go to snippet source"></a><code class="language-scala">// assume s: Session[IO]
 s.prepare(c).use { pc =&gt;
   pc.execute(&quot;xyzzy&quot;) *&gt;
   pc.execute(&quot;fnord&quot;) *&gt;
   pc.execute(&quot;blech&quot;)
 } // IO[Completion]</code></pre>
 <p>If we&rsquo;re slighly more clever we can do this with <code>traverse</code> and return a list of <code>Completion</code>.</p>
-<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/scala/tutorial/Command.scala#L52-L55" target="_blank" title="Go to snippet source"></a><code class="language-scala">// assume s: Session[IO]
+<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/v0.0.10/modules/docs/src/main/scala/tutorial/Command.scala#L52-L55" target="_blank" title="Go to snippet source"></a><code class="language-scala">// assume s: Session[IO]
 s.prepare(c).use { pc =&gt;
   List(&quot;xyzzy&quot;, &quot;fnord&quot;, &quot;blech&quot;).traverse(s =&gt; pc.execute(s))
 } // IO[List[Completion]]</code></pre>
 <h3><a href="#contramapping-commands" name="contramapping-commands" class="anchor"><span class="anchor-link"></span></a>Contramapping Commands</h3>
 <p>Similar to <code>map</code>ping the <em>output</em> of a Query, we can <code>contramap</code> the <em>input</em> to a command or query. Here we provide a function that turns an <code>Info</code> into a <code>String ~ String</code>, yielding a <code>Command[Info]</code>.</p>
-<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/scala/tutorial/Command.scala#L69-L77" target="_blank" title="Go to snippet source"></a><code class="language-scala">case class Info(code: String, hos: String)
+<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/v0.0.10/modules/docs/src/main/scala/tutorial/Command.scala#L69-L77" target="_blank" title="Go to snippet source"></a><code class="language-scala">case class Info(code: String, hos: String)
 
 def update2: Command[Info] =
   sql&quot;&quot;&quot;
@@ -192,7 +192,7 @@ def update2: Command[Info] =
   &quot;&quot;&quot;.command // Command[String ~ String]
      .contramap { case Info(code, hos) =&gt; code ~ hos } // Command[Info]</code></pre>
 <p>However in this case the mapping is entirely mechanical. Similar to <code>gmap</code> on query results, we can skip the boilerplate and <code>gcontramap</code> directly to an isomosphic case class.</p>
-<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/scala/tutorial/Command.scala#L81-L87" target="_blank" title="Go to snippet source"></a><code class="language-scala">def update3: Command[Info] =
+<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/v0.0.10/modules/docs/src/main/scala/tutorial/Command.scala#L81-L87" target="_blank" title="Go to snippet source"></a><code class="language-scala">def update3: Command[Info] =
   sql&quot;&quot;&quot;
     UPDATE country
     SET    headofstate = $varchar
@@ -215,7 +215,7 @@ def update2: Command[Info] =
 <h2><a href="#full-example" name="full-example" class="anchor"><span class="anchor-link"></span></a>Full Example</h2>
 <h2><a href="#experiment" name="experiment" class="anchor"><span class="anchor-link"></span></a>Experiment</h2>
 <div class="source-github">
-The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/paradox/tutorial/Command.md">here</a>.
+The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/v0.0.10/modules/docs/src/main/paradox/tutorial/Command.md">here</a>.
 </div>
 
 <div class="nav-next">
@@ -278,7 +278,7 @@ The source code for this page can be found <a href="https://github.com/tpolecat/
 
 <!--
 <div class="copyright">
-<span class="text">&copy; 2019</span>
+<span class="text">&copy; 2020</span>
 <a href="https://www.example.com" class="logo">logo</a>
 </div>
 -->
@@ -303,7 +303,7 @@ The source code for this page can be found <a href="https://github.com/tpolecat/
 <script type="text/javascript" src="../lib/prettify/prettify.js"></script>
 <script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
 <script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
-<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.7', 'https://github.com/tpolecat/skunk')});</script>
+<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.10', 'https://github.com/tpolecat/skunk')});</script>
 
 
 </html>

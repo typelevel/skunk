@@ -2,11 +2,11 @@
 <html class="no-js" lang="en">
 
 <head>
-<title>Codecs · Skunk</title>
+<title>Encoders · Skunk</title>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="description" content='docs'/>
-<link rel="canonical" href="https://github.com/tpolecat/skunkreference/Codecs.html"/>
+<link rel="canonical" href="https://github.com/tpolecat/skunkreference/Encoders.html"/>
 <link href="https://fonts.googleapis.com/css?family=Roboto:100normal,100italic,300normal,300italic,400normal,400italic,500normal,500italic,700normal,700italic,900normal,900italicc" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="../lib/jquery/jquery.min.js"></script>
 <script type="text/javascript" src="../js/page.js"></script>
@@ -31,7 +31,7 @@
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.0.7
+0.0.10
 </div>
 </div>
 <div class="nav-toc">
@@ -49,7 +49,7 @@
   <ul>
     <li><a href="../reference/Sessions.html" class="page">Sessions</a></li>
     <li><a href="../reference/TwiddleLists.html" class="page">Twiddle Lists</a></li>
-    <li><a href="../reference/Codecs.html" class="active page">Codecs</a></li>
+    <li><a href="../reference/Encoders.html" class="active page">Encoders</a></li>
     <li><a href="../reference/Fragments.html" class="page">Fragments</a></li>
     <li><a href="../reference/Identifiers.html" class="page">Identifiers</a></li>
     <li><a href="../reference/Concurrency.html" class="page">Concurrency</a></li>
@@ -86,7 +86,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.0.7
+0.0.10
 </div>
 </div>
 <div class="nav-toc">
@@ -104,7 +104,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
   <ul>
     <li><a href="../reference/Sessions.html" class="page">Sessions</a></li>
     <li><a href="../reference/TwiddleLists.html" class="page">Twiddle Lists</a></li>
-    <li><a href="../reference/Codecs.html" class="active page">Codecs</a></li>
+    <li><a href="../reference/Encoders.html" class="active page">Encoders</a></li>
     <li><a href="../reference/Fragments.html" class="page">Fragments</a></li>
     <li><a href="../reference/Identifiers.html" class="page">Identifiers</a></li>
     <li><a href="../reference/Concurrency.html" class="page">Concurrency</a></li>
@@ -127,7 +127,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <ul>
   <li><a href="../index.html">Skunk</a></li>
   <li><a href="../reference/Index.html">Reference</a></li>
-  <li>Codecs</li>
+  <li>Encoders</li>
 </ul>
 </div>
 </div>
@@ -135,12 +135,65 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 
 <div class="page-content row">
 <div class="small-12 large-9 column" id="docs">
-<h1><a href="#codecs" name="codecs" class="anchor"><span class="anchor-link"></span></a>Codecs</h1>
-<h2><a href="#encoders" name="encoders" class="anchor"><span class="anchor-link"></span></a>Encoders</h2>
-<h2><a href="#decoders" name="decoders" class="anchor"><span class="anchor-link"></span></a>Decoders</h2>
-<h2><a href="#codecs" name="codecs" class="anchor"><span class="anchor-link"></span></a>Codecs</h2>
+<h1><a href="#encoders" name="encoders" class="anchor"><span class="anchor-link"></span></a>Encoders</h1>
+<p>An encoder is needed any time you want to send a value to Postgres; i.e., any time a statement has parameters. Although it is possible to implement the <code>Encoder</code> interface directly, this requires knowledge of Postgres data formats and is not something you typically do as an end user. Instead you will use one or more existing encoders (see <a href="SchemaTypes.html">Schema Types</a>) composed or transformed as desired.</p>
+<h2><a href="#base-encoders" name="base-encoders" class="anchor"><span class="anchor-link"></span></a>Base Encoders</h2>
+<p>Base encoders are provided for many Postgres types (see <a href="SchemaTypes.html">Schema Types</a>). These encoders translate to a single placeholders in your SQL statement.</p><div class="callout note "><div class="callout-title">Definition</div>
+<p>A <strong>base encoder</strong> maps a Scala type to a <em>single</em> Postgres schema type.</p></div>
+<p>Here is a statement with an interpolated base encoder.</p>
+<pre class="prettyprint"><code class="language-scala">sql&quot;SELECT name FROM country WHERE code = $varchar&quot;
+// Fragment[String]
+// SELECT name FROM country WHERE code = $1
+</code></pre>
+<p>If there is more than one interpolated encoder (or an encoder composed of multiple smaller encoders, as we will see below) there will be multiple placeholders in the SQL statement, numbered sequentially.</p>
+<pre class="prettyprint"><code class="language-scala">sql&quot;SELECT name FROM country WHERE code = $varchar AND population &lt; $int8&quot;
+// Fragment[String ~ Long]
+// SELECT name FROM country WHERE code = $1 AND population &lt; $2
+</code></pre>
+<h2><a href="#composite-encoders" name="composite-encoders" class="anchor"><span class="anchor-link"></span></a>Composite Encoders</h2>
+<p>Given two encoders <code>a: Encoder[A]</code> and <code>b: Encoder[B]</code> we can create a composite encoder <code>a ~ b</code> of type <code>Encoder[(A, B)]</code>. Such an encoder expands to a sequence of placholders separated by commas.</p><div class="callout note "><div class="callout-title">Definition</div>
+<p>A <strong>composite encoder</strong> maps a Scala type to a <em>sequence</em> of Postgres schema types.</p></div>
+<p>Here is a statement with a composite encoder constructed from two base encoders.</p>
+<pre class="prettyprint"><code class="language-scala">sql&quot;INSERT INTO person (name, age) VALUES (${varchar ~ int4})&quot;
+// Fragment[String ~ Int]
+// INSERT INTO person (name, age) VALUES ($1, $2)
+</code></pre>
+<p>Here is a statement with a base encoder and a composite encoder constructed from three base encoders. Note that the composite structure is &ldquo;flattened&rdquo; in the resulting SQL statement; it is purely for convenience on the Scala side.</p>
+<pre class="prettyprint"><code class="language-scala">val enc = varchar ~ int4 ~ float4 // Encoder[String ~ Int ~ Float]
+sql&quot;INSERT INTO person (comment, name, age, weight, comment) VALUES ($text, $enc)&quot;
+// Fragment[String ~ (String ~ Int ~ Float)]
+// INSERT INTO person (name, age, weight, comment) VALUES ($1, $2, $3, $4)
+</code></pre>
+<h2><a href="#combinators" name="combinators" class="anchor"><span class="anchor-link"></span></a>Combinators</h2>
+<p>The <code>values</code> combinator adds parentheses around an encoder&rsquo;s generated placeholders.</p>
+<pre class="prettyprint"><code class="language-scala">val enc = (varchar ~ int4).values // Encoder[String ~ Int]
+sql&quot;INSERT INTO person (name, age) VALUES $enc&quot;
+// Fragment[String ~ Int]
+// INSERT INTO person (name, age) VALUES ($1, $2)
+</code></pre>
+<p>This can be very useful in combination with the <code>list</code> combinator, which creates an encoder for a list of values of a given length.</p>
+<pre class="prettyprint"><code class="language-scala">val enc = (varchar ~ int4).values // Encoder[String ~ Int]
+sql&quot;INSERT INTO person (name, age) VALUES ${enc.list(3)}&quot;
+// Fragment[List[String ~ Int]]
+// INSERT INTO person (name, age) VALUES ($1, $2), ($3, $4), ($5, $6)&quot;
+</code></pre>
+<h2><a href="#transforming-the-input-type" name="transforming-the-input-type" class="anchor"><span class="anchor-link"></span></a>Transforming the Input Type</h2>
+<p>An <code>Encoder[A]</code> consumes a value of type <code>A</code> and encodes it for transmission Postgres, so it can therefore also consume anything that we can <em>turn into an <code>A</code></em>. We do this with <code>contramap</code>.</p>
+<pre class="prettyprint"><code class="language-scala">case class Person(name: String, age: Int)
+val person = (varchar ~ age).values.contramap((p: Person) =&gt; p.name ~ p.age)
+sql&quot;INSERT INTO person (name, age) VALUES $person&quot;
+// Fragment[Person]
+// INSERT INTO person (name, age) VALUES ($1, $2)
+</code></pre>
+<p>Because contramapping from case classes is so common, Skunk provides <code>gcontramap</code> which adapts an encoder to a case class of the same structure.</p>
+<pre class="prettyprint"><code class="language-scala">case class Person(name: String, age: Int)
+val person = (varchar ~ age).values.gcontramap[Person]
+sql&quot;INSERT INTO person (name, age) VALUES $person&quot;
+// Fragment[Person]
+// INSERT INTO person (name, age) VALUES ($1, $2)
+</code></pre>
 <div class="source-github">
-The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/master/modules/docs/src/main/paradox/reference/Codecs.md">here</a>.
+The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/v0.0.10/modules/docs/src/main/paradox/reference/Encoders.md">here</a>.
 </div>
 
 <div class="nav-next">
@@ -153,11 +206,12 @@ The source code for this page can be found <a href="https://github.com/tpolecat/
 <div class="nav-title">On this page:</div>
 <div class="nav-toc">
 <ul>
-  <li><a href="../reference/Codecs.html#codecs" class="header">Codecs</a>
+  <li><a href="../reference/Encoders.html#encoders" class="header">Encoders</a>
   <ul>
-    <li><a href="../reference/Codecs.html#encoders" class="header">Encoders</a></li>
-    <li><a href="../reference/Codecs.html#decoders" class="header">Decoders</a></li>
-    <li><a href="../reference/Codecs.html#codecs" class="header">Codecs</a></li>
+    <li><a href="../reference/Encoders.html#base-encoders" class="header">Base Encoders</a></li>
+    <li><a href="../reference/Encoders.html#composite-encoders" class="header">Composite Encoders</a></li>
+    <li><a href="../reference/Encoders.html#combinators" class="header">Combinators</a></li>
+    <li><a href="../reference/Encoders.html#transforming-the-input-type" class="header">Transforming the Input Type</a></li>
   </ul></li>
 </ul>
 </div>
@@ -200,7 +254,7 @@ The source code for this page can be found <a href="https://github.com/tpolecat/
 
 <!--
 <div class="copyright">
-<span class="text">&copy; 2019</span>
+<span class="text">&copy; 2020</span>
 <a href="https://www.example.com" class="logo">logo</a>
 </div>
 -->
@@ -225,7 +279,7 @@ The source code for this page can be found <a href="https://github.com/tpolecat/
 <script type="text/javascript" src="../lib/prettify/prettify.js"></script>
 <script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
 <script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
-<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.7', 'https://github.com/tpolecat/skunk')});</script>
+<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.10', 'https://github.com/tpolecat/skunk')});</script>
 
 
 </html>
