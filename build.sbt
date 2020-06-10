@@ -25,8 +25,8 @@ lazy val commonSettings = Seq(
   ),
 
   // Compilation
-  scalaVersion       := "2.13.1",
-  crossScalaVersions := Seq("2.12.10", scalaVersion.value),
+  scalaVersion       := "2.13.2",
+  crossScalaVersions := Seq("2.12.11", scalaVersion.value),
   scalacOptions -= "-language:experimental.macros", // doesn't work cross-version
   Compile / doc     / scalacOptions --= Seq("-Xfatal-warnings"),
   Compile / doc     / scalacOptions ++= Seq(
@@ -67,13 +67,13 @@ lazy val core = project
     description := "Tagless, non-blocking data access library for Postgres.",
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core"    % "2.1.1",
-      "org.typelevel" %% "cats-effect"  % "2.1.2",
-      "co.fs2"        %% "fs2-core"     % "2.2.2",
-      "co.fs2"        %% "fs2-io"       % "2.2.2",
-      "org.scodec"    %% "scodec-core"  % "1.11.4",
+      "org.typelevel" %% "cats-effect"  % "2.1.3",
+      "co.fs2"        %% "fs2-core"     % "2.4.1",
+      "co.fs2"        %% "fs2-io"       % "2.4.1",
+      "org.scodec"    %% "scodec-core"  % "1.11.7",
       "org.scodec"    %% "scodec-cats"  % "1.0.0",
-      "com.beachape"  %% "enumeratum"   % "1.5.15",
-      "org.tpolecat"  %% "natchez-core" % "0.0.10",
+      "com.beachape"  %% "enumeratum"   % "1.6.1",
+      "org.tpolecat"  %% "natchez-core" % "0.0.11",
     )
   )
 
@@ -84,7 +84,7 @@ lazy val refined = project
   .settings(commonSettings)
   .settings(
     publish / skip := true,
-    libraryDependencies += "eu.timepit" %% "refined" % "0.9.13",
+    libraryDependencies += "eu.timepit" %% "refined" % "0.9.14",
   )
 
 lazy val circe = project
@@ -107,6 +107,7 @@ lazy val tests = project
   .settings(commonSettings)
   .settings(
     publish / skip := true,
+    test / parallelExecution := false, // why? fix this!
     libraryDependencies ++= Seq(
       "org.scala-sbt"      % "test-interface" % "1.0",
       "io.chrisdavenport" %% "cats-time"      % "0.3.0"
@@ -122,11 +123,11 @@ lazy val example = project
   .settings(
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.10",
-      "org.tpolecat"  %% "natchez-jaeger"      % "0.0.10",
-      "org.http4s"    %% "http4s-dsl"          % "0.21.1",
-      "org.http4s"    %% "http4s-blaze-server" % "0.21.1",
-      "org.http4s"    %% "http4s-circe"        % "0.21.1",
+      "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.11",
+      "org.tpolecat"  %% "natchez-jaeger"      % "0.0.11",
+      "org.http4s"    %% "http4s-dsl"          % "0.21.4",
+      "org.http4s"    %% "http4s-blaze-server" % "0.21.4",
+      "org.http4s"    %% "http4s-circe"        % "0.21.4",
       "io.circe"      %% "circe-generic"       % "0.13.0",
     )
   )

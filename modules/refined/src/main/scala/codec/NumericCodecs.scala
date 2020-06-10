@@ -7,8 +7,6 @@ package skunk.refined.codec
 import eu.timepit.refined.boolean.And
 import eu.timepit.refined.api.Validate
 import skunk.Codec
-import eu.timepit.refined.api.Refined
-import eu.timepit.refined.refineV
 import skunk.data.Type
 import eu.timepit.refined._
 import eu.timepit.refined.api.Refined

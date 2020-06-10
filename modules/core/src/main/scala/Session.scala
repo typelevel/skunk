@@ -385,9 +385,7 @@ object Session {
      * Transform this `Session` by a given `FunctionK`.
      * @group Transformations
      */
-    def mapK[G[_]: Applicative: Defer](fk: F ~> G)(
-      implicit ev: Bracket[F, Throwable]
-    ): Session[G] =
+    def mapK[G[_]: Applicative: Defer](fk: F ~> G): Session[G] =
       new Session[G] {
         override val typer: Typer = outer.typer
         override def channel(name: Identifier): Channel[G,String,Notification] = outer.channel(name).mapK(fk)
