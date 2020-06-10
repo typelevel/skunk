@@ -13,8 +13,10 @@ import skunk.codec.all._
 import natchez.Trace
 import cats.data.Kleisli
 import natchez.Span
-import natchez.honeycomb.Honeycomb
+import natchez.jaeger.Jaeger
 import natchez.EntryPoint
+import io.jaegertracing.Configuration.SamplerConfiguration
+import io.jaegertracing.Configuration.ReporterConfiguration
 
 object Minimal2 extends IOApp {
 
@@ -30,15 +32,13 @@ object Minimal2 extends IOApp {
 
   case class Country(code: String, name: String, pop: Int)
 
-  val country: Decoder[Country] =
-    (bpchar(3) ~ varchar ~ int4).map { case c ~ n ~ p => Country(c, n, p) }
-
   val select: Query[String, Country] =
     sql"""
       select code, name, population
       from country
       WHERE name like $varchar
-    """.query(country)
+    """.query(bpchar(3) ~ varchar ~ int4)
+       .gmap[Country]
 
   def lookup[F[_]: Sync: Trace](pat: String, s: Session[F]): F[Unit] =
     Trace[F].span("lookup") {
@@ -56,14 +56,15 @@ object Minimal2 extends IOApp {
       List("A%", "B%").parTraverse(p => lookup(p, s))
     } as ExitCode.Success
 
-  def tracer[F[_]: Sync]: Resource[F, EntryPoint[F]] =
-    Honeycomb.entryPoint("skunk-example-new") { ob =>
-      Sync[F].delay(
-        ob.setWriteKey("<api key>")
-          .setDataset("<dataset>")
-          .build
-      )
+  def tracer[F[_]: Sync]: Resource[F, EntryPoint[F]] = {
+    Jaeger.entryPoint[F]("skunk-http4s-example") { c =>
+      Sync[F].delay {
+        c.withSampler(SamplerConfiguration.fromEnv)
+         .withReporter(ReporterConfiguration.fromEnv)
+         .getTracer
+      }
     }
+  }
 
   def run(args: List[String]): IO[ExitCode] =
     tracer[IO].use { t =>

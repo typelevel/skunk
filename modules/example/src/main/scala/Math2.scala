@@ -19,7 +19,8 @@ object Math2 extends IOApp {
       port     = 5432,
       user     = "jimmy",
       database = "world",
-      password = Some("banana")
+      password = Some("banana"),
+      debug    = true
     )
 
   // An algebra for doing math.
