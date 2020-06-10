@@ -143,6 +143,7 @@ lazy val docs = project
   .enablePlugins(MdocPlugin)
   .settings(commonSettings)
   .settings(
+    scalacOptions      := Nil,
     git.remoteRepo     := "git@github.com:tpolecat/skunk.git",
     ghpagesNoJekyll    := true,
     publish / skip     := true,
@@ -160,4 +161,5 @@ lazy val docs = project
     mdocIn := (baseDirectory.value) / "src" / "main" / "paradox",
     Compile / paradox / sourceDirectory := mdocOut.value,
     makeSite := makeSite.dependsOn(mdoc.toTask("")).value,
+    mdocExtraArguments := Seq("--no-link-hygiene"), // paradox handles this
 )

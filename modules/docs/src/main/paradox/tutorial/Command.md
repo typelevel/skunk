@@ -1,3 +1,13 @@
+```scala mdoc:invisible
+import cats.effect._
+import cats.implicits._
+import skunk._
+import skunk.implicits._
+import skunk.codec.all._
+import natchez.Trace.Implicits.noop
+val s: Session[IO] = null
+```
+
 # Commands
 
 This section explains how to construct and execute commands.
@@ -8,9 +18,13 @@ A *command* is a SQL statement that does not return rows.
 
 ## Simple Command
 
-First let's look at a command that sets the session's random number seed. We will also include the imports we need for the examples in this section.
+First let's look at a command that sets the session's random number seed.
 
-@@snip [Command.scala](/modules/docs/src/main/scala/tutorial/Command.scala) { #command-a }
+```scala mdoc
+val a: Command[Void] =
+  sql"SET SEED TO 0.123".command
+```
+
 
 Observe the following:
 
@@ -25,7 +39,11 @@ A *simple command* is a command with no parameters.
 
 The same [protocol](https://www.postgresql.org/docs/10/protocol-flow.html#id-1.10.5.7.4) that executes simple queries also executes simple commands. Such commands can be passed directly to @scaladoc[Session.execute](skunk.Session#execute).
 
-@@snip [Command.scala](/modules/docs/src/main/scala/tutorial/Command.scala) { #command-a-exec }
+
+```scala mdoc:compile-only
+// assume s: Session[IO]
+s.execute(a) // IO[Completion]
+```
 
 On success a command will yield a @scaladoc[Completion](skunk.data.Completion), which is an ADT that encodes responses from various commands. In this case our completion is simply the value `Completion.Set`.
 
@@ -33,7 +51,10 @@ On success a command will yield a @scaladoc[Completion](skunk.data.Completion), 
 
 Now let's add a parameter to the command.
 
-@@snip [Command.scala](/modules/docs/src/main/scala/tutorial/Command.scala) { #command-c }
+```scala mdoc
+val c: Command[String] =
+  sql"DELETE FROM country WHERE name = $varchar".command
+```
 
 Observe that we have interpolated a value called `varchar`, which has type `Encoder[String]`. This works the same way as with queries. See the previous chapter for more information about statement parameters.
 
@@ -47,22 +68,51 @@ The same protocol Postgres provides for executing extended queries is also used 
 
 Here we use the extended protocol to attempt some deletions.
 
-@@snip [Command.scala](/modules/docs/src/main/scala/tutorial/Command.scala) { #command-c2 }
+```scala mdoc:compile-only
+// assume s: Session[IO]
+s.prepare(c).use { pc =>
+  pc.execute("xyzzy") *>
+  pc.execute("fnord") *>
+  pc.execute("blech")
+} // IO[Completion]
+```
 
 If we're slighly more clever we can do this with `traverse` and return a list of `Completion`.
 
-@@snip [Command.scala](/modules/docs/src/main/scala/tutorial/Command.scala) { #command-c3 }
+```scala mdoc:compile-only
+// assume s: Session[IO]
+s.prepare(c).use { pc =>
+  List("xyzzy", "fnord", "blech").traverse(s => pc.execute(s))
+} // IO[List[Completion]]
+```
 
 ### Contramapping Commands
 
 Similar to `map`ping the _output_ of a Query, we can `contramap` the _input_ to a command or query. Here we provide a function that turns an `Info` into a `String ~ String`, yielding a `Command[Info]`.
 
-@@snip [Command.scala](/modules/docs/src/main/scala/tutorial/Command.scala) { #command-e }
+```scala mdoc
+case class Info(code: String, hos: String)
+
+def update2: Command[Info] =
+  sql"""
+    UPDATE country
+    SET    headofstate = $varchar
+    WHERE  code = ${bpchar(3)}
+  """.command                                          // Command[String ~ String]
+     .contramap { case Info(code, hos) => code ~ hos } // Command[Info]
+```
 
 However in this case the mapping is entirely mechanical. Similar to `gmap` on query results, we can skip the boilerplate and `gcontramap` directly to an isomosphic case class.
 
-@@snip [Command.scala](/modules/docs/src/main/scala/tutorial/Command.scala) { #command-f }
-
+```scala mdoc
+def update3: Command[Info] =
+  sql"""
+    UPDATE country
+    SET    headofstate = $varchar
+    WHERE  code = ${bpchar(3)}
+  """.command          // Command[String ~ String]
+     .gcontramap[Info] // Command[Info]
+```
 
 ## Encoding Values
 
