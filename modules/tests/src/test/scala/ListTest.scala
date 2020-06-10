@@ -1,4 +1,4 @@
-// Copyright (c) 2020 by Rob Norris
+// Copyright (c) 2018-2020 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
@@ -9,7 +9,7 @@ import skunk.codec.all._
 import skunk.implicits._
 
 case object ListTest extends SkunkTest {
- 
+
  // Regression test for https://github.com/tpolecat/skunk/issues/148
   sessionTest("Do not throw StackOverflowError on big list encoders") { s =>
     val aLotOfStrings = List.fill(Short.MaxValue)("foo")

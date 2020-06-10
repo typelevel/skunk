@@ -5,7 +5,6 @@
 package example
 
 import cats.effect._
-import cats.implicits._
 import fs2._
 import fs2.Stream.resource
 import skunk._

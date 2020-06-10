@@ -14,7 +14,6 @@ import scodec.bits.BitVector
 import java.net.InetSocketAddress
 import java.nio.channels._
 import java.util.concurrent.Executors
-import scala.concurrent.duration._
 import java.util.concurrent.ThreadFactory
 import fs2.io.tcp.SocketGroup
 
