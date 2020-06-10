@@ -12,7 +12,6 @@
 - Skunk is a [Postgres](https://www.postgresql.org) library for [Scala](https://www.scala-lang.org).
 - Skunk is powered by [cats](http://typelevel.org/cats/), [cats-effect](https://typelevel.org/cats-effect/), [scodec](http://scodec.org), and [fs2](https://fs2.io).
 - Skunk is purely functional, non-blocking, and provides a tagless-final API.
-- Skunk programs compile quickly (faster than [doobie](https://tpolecat.github.io/doobie/) programs anyway).
 - Skunk gives very good error messages.
 - Skunk embraces the [Scala Code of Conduct](http://scala-lang.org/conduct.html).
 - **Skunk is pre-release software!** Code and documentation are under active development!
@@ -29,7 +28,15 @@ Skunk is published for Scala $scala-versions$ and can be included in your projec
 
 ## How to Learn
 
-To learn about Skunk please read the @ref:[Tutorial](tutorial/Index.md) and maybe peruse the @ref:[Reference](tutorial/Index.md) material.
+Prerequisites:
+
+- We assume you are comfortable with [cats](http://typelevel.org/cats/), [cats-effect](https://typelevel.org/cats-effect/), and [fs2](https://fs2.io).
+- If not, give it a try anyway! If you run into trouble the linked websites have many learning resources.
+
+To learn about Skunk:
+
+- Read the @ref:[Tutorial](tutorial/Index.md).
+- Peruse the @ref:[Reference](tutorial/Index.md) material.
 
 Other resources:
 
