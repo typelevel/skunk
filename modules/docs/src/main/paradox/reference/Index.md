@@ -6,7 +6,7 @@ This section contains detailed discussions of Skunk's core abstractions and mach
 
 * [Sessions](Sessions.md)
 * [Twiddle](TwiddleLists.md)
-* [Codecs](Codecs.md)
+* [Encoders](Encoders.md)
 * [Fragments](Fragments.md)
 * [Identifiers](Identifiers.md)
 * [Concurrency](Concurrency.md)

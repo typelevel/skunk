@@ -37,7 +37,7 @@ object Encoding extends IOApp {
 
   def in(s: Session[IO], codes: List[String]): IO[List[String]] =
     s.prepare(select(codes.size)).use { ps =>
-      ps.stream(codes, 64).compile.to[List]
+      ps.stream(codes, 64).compile.toList
     }
 
   // VALUES .. this is excellent
