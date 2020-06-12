@@ -46,8 +46,8 @@ object SSL {
   object None extends SSL() {
     def tlsContext[F[_]: Sync: ContextShift](b: Blocker): F[TLSContext] =
       Sync[F].raiseError(new Exception("SSL.None: cannot create a TLSContext."))
-      override def withFallback(fallbackOk: Boolean): SSL = this
-      override def withTLSParameters(tlsParameters: TLSParameters): SSL = this
+    override def withFallback(fallbackOk: Boolean): SSL = this
+    override def withTLSParameters(tlsParameters: TLSParameters): SSL = this
   }
 
   /** `SSL` which trusts all certificates. */
