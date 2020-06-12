@@ -65,11 +65,12 @@ lazy val core = project
   .settings(
     name := "skunk-core",
     description := "Tagless, non-blocking data access library for Postgres.",
+    resolvers   +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core"    % "2.1.1",
       "org.typelevel" %% "cats-effect"  % "2.1.3",
-      "co.fs2"        %% "fs2-core"     % "2.4.1",
-      "co.fs2"        %% "fs2-io"       % "2.4.1",
+      "co.fs2"        %% "fs2-core"     % "2.5.0-SNAPSHOT",
+      "co.fs2"        %% "fs2-io"       % "2.5.0-SNAPSHOT",
       "org.scodec"    %% "scodec-core"  % "1.11.7",
       "org.scodec"    %% "scodec-cats"  % "1.0.0",
       "com.beachape"  %% "enumeratum"   % "1.6.1",
