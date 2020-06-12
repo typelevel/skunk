@@ -26,6 +26,6 @@ jobs:
       - name: Start up Postgres instances
         run: docker-compose up -d
       - name: Run tests
-        run: csbt headerCheck +test docs/paradox
+        run: csbt headerCheck +test docs/mdoc docs/paradox
       - name: Shut down Postgres instances
         run: docker-compose down
