@@ -22,7 +22,7 @@ jobs:
       - name: Set up cert permissions
         run: chmod 600 world/server.key
       - name: Start up Postgres instances
-        run: docker-compose up -d
+        run: docker-compose up
       - name: Run tests
         run: csbt headerCheck +test docs/paradox
       - name: Shut down Postgres instances
