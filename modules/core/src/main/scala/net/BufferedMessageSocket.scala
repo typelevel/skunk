@@ -82,10 +82,11 @@ object BufferedMessageSocket {
     debug:        Boolean,
     readTimeout:  FiniteDuration,
     writeTimeout: FiniteDuration,
-    sg:           SocketGroup
+    sg:           SocketGroup,
+    sslOptions:   Option[SSLNegotiation.Options[F]],
   ): Resource[F, BufferedMessageSocket[F]] =
     for {
-      ms  <- MessageSocket(host, port, debug, readTimeout, writeTimeout, sg)
+      ms  <- MessageSocket(host, port, debug, readTimeout, writeTimeout, sg, sslOptions)
       ams <- Resource.make(BufferedMessageSocket.fromMessageSocket[F](ms, queueSize))(_.terminate)
     } yield ams
 
