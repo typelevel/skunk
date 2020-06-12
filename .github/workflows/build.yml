@@ -22,7 +22,7 @@ jobs:
       - name: Set up cert permissions (1)
         run: chmod 600 world/server.key
       - name: Set up cert permissions (2)
-        run: sudo chown 70 world/server.key
+        run: sudo chown root world/server.key
       - name: Start up Postgres instances
         run: docker-compose up
       - name: Run tests
