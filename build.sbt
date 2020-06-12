@@ -1,4 +1,7 @@
 
+// This is used in a couple places
+lazy val fs2Version = "2.4.2"
+
 // Global Settings
 lazy val commonSettings = Seq(
 
@@ -69,8 +72,8 @@ lazy val core = project
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core"    % "2.1.1",
       "org.typelevel" %% "cats-effect"  % "2.1.3",
-      "co.fs2"        %% "fs2-core"     % "2.4.2",
-      "co.fs2"        %% "fs2-io"       % "2.4.2",
+      "co.fs2"        %% "fs2-core"     % fs2Version,
+      "co.fs2"        %% "fs2-io"       % fs2Version,
       "org.scodec"    %% "scodec-core"  % "1.11.7",
       "org.scodec"    %% "scodec-cats"  % "1.0.0",
       "com.beachape"  %% "enumeratum"   % "1.6.1",
@@ -157,6 +160,7 @@ lazy val docs = project
       "circe-dep"               -> s"${(circe / name).value}_2.${CrossVersion.partialVersion(scalaVersion.value).get._2}",
       "version"                 -> version.value,
       "scaladoc.skunk.base_url" -> s"https://static.javadoc.io/org.tpolecat/skunk-core_2.12/${version.value}",
+      "scaladoc.fs2.io.base_url"-> s"https://static.javadoc.io/co.fs2/fs2-io_2.12/${fs2Version}",
     ),
     mdocIn := (baseDirectory.value) / "src" / "main" / "paradox",
     Compile / paradox / sourceDirectory := mdocOut.value,

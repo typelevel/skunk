@@ -41,14 +41,14 @@ object Hello extends IOApp {
       port     = 5432,
       user     = "jimmy",
       database = "world",
-      password = Some("banana"),
+      password = Some("banana")
     )
 
   def run(args: List[String]): IO[ExitCode] =
     session.use { s =>                                       // (3)
       for {
-        s <- s.unique(sql"select current_date".query(date))  // (4)
-        _ <- IO(println(s"The current date is $s."))
+        d <- s.unique(sql"select current_date".query(date))  // (4)
+        _ <- IO(println(s"The current date is $d."))
       } yield ExitCode.Success
     }
 
@@ -58,16 +58,9 @@ object Hello extends IOApp {
 Let's examine the code above.
 
 - At ① we import the no-op `Tracer`, which allows us to run Skunk programs with execution tracing disabled. We will revisit @ref:[Tracing](Tracing.md) in a later section.
-- At ② we define a [Resource](https://typelevel.org/cats-effect/datatypes/resource.html)  that yields un-pooled @ref:[Session](../reference/Sessions.md) values and ensures that they are closed after use. We specify the host, port, user, database, and password.
-
-@@@ note
-Skunk currently allows logging in with no password using the `trust` authentication scheme, or logging in with a password using the `md5` authentication scheme. The official Postgres Docker image uses `trust` by default, and `md5` if you specify `POSTGRES_PASSWORD`.
-
-Skunk does not yet support SSL connections.
-@@@
-
+- At ② we define a [Resource](https://typelevel.org/cats-effect/datatypes/resource.html) that yields un-pooled @ref:[Session](../reference/Sessions.md) values and ensures that they are closed after use. We specify the host, port, user, database, and password (see @ref:[Session](../reference/Sessions.md) for information on ther connection options).
 - At ③ we `use` the resource, specifying a block to execute during the `Session`'s lifetime. No matter how the block terminates (success, failure, cancellation) the `Session` will be closed properly.
-- At ④ we use the @ref:[sql interpolator](../reference/Fragments.md) to construct a `Query` that selects a single column of schema type `date` (which maps to JDK type `java.time.LocalDate`), then we ask the session to execute it, expecting a *unique* value back; i.e., exactly one row.
+- At ④ we use the @ref:[sql interpolator](../reference/Fragments.md) to construct a `Query` that selects a single column of schema type `date` (yielding `d`, a value of type `java.time.LocalDate`), then we ask the session to execute it, expecting a *unique* value back; i.e., exactly one row.
 
 When we run the program we see the current date.
 
