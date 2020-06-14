@@ -31,7 +31,7 @@
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.0.10
+0.0.11
 </div>
 </div>
 <div class="nav-toc">
@@ -86,7 +86,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.0.10
+0.0.11
 </div>
 </div>
 <div class="nav-toc">
@@ -136,15 +136,115 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <div class="page-content row">
 <div class="small-12 large-9 column" id="docs">
 <h1><a href="#sessions" name="sessions" class="anchor"><span class="anchor-link"></span></a>Sessions</h1>
-<h2><a href="#session-parameters" name="session-parameters" class="anchor"><span class="anchor-link"></span></a>Session Parameters</h2>
+<p><code>Session</code> represents a connection to a Postgres database.</p>
+<h2><a href="#obtaining-a-session" name="obtaining-a-session" class="anchor"><span class="anchor-link"></span></a>Obtaining a Session</h2>
+<p>TBD - talk about pooling, session lifecycle, cleanup, etc.</p>
+<h2><a href="#authentication" name="authentication" class="anchor"><span class="anchor-link"></span></a>Authentication</h2>
+<p>Skunk currently supports the <strong>trust</strong> (no password necessary) and <strong>password</strong> (<code>md5</code> only) authentication methods.</p>
+<p>See <a href="https://www.postgresql.org/docs/current/auth-methods.html">§20.3</a> in the Postgres documentation for more information on authentication methods.</p>
+<h2><a href="#encryption-with-ssl" name="encryption-with-ssl" class="anchor"><span class="anchor-link"></span></a>Encryption with SSL</h2>
+<p>To connect with SSL (disabled by default) provide the <code>ssl</code> named argument when constructing a <code>Session</code> resource.</p>
+<pre class="prettyprint"><code class="language-scala">Session.single[IO](
+  host     = &quot;localhost&quot;,
+  user     = &quot;jimmy&quot;,
+  database = &quot;world&quot;,
+  password = Some(&quot;banana&quot;),
+  debug    = true,
+  ssl      = SSL.System, // Use SSL with the system default SSLContext.
+)
+</code></pre>
+<p>Skunk supports all TLS modes provided by fs2.</p>
+<table>
+  <thead>
+    <tr>
+      <th>Mode </th>
+      <th>Comment </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>SSL.None</code> </td>
+      <td>Skunk will not request SSL. <strong>This is the default.</strong> </td>
+    </tr>
+    <tr>
+      <td><code>SSL.Trusted</code> </td>
+      <td>Connect via SSL and trust all certificates. Use this if you&rsquo;re running with a self-signed certificate, for instance. </td>
+    </tr>
+    <tr>
+      <td><code>SSL.System</code> </td>
+      <td>Connect via SSL and use the system default <code>SSLContext</code> to verify certificates. Use this if you&rsquo;re running with a CA-signed certificate. </td>
+    </tr>
+    <tr>
+      <td><code>SSL.fromSSLContext(…)</code> </td>
+      <td>Connect via SSL using an existing <code>SSLContext</code>. </td>
+    </tr>
+    <tr>
+      <td><code>SSL.fromKeyStoreFile(…)</code> </td>
+      <td>Connect via SSL using a specified keystore file. </td>
+    </tr>
+    <tr>
+      <td><code>SSL.fromKeyStoreResource(…)</code> </td>
+      <td>Connect via SSL using a specified keystore classpath resource. </td>
+    </tr>
+    <tr>
+      <td><code>SSL.fromKeyStore(…)</code> </td>
+      <td>Connect via SSL using an existing Keystore. </td>
+    </tr>
+  </tbody>
+</table>
+<p>In addition to these options, the <code>SSL</code> values themselves allow the following modifications:</p>
+<table>
+  <thead>
+    <tr>
+      <th>Property </th>
+      <th>Default </th>
+      <th>Comment </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>.withFallback(…)</code> </td>
+      <td><code>false</code> </td>
+      <td>If true, allow fallback to a non-encrypted connection if SSL is unavailable. </td>
+    </tr>
+    <tr>
+      <td><code>.withTLSParameters(…)</code> </td>
+      <td><code>TLSParameters.Default</code> </td>
+      <td>Allows for custom <a href="https://static.javadoc.io/co.fs2/fs2-io_2.12/2.4.2/fs2/io/tls/TLSParameters.html" title="fs2.io.tls.TLSParameters"><code>TLSParameters</code></a>.</td>
+    </tr>
+  </tbody>
+</table>
+<h2><a href="#default-session-parameters" name="default-session-parameters" class="anchor"><span class="anchor-link"></span></a>Default Session Parameters</h2>
 <p>The following Postgres session parameters affect data serialization and are specified by Skunk during startup negotiation. Changing them via a <code>SET</code> command will result in undefined behavior.</p>
-<pre class="prettyprint"><a class="icon go-to-source" href="https://github.com/tpolecat/skunk/tree/v0.0.10/modules/core/src/main/scala/net/message/StartupMessage.scala#L35-L38" target="_blank" title="Go to snippet source"></a><code class="language-scala">&quot;client_min_messages&quot; -&gt; &quot;WARNING&quot;,
-&quot;DateStyle&quot;           -&gt; &quot;ISO, MDY&quot;,
-&quot;IntervalStyle&quot;       -&gt; &quot;iso_8601&quot;,
-&quot;client_encoding&quot;     -&gt; &quot;UTF8&quot;,</code></pre>
+<table>
+  <thead>
+    <tr>
+      <th>Parameter </th>
+      <th>Value </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>client_min_messages</code> </td>
+      <td><code>WARNING</code> </td>
+    </tr>
+    <tr>
+      <td><code>DateStyle</code> </td>
+      <td><code>ISO, MDY</code> </td>
+    </tr>
+    <tr>
+      <td><code>IntervalStyle</code> </td>
+      <td><code>iso_8601</code> </td>
+    </tr>
+    <tr>
+      <td><code>client_encoding</code> </td>
+      <td><code>UTF8</code> </td>
+    </tr>
+  </tbody>
+</table>
 <p>Future versions of Skunk may be more flexible in this regard, but for now your application needs to be ok with these defaults.</p>
 <div class="source-github">
-The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/v0.0.10/modules/docs/src/main/paradox/reference/Sessions.md">here</a>.
+The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/v0.0.11/modules/docs/target/mdoc/reference/Sessions.md">here</a>.
 </div>
 
 <div class="nav-next">
@@ -159,7 +259,10 @@ The source code for this page can be found <a href="https://github.com/tpolecat/
 <ul>
   <li><a href="../reference/Sessions.html#sessions" class="header">Sessions</a>
   <ul>
-    <li><a href="../reference/Sessions.html#session-parameters" class="header">Session Parameters</a></li>
+    <li><a href="../reference/Sessions.html#obtaining-a-session" class="header">Obtaining a Session</a></li>
+    <li><a href="../reference/Sessions.html#authentication" class="header">Authentication</a></li>
+    <li><a href="../reference/Sessions.html#encryption-with-ssl" class="header">Encryption with SSL</a></li>
+    <li><a href="../reference/Sessions.html#default-session-parameters" class="header">Default Session Parameters</a></li>
   </ul></li>
 </ul>
 </div>
@@ -227,7 +330,7 @@ The source code for this page can be found <a href="https://github.com/tpolecat/
 <script type="text/javascript" src="../lib/prettify/prettify.js"></script>
 <script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
 <script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
-<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.10', 'https://github.com/tpolecat/skunk')});</script>
+<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.11', 'https://github.com/tpolecat/skunk')});</script>
 
 
 </html>

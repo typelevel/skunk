@@ -31,7 +31,7 @@
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.0.10
+0.0.11
 </div>
 </div>
 <div class="nav-toc">
@@ -86,7 +86,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.0.10
+0.0.11
 </div>
 </div>
 <div class="nav-toc">
@@ -134,20 +134,28 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
   <li>Skunk is a <a href="https://www.postgresql.org">Postgres</a> library for <a href="https://www.scala-lang.org">Scala</a>.</li>
   <li>Skunk is powered by <a href="http://typelevel.org/cats/">cats</a>, <a href="https://typelevel.org/cats-effect/">cats-effect</a>, <a href="http://scodec.org">scodec</a>, and <a href="https://fs2.io">fs2</a>.</li>
   <li>Skunk is purely functional, non-blocking, and provides a tagless-final API.</li>
-  <li>Skunk programs compile quickly (faster than <a href="https://tpolecat.github.io/doobie/">doobie</a> programs anyway).</li>
   <li>Skunk gives very good error messages.</li>
   <li>Skunk embraces the <a href="http://scala-lang.org/conduct.html">Scala Code of Conduct</a>.</li>
   <li><strong>Skunk is pre-release software!</strong> Code and documentation are under active development!</li>
 </ul>
-<p>Skunk is published for Scala 2.12/13 and can be included in your project thus:</p><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">libraryDependencies += "org.tpolecat" %% "skunk-core" % "0.0.10"</code></pre></dd><dt>Maven</dt><dd><pre class="prettyprint"><code class="language-xml">&lt;dependency&gt;
+<p>Skunk is published for Scala 2.12/13 and can be included in your project thus:</p><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">libraryDependencies += "org.tpolecat" %% "skunk-core" % "0.0.11"</code></pre></dd><dt>Maven</dt><dd><pre class="prettyprint"><code class="language-xml">&lt;dependency&gt;
   &lt;groupId&gt;org.tpolecat&lt;/groupId&gt;
   &lt;artifactId&gt;skunk-core_2.13&lt;/artifactId&gt;
-  &lt;version&gt;0.0.10&lt;/version&gt;
+  &lt;version&gt;0.0.11&lt;/version&gt;
 &lt;/dependency&gt;</code></pre></dd><dt>Gradle</dt><dd><pre class="prettyprint"><code class="language-gradle">dependencies {
-  compile group: 'org.tpolecat', name: 'skunk-core_2.13', version: '0.0.10'
+  compile group: 'org.tpolecat', name: 'skunk-core_2.13', version: '0.0.11'
 }</code></pre></dd></dl>
 <h2><a href="#how-to-learn" name="how-to-learn" class="anchor"><span class="anchor-link"></span></a>How to Learn</h2>
-<p>To learn about Skunk please read the <a href="tutorial/Index.html">Tutorial</a> and maybe peruse the <a href="tutorial/Index.html">Reference</a> material.</p>
+<p>Prerequisites:</p>
+<ul>
+  <li>We assume you are comfortable with <a href="http://typelevel.org/cats/">cats</a>, <a href="https://typelevel.org/cats-effect/">cats-effect</a>, and <a href="https://fs2.io">fs2</a>.</li>
+  <li>If not, give it a try anyway! If you run into trouble the linked websites have many learning resources.</li>
+</ul>
+<p>To learn about Skunk:</p>
+<ul>
+  <li>Read the <a href="tutorial/Index.html">Tutorial</a>.</li>
+  <li>Peruse the <a href="tutorial/Index.html">Reference</a> material.</li>
+</ul>
 <p>Other resources:</p>
 <ul>
   <li>Come chat on the <a href="https://gitter.im/skunk-pg/Lobby">Gitter Channel</a>.</li>
@@ -156,7 +164,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 </ul>
 <p>Reference documentation:</p>
 <ul>
-  <li>Skunk <a href="https://javadoc.io/doc/org.tpolecat/skunk-core_2.13/0.0.10/index.html">API Documentation</a>.</li>
+  <li>Skunk <a href="https://javadoc.io/doc/org.tpolecat/skunk-core_2.13/0.0.11/index.html">API Documentation</a>.</li>
   <li><a href="https://www.postgresql.org/docs/">Postgres</a> documentation.</li>
 </ul>
 <h2><a href="#how-to-contribute" name="how-to-contribute" class="anchor"><span class="anchor-link"></span></a>How to Contribute</h2>
@@ -167,7 +175,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
   <li>If you want to make a larger contribution please open an issue first so we can discuss.</li>
 </ul>
 <div class="source-github">
-The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/v0.0.10/modules/docs/src/main/paradox/index.md">here</a>.
+The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/v0.0.11/modules/docs/target/mdoc/index.md">here</a>.
 </div>
 
 <div class="nav-next">
@@ -252,7 +260,7 @@ The source code for this page can be found <a href="https://github.com/tpolecat/
 <script type="text/javascript" src="lib/prettify/prettify.js"></script>
 <script type="text/javascript" src="lib/prettify/lang-scala.js"></script>
 <script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
-<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.10', 'https://github.com/tpolecat/skunk')});</script>
+<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.11', 'https://github.com/tpolecat/skunk')});</script>
 
 
 </html>
