@@ -25,7 +25,6 @@ val a: Command[Void] =
   sql"SET SEED TO 0.123".command
 ```
 
-
 Observe the following:
 
 - We are using the @ref:[sql interpolator](../reference/Fragments.md) to construct a @scaladoc[Fragment](skunk.Fragment), which we then turn into a @scaladoc[Command](skunk.Command) by calling the `command` method.
@@ -93,7 +92,7 @@ Similar to `map`ping the _output_ of a Query, we can `contramap` the _input_ to 
 ```scala mdoc
 case class Info(code: String, hos: String)
 
-def update2: Command[Info] =
+val update2: Command[Info] =
   sql"""
     UPDATE country
     SET    headofstate = $varchar
@@ -105,7 +104,7 @@ def update2: Command[Info] =
 However in this case the mapping is entirely mechanical. Similar to `gmap` on query results, we can skip the boilerplate and `gcontramap` directly to an isomosphic case class.
 
 ```scala mdoc
-def update3: Command[Info] =
+val update3: Command[Info] =
   sql"""
     UPDATE country
     SET    headofstate = $varchar
@@ -114,9 +113,57 @@ def update3: Command[Info] =
      .gcontramap[Info] // Command[Info]
 ```
 
-## Encoding Values
+## List Parameters
 
-(show how to do `(foo ~ bar).values`)
+Sometimes we want to repeat a parameter, for instance if we're using an `IN` clause. Here is a command that takes a `List[String]` as an argument and turns it into a list of `varchar`. We must specify the length when constructing the statement.
+
+```scala mdoc
+def deleteMany(n: Int): Command[List[String]] =
+  sql"DELETE FROM country WHERE name IN (${varchar.list(n)})".command
+
+val delete3 = deleteMany(3) // takes a list of size 3
+```
+
+Sometimes we want to repeat a *group* of parameters, for instance if we're doing a bulk `INSERT`. To do this we take advantage of two combinators, first `.values` which takes an encoder and returns a new encoder that wraps its generated SQL in parens, and then `.list` as above.
+
+```scala mdoc
+def insertMany(n: Int): Command[List[(String, Short)]] = {
+  val enc = (varchar ~ int2).values.list(n)
+  sql"INSERT INTO pets VALUES $enc".command
+}
+
+val insert3 = insertMany(3)
+```
+
+You have no doubt noticed that there is a lack of safety with list parameters because the required length of the list is not represented in the type. In practice this is usually unavoidable because the length of the list is typically not known statically. However it is *also* typically the case that the command will be prepared with a specific list in mind, and in this case we can improve safety by passing the list itself (i.e., not just its length) to `.list`, and we get back an encoder that only works with that specific list.
+
+```scala mdoc
+def insertExactly(ps: List[(String, Short)]): Command[ps.type] = {
+  val enc = (varchar ~ int2).values.list(ps)
+  sql"INSERT INTO pets VALUES $enc".command
+}
+
+val pairs = List[(String, Short)](("Bob", 3), ("Alice", 6))
+
+// Note the type!
+val insertPairs = insertExactly(pairs)
+```
+
+We can pass `pairs` to `execute`.
+
+```scala mdoc:compile-only
+// assume s: Session[IO]
+s.prepare(insertPairs).use { pc => pc.execute(pairs) }
+```
+
+However attempting to pass anything *other than* `pairs` is a type error.
+
+```scala mdoc:fail
+// assume s: Session[IO]
+s.prepare(insertPairs).use { pc => pc.execute(pairs.drop(1)) }
+```
+
+See the full example below for a demonstration of these techniques.
 
 ## Summary of Command Types
 
@@ -132,5 +179,82 @@ The *extend command protocol* (i.e., `Session#prepare`) is more powerful and mor
 
 ## Full Example
 
+Here is a complete program listing that demonstrates our knowledge thus far.
+
+```scala mdoc:reset
+import cats.effect._
+import cats.implicits._
+import natchez.Trace.Implicits.noop
+import skunk._
+import skunk.codec.all._
+import skunk.implicits._
+
+object CommandExample extends IOApp {
+
+  // a source of sessions
+  val session: Resource[IO, Session[IO]] =
+    Session.single(
+      host     = "localhost",
+      user     = "jimmy",
+      database = "world",
+      password = Some("banana"),
+    )
+
+  // a resource that creates and drops a temporary table
+  def withPetsTable(s: Session[IO]): Resource[IO, Unit] = {
+    val alloc = s.execute(sql"CREATE TEMP TABLE pets (name varchar, age int2)".command).void
+    val free  = s.execute(sql"DROP TABLE pets".command).void
+    Resource.make(alloc)(_ => free)
+  }
+
+  // a data type
+  case class Pet(name: String, age: Short)
+
+  // command to insert a pet
+  val insertOne: Command[Pet] =
+    sql"INSERT INTO pets VALUES ($varchar, $int2)"
+      .command
+      .gcontramap[Pet]
+
+  // command to insert a specific list of pets
+  def insertMany(ps: List[Pet]): Command[ps.type] = {
+    val enc = (varchar ~ int2).gcontramap[Pet].values.list(ps)
+    sql"INSERT INTO pets VALUES $enc".command
+  }
+
+  // query to select all pets
+  def selectAll: Query[Void, Pet] =
+    sql"SELECT name, age FROM pets"
+      .query(varchar ~ int2)
+      .gmap[Pet]
+
+  // some sample data
+  val bob     = Pet("Bob", 12)
+  val beatles = List(Pet("John", 2), Pet("George", 3), Pet("Paul", 6), Pet("Ringo", 3))
+
+  // our entry point
+  def run(args: List[String]): IO[ExitCode] =
+    session.flatTap(withPetsTable).use { s =>
+      for {
+        _  <- s.prepare(insertOne).use(pc => pc.execute(Pet("Bob", 12)))
+        _  <- s.prepare(insertMany(beatles)).use(pc => pc.execute(beatles))
+        ps <- s.execute(selectAll)
+        _  <- ps.traverse(p => IO(println(p)))
+      } yield ExitCode.Success
+    }
+
+}
+```
+
+Running this program yields the following.
+
+```scala mdoc:passthrough
+println("```")
+CommandExample.main(Array.empty)
+println("```")
+```
+
 ## Experiment
 
+- Change `insertMany` to pass an `Int` to `.list` and then pass a size other than the length of `beatles` and observe the error.
+- Add a unique constraint on `name` in the DDL and then violate it by inserting two pets with the same name. Follow the hint in the error message to add an handler that recovers gracefully.
