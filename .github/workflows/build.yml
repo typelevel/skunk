@@ -9,15 +9,12 @@ jobs:
       - uses: actions/checkout@v2
       - name: Set up JDK
         uses: olafurpg/setup-scala@v2
-      - name: Cache Coursier
-        uses: actions/cache@v1
-        with:
-          path: ~/.cache/coursier
-          key: sbt-coursier-cache
       - name: Cache SBT
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
-          path: ~/.sbt
+          path: |
+            ~/.cache/coursier/v1
+            ~/.sbt
           key: sbt-${{ hashFiles('**/build.sbt') }}
       - name: Set up cert permissions (1)
         run: chmod 600 world/server.key
