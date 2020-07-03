@@ -24,6 +24,7 @@ class DecodeException[F[_], A, B](
   argumentsOrigin: Option[Origin],
   encoder:   Encoder[A],
   rowDescription: TypedRowDescription,
+  cause:     Option[Throwable] = None
 ) extends SkunkException(
   sql             = Some(sql),
   message         = "Decoding error.",
@@ -63,7 +64,7 @@ class DecodeException[F[_], A, B](
       Text(t.tpe.name),
       plain("->"),
       green(op.getOrElse("NULL")),
-      if (n === error.offset) cyan(s"├── ${error.message}") else empty
+      if (n === error.offset) cyan(s"├── ${error.message}${cause.foldMap(_ => " (see below)")}") else empty
       // TODO - make a fence for errors that span, like
       //        ├───── foo bar
       //        │
@@ -74,9 +75,20 @@ class DecodeException[F[_], A, B](
     s"""|The row in question returned the following values (truncated to $MaxValue chars).
         |
         |  ${Text.grid(rowDescription.fields.zipWithIndex.zip(dataʹ).map(describe)).intercalate(plain("\n|  ")).render}
+        |
         |""".stripMargin
 
+  final protected def exception: String =
+    cause.foldMap { e =>
+      s"""|The decoder threw the following exception:
+          |
+          |  ${e.getClass.getName}: ${e.getMessage}
+          |    ${e.getStackTrace.mkString("\n    ")}
+          |
+          |""".stripMargin
+    }
+
   override def sections: List[String] =
-    super.sections :+ row
+    super.sections :+ row :+ exception
 
 }

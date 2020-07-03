@@ -66,7 +66,7 @@ object Decoder {
    * An error indicating that decoding a value starting at column `offset` and spanning `length`
    * columns failed with reason `error`.
    */
-  case class Error(offset: Int, length: Int, message: String)
+  case class Error(offset: Int, length: Int, message: String, cause: Option[Throwable] = None)
 
   implicit val ApplyDecoder: Apply[Decoder] =
     new Apply[Decoder] {
