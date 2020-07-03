@@ -62,6 +62,8 @@ object CommandComplete {
     case "ALTER TABLE"      => apply(Completion.AlterTable)
     case "CREATE SCHEMA"    => apply(Completion.CreateSchema)
     case "DROP SCHEMA"      => apply(Completion.DropSchema)
+    case "CREATE TYPE"      => apply(Completion.CreateType)
+    case "DROP TYPE"        => apply(Completion.DropType)
     case Patterns.Select(s) => apply(Completion.Select(s.toInt))
     case Patterns.Delete(s) => apply(Completion.Delete(s.toInt))
     case Patterns.Update(s) => apply(Completion.Delete(s.toInt))

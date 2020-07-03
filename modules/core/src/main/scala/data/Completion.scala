@@ -28,6 +28,8 @@ object Completion {
   case object AlterTable         extends Completion
   case object CreateSchema       extends Completion
   case object DropSchema         extends Completion
+  case object CreateType         extends Completion
+  case object DropType           extends Completion
   // more ...
 
   /**
