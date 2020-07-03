@@ -50,7 +50,7 @@ object Parse {
             } { Close[F].apply }
 
           case Left(err) =>
-            Resource.liftF(UnknownTypeException(statement, err).raiseError[F, StatementId])
+            Resource.liftF(UnknownTypeException(statement, err, ty.strategy).raiseError[F, StatementId])
 
         }
 

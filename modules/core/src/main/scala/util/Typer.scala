@@ -10,8 +10,11 @@ import skunk._
 import skunk.codec.all._
 import skunk.data.Type
 import skunk.net.Protocol
+import skunk.util.Typer.Strategy
 
 trait Typer { self =>
+
+  def strategy: Strategy
 
   def typeForOid(oid: Int, typeMod: Int): Option[Type]
 
@@ -19,6 +22,8 @@ trait Typer { self =>
 
   def orElse(that: Typer): Typer =
     new Typer {
+      override def strategy: Strategy =
+        self.strategy max that.strategy
       override def typeForOid(oid: Int, typeMod: Int): Option[Type] =
         self.typeForOid(oid, typeMod) orElse that.typeForOid(oid, typeMod)
       override def oidForType(tpe: Type): Option[Int] =
@@ -45,11 +50,19 @@ object Typer {
      */
     case object SearchPath extends Strategy
 
+    implicit val OrderStrategy: Order[Strategy] =
+      Order.by {
+        case BuiltinsOnly => 0
+        case SearchPath   => 1
+      }
+
   }
 
 
   val Static: Typer = new Typer {
     import Type._
+
+    val strategy = Strategy.BuiltinsOnly
 
     val staticByOid: Map[Int, Type] =
       Map(
@@ -218,6 +231,8 @@ object Typer {
   def fromProtocol[F[_]: Apply](p: Protocol[F]): F[Typer] =
     (p.typeInfoMap, p.relInfoMap).mapN { (tim, rim) =>
       Static orElse new Typer {
+
+        val strategy = Strategy.SearchPath
 
         val nameToOid: Map[String, Int] =
           tim.map { case (k, v) => v.name -> k }
