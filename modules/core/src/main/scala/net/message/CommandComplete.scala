@@ -66,7 +66,7 @@ object CommandComplete {
     case "DROP TYPE"        => apply(Completion.DropType)
     case Patterns.Select(s) => apply(Completion.Select(s.toInt))
     case Patterns.Delete(s) => apply(Completion.Delete(s.toInt))
-    case Patterns.Update(s) => apply(Completion.Delete(s.toInt))
+    case Patterns.Update(s) => apply(Completion.Update(s.toInt))
     case Patterns.Insert(s) => apply(Completion.Insert(s.drop(2).toInt))
     // more .. fill in as we hit them
 
