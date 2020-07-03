@@ -178,7 +178,7 @@ case object PoolTest extends FTest {
         factory.use { p =>
           p.use { _ =>
             for {
-              t <- IO(Random.nextInt % 100)
+              t <- IO(Random.nextInt() % 100)
               _ <- IO.sleep(t.milliseconds)
             } yield ()
           }
@@ -192,7 +192,7 @@ case object PoolTest extends FTest {
       factory.use { pool =>
         (1 to ConcurrentTasks).toList.parTraverse_{_ =>
           for {
-            t <- IO(Random.nextInt % 100)
+            t <- IO(Random.nextInt() % 100)
             f <- pool.use(_ => IO.sleep(t.milliseconds)).start
             _ <- if (t > 50) f.join else f.cancel
           } yield ()
@@ -207,7 +207,7 @@ case object PoolTest extends FTest {
         (1 to ConcurrentTasks).toList.parTraverse_{ _ =>
           pool.use { _ =>
             for {
-              t <- IO(Random.nextInt % 100)
+              t <- IO(Random.nextInt() % 100)
               _ <- IO.sleep(t.milliseconds)
               _ <- IO.raiseError(UserFailure()).whenA(t < 50)
             } yield ()
@@ -218,7 +218,7 @@ case object PoolTest extends FTest {
   }
 
   test("progress and safety with many fibers and allocation failures") {
-    val alloc = IO(Random.nextBoolean).flatMap {
+    val alloc = IO(Random.nextBoolean()).flatMap {
       case true  => IO.unit
       case false => IO.raiseError(AllocFailure())
     }
@@ -233,7 +233,7 @@ case object PoolTest extends FTest {
   }
 
   test("progress and safety with many fibers and freeing failures") {
-    val free = IO(Random.nextBoolean).flatMap {
+    val free = IO(Random.nextBoolean()).flatMap {
       case true  => IO.unit
       case false => IO.raiseError(FreeFailure())
     }
