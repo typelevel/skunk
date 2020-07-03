@@ -77,7 +77,8 @@ class SkunkException protected[skunk](
     }
 
   protected def header: String =
-    s"""|$title
+    s"""|
+        |$title
         |${labeled("  Problem: ", message)}${labeled("   Detail: ", detail.orEmpty)}${labeled("     Hint: ", hint.orEmpty)}
         |
         |""".stripMargin

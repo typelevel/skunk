@@ -14,7 +14,7 @@ import skunk.net.Protocol.StatementId
 import skunk.Statement
 import skunk.util.Namer
 import skunk.util.Typer
-import skunk.exception.UnknownTypeException
+import skunk.exception.{ UnknownTypeException, TooManyParametersException }
 import natchez.Trace
 
 trait Parse[F[_]] {
@@ -28,6 +28,9 @@ object Parse {
 
       override def apply[A](statement: Statement[A], ty: Typer): Resource[F, StatementId] =
         statement.encoder.oids(ty) match {
+
+          case Right(os) if os.length > Short.MaxValue =>
+            Resource.liftF(TooManyParametersException(statement).raiseError[F, StatementId])
 
           case Right(os) =>
             Resource.make {
