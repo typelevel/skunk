@@ -105,7 +105,7 @@ case class FTask(taskDef: TaskDef, testClassLoader: ClassLoader) extends Task {
         case Left(e: AE)    => report(RED,   s"✗ $name (${e.getMessage})", FEvent(Failure))
         case Left(e)        => report(RED,   s"? $name (${e.getMessage})", FEvent(Error, throwable = e)) // todo: stacktrace
       }
-    } .unsafeRunSync
+    } .unsafeRunSync()
 
     // maybe we're supposed to return new tasks with new taskdefs?
     Array.empty

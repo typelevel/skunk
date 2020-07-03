@@ -57,7 +57,7 @@ object Query {
                   }
 
                 case Left(err) =>
-                  discard *> UnknownOidException(query, err).raiseError[F, List[B]]
+                  discard *> UnknownOidException(query, err, ty.strategy).raiseError[F, List[B]]
 
               }
 

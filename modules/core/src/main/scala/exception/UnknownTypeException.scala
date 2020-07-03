@@ -8,15 +8,24 @@ import cats.implicits._
 import skunk.net.message.RowDescription
 import skunk.util.Text
 import skunk.data.Type
+import skunk.util.Typer
+import skunk.util.Typer.Strategy.BuiltinsOnly
+import skunk.util.Typer.Strategy.SearchPath
 
 case class UnknownTypeException(
-  query: skunk.Statement[_],
-  types: List[(Type, Option[Int])]
+  query:    skunk.Statement[_],
+  types:    List[(Type, Option[Int])],
+  strategy: Typer.Strategy
 ) extends SkunkException(
   sql       = Some(query.sql),
-  message   = "Unknown type(s) in statement.",
-  detail    = Some("Skunk could not determine the Postgres oid for one or more parameter types."),
-  hint      = Some("A referenced type does not exist, was created after this session was initiated, or is in a namespace that's not on the search path."),
+  message   = "Type(s) not found.",
+  detail    = Some("Skunk could not encode the parameter list for this statement because it cannot determine the Postgres oid(s) for one or more types."),
+  hint      = Some {
+    strategy match {
+      case SearchPath   => "A referenced type was created after this session was initiated, or it is in a namespace that's not on the search path."
+      case BuiltinsOnly => "Try changing your typing strategy (see note below)."
+     }
+  },
   sqlOrigin = Some(query.origin),
 ) {
 
@@ -32,6 +41,19 @@ case class UnknownTypeException(
       case None    => List(green(s"$$${i+1}"), t.name, cyan("── unknown type"))
     }
 
+  private def codeHint: String =
+    strategy match {
+      case SearchPath   => ""
+      case BuiltinsOnly =>
+        s"""|Your typing strategy is ${Console.GREEN}Strategy.BuiltinsOnly${Console.RESET} which does not know about user-defined
+            |types such as enums. To include user-defined types add the following argument when you
+            |construct your session resource.
+            |
+            |  ${Console.GREEN}strategy = Strategy.SearchPath${Console.RESET}
+            |
+            |""".stripMargin
+    }
+
   private def columns: String =
     s"""|Parameter indices and types are
         |
@@ -40,7 +62,7 @@ case class UnknownTypeException(
         |""".stripMargin
 
   override def sections: List[String] =
-    super.sections :+ columns
+    super.sections :+ columns :+ codeHint
 
 }
 
