@@ -1,4 +1,4 @@
-// Copyright (c) 2018 by Rob Norris
+// Copyright (c) 2018-2020 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
@@ -46,13 +46,13 @@ object Pool {
    * A pooled resource (which is itself a managed resource).
    * @param rsrc the underlying resource to be pooled
    * @param size maximum size of the pool (must be positive)
-   * @param reset a cleanup/health-check to be done before elements are returned to the pool;
+   * @param recycler a cleanup/health-check to be done before elements are returned to the pool;
    *   yielding false here means the element should be freed and removed from the pool.
    */
   def of[F[_]: Concurrent: Trace, A](
     rsrc:  Resource[F, A],
     size:  Int)(
-    reset: A => F[Boolean]
+    recycler: Recycler[F, A]
   ): Resource[F, Resource[F, A]] = {
 
     // Just in case.
@@ -102,7 +102,7 @@ object Pool {
       // cannot be canceled, so we don't need to worry about that case here.
       def take(a: Alloc): F[Unit] =
         Trace[F].span("pool.free") {
-          reset(a._1).onError {
+          recycler(a._1).onError {
             case t     => dispose(a) *> t.raiseError[F, Unit]
           } flatMap {
             case true  => recycle(a)

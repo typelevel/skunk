@@ -42,3 +42,8 @@ out/
 # Bloop/Metals
 .bloop/
 .metals/
+project/metals.sbt
+
+# Transient workspace
+modules/docs/src/main/scala/
+*.worksheet.sc

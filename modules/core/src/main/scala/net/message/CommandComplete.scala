@@ -1,4 +1,4 @@
-// Copyright (c) 2018 by Rob Norris
+// Copyright (c) 2018-2020 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
@@ -59,6 +59,11 @@ object CommandComplete {
     case "SAVEPOINT"        => apply(Completion.Savepoint)
     case "CREATE TABLE"     => apply(Completion.CreateTable)
     case "DROP TABLE"       => apply(Completion.DropTable)
+    case "ALTER TABLE"      => apply(Completion.AlterTable)
+    case "CREATE SCHEMA"    => apply(Completion.CreateSchema)
+    case "DROP SCHEMA"      => apply(Completion.DropSchema)
+    case "CREATE TYPE"      => apply(Completion.CreateType)
+    case "DROP TYPE"        => apply(Completion.DropType)
     case Patterns.Select(s) => apply(Completion.Select(s.toInt))
     case Patterns.Delete(s) => apply(Completion.Delete(s.toInt))
     case Patterns.Update(s) => apply(Completion.Update(s.toInt))

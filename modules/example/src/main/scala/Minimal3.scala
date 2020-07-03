@@ -1,11 +1,10 @@
-// Copyright (c) 2018 by Rob Norris
+// Copyright (c) 2018-2020 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
 package example
 
 import cats.effect._
-import cats.implicits._
 import fs2._
 import fs2.Stream.resource
 import skunk._
@@ -24,17 +23,15 @@ object Minimal3 extends IOApp {
       password = Some("banana")
     )
 
-  case class Country(code: String, name: String, pop: Long)
-
-  val country: Decoder[Country] =
-    (varchar ~ varchar ~ int8).map { case c ~ n ~ p => Country(c, n, p) }
+  case class Country(code: String, name: String, pop: Int)
 
   val select =
     sql"""
       select code, name, population
       from country
       WHERE name like $varchar
-    """.query(country)
+    """.query(bpchar(3) ~ varchar ~ int4)
+       .gmap[Country]
 
   def stream(pattern: String): Stream[IO, Country] =
     for {

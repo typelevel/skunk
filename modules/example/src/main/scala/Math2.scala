@@ -1,4 +1,4 @@
-// Copyright (c) 2018 by Rob Norris
+// Copyright (c) 2018-2020 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
@@ -19,7 +19,8 @@ object Math2 extends IOApp {
       port     = 5432,
       user     = "jimmy",
       database = "world",
-      password = Some("banana")
+      password = Some("banana"),
+      debug    = true
     )
 
   // An algebra for doing math.

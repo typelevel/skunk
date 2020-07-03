@@ -1,4 +1,4 @@
-// Copyright (c) 2018 by Rob Norris
+// Copyright (c) 2018-2020 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
@@ -190,10 +190,11 @@ object Protocol {
     nam:          Namer[F],
     readTimeout:  FiniteDuration,
     writeTimeout: FiniteDuration,
-    sg:           SocketGroup
+    sg:           SocketGroup,
+    sslOptions:   Option[SSLNegotiation.Options[F]],
   ): Resource[F, Protocol[F]] =
     for {
-      bms <- BufferedMessageSocket[F](host, port, 256, debug, readTimeout, writeTimeout, sg) // TODO: should we expose the queue size?
+      bms <- BufferedMessageSocket[F](host, port, 256, debug, readTimeout, writeTimeout, sg, sslOptions) // TODO: should we expose the queue size?
       sem <- Resource.liftF(Semaphore[F](1))
     } yield
       new Protocol[F] {

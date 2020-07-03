@@ -1,4 +1,4 @@
-// Copyright (c) 2018 by Rob Norris
+// Copyright (c) 2018-2020 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
@@ -44,7 +44,7 @@ object Describe {
                         // types then *that's* the error we will raise; only if we decode it
                         // successfully we will raise the underlying error. Seems a little confusing
                         // but it's a very unlikely case so I think we're ok for the time being.
-                        case Left(err) => UnknownOidException(promote(cmd), err).raiseError[F, Unit]
+                        case Left(err) => UnknownOidException(promote(cmd), err, ty.strategy).raiseError[F, Unit]
                         case Right(td) => UnexpectedRowsException(cmd, td).raiseError[F, Unit]
                       }
                   }
@@ -63,7 +63,7 @@ object Describe {
                     case NoData                 => NoDataException(query).raiseError[F, RowDescription]
                   }
             td <- rd.typed(ty) match {
-                    case Left(err) => UnknownOidException(query, err).raiseError[F, TypedRowDescription]
+                    case Left(err) => UnknownOidException(query, err, ty.strategy).raiseError[F, TypedRowDescription]
                     case Right(td) =>
                       Trace[F].put("column-types" -> td.fields.map(_.tpe).mkString("[", ", ", "]")).as(td)
                   }

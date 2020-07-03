@@ -1,4 +1,4 @@
-// Copyright (c) 2018 by Rob Norris
+// Copyright (c) 2018-2020 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
@@ -14,7 +14,6 @@ import scodec.bits.BitVector
 import java.net.InetSocketAddress
 import java.nio.channels._
 import java.util.concurrent.Executors
-import scala.concurrent.duration._
 import java.util.concurrent.ThreadFactory
 import fs2.io.tcp.SocketGroup
 
@@ -69,7 +68,7 @@ object BitVectorSocket {
           case None => ev.raiseError(new Exception("Fatal: EOF"))
           case Some(c) =>
             if (c.size == n) c.toArray.pure[F]
-            else ev.raiseError(new Exception(s"Fatal: EOF before $n bytes could be read.Bytes"))
+            else ev.raiseError(new Exception(s"Fatal: EOF before $n bytes could be read."))
         }
 
       override def read(nBytes: Int): F[BitVector] =
@@ -97,8 +96,12 @@ object BitVectorSocket {
     readTimeout:  FiniteDuration,
     writeTimeout: FiniteDuration,
     sg:           SocketGroup,
+    sslOptions:   Option[SSLNegotiation.Options[F]],
   ): Resource[F, BitVectorSocket[F]] =
-    sg.client[F](new InetSocketAddress(host, port)).map(fromSocket(_, readTimeout, writeTimeout))
+    for {
+      sock  <- sg.client[F](new InetSocketAddress(host, port))
+      sockʹ <- sslOptions.fold(sock.pure[Resource[F, ?]])(SSLNegotiation.negotiateSSL(sock, readTimeout, writeTimeout, _))
+    } yield fromSocket(sockʹ, readTimeout, writeTimeout)
 
 }
 

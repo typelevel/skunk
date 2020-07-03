@@ -1,4 +1,4 @@
-// Copyright (c) 2018 by Rob Norris
+// Copyright (c) 2018-2020 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
@@ -7,8 +7,6 @@ package skunk.refined.codec
 import eu.timepit.refined.boolean.And
 import eu.timepit.refined.api.Validate
 import skunk.Codec
-import eu.timepit.refined.api.Refined
-import eu.timepit.refined.refineV
 import skunk.data.Type
 import eu.timepit.refined._
 import eu.timepit.refined.api.Refined

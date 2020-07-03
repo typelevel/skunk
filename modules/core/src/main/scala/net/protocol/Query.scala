@@ -1,4 +1,4 @@
-// Copyright (c) 2018 by Rob Norris
+// Copyright (c) 2018-2020 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
@@ -57,7 +57,7 @@ object Query {
                   }
 
                 case Left(err) =>
-                  discard *> UnknownOidException(query, err).raiseError[F, List[B]]
+                  discard *> UnknownOidException(query, err, ty.strategy).raiseError[F, List[B]]
 
               }
 

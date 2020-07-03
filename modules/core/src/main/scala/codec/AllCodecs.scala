@@ -1,4 +1,4 @@
-// Copyright (c) 2018 by Rob Norris
+// Copyright (c) 2018-2020 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
@@ -11,5 +11,6 @@ trait AllCodecs
      with BooleanCodec
      with EnumCodec
      with UuidCodec
+     with BinaryCodecs
 
 object all extends AllCodecs

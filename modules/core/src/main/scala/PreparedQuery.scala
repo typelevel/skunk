@@ -1,4 +1,4 @@
-// Copyright (c) 2018 by Rob Norris
+// Copyright (c) 2018-2020 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
@@ -177,9 +177,7 @@ object PreparedQuery {
      * Transform this `PreparedQuery` by a given `FunctionK`.
      * @group Transformations
      */
-    def mapK[G[_]: Applicative: Defer](fk: F ~> G)(
-      implicit ev: Bracket[F, Throwable]
-    ): PreparedQuery[G, A, B] =
+    def mapK[G[_]: Applicative: Defer](fk: F ~> G): PreparedQuery[G, A, B] =
       new PreparedQuery[G, A, B] {
         override def cursor(args: A)(implicit or: Origin): Resource[G,Cursor[G,B]] = outer.cursor(args).mapK(fk).map(_.mapK(fk))
         override def option(args: A)(implicit or: Origin): G[Option[B]] = fk(outer.option(args))

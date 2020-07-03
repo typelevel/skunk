@@ -1,4 +1,4 @@
-// Copyright (c) 2018 by Rob Norris
+// Copyright (c) 2018-2020 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
@@ -25,6 +25,11 @@ object Completion {
   case class  Insert(count: Int) extends Completion
   case object CreateTable        extends Completion
   case object DropTable          extends Completion
+  case object AlterTable         extends Completion
+  case object CreateSchema       extends Completion
+  case object DropSchema         extends Completion
+  case object CreateType         extends Completion
+  case object DropType           extends Completion
   // more ...
 
   /**

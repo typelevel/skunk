@@ -65,6 +65,16 @@ Skunk codecs have the same names as their corresponding Postgres data types. Def
 - This codec is importable from `skunk.codec.boolean._` or `skunk.codec.all._`.
 - See [§8.6](https://www.postgresql.org/docs/9.1/datatype-boolean.html) in the Postgres documentation for more information on the boolean data type.
 
+## Binary Type
+
+| ANSI SQL Type      | Size                                         | Postgres Type   | Scala Type     |
+|--------------------|----------------------------------------------|-----------------|----------------|
+| `blob`             | 1 or 4 bytes plus the actual binary string   | `bytea`         | `Array[Byte]`  |
+
+#### Notes
+- This codec uses [Hex Format](https://www.postgresql.org/docs/11/datatype-binary.html#id-1.5.7.12.9). Bytea octets in PostgreSQL are output in hex format by default.
+- See [§8.4](https://www.postgresql.org/docs/11/datatype-binary.html) in the Postgres documentation for more information on binary data types.
+
 ## Enumerated Types
 
 Enumerated types are user-defined and are mapped via the `enum` codec constructor, which declares the schema type and defines a mapping to and from string labels. Given the enum declaration:

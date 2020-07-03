@@ -1,4 +1,4 @@
-// Copyright (c) 2018 by Rob Norris
+// Copyright (c) 2018-2020 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
@@ -77,7 +77,8 @@ class SkunkException protected[skunk](
     }
 
   protected def header: String =
-    s"""|$title
+    s"""|
+        |$title
         |${labeled("  Problem: ", message)}${labeled("   Detail: ", detail.orEmpty)}${labeled("     Hint: ", hint.orEmpty)}
         |
         |""".stripMargin

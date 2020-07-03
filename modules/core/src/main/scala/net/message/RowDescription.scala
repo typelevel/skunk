@@ -1,4 +1,4 @@
-// Copyright (c) 2018 by Rob Norris
+// Copyright (c) 2018-2020 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
@@ -7,7 +7,6 @@ package skunk.net.message
 import cats.implicits._
 import scodec._
 import scodec.codecs._
-import scodec.interop.cats._
 import skunk.data.TypedRowDescription
 import skunk.util.Typer
 
@@ -33,9 +32,7 @@ object RowDescription {
   final val Tag = 'T'
 
   val decoder: Decoder[RowDescription] =
-    int16.flatMap { n =>
-      Field.decoder.replicateA(n).map(RowDescription(_))
-    }
+    codecs.listOfN(int16, Field.codec).map(RowDescription(_))
 
   final case class Field(name: String, tableOid: Int, columnAttr: Int, typeOid: Int, typeSize: Int, typeMod: Int, format: Int /* always 0 */) {
     override def toString: String = s"Field($name, $typeOid)"
@@ -43,8 +40,10 @@ object RowDescription {
 
   object Field {
 
-    val decoder: Decoder[Field] =
-      (cstring ~ int32 ~ int16 ~ int32 ~ int16 ~ int32 ~ int16).map(apply)
+    val codec: Codec[Field] =
+      (cstring ~ int32 ~ int16 ~ int32 ~ int16 ~ int32 ~ int16)
+        .map(apply)
+        .decodeOnly
 
   }
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2018 by Rob Norris
+// Copyright (c) 2018-2020 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
@@ -15,6 +15,7 @@ import skunk.net.Protocol.QueryPortal
 import skunk.util.Origin
 import skunk.data.TypedRowDescription
 import natchez.Trace
+import skunk.exception.PostgresErrorException
 
 /**
  * Superclass for `Query` and `Execute` sub-protocols, both of which need a way to accumulate
@@ -49,14 +50,29 @@ private[protocol] class Unroll[F[_]: MonadError[?[_], Throwable]: MessageSocket:
     rowDescription: TypedRowDescription,
     decoder:        Decoder[B],
   ): F[List[B] ~ Boolean] = {
+    def syncAndFail(info: Map[Char, String]): F[List[List[Option[String]]] ~ Boolean]  =
+      for {
+        hi <- history(Int.MaxValue)
+        _  <- send(Sync)
+        _  <- expect { case ReadyForQuery(_) => }
+        a  <- new PostgresErrorException(
+                sql             = sql,
+                sqlOrigin       = Some(sqlOrigin),
+                info            = info,
+                history         = hi,
+                arguments       = encoder.types.zip(encoder.encode(args)),
+                argumentsOrigin = argsOrigin
+              ).raiseError[F, List[List[Option[String]]]]
+      } yield a ~ false
 
     // N.B. we process all waiting messages to ensure the protocol isn't messed up by decoding
     // failures later on.
     def accumulate(accum: List[List[Option[String]]]): F[List[List[Option[String]]] ~ Boolean] =
       receive.flatMap {
-        case rd @ RowData(_)         => accumulate(rd.fields :: accum)
-        case      CommandComplete(_) => (accum.reverse ~ false).pure[F]
-        case      PortalSuspended    => (accum.reverse ~ true).pure[F]
+        case rd @ RowData(_)          => accumulate(rd.fields :: accum)
+        case      CommandComplete(_)  => (accum.reverse ~ false).pure[F]
+        case      PortalSuspended     => (accum.reverse ~ true).pure[F]
+        case      ErrorResponse(info) => syncAndFail(info)
       }
 
     val rows: F[List[List[Option[String]]] ~ Boolean] =
@@ -94,5 +110,4 @@ private[protocol] class Unroll[F[_]: MonadError[?[_], Throwable]: MessageSocket:
       }
 
   }
-
 }

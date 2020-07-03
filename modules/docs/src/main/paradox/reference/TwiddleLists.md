@@ -36,7 +36,7 @@ x match {
 }
 ```
 
-Skunk uses twiddle-lists for parameter encoders and row decoders, and via this machiner twiddle list types appear as type arguments for `Query` and `Command`.
+Skunk uses twiddle-lists for parameter encoders and row decoders, and via this mechanism twiddle list types appear as type arguments for `Query` and `Command`.
 
 ```scala
 val q: Query[Short ~ String, String ~ Int] =

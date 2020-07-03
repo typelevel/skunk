@@ -1,26 +1,33 @@
-// Copyright (c) 2018 by Rob Norris
+// Copyright (c) 2018-2020 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
 package skunk.exception
 
 import cats.implicits._
-import skunk.Query
+import skunk._
 import skunk.data.TypedRowDescription
 import skunk.net.message.RowDescription
 import skunk.util.Text
 import skunk.syntax.list._
 import cats.data.Ior
 import skunk.data.Type
+import Strategy._
 
 case class UnknownOidException(
   query: Query[_, _],
   types: List[(RowDescription.Field, Option[TypedRowDescription.Field])],
+  strategy: Strategy
 ) extends SkunkException(
   sql       = Some(query.sql),
   message   = "Unknown oid(s) in row description.",
-  detail    = Some("Skunk could not interpret the row description for this query because it contains references to unknown types."),
-  hint      = Some("A referenced type was created after this session was initiated, or it is in a namespace that's not on the search path."),
+  detail    = Some("Skunk could not decode the row description for this query because it cannot determine the Scala types corresponding to one or more Postgres type oids."),
+  hint      = Some {
+    strategy match {
+      case SearchPath   => "A referenced type was created after this session was initiated, or it is in a namespace that's not on the search path (see note below)."
+      case BuiltinsOnly => "Try changing your typing strategy (see note below)."
+     }
+  },
   sqlOrigin = Some(query.origin),
 ) {
 
@@ -40,6 +47,24 @@ case class UnknownOidException(
                                                                                           cyan( "── type mismatch"))
     }
 
+  private def codeHint: String =
+    strategy match {
+      case SearchPath   =>
+        s"""|Your typing strategy is ${Console.GREEN}Strategy.SearchPath${Console.RESET} which can normally detect user-defined types; however Skunk
+            |only reads the system catalog once (when the Session is initialized) so user-created types are not
+            |immediately usable. If you are creating a new type you might consider doing it on a single-use session,
+            |before initializing other sessions that use it.
+            |""".stripMargin
+      case BuiltinsOnly =>
+        s"""|Your typing strategy is ${Console.GREEN}Strategy.BuiltinsOnly${Console.RESET} which does not know about user-defined
+            |types such as enums. To include user-defined types add the following argument when you
+            |construct your session resource.
+            |
+            |  ${Console.GREEN}strategy = Strategy.SearchPath${Console.RESET}
+            |
+            |""".stripMargin
+    }
+
   private def columns: String =
     s"""|The actual and asserted output columns are
         |
@@ -48,7 +73,7 @@ case class UnknownOidException(
         |""".stripMargin
 
   override def sections: List[String] =
-    super.sections :+ columns
+    super.sections :+ columns :+ codeHint
 
 }
 

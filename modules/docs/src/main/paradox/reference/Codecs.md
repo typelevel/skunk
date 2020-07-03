@@ -1,7 +1,0 @@
-# Codecs
-
-## Encoders
-
-## Decoders
-
-## Codecs

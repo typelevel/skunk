@@ -1,4 +1,7 @@
 
+// This is used in a couple places
+lazy val fs2Version = "2.4.2"
+
 // Global Settings
 lazy val commonSettings = Seq(
 
@@ -17,7 +20,7 @@ lazy val commonSettings = Seq(
   // Headers
   headerMappings := headerMappings.value + (HeaderFileType.scala -> HeaderCommentStyle.cppStyleLineComment),
   headerLicense  := Some(HeaderLicense.Custom(
-    """|Copyright (c) 2018 by Rob Norris
+    """|Copyright (c) 2018-2020 by Rob Norris
        |This software is licensed under the MIT License (MIT).
        |For more information see LICENSE or https://opensource.org/licenses/MIT
        |""".stripMargin
@@ -25,8 +28,8 @@ lazy val commonSettings = Seq(
   ),
 
   // Compilation
-  scalaVersion       := "2.13.1",
-  crossScalaVersions := Seq("2.12.10", scalaVersion.value),
+  scalaVersion       := "2.13.3",
+  crossScalaVersions := Seq("2.12.11", scalaVersion.value),
   scalacOptions -= "-language:experimental.macros", // doesn't work cross-version
   Compile / doc     / scalacOptions --= Seq("-Xfatal-warnings"),
   Compile / doc     / scalacOptions ++= Seq(
@@ -65,15 +68,16 @@ lazy val core = project
   .settings(
     name := "skunk-core",
     description := "Tagless, non-blocking data access library for Postgres.",
+    resolvers   +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     libraryDependencies ++= Seq(
-      "org.typelevel" %% "cats-core"    % "2.1.0",
-      "org.typelevel" %% "cats-effect"  % "2.0.0",
-      "co.fs2"        %% "fs2-core"     % "2.1.0",
-      "co.fs2"        %% "fs2-io"       % "2.1.0",
-      "org.scodec"    %% "scodec-core"  % "1.11.4",
+      "org.typelevel" %% "cats-core"    % "2.1.1",
+      "org.typelevel" %% "cats-effect"  % "2.1.3",
+      "co.fs2"        %% "fs2-core"     % fs2Version,
+      "co.fs2"        %% "fs2-io"       % fs2Version,
+      "org.scodec"    %% "scodec-core"  % "1.11.7",
       "org.scodec"    %% "scodec-cats"  % "1.0.0",
-      "com.beachape"  %% "enumeratum"   % "1.5.15",
-      "org.tpolecat"  %% "natchez-core" % "0.0.10",
+      "com.beachape"  %% "enumeratum"   % "1.6.1",
+      "org.tpolecat"  %% "natchez-core" % "0.0.11",
     )
   )
 
@@ -84,7 +88,7 @@ lazy val refined = project
   .settings(commonSettings)
   .settings(
     publish / skip := true,
-    libraryDependencies += "eu.timepit" %% "refined" % "0.9.10",
+    libraryDependencies += "eu.timepit" %% "refined" % "0.9.14",
   )
 
 lazy val circe = project
@@ -95,8 +99,8 @@ lazy val circe = project
   .settings(
     name := "skunk-circe",
     libraryDependencies ++= Seq(
-      "io.circe" %% "circe-core"   % "0.12.3",
-      "io.circe" %% "circe-parser" % "0.12.3"
+      "io.circe" %% "circe-core"   % "0.13.0",
+      "io.circe" %% "circe-parser" % "0.13.0"
     )
   )
 
@@ -107,6 +111,7 @@ lazy val tests = project
   .settings(commonSettings)
   .settings(
     publish / skip := true,
+    test / parallelExecution := false, // why? fix this!
     libraryDependencies ++= Seq(
       "org.scala-sbt"      % "test-interface" % "1.0",
       "io.chrisdavenport" %% "cats-time"      % "0.3.0"
@@ -122,12 +127,12 @@ lazy val example = project
   .settings(
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.10",
-      "org.tpolecat"  %% "natchez-jaeger"      % "0.0.10",
-      "org.http4s"    %% "http4s-dsl"          % "0.21.0-M6",
-      "org.http4s"    %% "http4s-blaze-server" % "0.21.0-M6",
-      "org.http4s"    %% "http4s-circe"        % "0.21.0-M6",
-      "io.circe"      %% "circe-generic"       % "0.12.3",
+      "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.11",
+      "org.tpolecat"  %% "natchez-jaeger"      % "0.0.11",
+      "org.http4s"    %% "http4s-dsl"          % "0.21.6",
+      "org.http4s"    %% "http4s-blaze-server" % "0.21.6",
+      "org.http4s"    %% "http4s-circe"        % "0.21.6",
+      "io.circe"      %% "circe-generic"       % "0.13.0",
     )
   )
 
@@ -138,8 +143,10 @@ lazy val docs = project
   .enablePlugins(ParadoxPlugin)
   .enablePlugins(ParadoxSitePlugin)
   .enablePlugins(GhpagesPlugin)
+  .enablePlugins(MdocPlugin)
   .settings(commonSettings)
   .settings(
+    scalacOptions      := Nil,
     git.remoteRepo     := "git@github.com:tpolecat/skunk.git",
     ghpagesNoJekyll    := true,
     publish / skip     := true,
@@ -153,5 +160,10 @@ lazy val docs = project
       "circe-dep"               -> s"${(circe / name).value}_2.${CrossVersion.partialVersion(scalaVersion.value).get._2}",
       "version"                 -> version.value,
       "scaladoc.skunk.base_url" -> s"https://static.javadoc.io/org.tpolecat/skunk-core_2.12/${version.value}",
-    )
-  )
+      "scaladoc.fs2.io.base_url"-> s"https://static.javadoc.io/co.fs2/fs2-io_2.12/${fs2Version}",
+    ),
+    mdocIn := (baseDirectory.value) / "src" / "main" / "paradox",
+    Compile / paradox / sourceDirectory := mdocOut.value,
+    makeSite := makeSite.dependsOn(mdoc.toTask("")).value,
+    mdocExtraArguments := Seq("--no-link-hygiene"), // paradox handles this
+)

@@ -1,4 +1,4 @@
-// Copyright (c) 2018 by Rob Norris
+// Copyright (c) 2018-2020 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
@@ -10,6 +10,7 @@ import cats.implicits._
 import skunk.codec.all._
 import skunk.exception._
 import skunk.implicits._
+import cats.effect.Resource
 
 case object ExtendedQueryErrorTest extends SkunkTest {
 
@@ -114,6 +115,30 @@ case object ExtendedQueryErrorTest extends SkunkTest {
       _ <- assertEqual("message", e.message, "Statement does not return data.")
       _ <- s.assertHealthy
     } yield "ok"
+  }
+
+  sessionTest("prepared query deadlock") { s =>
+    val tables: Resource[IO, Unit] = {
+      val up = 
+        s.execute(sql"create table bar(id bigint primary key)".command) *> 
+        s.execute(sql"create table foo(bar_id bigint references bar(id) on delete cascade)".command) *>
+        IO.unit
+
+      val down = 
+        s.execute(sql"drop table foo".command) *>
+        s.execute(sql"drop table bar".command) *>
+        IO.unit
+
+      Resource.make(up)(_ => down)
+    }
+
+    tables.use { _ => 
+      for {
+        e <- s.prepare(sql"insert into foo (bar_id) values (42) returning *".query(int8)).use(ps => ps.stream(Void, 64).compile.drain).assertFailsWith[PostgresErrorException]
+        _ <- assertEqual("message", e.message, """Insert or update on table "foo" violates foreign key constraint "foo_bar_id_fkey".""")
+        _ <- s.assertHealthy
+      } yield "ok"
+    }
   }
 
 }
