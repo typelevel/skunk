@@ -143,6 +143,9 @@ package object skunk {
 
   type SessionPool[F[_]] = Resource[F, Resource[F, Session[F]]]
 
+  type Strategy = skunk.util.Typer.Strategy
+  val  Strategy = skunk.util.Typer.Strategy
+
   object implicits
     extends syntax.ToAllOps
 
