@@ -16,6 +16,7 @@ import skunk.util.Origin
 import skunk.data.TypedRowDescription
 import natchez.Trace
 import skunk.exception.PostgresErrorException
+import scala.util.control.NonFatal
 
 /**
  * Superclass for `Query` and `Execute` sub-protocols, both of which need a way to accumulate
@@ -88,7 +89,17 @@ private[protocol] class Unroll[F[_]: MonadError[?[_], Throwable]: MessageSocket:
       rows.flatMap { case (rows, bool) =>
         Trace[F].span("decode") {
           rows.traverse { data =>
-            decoder.decode(0, data) match {
+
+            // https://github.com/tpolecat/skunk/issues/129
+            // an exception thrown in a decoder will derail things here, so let's handle it.
+            // kind of lame because we lose the stacktrace
+            val result =
+              try decoder.decode(0, data)
+              catch {
+                case NonFatal(e) => Left(Decoder.Error(0, 0, e.getClass.getName, Some(e)))
+              }
+
+            result match {
               case Right(a) => a.pure[F]
               case Left(e)  =>
                 send(Sync).whenA(extended) *> // if it's an extended query we need to resync
@@ -102,6 +113,7 @@ private[protocol] class Unroll[F[_]: MonadError[?[_], Throwable]: MessageSocket:
                   argsOrigin,
                   encoder,
                   rowDescription,
+                  e.cause,
                 ).raiseError[F, B]
             }
           } .map(_ ~ bool)
