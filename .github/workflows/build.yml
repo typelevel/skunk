@@ -19,9 +19,13 @@ jobs:
         with:
           path: ~/.sbt
           key: sbt-${{ hashFiles('**/build.sbt') }}
+      - name: Set up cert permissions (1)
+        run: chmod 600 world/server.key
+      - name: Set up cert permissions (2)
+        run: sudo chown 999 world/server.key
       - name: Start up Postgres instances
         run: docker-compose up -d
       - name: Run tests
-        run: csbt headerCheck +test docs/paradox
+        run: csbt headerCheck +test docs/mdoc docs/paradox
       - name: Shut down Postgres instances
         run: docker-compose down

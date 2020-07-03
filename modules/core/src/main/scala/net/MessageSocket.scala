@@ -81,10 +81,11 @@ object MessageSocket {
     debug:        Boolean,
     readTimeout:  FiniteDuration,
     writeTimeout: FiniteDuration,
-    sg:           SocketGroup
+    sg:           SocketGroup,
+    sslOptions:   Option[SSLNegotiation.Options[F]],
   ): Resource[F, MessageSocket[F]] =
     for {
-      bvs <- BitVectorSocket(host, port, readTimeout, writeTimeout, sg)
+      bvs <- BitVectorSocket(host, port, readTimeout, writeTimeout, sg, sslOptions)
       ms  <- Resource.liftF(fromBitVectorSocket(bvs, debug))
     } yield ms
 

@@ -18,6 +18,7 @@ import skunk.data._
 import skunk.net.Protocol
 import skunk.util._
 import skunk.util.Typer.Strategy.{ BuiltinsOnly, SearchPath }
+import skunk.net.SSLNegotiation
 
 /**
  * Represents a live connection to a Postgres database. Operations provided here are safe to use
@@ -238,16 +239,20 @@ object Session {
     debug:        Boolean        = false,
     readTimeout:  FiniteDuration = Int.MaxValue.seconds,
     writeTimeout: FiniteDuration = 5.seconds,
-    strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly
+    strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly,
+    ssl:          SSL            = SSL.None,
   ): Resource[F, Resource[F, Session[F]]] = {
 
-    def session(socketGroup:  SocketGroup): Resource[F, Session[F]] =
-      fromSocketGroup[F](socketGroup, host, port, user, database, password, debug, readTimeout, writeTimeout, strategy)
+    def session(socketGroup:  SocketGroup, sslOp: Option[SSLNegotiation.Options[F]]): Resource[F, Session[F]] =
+      fromSocketGroup[F](socketGroup, host, port, user, database, password, debug, readTimeout, writeTimeout, strategy, sslOp)
+
+    val logger: String => F[Unit] = s => Sync[F].delay(println(s"TLS: $s"))
 
     for {
       blocker <- Blocker[F]
       sockGrp <- SocketGroup[F](blocker)
-      pool    <- Pool.of(session(sockGrp), max)(Recyclers.full)
+      sslOp   <- Resource.liftF(ssl.toSSLNegotiationOptions(blocker, if (debug) logger.some else none))
+      pool    <- Pool.of(session(sockGrp, sslOp), max)(Recyclers.full)
     } yield pool
 
   }
@@ -267,7 +272,8 @@ object Session {
     debug:        Boolean        = false,
     readTimeout:  FiniteDuration = Int.MaxValue.seconds,
     writeTimeout: FiniteDuration = 5.seconds,
-    strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly
+    strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly,
+    ssl:          SSL            = SSL.None,
   ): Resource[F, Session[F]] =
     pooled(
       host         = host,
@@ -279,7 +285,8 @@ object Session {
       debug        = debug,
       readTimeout  = readTimeout,
       writeTimeout = writeTimeout,
-      strategy     = strategy
+      strategy     = strategy,
+      ssl          = ssl,
     ).flatten
 
 
@@ -293,11 +300,12 @@ object Session {
     debug:        Boolean        = false,
     readTimeout:  FiniteDuration = Int.MaxValue.seconds,
     writeTimeout: FiniteDuration = 5.seconds,
-    strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly
+    strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly,
+    sslOptions:   Option[SSLNegotiation.Options[F]],
   ): Resource[F, Session[F]] =
     for {
       namer <- Resource.liftF(Namer[F])
-      proto <- Protocol[F](host, port, debug, namer, readTimeout, writeTimeout, socketGroup)
+      proto <- Protocol[F](host, port, debug, namer, readTimeout, writeTimeout, socketGroup, sslOptions)
       _     <- Resource.liftF(proto.startup(user, database, password))
       sess  <- Resource.liftF(fromProtocol(proto, namer, strategy))
     } yield sess
@@ -307,7 +315,7 @@ object Session {
    * started up.
    * @group Constructors
    */
-  def fromProtocol[F[_]: Sync](
+  private def fromProtocol[F[_]: Sync](
     proto:    Protocol[F],
     namer:    Namer[F],
     strategy: Typer.Strategy
@@ -385,9 +393,7 @@ object Session {
      * Transform this `Session` by a given `FunctionK`.
      * @group Transformations
      */
-    def mapK[G[_]: Applicative: Defer](fk: F ~> G)(
-      implicit ev: Bracket[F, Throwable]
-    ): Session[G] =
+    def mapK[G[_]: Applicative: Defer](fk: F ~> G): Session[G] =
       new Session[G] {
         override val typer: Typer = outer.typer
         override def channel(name: Identifier): Channel[G,String,Notification] = outer.channel(name).mapK(fk)

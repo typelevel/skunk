@@ -28,6 +28,7 @@ import skunk.implicits._
 import fs2.io.tcp.SocketGroup
 import skunk.util.Pool
 import skunk.util.Recycler
+import scala.concurrent.ExecutionContext.global
 
 /**
  * A small but complete web service that serves data from the `world` database and accumulates
@@ -108,7 +109,8 @@ object Http4sExample extends IOApp {
       user         = "jimmy",
       database     = "world",
       password     = Some("banana"),
-      socketGroup = socketGroup
+      socketGroup  = socketGroup,
+      sslOptions   = None,
     ).flatMap(countriesFromSession(_))
 
   /** Resource yielding a pool of `Countries`, backed by a single `Blocker` and `SocketGroup`. */
@@ -164,7 +166,7 @@ object Http4sExample extends IOApp {
   def server[F[_]: ConcurrentEffect: Timer](
     app: HttpApp[F]
   ): Resource[F, Server[F]] =
-    BlazeServerBuilder[F]
+    BlazeServerBuilder[F](global)
       .bindHttp(8080, "localhost")
       .withHttpApp(app)
       .resource

@@ -1,3 +1,13 @@
+```scala mdoc:invisible
+import cats.effect._
+import cats.implicits._
+import skunk._
+import skunk.implicits._
+import skunk.codec.all._
+import natchez.Trace.Implicits.noop
+import fs2.Stream
+val s: Session[IO] = null
+```
 # Queries
 
 This section explains how to construct and execute queries.
@@ -8,9 +18,12 @@ A *query* is a SQL statement that can return rows.
 
 ## Single-Column Query
 
-First let's look at a query that selects a single column and decodes rows as Scala strings. We will also include the imports we need for the examples in this section.
+First let's look at a query that selects a single column and decodes rows as Scala strings.
 
-@@snip [Query.scala](/modules/docs/src/main/scala/tutorial/Query.scala) { #query-a }
+```scala mdoc
+val a: Query[Void, String] =
+  sql"SELECT name FROM country".query(varchar)
+```
 
 Observe the following:
 
@@ -30,7 +43,10 @@ A *simple query* is a query with no parameters.
 
 Postgres provides a [protocol](https://www.postgresql.org/docs/10/protocol-flow.html#id-1.10.5.7.4) for execution of simple queries, returning all rows at once (Skunk returns them as a list). Such queries can be passed directly to @scaladoc[Session#execute](skunk.Session#execute).
 
-@@snip [Query.scala](/modules/docs/src/main/scala/tutorial/Query.scala) { #query-a-exec }
+```scala mdoc:compile-only
+// assume s: Session[IO]
+s.execute(a) // IO[List[String]]
+```
 
 @scaladoc[Session](skunk.Session) provides the following methods for direct execution of simple queries. See the Scaladoc for more information.
 
@@ -44,7 +60,10 @@ Postgres provides a [protocol](https://www.postgresql.org/docs/10/protocol-flow.
 
 Our next example selects two columns.
 
-@@snip [Query.scala](/modules/docs/src/main/scala/tutorial/Query.scala) { #query-b }
+```scala mdoc
+val b: Query[Void, String ~ Int] =
+  sql"SELECT name, population FROM country".query(varchar ~ int4)
+```
 
 Observe that the argument to `query` is a pair of decoders conjoined with the `~` operator, yielding a return type of `String ~ Int`, which is an alias for `(String, Int)`. See the section on @ref:[twiddle lists](../reference/TwiddleLists.md) for more information on this mechanism.
 
@@ -52,7 +71,14 @@ Observe that the argument to `query` is a pair of decoders conjoined with the `~
 
 Decoding into a twiddle list isn't ideal, so let's define a `Country` data type. We can then call `map` on our query to adapt the row type.
 
-@@snip [Query.scala](/modules/docs/src/main/scala/tutorial/Query.scala) { #query-c }
+```scala mdoc
+case class Country(name: String, population: Int)
+
+val c: Query[Void, Country] =
+  sql"SELECT name, population FROM country"
+    .query(varchar ~ int4)                // (1)
+    .map { case n ~ p => Country(n, p) }  // (2)
+```
 
 Observe the following:
 
@@ -65,7 +91,13 @@ So that is one way to do it.
 
 A more reusable way to do this is to define a `Decoder[Country]` based on the `varchar ~ int4` decoder. We can then decode directly into our `Country` data type.
 
-@@snip [Query.scala](/modules/docs/src/main/scala/tutorial/Query.scala) { #query-d }
+```scala mdoc
+val country: Decoder[Country] =
+  (varchar ~ int4).map { case (n, p) => Country(n, p) }     // (1)
+
+val d: Query[Void, Country] =
+  sql"SELECT name, population FROM country".query(country)  // (2)
+```
 
 Observe the following:
 
@@ -74,23 +106,41 @@ Observe the following:
 
 And again we can pass the query to @scaladoc[Session#execute](skunk.Session#execute).
 
-@@snip [Query.scala](/modules/docs/src/main/scala/tutorial/Query.scala) { #query-d-exec }
+```scala mdoc:compile-only
+// assume s: Session[IO]
+s.execute(d) // IO[List[Country]]
+```
 
 ### Mapping Decoder Results Generically
 
 Because `Country` is a simple case class we can generate the mapping code mechanically. To do this, use `gmap` and specify the target data type.
 
-@@snip [Query.scala](/modules/docs/src/main/scala/tutorial/Query.scala) { #query-d2 }
+```scala mdoc
+val country2: Decoder[Country] =
+  (varchar ~ int4).gmap[Country]
+```
 
 Alternatively, instead of constructing a named decoder you can `gmap` the `Query` itself.
 
-@@snip [Query.scala](/modules/docs/src/main/scala/tutorial/Query.scala) { #query-d3 }
+```scala mdoc
+val c2: Query[Void, Country] =
+  sql"SELECT name, population FROM country"
+    .query(varchar ~ int4)
+    .gmap[Country]
+```
 
 ## Parameterized Query
 
 Now let's add a parameter to the query. We'll also reformat the query to be more readable.
 
-@@snip [Query.scala](/modules/docs/src/main/scala/tutorial/Query.scala) { #query-e }
+```scala mdoc
+val e: Query[String, Country] =
+  sql"""
+    SELECT name, population
+    FROM   country
+    WHERE  name LIKE $varchar
+  """.query(country)
+```
 
 Observe that we have interpolated a value called `varchar`, which has type `Encoder[String]`.
 
@@ -110,13 +160,31 @@ Postgres provides a [protocol](https://www.postgresql.org/docs/10/protocol-flow.
 
 Here we use the extended query protocol to stream directly to the console using constant space.
 
-@@snip [Query.scala](/modules/docs/src/main/scala/tutorial/Query.scala) { #query-e-exec-a }
+```scala mdoc:compile-only
+// assume s: Session[IO]
+s.prepare(e).use { ps =>
+  ps.stream("U%", 64)
+    .evalMap(c => IO(println(c)))
+    .compile
+    .drain
+} // IO[Unit]
+```
 
 Observe that `prepare` returns a `Resource` that prepares the statement before use and then frees it on completion. Here we use @scaladoc[PreparedQuery#stream](skunk.PreparedQuery#stream) to pass our parameter `"U%"` and then create a stream that fetches rows in blocks of 64 and prints them to the console.
 
 Note that when using `Resource` and `Stream` together it is often convenient to express the entire program in terms of `Stream`.
 
-@@snip [Query.scala](/modules/docs/src/main/scala/tutorial/Query.scala) { #query-e-exec-b }
+```scala mdoc:compile-only
+// assume s: Session[IO]
+val stream: Stream[IO, Unit] =
+  for {
+    ps <- Stream.resource(s.prepare(e))
+    c  <- ps.stream("U%", 64)
+    _  <- Stream.eval(IO(println(c)))
+  } yield ()
+
+stream.compile.drain // IO[Unit]
+```
 
 This program does the same thing, but perhaps in a more convenient style.
 
@@ -133,11 +201,27 @@ This program does the same thing, but perhaps in a more convenient style.
 
 Multiple parameters work analogously to multiple columns.
 
-@@snip [Query.scala](/modules/docs/src/main/scala/tutorial/Query.scala) { #query-f }
+```scala mdoc
+val f: Query[String ~ Int, Country] =
+  sql"""
+    SELECT name, population
+    FROM   country
+    WHERE  name LIKE $varchar
+    AND    population < $int4
+  """.query(country)
+```
 
 Observe that we have two parameter encoders `varchar` and `int4` (in that order), whose corresponding Scala input type is `String ~ Int`. See the section on @ref:[twiddle lists](../reference/TwiddleLists.md) for more information.
 
-@@snip [Query.scala](/modules/docs/src/main/scala/tutorial/Query.scala) { #query-f-exec }
+```scala mdoc:compile-only
+// assume s: Session[IO]
+s.prepare(f).use { ps =>
+  ps.stream("U%" ~ 2000000, 64)
+    .evalMap(c => IO(println(c)))
+    .compile
+    .drain
+} // IO[Unit]
+```
 
 And we pass the value `"U%" ~ 2000000` as our statement argument.
 
@@ -161,20 +245,75 @@ The *extend query protocol* (i.e., `Session#prepare`) is more powerful and more 
 
 Here is a complete program listing that demonstrates our knowledge thus far.
 
-@@snip [Query2.scala](/modules/docs/src/main/scala/tutorial/Query2.scala) { #full-example }
+```scala mdoc:reset
+import cats.effect._
+import skunk._
+import skunk.implicits._
+import skunk.codec.all._
+import java.time.OffsetDateTime
+import natchez.Trace.Implicits.noop
 
-Running this program yields output like the following.
+object QueryExample extends IOApp {
 
+  // a source of sessions
+  val session: Resource[IO, Session[IO]] =
+    Session.single(
+      host     = "localhost",
+      user     = "jimmy",
+      database = "world",
+      password = Some("banana")
+    )
+
+  // a data model
+  case class Country(name: String, code: String, population: Int)
+
+  // a simple query
+  val simple: Query[Void, OffsetDateTime] =
+    sql"select current_timestamp".query(timestamptz)
+
+  // an extended query
+  val extended: Query[String, Country] =
+    sql"""
+      SELECT name, code, population
+      FROM   country
+      WHERE  name like $text
+    """.query(varchar ~ bpchar(3) ~ int4)
+       .gmap[Country]
+
+  // run our simple query
+  def doSimple(s: Session[IO]): IO[Unit] =
+    for {
+      ts <- s.unique(simple) // we expect exactly one row
+      _  <- IO(println(s"timestamp is $ts"))
+    } yield ()
+
+  // run our extended query
+  def doExtended(s: Session[IO]): IO[Unit] =
+    s.prepare(extended).use { ps =>
+      ps.stream("U%", 32)
+        .evalMap(c => IO(println(c)))
+        .compile
+        .drain
+    }
+
+  // our entry point
+  def run(args: List[String]): IO[ExitCode] =
+    session.use { s =>
+      for {
+        _ <- doSimple(s)
+        _ <- doExtended(s)
+      } yield ExitCode.Success
+    }
+
+}
 ```
-timestamp is 2019-05-14T16:35:19.920737-07:00
-Country(United Arab Emirates,ARE,2441000)
-Country(United Kingdom,GBR,59623400)
-Country(Uganda,UGA,21778000)
-Country(Ukraine,UKR,50456000)
-Country(Uruguay,URY,3337000)
-Country(Uzbekistan,UZB,24318000)
-Country(United States,USA,278357000)
-Country(United States Minor Outlying Islands,UMI,0)
+
+Running this program yields the following.
+
+```scala mdoc:passthrough
+println("```")
+QueryExample.main(Array.empty)
+println("```")
 ```
 
 ## Experiment

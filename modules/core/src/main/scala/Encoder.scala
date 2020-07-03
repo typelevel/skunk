@@ -92,6 +92,14 @@ trait Encoder[A] { outer =>
     }
 
   /**
+   * Derive an encoder for the specified list. This is equivalent to `list(as.length)` but the
+   * resulting encoder can only encode the exact list that it was passed. Prefer this overload when
+   * possible because it lessens the possibility of attempting to encode a list of the wrong length.
+   */
+  def list(as: List[A]): Encoder[as.type] =
+    list(as.length).contramap(identity)
+
+  /**
    * Derive an equivalent encoder for a row type; i.e., its placeholders will be surrounded by
    * parens.
    */
@@ -102,7 +110,7 @@ trait Encoder[A] { outer =>
       val sql: State[Int,String] = outer.sql.map(s => s"($s)")
     }
 
-  // now we can say (int4 ~ varchar ~ bool).row.list(2) to get ($1, $2, $3), ($4, $5, $6)
+  // now we can say (int4 ~ varchar ~ bool).values.list(2) to get ($1, $2, $3), ($4, $5, $6)
 
   override def toString =
     s"Encoder(${types.mkString(", ")})"
