@@ -28,7 +28,7 @@ lazy val commonSettings = Seq(
   ),
 
   // Compilation
-  scalaVersion       := "2.13.2",
+  scalaVersion       := "2.13.3",
   crossScalaVersions := Seq("2.12.11", scalaVersion.value),
   scalacOptions -= "-language:experimental.macros", // doesn't work cross-version
   Compile / doc     / scalacOptions --= Seq("-Xfatal-warnings"),
@@ -129,9 +129,9 @@ lazy val example = project
     libraryDependencies ++= Seq(
       "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.11",
       "org.tpolecat"  %% "natchez-jaeger"      % "0.0.11",
-      "org.http4s"    %% "http4s-dsl"          % "0.21.4",
-      "org.http4s"    %% "http4s-blaze-server" % "0.21.4",
-      "org.http4s"    %% "http4s-circe"        % "0.21.4",
+      "org.http4s"    %% "http4s-dsl"          % "0.21.6",
+      "org.http4s"    %% "http4s-blaze-server" % "0.21.6",
+      "org.http4s"    %% "http4s-circe"        % "0.21.6",
       "io.circe"      %% "circe-generic"       % "0.13.0",
     )
   )
