@@ -229,7 +229,7 @@ object Session {
    * @param strategy
    * @group Constructors
    */
-  def pooled[F[_]: Concurrent: ContextShift: Trace](
+  def pooled[F[_]: Concurrent: ContextShift: Trace: Timer](
     host:         String,
     port:         Int            = 5432,
     user:         String,
@@ -263,7 +263,7 @@ object Session {
    * single-session pool. This method is shorthand for `Session.pooled(..., max = 1, ...).flatten`.
    * @see pooled
    */
-  def single[F[_]: Concurrent: ContextShift: Trace](
+  def single[F[_]: Concurrent: ContextShift: Trace: Timer](
     host:         String,
     port:         Int            = 5432,
     user:         String,
@@ -290,7 +290,7 @@ object Session {
     ).flatten
 
 
-  def fromSocketGroup[F[_]: Concurrent: ContextShift: Trace](
+  def fromSocketGroup[F[_]: Concurrent: ContextShift: Trace: Timer](
     socketGroup:  SocketGroup,
     host:         String,
     port:         Int            = 5432,

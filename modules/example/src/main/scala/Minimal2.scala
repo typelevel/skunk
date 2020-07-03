@@ -20,7 +20,7 @@ import io.jaegertracing.Configuration.ReporterConfiguration
 
 object Minimal2 extends IOApp {
 
-  def session[F[_]: Concurrent: ContextShift: Trace]: Resource[F, Session[F]] =
+  def session[F[_]: Concurrent: ContextShift: Trace: Timer]: Resource[F, Session[F]] =
     Session.single(
       host     = "localhost",
       port     = 5432,
@@ -51,7 +51,7 @@ object Minimal2 extends IOApp {
       }
     }
 
-  def runF[F[_]: Concurrent: ContextShift: Trace: Parallel]: F[ExitCode] =
+  def runF[F[_]: Concurrent: ContextShift: Trace: Parallel: Timer]: F[ExitCode] =
     session.use { s =>
       List("A%", "B%").parTraverse(p => lookup(p, s))
     } as ExitCode.Success

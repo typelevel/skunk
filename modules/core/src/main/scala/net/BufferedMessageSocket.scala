@@ -5,7 +5,7 @@
 package skunk.net
 
 import cats._
-import cats.effect._
+import cats.effect.{ Sync => _, _ }
 import cats.effect.concurrent._
 import cats.effect.implicits._
 import cats.implicits._
@@ -13,7 +13,7 @@ import fs2.concurrent._
 import fs2.Stream
 import skunk.data._
 import skunk.net.message._
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration._
 import fs2.io.tcp.SocketGroup
 
 /**
@@ -75,7 +75,7 @@ trait BufferedMessageSocket[F[_]] extends MessageSocket[F] {
 
 object BufferedMessageSocket {
 
-  def apply[F[_]: Concurrent: ContextShift](
+  def apply[F[_]: Concurrent: ContextShift: Timer](
     host:         String,
     port:         Int,
     queueSize:    Int,
@@ -114,6 +114,7 @@ object BufferedMessageSocket {
       // These are handled here and are never seen by the higher-level API.
       case     ParameterStatus(k, v)   => Stream.eval_(paSig.update(_ + (k -> v)))
       case     NotificationResponse(n) => Stream.eval_(noTop.publish1(n))
+      case     NoticeResponse(_)       => Stream.empty // TODO -- we're throwing these away!
       case m @ BackendKeyData(_, _)    => Stream.eval_(bkDef.complete(m))
 
       // Everything else is passed through.
@@ -123,7 +124,7 @@ object BufferedMessageSocket {
   // Here we read messages as they arrive, rather than waiting for the user to ask. This allows us
   // to handle asynchronous messages, which are dealt with here and not passed on. Other messages
   // are queued up and are typically consumed immediately, so a small queue size is probably fine.
-  private def fromMessageSocket[F[_]: Concurrent](
+  private def fromMessageSocket[F[_]: Concurrent: Timer](
     ms:       MessageSocket[F],
     queueSize: Int
   ): F[BufferedMessageSocket[F]] =
@@ -156,6 +157,11 @@ object BufferedMessageSocket {
         override def history(max: Int): F[List[Either[Any, Any]]] =
           ms.history(max)
 
+        def sync: F[Unit] =
+          Timer[F].sleep(100.milli)            *> // HACK: we really need a way to await quiescence on the
+                                                  // channel but as an approximation let's just wait a bit
+          queue.tryDequeueChunk1(Int.MaxValue) *>
+          send(Sync)
 
       }
 

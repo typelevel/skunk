@@ -2,10 +2,6 @@
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
-// Copyright (c) 2018-2020 by Rob Norris
-// This software is licensed under the MIT License (MIT).
-// For more information see LICENSE or https://opensource.org/licenses/MIT
-
 package tests.issue
 
 import skunk._
@@ -16,7 +12,7 @@ import skunk.exception.DecodeException
 import cats.effect.IO
 
 // https://github.com/tpolecat/skunk/issues/129
-case object Issue129Test extends SkunkTest {
+case object Test129 extends SkunkTest {
 
   case class Country(name: String, code: String)
   case class City(name: String, district: String)

@@ -19,6 +19,7 @@ object Error extends IOApp {
       port     = 5432,
       user     = "jimmy",
       database = "world",
+      password = Some("banana"),
     )
 
   val query =

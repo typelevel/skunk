@@ -30,6 +30,7 @@ object Completion {
   case object DropSchema         extends Completion
   case object CreateType         extends Completion
   case object DropType           extends Completion
+  case object CreateFunction     extends Completion
   // more ...
 
   /**

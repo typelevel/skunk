@@ -51,7 +51,7 @@ abstract class CodecTest(
 
 case object CodecTest extends FTest {
 
-  val c = int2 ~ (int4 ~ float4) ~ varchar
+  val c = int2 ~ (int4 ~ float8) ~ varchar
 
   test("composed codec generates correct sql") {
     assertEqual("sql", c.sql.runA(1).value, "$1, $2, $3, $4")

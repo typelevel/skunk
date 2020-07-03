@@ -11,6 +11,8 @@ import scodec.bits._
 import scodec.codecs._
 import scodec.interop.cats._
 import skunk.data.Identifier
+import scodec.SizeBound
+import scodec.DecodeResult
 
 /**
  * Definitions of Postgres messages, with binary encoders and decoders. Doc for this package isn't
@@ -38,8 +40,19 @@ package object message { module =>
       override def combine(a: Attempt[A], b: Attempt[A]): Attempt[A] = (a, b).mapN(_ |+| _)
     }
 
-  val utf8z: SCodec[String] =
-    (utf8 ~ constant(ByteVector(0))).xmap(_._1, (_, ()))
+  val utf8z: SCodec[String] = filtered(
+    utf8,
+    new SCodec[BitVector] {
+      val nul = BitVector.lowByte
+      override def sizeBound: SizeBound = SizeBound.unknown
+      override def encode(bits: BitVector): Attempt[BitVector] = Attempt.successful(bits ++ nul)
+      override def decode(bits: BitVector): Attempt[DecodeResult[BitVector]] =
+        bits.bytes.indexOfSlice(nul.bytes) match {
+          case -1 => Attempt.failure(Err("Does not contain a 'NUL' termination byte."))
+          case i  => Attempt.successful(DecodeResult(bits.take(i * 8L), bits.drop(i * 8L + 8L)))
+        }
+    }
+  ).withToString("utf8z")
 
   val identifier: SCodec[Identifier] =
     cstring.exmap(
