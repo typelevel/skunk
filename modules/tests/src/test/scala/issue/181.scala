@@ -24,14 +24,15 @@ case object Test181 extends SkunkTest {
       $$$$ LANGUAGE plpgsql;
     """.command
 
-  sessionTest(s"non-ASCII error message (EXCEPTION)") { s =>
+  sessionTest(s"issue/181 (EXCEPTION)") { s =>
     for {
       _ <- s.execute(func("EXCEPTION"))
-      _ <- s.unique(sql"select test181_EXCEPTION()".query(float4)).assertFailsWith[PostgresErrorException](show = true)
+      _ <- s.unique(sql"select test181_EXCEPTION()".query(float4)).assertFailsWith[PostgresErrorException]
+      _ <- s.assertHealthy
     } yield ("ok")
   }
 
-  sessionTest(s"non-ASCII error message (WARNING)") { s =>
+  sessionTest(s"issue/181 (WARNING)") { s =>
     for {
       _ <- s.execute(func("WARNING"))
       a <- s.unique(sql"select test181_WARNING()".query(float4))
@@ -39,7 +40,7 @@ case object Test181 extends SkunkTest {
     } yield ("ok")
   }
 
-    sessionTest(s"non-ASCII error message (NOTICE)") { s =>
+    sessionTest(s"issue/181 (NOTICE)") { s =>
     for {
       _ <- s.execute(func("NOTICE"))
       a <- s.unique(sql"select test181_NOTICE()".query(float4))

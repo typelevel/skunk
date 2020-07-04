@@ -14,7 +14,7 @@ case object UnknownOidExceptionTest1 extends SkunkTest(strategy = Strategy.Searc
       for {
         _ <- s.execute(sql"DROP TYPE IF EXISTS mood".command)
         _ <- s.execute(sql"CREATE TYPE mood AS ENUM ('sad', 'ok', 'happy')".command)
-        _ <- s.unique(sql"SELECT 'sad'::mood AS blah".query(mood)).assertFailsWith[UnknownOidException](show = true)
+        _ <- s.unique(sql"SELECT 'sad'::mood AS blah".query(mood)).assertFailsWith[UnknownOidException]
       } yield "ok"
     }
 
@@ -24,9 +24,8 @@ case object UnknownOidExceptionTest2 extends SkunkTest(strategy = Strategy.Built
 
     val myenum = enum[String](identity, Option(_), Type("myenum"))
     sessionTest("raise UnknownOidException when referencing a user-defined type with Strategy.BuiltinsOnly") { s =>
-      for {
-        _ <- s.unique(sql"SELECT 'foo'::myenum AS blah".query(myenum)).assertFailsWith[UnknownOidException](show = true)
-      } yield "ok"
+      s.unique(sql"SELECT 'foo'::myenum AS blah".query(myenum)).assertFailsWith[UnknownOidException]
+       .as("ok")
     }
 
 }

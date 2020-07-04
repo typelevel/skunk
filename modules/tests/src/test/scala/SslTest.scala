@@ -16,7 +16,6 @@ case object SslTest extends ffstest.FTest {
       user     = "jimmy",
       database = "world",
       password = Some("banana"),
-      debug    = true,
       ssl      = SSL.Trusted,
     ).use(_ => IO.unit)
   }

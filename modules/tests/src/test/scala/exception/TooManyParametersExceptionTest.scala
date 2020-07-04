@@ -17,6 +17,7 @@ case object TooManyParametersExceptionTest extends SkunkTest {
     sessionTest(s"raise TooManyParametersException when statement contains > ${Short.MaxValue} parameters") { s =>
       s.prepare(stmt(Short.MaxValue + 1)).use { _ => IO.never }
        .assertFailsWith[TooManyParametersException]
+       .as("ok")
     }
 
 }
