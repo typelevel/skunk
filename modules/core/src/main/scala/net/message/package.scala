@@ -55,7 +55,7 @@ package object message { module =>
   ).withToString("utf8z")
 
   val identifier: SCodec[Identifier] =
-    cstring.exmap(
+    utf8z.exmap(
       s  => Attempt.fromEither(Identifier.fromString(s).leftMap(Err(_))),
       id => Attempt.successful(id.value)
     )

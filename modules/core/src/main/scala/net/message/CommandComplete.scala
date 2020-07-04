@@ -5,7 +5,6 @@
 package skunk.net.message
 
 import scodec.Decoder
-import scodec.codecs._
 import skunk.data.Completion
 
 import scala.util.matching.Regex
@@ -44,7 +43,7 @@ object CommandComplete {
   }
 
   //TODO: maybe make lazy val
-  def decoder: Decoder[CommandComplete] = cstring.map {
+  def decoder: Decoder[CommandComplete] = utf8z.map {
     case "BEGIN"            => apply(Completion.Begin)
     case "COMMIT"           => apply(Completion.Commit)
     case "CREATE INDEX"     => apply(Completion.CreateIndex)
