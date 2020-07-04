@@ -101,7 +101,7 @@ object Http4sExample extends IOApp {
    * Given a `SocketGroup` we can construct a session resource, and from that construct a
    * `Countries` resource.
    */
-  def countriesFromSocketGroup[F[_]: Concurrent: ContextShift: Trace: Timer](
+  def countriesFromSocketGroup[F[_]: Concurrent: ContextShift: Trace](
     socketGroup: SocketGroup
   ): Resource[F, PooledCountries[F]] =
     Session.fromSocketGroup(
@@ -114,7 +114,7 @@ object Http4sExample extends IOApp {
     ).flatMap(countriesFromSession(_))
 
   /** Resource yielding a pool of `Countries`, backed by a single `Blocker` and `SocketGroup`. */
-  def pool[F[_]: Concurrent: ContextShift: Trace: Timer]: Resource[F, Resource[F, Countries[F]]] =
+  def pool[F[_]: Concurrent: ContextShift: Trace]: Resource[F, Resource[F, Countries[F]]] =
     for {
       b  <- Blocker[F]
       sg <- SocketGroup[F](b)
@@ -148,7 +148,7 @@ object Http4sExample extends IOApp {
    * Using `pool` above we can create `HttpRoutes` resource. We also add some standard tracing
    * middleware while we're at it.
    */
-  def routes[F[_]: Concurrent: ContextShift: Trace: Timer]: Resource[F, HttpRoutes[F]] =
+  def routes[F[_]: Concurrent: ContextShift: Trace]: Resource[F, HttpRoutes[F]] =
     pool.map(p => natchezMiddleware(countryRoutes(p)))
 
   /** Our Natchez `EntryPoint` resource. */

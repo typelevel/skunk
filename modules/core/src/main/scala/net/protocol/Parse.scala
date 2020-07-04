@@ -60,7 +60,7 @@ object Parse {
       def syncAndFail(statement: Statement[_], info: Map[Char, String]): F[Unit] =
         for {
           hi <- history(Int.MaxValue)
-          _  <- sync
+          _  <- send(Sync)
           _  <- expect { case ReadyForQuery(_) => }
           a  <- new PostgresErrorException(
                   sql       = statement.sql,
