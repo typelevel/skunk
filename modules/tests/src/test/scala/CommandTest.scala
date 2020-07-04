@@ -18,6 +18,7 @@ case object CommandTest extends SkunkTest {
     (int4 ~ varchar ~ bpchar(3) ~ varchar ~ int4).gimap[City]
 
   val Garin = City(5000, "Garin", "ARG", "Escobar", 11405)
+  val Garin2 = City(5001, "Garin2", "ARG", "Escobar", 11405)
 
   val insertCity: Command[City] =
     sql"""
@@ -72,7 +73,7 @@ case object CommandTest extends SkunkTest {
 
   val createSchema: Command[Void] =
     sql"""
-      CREATE SCHEMA public_0
+      CREATE SCHEMA IF NOT EXISTS public_0
       """.command
 
   val dropSchema: Command[Void] =
@@ -120,11 +121,11 @@ case object CommandTest extends SkunkTest {
 
   sessionTest("insert and delete record with contramapped command") { s =>
     for {
-      c <- s.prepare(insertCity2).use(_.execute(Garin))
+      c <- s.prepare(insertCity2).use(_.execute(Garin2))
       _ <- assert("completion",  c == Completion.Insert(1))
-      c <- s.prepare(selectCity).use(_.unique(Garin.id))
-      _ <- assert("read", c == Garin)
-      _ <- s.prepare(deleteCity).use(_.execute(Garin.id))
+      c <- s.prepare(selectCity).use(_.unique(Garin2.id))
+      _ <- assert("read", c == Garin2)
+      _ <- s.prepare(deleteCity).use(_.execute(Garin2.id))
       _ <- s.assertHealthy
     } yield "ok"
   }

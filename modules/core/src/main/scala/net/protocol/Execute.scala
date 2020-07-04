@@ -30,7 +30,7 @@ object Execute {
             _  <- send(ExecuteMessage(portal.id.value, 0))
             _  <- send(Flush)
             c  <- flatExpect {
-              case CommandComplete(c)  => c.pure[F]
+              case CommandComplete(c)  => sync *> expect { case ReadyForQuery(_) => c } // https://github.com/tpolecat/skunk/issues/210
               case ErrorResponse(info) => syncAndFail[A](portal, info)
             }
           } yield c
