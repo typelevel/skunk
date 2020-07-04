@@ -55,7 +55,7 @@ private[protocol] class Unroll[F[_]: MonadError[?[_], Throwable]: MessageSocket:
     def syncAndFail(info: Map[Char, String]): F[List[List[Option[String]]] ~ Boolean]  =
       for {
         hi <- history(Int.MaxValue)
-        _  <- sync
+        _  <- send(Sync).whenA(extended)
         _  <- expect { case ReadyForQuery(_) => }
         a  <- new PostgresErrorException(
                 sql             = sql,
@@ -93,7 +93,6 @@ private[protocol] class Unroll[F[_]: MonadError[?[_], Throwable]: MessageSocket:
 
             // https://github.com/tpolecat/skunk/issues/129
             // an exception thrown in a decoder will derail things here, so let's handle it.
-            // kind of lame because we lose the stacktrace
             val result =
               try decoder.decode(0, data)
               catch {
@@ -103,7 +102,7 @@ private[protocol] class Unroll[F[_]: MonadError[?[_], Throwable]: MessageSocket:
             result match {
               case Right(a) => a.pure[F]
               case Left(e)  =>
-                sync.whenA(extended) *> // if it's an extended query we need to resync
+                send(Sync).whenA(extended) *> // if it's an extended query we need to resync
                 expect { case ReadyForQuery(_) => } *>
                 new DecodeException(
                   data,

@@ -60,7 +60,7 @@ object Bind {
       ): F[Unit] =
         for {
           hi <- history(Int.MaxValue)
-          _  <- sync
+          _  <- send(Sync)
           _  <- expect { case ReadyForQuery(_) => }
           a  <- PostgresErrorException.raiseError[F, Unit](
                   sql             = statement.statement.sql,

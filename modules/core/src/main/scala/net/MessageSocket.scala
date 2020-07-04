@@ -31,9 +31,6 @@ trait MessageSocket[F[_]] {
   def expect[B](f: PartialFunction[BackendMessage, B])(implicit or: Origin): F[B]
   def flatExpect[B](f: PartialFunction[BackendMessage, F[B]])(implicit or: Origin): F[B]
 
-  /** Discard any buffered messages and send a `Sync` message. */
-  def sync: F[Unit]
-
 }
 
 object MessageSocket {
@@ -74,9 +71,6 @@ object MessageSocket {
 
         override def history(max: Int): F[List[Either[Any, Any]]] =
           cb.dequeueChunk1(max: Int).map(_.toList)
-
-        def sync: F[Unit] =
-          send(skunk.net.message.Sync)
 
       }
     }

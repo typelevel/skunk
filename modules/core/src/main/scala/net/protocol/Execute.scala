@@ -30,7 +30,7 @@ object Execute {
             _  <- send(ExecuteMessage(portal.id.value, 0))
             _  <- send(Flush)
             c  <- flatExpect {
-              case CommandComplete(c)  => sync *> expect { case ReadyForQuery(_) => c } // https://github.com/tpolecat/skunk/issues/210
+              case CommandComplete(c)  => send(Sync) *> expect { case ReadyForQuery(_) => c } // https://github.com/tpolecat/skunk/issues/210
               case ErrorResponse(info) => syncAndFail[A](portal, info)
             }
           } yield c
@@ -52,7 +52,7 @@ object Execute {
       def syncAndFail[A](portal: Protocol.CommandPortal[F, A], info: Map[Char, String]): F[Completion] =
         for {
           hi <- history(Int.MaxValue)
-          _  <- sync
+          _  <- send(Sync)
           _  <- expect { case ReadyForQuery(_) => }
           a  <- new PostgresErrorException(
                   sql             = portal.preparedCommand.command.sql,

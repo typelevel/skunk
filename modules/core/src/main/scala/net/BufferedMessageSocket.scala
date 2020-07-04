@@ -75,7 +75,7 @@ trait BufferedMessageSocket[F[_]] extends MessageSocket[F] {
 
 object BufferedMessageSocket {
 
-  def apply[F[_]: Concurrent: ContextShift: Timer](
+  def apply[F[_]: Concurrent: ContextShift](
     host:         String,
     port:         Int,
     queueSize:    Int,
@@ -124,7 +124,7 @@ object BufferedMessageSocket {
   // Here we read messages as they arrive, rather than waiting for the user to ask. This allows us
   // to handle asynchronous messages, which are dealt with here and not passed on. Other messages
   // are queued up and are typically consumed immediately, so a small queue size is probably fine.
-  private def fromMessageSocket[F[_]: Concurrent: Timer](
+  private def fromMessageSocket[F[_]: Concurrent](
     ms:       MessageSocket[F],
     queueSize: Int
   ): F[BufferedMessageSocket[F]] =
@@ -156,12 +156,6 @@ object BufferedMessageSocket {
 
         override def history(max: Int): F[List[Either[Any, Any]]] =
           ms.history(max)
-
-        def sync: F[Unit] =
-          Timer[F].sleep(100.milli)            *> // HACK: we really need a way to await quiescence on the
-                                                  // channel but as an approximation let's just wait a bit
-          queue.tryDequeueChunk1(Int.MaxValue) *>
-          send(Sync)
 
       }
 

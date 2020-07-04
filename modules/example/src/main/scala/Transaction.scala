@@ -11,7 +11,7 @@ import natchez.Trace.Implicits.noop
 
 object Transaction extends IOApp {
 
-  def session[F[_]: Concurrent: ContextShift: Timer]: Resource[F, Session[F]] =
+  def session[F[_]: Concurrent: ContextShift]: Resource[F, Session[F]] =
     Session.single(
       host     = "localhost",
       port     = 5432,
@@ -20,7 +20,7 @@ object Transaction extends IOApp {
       password = Some("banana"),
     )
 
-  def runS[F[_]: Concurrent: ContextShift: Timer]: F[_] =
+  def runS[F[_]: Concurrent: ContextShift]: F[_] =
     session[F].use { s =>
       s.transaction.use { t =>
         for {
