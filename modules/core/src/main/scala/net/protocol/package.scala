@@ -21,6 +21,9 @@ import skunk.util.Origin
   def send[F[_], A: FrontendMessage](a: A)(implicit ev: MessageSocket[F]): F[Unit] =
     ev.send(a)
 
+  def sync[F[_]](implicit ev: MessageSocket[F]): F[Unit] =
+    ev.sync
+
   def history[F[_]](max: Int)(implicit ev: MessageSocket[F]): F[List[Either[Any, Any]]] =
     ev.history(max)
 

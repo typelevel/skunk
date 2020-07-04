@@ -109,8 +109,8 @@ case object QuickQueryErrorTest extends SkunkTest {
 
   sessionTest("not a query, with warning") { s =>
     for {
-      e <- s.execute(sql"commit".query(int4)).assertFailsWith[PostgresErrorException]
-      _ <- assertEqual("message", e.message, "There is no transaction in progress.")
+      e <- s.execute(sql"commit".query(int4)).assertFailsWith[NoDataException]
+      _ <- assertEqual("message", e.message, "Statement does not return data.")
       _ <- s.assertHealthy
     } yield "ok"
   }

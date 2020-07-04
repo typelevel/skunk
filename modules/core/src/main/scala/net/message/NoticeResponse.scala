@@ -26,7 +26,7 @@ object NoticeResponse {
   //          unrecognized type.
   // String - The field value.
   val decoder: Decoder[BackendMessage] =
-    list(cstring).map { ss =>
+    list(utf8z).map { ss =>
       val kv = ss.init.map(s => s.head -> s.tail).toMap // last one is always empty
       NoticeResponse(kv)
     }

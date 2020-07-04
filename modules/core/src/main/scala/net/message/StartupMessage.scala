@@ -30,7 +30,7 @@ object StartupMessage {
     FrontendMessage.untagged {
 
       def pair(key: String): Codec[String] =
-        cstring.applied(key) ~> cstring
+        utf8z.applied(key) ~> utf8z
 
       val version: Codec[Unit] =
         int32.applied(196608)

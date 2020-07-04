@@ -4,7 +4,7 @@
 
 package skunk.net.message
 
-import scodec.codecs.{ list, cstring }
+import scodec.codecs.list
 
 /**
  * Specifies that SASL authentication is required. The message body is a list of SASL authentication
@@ -15,5 +15,5 @@ final case class AuthenticationSASL(mechanisms: List[String]) extends Authentica
 
 object AuthenticationSASL {
   final val Tagʹ = 10
-  val decoderʹ = list(cstring).map(ss => AuthenticationSASL(ss.init)) // last one is always empty
+  val decoderʹ = list(utf8z).map(ss => AuthenticationSASL(ss.init)) // last one is always empty
 }

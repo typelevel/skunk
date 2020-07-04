@@ -51,10 +51,11 @@ private[protocol] class Unroll[F[_]: MonadError[?[_], Throwable]: MessageSocket:
     rowDescription: TypedRowDescription,
     decoder:        Decoder[B],
   ): F[List[B] ~ Boolean] = {
+
     def syncAndFail(info: Map[Char, String]): F[List[List[Option[String]]] ~ Boolean]  =
       for {
         hi <- history(Int.MaxValue)
-        _  <- send(Sync)
+        _  <- sync
         _  <- expect { case ReadyForQuery(_) => }
         a  <- new PostgresErrorException(
                 sql             = sql,
@@ -102,7 +103,7 @@ private[protocol] class Unroll[F[_]: MonadError[?[_], Throwable]: MessageSocket:
             result match {
               case Right(a) => a.pure[F]
               case Left(e)  =>
-                send(Sync).whenA(extended) *> // if it's an extended query we need to resync
+                sync.whenA(extended) *> // if it's an extended query we need to resync
                 expect { case ReadyForQuery(_) => } *>
                 new DecodeException(
                   data,

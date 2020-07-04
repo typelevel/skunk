@@ -11,5 +11,5 @@ case class ParameterStatus(name: String, value: String) extends BackendMessage
 
 object ParameterStatus {
   final val Tag = 'S'
-  val decoder: Decoder[ParameterStatus] = (cstring ~ cstring).map(apply)
+  val decoder: Decoder[ParameterStatus] = (utf8z ~ utf8z).map(apply)
 }

@@ -41,7 +41,7 @@ object RowDescription {
   object Field {
 
     val codec: Codec[Field] =
-      (cstring ~ int32 ~ int16 ~ int32 ~ int16 ~ int32 ~ int16)
+      (utf8z ~ int32 ~ int16 ~ int32 ~ int16 ~ int32 ~ int16)
         .map(apply)
         .decodeOnly
 

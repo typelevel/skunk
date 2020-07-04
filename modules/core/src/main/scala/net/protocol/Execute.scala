@@ -52,7 +52,7 @@ object Execute {
       def syncAndFail[A](portal: Protocol.CommandPortal[F, A], info: Map[Char, String]): F[Completion] =
         for {
           hi <- history(Int.MaxValue)
-          _  <- send(Sync)
+          _  <- sync
           _  <- expect { case ReadyForQuery(_) => }
           a  <- new PostgresErrorException(
                   sql             = portal.preparedCommand.command.sql,
