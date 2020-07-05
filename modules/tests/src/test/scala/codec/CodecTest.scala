@@ -12,6 +12,8 @@ import skunk.codec.all._
 import skunk.implicits._
 import skunk.util.Typer
 import ffstest.FTest
+import cats.InvariantSemigroupal
+import cats.effect.IO
 
 /** Tests that we check if we can round-trip values via codecs. */
 abstract class CodecTest(
@@ -63,6 +65,25 @@ case object CodecTest extends FTest {
 
   test("imapped codec generated corrext sql") {
     assertEqual("sql", c.imap[Short ~ (Int ~ Double) ~ String](identity)(identity).sql.runA(1).value, "$1, $2, $3, $4")
+  }
+
+  test("decode failure (invalid)") {
+    val c = skunk.codec.all.int4
+    val r = c.decode(0, List(Some("abc")))
+    assertEqual("decode failure", r, Left(Decoder.Error(0, 1, "Invalid: abc")))
+  }
+
+  test("decode failure (insufficient input)") {
+    val c = skunk.codec.all.int4
+    val r = c.decode(0, Nil)
+    assertEqual("decode failure", r, Left(Decoder.Error(0, 1, "Expected one input value to decode, got 0.")))
+  }
+
+  test("invariant semigroupal (coverage)") {
+    val c = skunk.codec.all.int4
+    InvariantSemigroupal[Codec].imap(c)(identity)(identity)
+    InvariantSemigroupal[Codec].product(c, c)
+    IO("ok")
   }
 
 }

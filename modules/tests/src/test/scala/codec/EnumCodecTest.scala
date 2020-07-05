@@ -6,9 +6,9 @@ package tests
 package codec
 
 import cats.Eq
+import skunk._
 import skunk.codec.enum._
 import skunk.data.Type
-import skunk.util.Typer.Strategy
 import enumeratum._
 import enumeratum.EnumEntry.Lowercase
 

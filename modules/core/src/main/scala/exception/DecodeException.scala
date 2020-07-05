@@ -8,7 +8,7 @@ import cats.data.Nested
 import cats.implicits._
 import skunk.{ Encoder, Decoder }
 import skunk.util.Origin
-import skunk.net.Protocol
+// import skunk.net.Protocol
 import skunk.util.Text
 import skunk.util.Text.{ plain, empty, cyan, green }
 import skunk.data.TypedRowDescription
@@ -34,21 +34,21 @@ class DecodeException[F[_], A, B](
   sqlOrigin       = sqlOrigin
 ) {
 
-  def this(
-    portal: Protocol.QueryPortal[F, A, B],
-    data:   List[Option[String]],
-    error:  Decoder.Error,
-    rowDescription: TypedRowDescription
-  ) = this(
-    data,
-    error,
-    portal.preparedQuery.query.sql,
-    Some(portal.preparedQuery.query.origin),
-    portal.arguments,
-    Some(portal.argumentsOrigin),
-    portal.preparedQuery.query.encoder,
-    rowDescription
-  )
+  // def this(
+  //   portal: Protocol.QueryPortal[F, A, B],
+  //   data:   List[Option[String]],
+  //   error:  Decoder.Error,
+  //   rowDescription: TypedRowDescription
+  // ) = this(
+  //   data,
+  //   error,
+  //   portal.preparedQuery.query.sql,
+  //   Some(portal.preparedQuery.query.origin),
+  //   portal.arguments,
+  //   Some(portal.argumentsOrigin),
+  //   portal.preparedQuery.query.encoder,
+  //   rowDescription
+  // )
 
   val MaxValue: Int = 15
 
