@@ -27,7 +27,7 @@ case object TemporalCodecTest extends CodecTest {
       LocalDate.of(256789, 12, 31), // A very distant date
     )
 
-  codecTest(date)(dates: _*)
+  roundtripTest(date)(dates: _*)
 
   // Time
   val times: List[LocalTime] =
@@ -39,27 +39,29 @@ case object TemporalCodecTest extends CodecTest {
       LocalTime.MIDNIGHT,
     )
 
-  codecTest(time   )(times :+ LocalTime.MAX.withNano(999999000): _*)
-  codecTest(time(6))(times :+ LocalTime.MAX.withNano(999999000): _*)
-  codecTest(time(5))(times :+ LocalTime.MAX.withNano(999990000): _*)
-  codecTest(time(4))(times :+ LocalTime.MAX.withNano(999900000): _*)
-  codecTest(time(3))(times :+ LocalTime.MAX.withNano(999000000): _*)
-  codecTest(time(2))(times :+ LocalTime.MAX.withNano(990000000): _*)
-  codecTest(time(1))(times :+ LocalTime.MAX.withNano(900000000): _*)
-  codecTest(time(0))(times :+ LocalTime.MAX.withNano(0): _*)
+  roundtripTest(time   )(times :+ LocalTime.MAX.withNano(999999000): _*)
+  roundtripTest(time(6))(times :+ LocalTime.MAX.withNano(999999000): _*)
+  roundtripTest(time(5))(times :+ LocalTime.MAX.withNano(999990000): _*)
+  roundtripTest(time(4))(times :+ LocalTime.MAX.withNano(999900000): _*)
+  roundtripTest(time(3))(times :+ LocalTime.MAX.withNano(999000000): _*)
+  roundtripTest(time(2))(times :+ LocalTime.MAX.withNano(990000000): _*)
+  roundtripTest(time(1))(times :+ LocalTime.MAX.withNano(900000000): _*)
+  roundtripTest(time(0))(times :+ LocalTime.MAX.withNano(0): _*)
+  decodeFailureTest(time, List("x"))
 
   // Timestamp
   val dateTimes: List[LocalDateTime] =
     (dates, times).mapN(_ atTime _)
 
-  codecTest(timestamp   )(dateTimes: _*)
-  codecTest(timestamp(6))(dateTimes: _*)
-  codecTest(timestamp(5))(dateTimes: _*)
-  codecTest(timestamp(4))(dateTimes: _*)
-  codecTest(timestamp(3))(dateTimes: _*)
-  codecTest(timestamp(2))(dateTimes: _*)
-  codecTest(timestamp(1))(dateTimes: _*)
-  codecTest(timestamp(0))(dateTimes: _*)
+  roundtripTest(timestamp   )(dateTimes: _*)
+  roundtripTest(timestamp(6))(dateTimes: _*)
+  roundtripTest(timestamp(5))(dateTimes: _*)
+  roundtripTest(timestamp(4))(dateTimes: _*)
+  roundtripTest(timestamp(3))(dateTimes: _*)
+  roundtripTest(timestamp(2))(dateTimes: _*)
+  roundtripTest(timestamp(1))(dateTimes: _*)
+  roundtripTest(timestamp(0))(dateTimes: _*)
+  decodeFailureTest(timestamp, List("x"))
 
   // Time with offset
   val offsets: List[ZoneOffset] =
@@ -73,27 +75,29 @@ case object TemporalCodecTest extends CodecTest {
   val offsetTimes: List[OffsetTime] =
     (times, offsets).mapN(_ atOffset _)
 
-  codecTest(timetz   )(offsetTimes: _*)
-  codecTest(timetz(6))(offsetTimes: _*)
-  codecTest(timetz(5))(offsetTimes: _*)
-  codecTest(timetz(4))(offsetTimes: _*)
-  codecTest(timetz(3))(offsetTimes: _*)
-  codecTest(timetz(2))(offsetTimes: _*)
-  codecTest(timetz(1))(offsetTimes: _*)
-  codecTest(timetz(0))(offsetTimes: _*)
+  roundtripTest(timetz   )(offsetTimes: _*)
+  roundtripTest(timetz(6))(offsetTimes: _*)
+  roundtripTest(timetz(5))(offsetTimes: _*)
+  roundtripTest(timetz(4))(offsetTimes: _*)
+  roundtripTest(timetz(3))(offsetTimes: _*)
+  roundtripTest(timetz(2))(offsetTimes: _*)
+  roundtripTest(timetz(1))(offsetTimes: _*)
+  roundtripTest(timetz(0))(offsetTimes: _*)
+  decodeFailureTest(timetz, List("x"))
 
   // Timestamp with offset
   val offsetDateTimes: List[OffsetDateTime] =
     (dateTimes, offsets).mapN(_ atOffset _)
 
-  codecTest(timestamptz   )(offsetDateTimes: _*)
-  codecTest(timestamptz(6))(offsetDateTimes: _*)
-  codecTest(timestamptz(5))(offsetDateTimes: _*)
-  codecTest(timestamptz(4))(offsetDateTimes: _*)
-  codecTest(timestamptz(3))(offsetDateTimes: _*)
-  codecTest(timestamptz(2))(offsetDateTimes: _*)
-  codecTest(timestamptz(1))(offsetDateTimes: _*)
-  codecTest(timestamptz(0))(offsetDateTimes: _*)
+  roundtripTest(timestamptz   )(offsetDateTimes: _*)
+  roundtripTest(timestamptz(6))(offsetDateTimes: _*)
+  roundtripTest(timestamptz(5))(offsetDateTimes: _*)
+  roundtripTest(timestamptz(4))(offsetDateTimes: _*)
+  roundtripTest(timestamptz(3))(offsetDateTimes: _*)
+  roundtripTest(timestamptz(2))(offsetDateTimes: _*)
+  roundtripTest(timestamptz(1))(offsetDateTimes: _*)
+  roundtripTest(timestamptz(0))(offsetDateTimes: _*)
+  decodeFailureTest(timestamptz, List("x"))
 
   // Interval
   val intervals: List[Duration] =
@@ -110,6 +114,7 @@ case object TemporalCodecTest extends CodecTest {
         .plusNanos(555000),
     )
 
-  codecTest(interval)(intervals: _*)
+  roundtripTest(interval)(intervals: _*)
+  decodeFailureTest(interval, List("x"))
 
 }

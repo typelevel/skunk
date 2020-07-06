@@ -24,7 +24,8 @@ case object EnumCodecTest extends CodecTest(strategy = Strategy.SearchPath) {
     implicit val EqMyEnum: Eq[Case1] = Eq.fromUniversalEquals
   }
   val case1 = enum[Case1](_.label, Case1.fromLabel, Type("myenum"))
-  codecTest(case1)(Case1.Foo, Case1.Bar)
+  roundtripTest(case1)(Case1.Foo, Case1.Bar)
+  decodeFailureTest(case1, List("woozle"))
 
   // Case 1: enum defined with Enumeratum
   sealed trait Case2 extends EnumEntry with Lowercase
@@ -35,7 +36,8 @@ case object EnumCodecTest extends CodecTest(strategy = Strategy.SearchPath) {
     implicit val EqCase2: Eq[Case2] = Eq.fromUniversalEquals
   }
   val case2 = enum(Case2, Type("myenum"))
-  codecTest(case2)(Case2.Foo, Case2.Bar)
+  roundtripTest(case2)(Case2.Foo, Case2.Bar)
+  decodeFailureTest(case2, List("woozle"))
 
 }
 

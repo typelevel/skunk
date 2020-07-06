@@ -12,18 +12,24 @@ import skunk.codec.all._
 case object NumericCodecTest extends CodecTest {
 
   // Integral
-  codecTest(int2)(Short.MinValue, -1, 0, 1, Short.MaxValue)
-  codecTest(int4)(Int  .MinValue, -1, 0, 1, Int  .MaxValue)
-  codecTest(int8)(Long .MinValue, -1, 0, 1, Long .MaxValue)
+  roundtripTest(int2)(Short.MinValue, -1, 0, 1, Short.MaxValue)
+  decodeFailureTest(int2, List("x"))
 
+  roundtripTest(int4)(Int  .MinValue, -1, 0, 1, Int  .MaxValue)
+  decodeFailureTest(int4, List("x"))
+
+  roundtripTest(int8)(Long .MinValue, -1, 0, 1, Long .MaxValue)
+  decodeFailureTest(int8, List("x"))
 
   // Not exactly Double … extents go to infinity
-  codecTest(float8)(Double.NegativeInfinity, -1, 0, Double.MinPositiveValue, 1, Double.PositiveInfinity)
-  specialValueTest("NaN", float8)(Double.NaN, _.isNaN)
+  roundtripTest(float8)(Double.NegativeInfinity, -1, 0, Double.MinPositiveValue, 1, Double.PositiveInfinity)
+  roundtripWithSpecialValueTest("NaN", float8)(Double.NaN, _.isNaN)
+  decodeFailureTest(float8, List("x"))
 
   // Not exactly Float … extents go to infinity and MinPositiveValue gets truncated
-  codecTest(float4)(Float.NegativeInfinity, -1, 0, 1, Float.PositiveInfinity)
-  specialValueTest("NaN", float4)(Float.NaN, _.isNaN)
+  roundtripTest(float4)(Float.NegativeInfinity, -1, 0, 1, Float.PositiveInfinity)
+  roundtripWithSpecialValueTest("NaN", float4)(Float.NaN, _.isNaN)
+  decodeFailureTest(float4, List("x"))
 
 }
 

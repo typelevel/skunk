@@ -16,10 +16,11 @@ case object JsonCodecTest extends CodecTest {
 
   val j: Json = parse("""{"foo": [true, "bar"], "tags": {"a": 1, "b": null}}""").toOption.get
 
-  codecTest(json)(j)
-  codecTest(json[Int ~ String])(42 ~ "foo")
-  codecTest(jsonb)(j)
-  codecTest(jsonb[Int ~ String])(42 ~ "foo")
+  roundtripTest(json)(j)
+  roundtripTest(json[Int ~ String])(42 ~ "foo")
+  roundtripTest(jsonb)(j)
+  roundtripTest(jsonb[Int ~ String])(42 ~ "foo")
+  decodeFailureTest(jsonb[Int ~ String], List("woozle", "blah"))
 
 }
 

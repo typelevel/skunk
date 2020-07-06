@@ -15,8 +15,9 @@ case object UuidCodecTest extends CodecTest {
   val u1 = UUID.fromString("E778E40E-11F7-4A49-85F1-73496D296FA6")
   val u2 = UUID.fromString("FBBD6EFF-3C78-4211-B805-9A818627D970")
 
-  codecTest(uuid)(u1, u2)
-  codecTest(uuid.opt)(Some(u1), Some(u2), None)
+  roundtripTest(uuid)(u1, u2)
+  roundtripTest(uuid.opt)(Some(u1), Some(u2), None)
+  decodeFailureTest(time, List("x"))
 
 }
 

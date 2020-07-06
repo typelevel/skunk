@@ -9,7 +9,8 @@ import cats.implicits._
 import skunk.codec.all._
 
 case object BooleanCodecTest extends CodecTest {
-  codecTest(bool)(true, false)
+  roundtripTest(bool)(true, false)
+  decodeFailureTest(bool, List("xx"))
 }
 
 

@@ -31,8 +31,8 @@ trait FTest {
     else fail(msg + s"\n  expected: $expected\n   actual: $actual")
 
   implicit class SkunkTestIOOps[A](fa: IO[A]) {
-    def assertFailsWith[E: ClassTag]: IO[E] = assertFailsWith[E](false)
-    def assertFailsWith[E: ClassTag](show: Boolean): IO[E] =
+    def assertFailsWith[E <: Throwable : ClassTag]: IO[E] = assertFailsWith[E](false)
+    def assertFailsWith[E <: Throwable : ClassTag](show: Boolean): IO[E] =
       fa.attempt.flatMap {
         // force a toString to exercise methods for codecov. kind of cheating, don't care
         case Left(e: E) => IO(e.toString) *> IO(e.printStackTrace()).whenA(show) *> e.pure[IO]
