@@ -1,3 +1,7 @@
+// Copyright (c) 2018-2020 by Rob Norris
+// This software is licensed under the MIT License (MIT).
+// For more information see LICENSE or https://opensource.org/licenses/MIT
+
 package tests.exception
 
 import skunk.codec.all._
@@ -17,6 +21,7 @@ case object TooManyParametersExceptionTest extends SkunkTest {
     sessionTest(s"raise TooManyParametersException when statement contains > ${Short.MaxValue} parameters") { s =>
       s.prepare(stmt(Short.MaxValue + 1)).use { _ => IO.never }
        .assertFailsWith[TooManyParametersException]
+       .as("ok")
     }
 
 }

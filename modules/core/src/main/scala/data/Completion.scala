@@ -42,7 +42,7 @@ object Completion {
       sql     = None,
       message = s"Just constructed an unknown completion '$text'.  Note that your program has not crashed. This message is here to annoy you.",
       hint    = Some("Please open an issue, or open a PR adding a case in Completion.scala and a parser in CommandComplete.scala")
-    ).printStackTrace()
+    ).printStackTrace(Console.err)
   }
 
 }

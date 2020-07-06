@@ -11,7 +11,7 @@ import skunk.data.Type
 import skunk.util.Origin
 
 // TODO: turn this into an ADT of structured error types
-class PostgresErrorException private[skunk](
+class PostgresErrorException (
   sql:             String,
   sqlOrigin:       Option[Origin],
   info:            Map[Char, String],
@@ -172,12 +172,12 @@ class PostgresErrorException private[skunk](
 object PostgresErrorException {
 
   def raiseError[F[_]: cats.MonadError[?[_], Throwable], A](
-  sql:             String,
-  sqlOrigin:       Option[Origin],
-  info:            Map[Char, String],
-  history:         List[Either[Any, Any]],
-  arguments:       List[(Type, Option[String])] = Nil,
-  argumentsOrigin: Option[Origin]               = None
+    sql:             String,
+    sqlOrigin:       Option[Origin],
+    info:            Map[Char, String],
+    history:         List[Either[Any, Any]],
+    arguments:       List[(Type, Option[String])] = Nil,
+    argumentsOrigin: Option[Origin]               = None
   ): F[A] =
     new PostgresErrorException(sql, sqlOrigin, info, history, arguments, argumentsOrigin)
       .raiseError[F, A]

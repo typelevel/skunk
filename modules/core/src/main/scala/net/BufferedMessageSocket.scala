@@ -125,7 +125,7 @@ object BufferedMessageSocket {
   // to handle asynchronous messages, which are dealt with here and not passed on. Other messages
   // are queued up and are typically consumed immediately, so a small queue size is probably fine.
   private def fromMessageSocket[F[_]: Concurrent](
-    ms:       MessageSocket[F],
+    ms:        MessageSocket[F],
     queueSize: Int
   ): F[BufferedMessageSocket[F]] =
     for {
@@ -135,7 +135,7 @@ object BufferedMessageSocket {
       bkSig <- Deferred[F, BackendKeyData]
       noTop <- Topic[F, Notification](Notification(-1, Identifier.dummy, "")) // blech
       fib   <- next(ms, xaSig, paSig, bkSig, noTop).repeat.through(queue.enqueue).compile.drain.attempt.flatMap {
-        case Left(e)  => Concurrent[F].delay(e.printStackTrace()) // TODO: handle server-initiated shutdown better
+        case Left(e)  => queue.enqueue1(NetworkError(e)) // publish the failure
         case Right(a) => a.pure[F]
       } .start
     } yield
@@ -159,6 +159,7 @@ object BufferedMessageSocket {
 
       }
 
+  case class NetworkError(cause: Throwable) extends BackendMessage
 
 }
 

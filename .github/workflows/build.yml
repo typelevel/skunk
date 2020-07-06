@@ -23,6 +23,8 @@ jobs:
       - name: Start up Postgres instances
         run: docker-compose up -d
       - name: Run tests
-        run: csbt headerCheck +test docs/mdoc docs/paradox
+        run: csbt headerCheck clean coverage +test docs/mdoc docs/paradox coverageReport
       - name: Shut down Postgres instances
         run: docker-compose down
+      - name: Upload code coverage data
+        run: bash <(curl -s https://codecov.io/bash)

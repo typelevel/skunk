@@ -53,19 +53,18 @@ private[protocol] class Unroll[F[_]: MonadError[?[_], Throwable]: MessageSocket:
   ): F[List[B] ~ Boolean] = {
 
     def syncAndFail(info: Map[Char, String]): F[List[List[Option[String]]] ~ Boolean]  =
-      for {
-        hi <- history(Int.MaxValue)
-        _  <- send(Sync).whenA(extended)
-        _  <- expect { case ReadyForQuery(_) => }
-        a  <- new PostgresErrorException(
-                sql             = sql,
-                sqlOrigin       = Some(sqlOrigin),
-                info            = info,
-                history         = hi,
-                arguments       = encoder.types.zip(encoder.encode(args)),
-                argumentsOrigin = argsOrigin
-              ).raiseError[F, List[List[Option[String]]]]
-      } yield a ~ false
+      history(Int.MaxValue).flatMap { hi =>
+        send(Sync).whenA(extended)          *>
+        expect { case ReadyForQuery(_) => } *>
+        new PostgresErrorException(
+          sql             = sql,
+          sqlOrigin       = Some(sqlOrigin),
+          info            = info,
+          history         = hi,
+          arguments       = encoder.types.zip(encoder.encode(args)),
+          argumentsOrigin = argsOrigin
+        ).raiseError[F, List[List[Option[String]]] ~ Boolean]
+      }
 
     // N.B. we process all waiting messages to ensure the protocol isn't messed up by decoding
     // failures later on.

@@ -12,6 +12,8 @@ import skunk.codec.all._
 import skunk.implicits._
 import skunk.util.Typer
 import ffstest.FTest
+import cats.InvariantSemigroupal
+import cats.effect.IO
 
 /** Tests that we check if we can round-trip values via codecs. */
 abstract class CodecTest(
@@ -19,7 +21,7 @@ abstract class CodecTest(
   strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly
 ) extends SkunkTest(debug, strategy) {
 
-  def codecTest[A: Eq](codec: Codec[A])(as: A*): Unit =
+  def roundtripTest[A: Eq](codec: Codec[A])(as: A*): Unit =
     sessionTest(s"${codec.types.mkString(", ")}") { s =>
       // required for parametrized types
       val sqlString = codec.types match {
@@ -38,7 +40,7 @@ abstract class CodecTest(
     }
 
   // Test a specific special value like NaN where equals doesn't work
-  def specialValueTest[A](name: String, codec: Codec[A], ascription: Option[String] = None)(value: A, isOk: A => Boolean): Unit =
+  def roundtripWithSpecialValueTest[A](name: String, codec: Codec[A], ascription: Option[String] = None)(value: A, isOk: A => Boolean): Unit =
     sessionTest(s"${codec.types.mkString(",")}") { s =>
       s.prepare(sql"select $codec#${ascription.foldMap("::" + _)}".query(codec)).use { ps =>
         ps.unique(value).flatMap { a =>
@@ -46,6 +48,15 @@ abstract class CodecTest(
         }
       }
     }
+
+  def decodeFailureTest[A](codec: Codec[A], invalid: List[String]) : Unit = {
+    test(s"${codec.types.mkString(",")} decode (invalid)") {
+      assert("should fail", codec.decode(0, invalid.map(_.some)).isLeft)
+    }
+    test(s"${codec.types.mkString(",")} decode (insufficient input)") {
+      assert("should fail", codec.decode(0, invalid.as(none)).isLeft)
+    }
+  }
 
 }
 
@@ -63,6 +74,13 @@ case object CodecTest extends FTest {
 
   test("imapped codec generated corrext sql") {
     assertEqual("sql", c.imap[Short ~ (Int ~ Double) ~ String](identity)(identity).sql.runA(1).value, "$1, $2, $3, $4")
+  }
+
+  test("invariant semigroupal (coverage)") {
+    val c = skunk.codec.all.int4
+    InvariantSemigroupal[Codec].imap(c)(identity)(identity)
+    InvariantSemigroupal[Codec].product(c, c)
+    IO("ok")
   }
 
 }

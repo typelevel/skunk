@@ -15,7 +15,8 @@ case object BinaryCodecTest extends CodecTest {
   val byteArray1: Array[Byte] = "someValue".getBytes("UTF-8")
   val byteArray2: Array[Byte] = List(1, 2, 3).map(_.toByte).toArray
 
-  codecTest(bytea)(byteArray1, byteArray2)
+  roundtripTest(bytea)(byteArray1, byteArray2)
+  decodeFailureTest(bytea, List("foobar"))
 
 }
 

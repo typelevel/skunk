@@ -67,6 +67,9 @@ object Decoder {
    * columns failed with reason `error`.
    */
   case class Error(offset: Int, length: Int, message: String, cause: Option[Throwable] = None)
+  object Error {
+    implicit val EqError: Eq[Error] = Eq.fromUniversalEquals
+  }
 
   implicit val ApplyDecoder: Apply[Decoder] =
     new Apply[Decoder] {

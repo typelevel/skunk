@@ -9,6 +9,7 @@ import skunk._
 import skunk.codec.all._
 import skunk.data.Completion
 import skunk.implicits._
+import cats.Contravariant
 
 case object CommandTest extends SkunkTest {
 
@@ -19,6 +20,7 @@ case object CommandTest extends SkunkTest {
 
   val Garin = City(5000, "Garin", "ARG", "Escobar", 11405)
   val Garin2 = City(5001, "Garin2", "ARG", "Escobar", 11405)
+  val Garin3 = City(5002, "Garin3", "ARG", "Escobar", 11405)
 
   val insertCity: Command[City] =
     sql"""
@@ -34,6 +36,16 @@ case object CommandTest extends SkunkTest {
       """.command.contramap {
             case c => c.id ~ c.name ~ c.code ~ c.district ~ c.pop
           }
+
+  val insertCity2a: Command[City] =
+    Contravariant[Command].contramap(
+      sql"""
+          INSERT INTO city
+          VALUES ($int4, $varchar, ${bpchar(3)}, $varchar, $int4)
+        """.command
+    ) {
+      case c => c.id ~ c.name ~ c.code ~ c.district ~ c.pop
+    }
 
   val selectCity: Query[Int, City] =
     sql"""
@@ -126,6 +138,17 @@ case object CommandTest extends SkunkTest {
       c <- s.prepare(selectCity).use(_.unique(Garin2.id))
       _ <- assert("read", c == Garin2)
       _ <- s.prepare(deleteCity).use(_.execute(Garin2.id))
+      _ <- s.assertHealthy
+    } yield "ok"
+  }
+
+  sessionTest("insert and delete record with contramapped command (via Contravariant instance") { s =>
+    for {
+      c <- s.prepare(insertCity2a).use(_.execute(Garin3))
+      _ <- assert("completion",  c == Completion.Insert(1))
+      c <- s.prepare(selectCity).use(_.unique(Garin3.id))
+      _ <- assert("read", c == Garin3)
+      _ <- s.prepare(deleteCity).use(_.execute(Garin3.id))
       _ <- s.assertHealthy
     } yield "ok"
   }

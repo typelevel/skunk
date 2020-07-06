@@ -32,7 +32,10 @@ case object Test129 extends SkunkTest {
         }
 
   sessionTest("issue/129") { s =>
-    s.execute(q).assertFailsWith[DecodeException[IO,_,_]](show = true).as("ok")
+    for {
+      _ <- s.execute(q).assertFailsWith[DecodeException[IO,_,_]]
+      _ <- s.assertHealthy
+    } yield "ok"
   }
 
 }
