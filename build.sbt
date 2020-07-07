@@ -39,6 +39,9 @@ lazy val commonSettings = Seq(
   ),
   addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full),
 
+  // Coverage Exclusions
+  coverageExcludedPackages := "ffstest.*;tests.*;example.*",
+
 )
 
 lazy val skunk = project
