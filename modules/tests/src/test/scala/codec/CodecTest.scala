@@ -21,14 +21,22 @@ abstract class CodecTest(
   strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly
 ) extends SkunkTest(debug, strategy) {
 
-  def roundtripTest[A: Eq](codec: Codec[A])(as: A*): Unit =
-    sessionTest(s"${codec.types.mkString(", ")}") { s =>
-      // required for parametrized types
-      val sqlString = codec.types match {
-        case head :: Nil => sql"select $codec::#${head.name}"
-        case _           => sql"select $codec"
-      }
+  case class Box[A](a: A)
+  object Box {
+    implicit def eqBox[A: Eq]: Eq[Box[A]] =
+      Eq.by(_.a)
+  }
 
+
+  def roundtripTest[A: Eq](codec: Codec[A])(as: A*): Unit = {
+
+    // required for parametrized types
+    val sqlString = codec.types match {
+      case head :: Nil => sql"select $codec::#${head.name}"
+      case _           => sql"select $codec"
+    }
+
+    sessionTest(s"${codec.types.mkString(", ")}") { s =>
       s.prepare(sqlString.query(codec)).use { ps =>
         as.toList.traverse { a =>
           for {
@@ -38,6 +46,19 @@ abstract class CodecTest(
         } .map(_.mkString(", "))
       }
     }
+
+    sessionTest(s"${codec.types.mkString(", ")} (gmap)") { s =>
+      s.prepare(sqlString.query(codec.gmap[Box[A]])).use { ps =>
+        as.toList.traverse { a =>
+          for {
+            aʹ <- ps.unique(a)
+            _  <- assertEqual(s"$a", aʹ, Box(a))
+          } yield a
+        } .map(_.mkString(", "))
+      }
+    }
+
+  }
 
   // Test a specific special value like NaN where equals doesn't work
   def roundtripWithSpecialValueTest[A](name: String, codec: Codec[A], ascription: Option[String] = None)(value: A, isOk: A => Boolean): Unit =

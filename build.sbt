@@ -40,7 +40,7 @@ lazy val commonSettings = Seq(
   addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full),
 
   // Coverage Exclusions
-  coverageExcludedPackages := "ffstest.*;tests.*;example.*",
+  coverageExcludedPackages := "ffstest.*;tests.*;example.*;natchez.http4s.*",
 
 )
 

@@ -11,6 +11,7 @@ import skunk.codec.all._
 import skunk.exception._
 import skunk.implicits._
 import cats.effect.Resource
+import skunk.data.Type
 
 case object ExtendedQueryErrorTest extends SkunkTest {
 
@@ -119,12 +120,12 @@ case object ExtendedQueryErrorTest extends SkunkTest {
 
   sessionTest("prepared query deadlock") { s =>
     val tables: Resource[IO, Unit] = {
-      val up = 
-        s.execute(sql"create table bar(id bigint primary key)".command) *> 
+      val up =
+        s.execute(sql"create table bar(id bigint primary key)".command) *>
         s.execute(sql"create table foo(bar_id bigint references bar(id) on delete cascade)".command) *>
         IO.unit
 
-      val down = 
+      val down =
         s.execute(sql"drop table foo".command) *>
         s.execute(sql"drop table bar".command) *>
         IO.unit
@@ -132,13 +133,21 @@ case object ExtendedQueryErrorTest extends SkunkTest {
       Resource.make(up)(_ => down)
     }
 
-    tables.use { _ => 
+    tables.use { _ =>
       for {
         e <- s.prepare(sql"insert into foo (bar_id) values (42) returning *".query(int8)).use(ps => ps.stream(Void, 64).compile.drain).assertFailsWith[PostgresErrorException]
         _ <- assertEqual("message", e.message, """Insert or update on table "foo" violates foreign key constraint "foo_bar_id_fkey".""")
         _ <- s.assertHealthy
       } yield "ok"
     }
+  }
+
+  sessionTest("unknown type") { s =>
+    val tstate = enum[String](identity, Some(_), Type("bogus"))
+    s.prepare(sql"select ${tstate}".query(tstate))
+      .use(_ => IO.unit)
+      .assertFailsWith[UnknownTypeException]
+      .as("ok")
   }
 
 }
