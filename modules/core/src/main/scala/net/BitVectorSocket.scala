@@ -12,9 +12,6 @@ import fs2.io.tcp.Socket
 import scala.concurrent.duration.FiniteDuration
 import scodec.bits.BitVector
 import java.net.InetSocketAddress
-import java.nio.channels._
-import java.util.concurrent.Executors
-import java.util.concurrent.ThreadFactory
 import fs2.io.tcp.SocketGroup
 
 /** A higher-level `Socket` interface defined in terms of `BitVector`. */
@@ -31,20 +28,6 @@ trait BitVectorSocket[F[_]] {
 }
 
 object BitVectorSocket {
-
-  /** A default `AsynchronousChannelGroup` backed by a cached pool of daemon threads. */
-  final val GlobalACG: AsynchronousChannelGroup =
-    AsynchronousChannelGroup.withThreadPool(Executors.newCachedThreadPool {
-      new ThreadFactory {
-        var n = 1
-        override def newThread(r: Runnable): Thread = {
-          val t = new Thread(r, s"BitVectorSocket.GlobalACG-$n")
-          t.setDaemon(true)
-          n += 1
-          t
-        }
-      }
-    })
 
   /**
    * Construct a `BitVectorSocket` by wrapping an existing `Socket`.
@@ -86,8 +69,6 @@ object BitVectorSocket {
    * @param readTimeout a read timeout, typically `Int.MaxValue.seconds` because we must wait
    *   actively for asynchronous messages.
    * @param writeTimeout a write timeout, typically no more than a few seconds.
-   * @param acg an `AsynchronousChannelGroup` for completing asynchronous requests. There is
-   *   typically one per application, and one is provided as `BitVectorSocket.GlobalACG`.
    * @group Constructors
    */
   def apply[F[_]: Concurrent: ContextShift](

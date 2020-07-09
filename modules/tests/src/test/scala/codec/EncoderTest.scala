@@ -35,4 +35,9 @@ case object EncoderTest extends SkunkTest {
 
   }
 
+  test("void") {
+    val data = Void.codec.encode(Void)
+    assertEqual("data", data, Nil)
+  }
+
 }

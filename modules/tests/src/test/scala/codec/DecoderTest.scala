@@ -10,6 +10,7 @@ import cats.implicits._
 import skunk.implicits._
 import skunk._
 import skunk.codec.all._
+import cats.effect.IO
 
 case object DecoderTest extends SkunkTest {
 
@@ -46,6 +47,20 @@ case object DecoderTest extends SkunkTest {
       }
     }
 
+  }
+
+  test("void (ok)") {
+    Void.codec.decode(0, Nil) match {
+      case Left(err)  => fail(err.message)
+      case Right(value) => assertEqual("void", value, Void)
+    }
+  }
+
+  test("void (fail)") {
+    Void.codec.decode(0, List(None)) match {
+      case Left(_)      => "ok".pure[IO]
+      case Right(value) => fail(s"expected failure, got $value")
+    }
   }
 
 }
