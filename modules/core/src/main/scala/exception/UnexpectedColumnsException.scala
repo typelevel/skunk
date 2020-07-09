@@ -21,7 +21,6 @@ case class UnexpectedRowsException(
 ) {
 
   import Text.green
-  implicit def stringToText(s: String): Text = Text(s)
 
   private def describe(f: Field): List[Text] =
     List(green(f.name), Text(f.tpe.name))

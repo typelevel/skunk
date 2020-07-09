@@ -93,13 +93,14 @@ class SkunkException protected[skunk](
           |""".stripMargin
     }
 
-  protected def exchanges: String =
-    if (history.isEmpty) "" else
-    s"""|Recent message exchanges:
-        |
-        |  ${history.map(_.fold(a => s"→ ${Console.BOLD}$a${Console.RESET}", "← " + _)).mkString("", "\n|  ", "")}
-        |
-        |""".stripMargin
+  // TODO: Not clear if this is useful, disabled for now
+  // protected def exchanges: String =
+  //   if (history.isEmpty) "" else
+  //   s"""|Recent message exchanges:
+  //       |
+  //       |  ${history.map(_.fold(a => s"→ ${Console.BOLD}$a${Console.RESET}", "← " + _)).mkString("", "\n|  ", "")}
+  //       |
+  //       |""".stripMargin
 
   protected def args: String = {
 
@@ -145,20 +146,6 @@ object SkunkException {
       hint            = hint,
       arguments       = query.encoder.types zip query.encoder.encode(args),
       argumentsOrigin = argsOrigin
-    )
-
-  def fromQuery[A](
-    message:    String,
-    query:      Query[A, _],
-    callSite:   Option[CallSite],
-    hint:       Option[String] = None,
-  ) =
-    new SkunkException(
-      sql             = Some(query.sql),
-      message         = message,
-      sqlOrigin       = Some(query.origin),
-      callSite        = callSite,
-      hint            = hint,
     )
 
 }

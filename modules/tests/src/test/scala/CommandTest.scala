@@ -12,6 +12,7 @@ import skunk.data.Completion
 import skunk.implicits._
 import cats.Contravariant
 import fs2._
+import skunk.exception.UnexpectedRowsException
 
 case object CommandTest extends SkunkTest {
 
@@ -167,6 +168,17 @@ case object CommandTest extends SkunkTest {
       n <- s.unique(sql"select count(*) from city where name like 'Pipe%'".query(int8))
       _ <- assertEqual("count", n, 4)
     } yield "ok"
+  }
+
+  // sessionTest("should be a query") { s =>
+  //   s.execute(sql"select * from country".command).as("ok") // BUG! this is a protocol error
+  // }
+
+  sessionTest("should be a query") { s =>
+    s.prepare(sql"select * from country".command)
+      .use(_ => IO.unit)
+      .assertFailsWith[UnexpectedRowsException]
+      .as("ok")
   }
 
 }
