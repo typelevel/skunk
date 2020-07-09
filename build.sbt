@@ -116,6 +116,7 @@ lazy val tests = project
     publish / skip := true,
     test / parallelExecution := false, // why? fix this!
     libraryDependencies ++= Seq(
+      "org.typelevel"     %% "cats-free"      % "2.1.1",
       "org.scala-sbt"      % "test-interface" % "1.0",
       "io.chrisdavenport" %% "cats-time"      % "0.3.0"
     ),

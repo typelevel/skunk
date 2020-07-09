@@ -11,7 +11,9 @@ import scodec.codecs.list
  * mechanisms, in the server's order of preference.
  * @param mechanisms Names of supported SASL authentication mechanisms.
  */
-final case class AuthenticationSASL(mechanisms: List[String]) extends AuthenticationRequest
+final case class AuthenticationSASL(mechanisms: List[String]) extends AuthenticationRequest {
+  override def toString = s"AuthenticationSASL(${mechanisms.mkString(", ")})"
+}
 
 object AuthenticationSASL {
   final val Tagʹ = 10

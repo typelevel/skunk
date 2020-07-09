@@ -9,7 +9,7 @@ import skunk.net.message.BackendMessage
 import skunk.util.Origin
 import skunk.util.Pretty
 
-class ProtocolError protected[skunk](
+class ProtocolError(
   val message:  BackendMessage,
   val origin:   Origin
 ) extends Error(s"Unexpected backend message: $message") with scala.util.control.NoStackTrace {
