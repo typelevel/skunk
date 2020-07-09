@@ -9,11 +9,13 @@ import scodec.codecs._
 
 
 case class Bind(portal: String, statement: String, args: List[Option[String]])
+  extends TaggedFrontendMessage('B') {
+    def encodeBody = Bind.encoder.encode(this)
+  }
 
 object Bind {
 
-  implicit val BindFrontendMessage: FrontendMessage[Bind] =
-    FrontendMessage.tagged('B') {
+  val encoder: Encoder[Bind] = {
 
       // String   - The name of the destination portal (an empty string selects the unnamed portal).
       // String   - The name of the source prepared statement (an empty string selects the unnamed

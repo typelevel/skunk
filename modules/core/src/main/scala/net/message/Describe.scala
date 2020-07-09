@@ -5,9 +5,11 @@
 package skunk.net.message
 
 import scodec.codecs._
+import scodec.Encoder
 
-sealed abstract case class Describe(variant: Byte, name: String) {
+sealed abstract case class Describe(variant: Byte, name: String) extends TaggedFrontendMessage('D') {
   override def toString = s"Describe(${variant.toChar}, $name)"
+  def encodeBody = Describe.encoder.encode(this)
 }
 
 object Describe {
@@ -18,9 +20,7 @@ object Describe {
   def portal(name: String): Describe =
     new Describe('P', name) {}
 
-  implicit val DescribeFrontendMessage: FrontendMessage[Describe] =
-    FrontendMessage.tagged('D') {
-      (byte ~ utf8z).contramap[Describe] { d => d.variant ~ d.name }
-    }
+  val encoder: Encoder[Describe] =
+    (byte ~ utf8z).contramap[Describe] { d => d.variant ~ d.name }
 
 }

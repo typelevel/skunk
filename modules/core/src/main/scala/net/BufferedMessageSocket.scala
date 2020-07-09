@@ -142,7 +142,7 @@ object BufferedMessageSocket {
       new AbstractMessageSocket[F] with BufferedMessageSocket[F] {
 
         override def receive: F[BackendMessage] = queue.dequeue1
-        override def send[A: FrontendMessage](a: A): F[Unit] = ms.send(a)
+        override def send(message: FrontendMessage): F[Unit] = ms.send(message)
         override def transactionStatus: SignallingRef[F, TransactionStatus] = xaSig
         override def parameters: SignallingRef[F, Map[String, String]] = paSig
         override def backendKeyData: Deferred[F, BackendKeyData] = bkSig

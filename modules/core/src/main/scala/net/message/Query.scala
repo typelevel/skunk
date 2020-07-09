@@ -8,17 +8,17 @@ import scodec.Attempt
 import scodec.bits._
 import scodec._
 
-case class Query(sql: String)
+case class Query(sql: String) extends TaggedFrontendMessage('Q') {
+  def encodeBody = Query.encoder.encode(this)
+}
 
 object Query {
 
-  implicit val QueryFrontendMessage: FrontendMessage[Query] =
-    FrontendMessage.tagged('Q') {
-      Encoder { q =>
-        val barr  = q.sql.getBytes("UTF8")
-        val barrʹ = java.util.Arrays.copyOf(barr, barr.length + 1) // add NUL
-        Attempt.Successful(BitVector(barrʹ))
-      }
+  val encoder: Encoder[Query] =
+    Encoder { q =>
+      val barr  = q.sql.getBytes("UTF8")
+      val barrʹ = java.util.Arrays.copyOf(barr, barr.length + 1) // add NUL
+      Attempt.Successful(BitVector(barrʹ))
     }
 
 }
