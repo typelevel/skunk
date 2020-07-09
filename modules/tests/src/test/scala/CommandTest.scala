@@ -5,11 +5,13 @@
 package tests
 
 import cats.effect.IO
+import cats.implicits._
 import skunk._
 import skunk.codec.all._
 import skunk.data.Completion
 import skunk.implicits._
 import cats.Contravariant
+import fs2._
 
 case object CommandTest extends SkunkTest {
 
@@ -150,6 +152,20 @@ case object CommandTest extends SkunkTest {
       _ <- assert("read", c == Garin3)
       _ <- s.prepare(deleteCity).use(_.execute(Garin3.id))
       _ <- s.assertHealthy
+    } yield "ok"
+  }
+
+  sessionTest("pipe") { s =>
+    for {
+      _ <- s.execute(sql"delete from city where name like 'Pipe%'".command)
+      _ <- Stream(
+            City(5100, "Pipe1", "ARG", "Escobar", 11405),
+            City(5101, "Pipe2", "ARG", "Escobar", 11405),
+            City(5102, "Pipe3", "ARG", "Escobar", 11405),
+            City(5103, "Pipe4", "ARG", "Escobar", 11405),
+          ).through(s.pipe(insertCity)).compile.drain
+      n <- s.unique(sql"select count(*) from city where name like 'Pipe%'".query(int8))
+      _ <- assertEqual("count", n, 4)
     } yield "ok"
   }
 

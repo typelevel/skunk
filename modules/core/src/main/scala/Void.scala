@@ -7,6 +7,7 @@ package skunk
 import skunk.data.Type
 import cats.data.State
 import cats.implicits._
+import cats.Eq
 
 /**
  * A singly-inhabited type representing arguments to a parameterless statement.
@@ -16,6 +17,9 @@ sealed trait Void
 
 /** @group Companions */
 case object Void extends Void {
+
+  implicit val eqVoid: Eq[Void] =
+    Eq.fromUniversalEquals
 
   val codec: Codec[Void] =
     new Codec[Void] {
