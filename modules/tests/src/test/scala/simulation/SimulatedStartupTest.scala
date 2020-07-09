@@ -12,7 +12,6 @@ import natchez.Trace.Implicits.noop
 import cats.effect.IO
 import cats.implicits._
 import skunk.exception.UnsupportedAuthenticationSchemeException
-import cats.free.Free
 import skunk.exception.PostgresErrorException
 
 case object SimulatedStartupTest extends ffstest.FTest {
@@ -20,8 +19,8 @@ case object SimulatedStartupTest extends ffstest.FTest {
 
     test("immediate server error") {
 
-      // A trivial simulation that responds to StartupMessage with an ErrorMessage.
-      val simulation: Free[Step, Halt] =
+      // A trivial simulator that responds to StartupMessage with an ErrorMessage.
+      val sim: Simulator =
         flatExpect {
           case StartupMessage(_, _) =>
             respond(ErrorResponse(Map('M' -> "Nope", 'S' -> "ERROR", 'C' -> "123"))) *>
@@ -30,7 +29,7 @@ case object SimulatedStartupTest extends ffstest.FTest {
 
       for {
         ex <- Exchange[IO]
-        ms <- SimulatedMessageSocket(simulation)
+        ms <- SimulatedMessageSocket(sim)
         s   = Startup[IO](implicitly, ex, ms, implicitly)
         e  <- s.apply("bob", "db", None).assertFailsWith[PostgresErrorException]
         _  <- assertEqual("message", e.message, "Nope.")
@@ -46,10 +45,10 @@ case object SimulatedStartupTest extends ffstest.FTest {
     AuthenticationSCMCredential,
     AuthenticationSSPI,
   ).foreach { msg =>
-    test(s"unsupported authentication scheme: $msg") {
+    test(s"unsupported authentication scheme ($msg)") {
 
-      // A trivial simulation that only handles the first exchange of the Startup protocol.
-      val simulation: Free[Step, Halt] =
+      // A trivial simulator that only handles the first exchange of the Startup protocol.
+      val sim: Simulator =
         flatExpect {
           case StartupMessage(_, _) =>
             respond(msg) *>
@@ -58,7 +57,7 @@ case object SimulatedStartupTest extends ffstest.FTest {
 
       for {
         ex <- Exchange[IO]
-        ms <- SimulatedMessageSocket(simulation)
+        ms <- SimulatedMessageSocket(sim)
         s   = Startup[IO](implicitly, ex, ms, implicitly)
         _  <- s.apply("bob", "db", None).assertFailsWith[UnsupportedAuthenticationSchemeException]
       } yield ("ok")
