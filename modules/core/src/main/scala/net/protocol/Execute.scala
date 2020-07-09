@@ -31,7 +31,20 @@ object Execute {
             _  <- send(Flush)
             c  <- flatExpect {
               case CommandComplete(c)  => send(Sync) *> expect { case ReadyForQuery(_) => c } // https://github.com/tpolecat/skunk/issues/210
-              case ErrorResponse(info) => syncAndFail[A](portal, info)
+              case ErrorResponse(info) =>
+                for {
+                  hi <- history(Int.MaxValue)
+                  _  <- send(Sync)
+                  _  <- expect { case ReadyForQuery(_) => }
+                  a  <- new PostgresErrorException(
+                          sql             = portal.preparedCommand.command.sql,
+                          sqlOrigin       = Some(portal.preparedCommand.command.origin),
+                          info            = info,
+                          history         = hi,
+                          arguments       = portal.preparedCommand.command.encoder.types.zip(portal.preparedCommand.command.encoder.encode(portal.arguments)),
+                          argumentsOrigin = Some(portal.argumentsOrigin)
+                        ).raiseError[F, Completion]
+                } yield a
             }
           } yield c
         }
@@ -48,21 +61,6 @@ object Execute {
             rs <- unroll(portal)
           } yield rs
         }
-
-      def syncAndFail[A](portal: Protocol.CommandPortal[F, A], info: Map[Char, String]): F[Completion] =
-        for {
-          hi <- history(Int.MaxValue)
-          _  <- send(Sync)
-          _  <- expect { case ReadyForQuery(_) => }
-          a  <- new PostgresErrorException(
-                  sql             = portal.preparedCommand.command.sql,
-                  sqlOrigin       = Some(portal.preparedCommand.command.origin),
-                  info            = info,
-                  history         = hi,
-                  arguments       = portal.preparedCommand.command.encoder.types.zip(portal.preparedCommand.command.encoder.encode(portal.arguments)),
-                  argumentsOrigin = Some(portal.argumentsOrigin)
-                ).raiseError[F, Completion]
-        } yield a
 
     }
 

@@ -46,31 +46,24 @@ object Bind {
               _  <- send(Flush)
               _  <- flatExpect {
                       case BindComplete        => ().pure[F]
-                      case ErrorResponse(info) => syncAndFail(statement,  args, argsOrigin, info)
+                      case ErrorResponse(info) =>
+                        for {
+                          hi <- history(Int.MaxValue)
+                          _  <- send(Sync)
+                          _  <- expect { case ReadyForQuery(_) => }
+                          a  <- PostgresErrorException.raiseError[F, Unit](
+                                  sql             = statement.statement.sql,
+                                  sqlOrigin       = Some(statement.statement.origin),
+                                  info            = info,
+                                  history         = hi,
+                                  arguments       = statement.statement.encoder.types.zip(statement.statement.encoder.encode(args)),
+                                  argumentsOrigin = Some(argsOrigin)
+                                )
+                        } yield a
                     }
             } yield pn
           }
         } { Close[F].apply }
-
-      def syncAndFail[A](
-        statement:  PreparedStatement[F, A],
-        args:       A,
-        argsOrigin: Origin,
-        info:       Map[Char, String]
-      ): F[Unit] =
-        for {
-          hi <- history(Int.MaxValue)
-          _  <- send(Sync)
-          _  <- expect { case ReadyForQuery(_) => }
-          a  <- PostgresErrorException.raiseError[F, Unit](
-                  sql             = statement.statement.sql,
-                  sqlOrigin       = Some(statement.statement.origin),
-                  info            = info,
-                  history         = hi,
-                  arguments       = statement.statement.encoder.types.zip(statement.statement.encoder.encode(args)),
-                  argumentsOrigin = Some(argsOrigin)
-                )
-        } yield a
 
     }
 

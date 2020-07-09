@@ -25,10 +25,6 @@ object Describe {
   def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket: Trace]: Describe[F] =
     new Describe[F] {
 
-      // promote a command to a query ... weird case, see below
-      def promote[A](cmd: skunk.Command[A]): skunk.Query[A, skunk.Void] =
-        skunk.Query(cmd.sql, cmd.origin, cmd.encoder, skunk.Void.codec)
-
       override def apply(cmd: skunk.Command[_], id: StatementId, ty: Typer): F[Unit] =
         exchange("describe") {
           for {
@@ -44,7 +40,9 @@ object Describe {
                         // types then *that's* the error we will raise; only if we decode it
                         // successfully we will raise the underlying error. Seems a little confusing
                         // but it's a very unlikely case so I think we're ok for the time being.
-                        case Left(err) => UnknownOidException(promote(cmd), err, ty.strategy).raiseError[F, Unit]
+                        case Left(err) =>
+                          val promoted = skunk.Query(cmd.sql, cmd.origin, cmd.encoder, skunk.Void.codec)
+                          UnknownOidException(promoted, err, ty.strategy).raiseError[F, Unit]
                         case Right(td) => UnexpectedRowsException(cmd, td).raiseError[F, Unit]
                       }
                   }
