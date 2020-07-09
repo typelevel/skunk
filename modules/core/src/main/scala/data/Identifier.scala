@@ -6,7 +6,6 @@ package skunk.data
 
 import cats.Eq
 import cats.implicits._
-import cats.ApplicativeError
 
 import scala.util.matching.Regex
 
@@ -19,7 +18,7 @@ object Identifier {
   private[skunk] val dummy: Identifier = new Identifier("dummy") {}
 
   val maxLen = 63
-  val pat: Regex = "([a-z_][a-z_0-9$]*)".r
+  val pat: Regex = "([A-Za-z_][A-Za-z_0-9$]*)".r
 
   implicit val EqIdentifier: Eq[Identifier] =
     Eq.by(_.value)
@@ -35,9 +34,6 @@ object Identifier {
           Right(new Identifier(s) {})
       case _ => Left(s"Malformed identifier: does not match ${pat.regex}")
     }
-
-  def fromStringF[F[_]: ApplicativeError[?[_], String]](s: String): F[Identifier] =
-    fromString(s).liftTo[F]
 
   val keywords: Set[String] =
     Set(
