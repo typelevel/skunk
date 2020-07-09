@@ -5,8 +5,6 @@
 package skunk.net
 
 import cats.effect.{ Concurrent, ContextShift, Resource }
-import cats.effect.concurrent.Semaphore
-import cats.effect.implicits._
 import fs2.concurrent.Signal
 import fs2.Stream
 import skunk.{ Command, Query, Statement, ~, Void }
@@ -16,6 +14,7 @@ import scala.concurrent.duration.FiniteDuration
 import skunk.util.Typer
 import natchez.Trace
 import fs2.io.tcp.SocketGroup
+import skunk.net.protocol.Exchange
 
 /**
  * Interface for a Postgres database, expressed through high-level operations that rely on exchange
@@ -195,7 +194,7 @@ object Protocol {
   ): Resource[F, Protocol[F]] =
     for {
       bms <- BufferedMessageSocket[F](host, port, 256, debug, readTimeout, writeTimeout, sg, sslOptions) // TODO: should we expose the queue size?
-      sem <- Resource.liftF(Semaphore[F](1))
+      ex  <- Resource.liftF(Exchange[F])
     } yield
       new Protocol[F] {
 
@@ -203,11 +202,7 @@ object Protocol {
         // We'll see how well it works out.
         implicit val ms: MessageSocket[F] = bms
         implicit val na: Namer[F] = nam
-        implicit val ExchangeF: protocol.Exchange[F] =
-          new protocol.Exchange[F] {
-            override def apply[A](fa: F[A]): F[A] =
-              sem.withPermit(fa).uncancelable
-          }
+        implicit val ExchangeF: protocol.Exchange[F] = ex
 
         override def notifications(maxQueued: Int): Stream[F, Notification] =
           bms.notifications(maxQueued)
