@@ -13,6 +13,7 @@ import scala.concurrent.ExecutionContext
 import scala.Console._
 import java.util.concurrent.Executors
 import scala.reflect.ClassTag
+import natchez.Fields
 
 trait FTest {
   protected[ffstest] var tests = List.empty[(String, IO[_])]
@@ -34,8 +35,15 @@ trait FTest {
     def assertFailsWith[E <: Throwable : ClassTag]: IO[E] = assertFailsWith[E](false)
     def assertFailsWith[E <: Throwable : ClassTag](show: Boolean): IO[E] =
       fa.attempt.flatMap {
-        // force a toString to exercise methods for codecov. kind of cheating, don't care
-        case Left(e: E) => IO(e.toString) *> IO(e.printStackTrace()).whenA(show) *> e.pure[IO]
+        case Left(e: E) =>
+          IO {
+            e.toString // ensure toString doesn't crash
+            e match {
+              case fs: Fields => fs.fields // ensure .fields doesn't crash
+              case _ =>
+            }
+          } *>
+          IO(e.printStackTrace()).whenA(show) *> e.pure[IO]
         case Left(e)    => IO.raiseError(e)
         case Right(a)   => fail[E](s"Expected ${implicitly[ClassTag[E]].runtimeClass.getName}, got $a")
       }
