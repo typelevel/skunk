@@ -6,16 +6,17 @@ package tests
 package simulation
 
 import cats._
-import cats.implicits._
-import skunk.net.message.FrontendMessage
-import cats.free.Free
-import scala.collection.immutable.Queue
-import skunk.net.MessageSocket
-import skunk.net.message.BackendMessage
 import cats.effect._
 import cats.effect.concurrent.Ref
-import skunk.util.Origin
+import cats.free.Free
+import cats.implicits._
+import scala.annotation.tailrec
+import scala.collection.immutable.Queue
 import skunk.exception.ProtocolError
+import skunk.net.message.BackendMessage
+import skunk.net.message.FrontendMessage
+import skunk.net.MessageSocket
+import skunk.util.Origin
 
 object SimulatedMessageSocket {
 
@@ -30,8 +31,8 @@ object SimulatedMessageSocket {
       new Functor[Step] {
         def map[A,B](fa: Step[A])(f: A => B): Step[B] =
           fa match {
-            case Respond(ms, k) => Respond(ms, k andThen f)
-            case Expect(h)      => Expect(h andThen f)
+            case Respond(m, k) => Respond(m, k andThen f)
+            case Expect(h)     => Expect(h andThen f)
           }
       }
   }
@@ -48,40 +49,40 @@ object SimulatedMessageSocket {
   def respond(m: BackendMessage): Free[Step, Unit] = Free.liftF(Respond(m, identity))
   def expect[A](h: PartialFunction[FrontendMessage, A]): Free[Step, A] = Free.liftF(Expect(h))
   def flatExpect[A](h: PartialFunction[FrontendMessage, Free[Step, A]]): Free[Step, A] = expect(h).flatten
-  def halt: Simulator = expect { case _ => Halt } // not obvious
+  def halt: Free[Step, Halt] = expect { case _ => Halt } // not obvious
 
-  // Our server runtime consists of a queue of outgoing messages, plus a continuation that consumes
+  // Our simulated runtime consists of a queue of outgoing messages, plus a continuation that consumes
   // an incoming message and computes the next continuation.
-  case class MockState(queue: Queue[BackendMessage], k: FrontendMessage => Free[Step, _]) {
+  case class SimState(queue: Queue[BackendMessage], k: FrontendMessage => Free[Step, _]) {
 
     // To receive a message we dequeue from our state. Because `advance` above enqueues eagerly it is
     // impossible to miss messages. If there are no pending messages we're stuck.
-    def receive: Either[String, (BackendMessage, MockState)] =
+    def receive: Either[String, (BackendMessage, SimState)] =
       queue.dequeueOption match {
         case Some((m, q)) => (m, copy(queue = q)).asRight
         case None         => "No pending messages.".asLeft
       }
 
     // To send a message we pass it to the continuation and compute the next one.
-    def send(m: FrontendMessage): Either[String, MockState] =
-      MockState.advance(k(m), queue)
+    def send(m: FrontendMessage): Either[String, SimState] =
+      SimState.advance(k(m), queue)
 
   }
-  object MockState {
+  object SimState {
 
     // In principle it's possible to construct a simulator that's already halted, but in practice
     // it's impossible. Scala doesn't know this though, so we handle the case here.
-    def initial(simulator: Simulator): Either[String, MockState] =
+    def initial(simulator: Simulator): Either[String, SimState] =
       advance(simulator, Queue.empty)
 
     // Initially and after we process a message we want to turn the crank until we're sitting on
     // an Expect node. This ensures that all the pending outgoing messages are queued up so they
     // can be read, and the simulator is ready to accept the next message. Of course if the
     // simulator has terminated we're stuck.
-    private def advance(m: Free[Step, _], q: Queue[BackendMessage]): Either[String, MockState] =
+    @tailrec private def advance(m: Free[Step, _], q: Queue[BackendMessage]): Either[String, SimState] =
       m.resume match {
         case Left(Respond(m, k)) => advance(k(()), q :+ m)
-        case Left(Expect(h))     => MockState(q, h).asRight
+        case Left(Expect(h))     => SimState(q, h).asRight
         case Right(_)            => "The simulation has ended.".asLeft
       }
 
@@ -91,10 +92,10 @@ object SimulatedMessageSocket {
   // with the DSL above. We'll advance the machine first, ensuring that there's at least one
   // Expect node inside, otherwise we're done early. This will never happen because users aren't
   // able to construct a value of type `Halt` so it's kind of academic. Anyway we'll stuff our
-  // initial MockState into a Ref and then we consult it when we `send` and `receive`, using the
+  // initial SimState into a Ref and then we consult it when we `send` and `receive`, using the
   // standard ref-state-machine pattern. This is pretty cool really.
   def apply(simulaton: Simulator): IO[MessageSocket[IO]] =
-    MockState.initial(simulaton).leftMap(new IllegalStateException(_)).liftTo[IO].flatMap(Ref[IO].of).map { ref =>
+    SimState.initial(simulaton).leftMap(new IllegalStateException(_)).liftTo[IO].flatMap(Ref[IO].of).map { ref =>
       new MessageSocket[IO] {
 
         def receive: IO[BackendMessage] =
