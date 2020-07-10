@@ -124,7 +124,7 @@ object BufferedMessageSocket {
   // Here we read messages as they arrive, rather than waiting for the user to ask. This allows us
   // to handle asynchronous messages, which are dealt with here and not passed on. Other messages
   // are queued up and are typically consumed immediately, so a small queue size is probably fine.
-  private def fromMessageSocket[F[_]: Concurrent](
+  def fromMessageSocket[F[_]: Concurrent](
     ms:        MessageSocket[F],
     queueSize: Int
   ): F[BufferedMessageSocket[F]] =

@@ -17,22 +17,23 @@ import skunk.net.message.BackendMessage
 import skunk.net.message.FrontendMessage
 import skunk.net.MessageSocket
 import skunk.util.Origin
+import skunk.net.message.ErrorResponse
 
-object SimulatedMessageSocket {
+object SimMessageSocket {
 
   // Monadic DSL for writing a simulated Postgres server. We're using an explicit Yoneda encoding
   // here so we can define a functor instance below, which is necessary if we want to run programs
   // step by step (which we do).
   sealed trait Step[+A]
-  case class Respond[A](m: BackendMessage, k: Unit => A) extends Step[A]
+  case class Send[A](m: BackendMessage, k: Unit => A) extends Step[A]
   case class Expect[A](h: PartialFunction[FrontendMessage, A]) extends Step[A]
   object Step {
     implicit val FunctorStep: Functor[Step] =
       new Functor[Step] {
         def map[A,B](fa: Step[A])(f: A => B): Step[B] =
           fa match {
-            case Respond(m, k) => Respond(m, k andThen f)
-            case Expect(h)     => Expect(h andThen f)
+            case Send(m, k) => Send(m, k andThen f)
+            case Expect(h)    => Expect(h andThen f)
           }
       }
   }
@@ -46,10 +47,14 @@ object SimulatedMessageSocket {
   type Simulator = Free[Step, Halt]
 
   // Smart constructors for our DSL.
-  def respond(m: BackendMessage): Free[Step, Unit] = Free.liftF(Respond(m, identity))
-  def expect[A](h: PartialFunction[FrontendMessage, A]): Free[Step, A] = Free.liftF(Expect(h))
-  def flatExpect[A](h: PartialFunction[FrontendMessage, Free[Step, A]]): Free[Step, A] = expect(h).flatten
-  def halt: Free[Step, Halt] = expect { case _ => Halt } // not obvious
+  trait DSL {
+    type Simulator = SimMessageSocket.Simulator
+    def send(m: BackendMessage): Free[Step, Unit] = Free.liftF(Send(m, identity))
+    def expect[A](h: PartialFunction[FrontendMessage, A]): Free[Step, A] = Free.liftF(Expect(h))
+    def flatExpect[A](h: PartialFunction[FrontendMessage, Free[Step, A]]): Free[Step, A] = expect(h).flatten
+    def error(msg: String): Free[Step, Unit] = send(ErrorResponse(Map('M' -> msg, 'S' -> "SIMULATOR_ERROR", 'C' -> "0")))
+    def halt: Free[Step, Halt] = expect { case _ => Halt } // not obvious
+  }
 
   // Our simulated runtime consists of a queue of outgoing messages, plus a continuation that consumes
   // an incoming message and computes the next continuation.
@@ -81,7 +86,7 @@ object SimulatedMessageSocket {
     // simulator has terminated we're stuck.
     @tailrec private def advance(m: Free[Step, _], q: Queue[BackendMessage]): Either[String, SimState] =
       m.resume match {
-        case Left(Respond(m, k)) => advance(k(()), q :+ m)
+        case Left(Send(m, k)) => advance(k(()), q :+ m)
         case Left(Expect(h))     => SimState(q, h).asRight
         case Right(_)            => "The simulation has ended.".asLeft
       }

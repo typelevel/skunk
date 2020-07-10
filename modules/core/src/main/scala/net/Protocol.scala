@@ -4,6 +4,7 @@
 
 package skunk.net
 
+import cats.implicits._
 import cats.effect.{ Concurrent, ContextShift, Resource }
 import fs2.concurrent.Signal
 import fs2.Stream
@@ -194,8 +195,47 @@ object Protocol {
   ): Resource[F, Protocol[F]] =
     for {
       bms <- BufferedMessageSocket[F](host, port, 256, debug, readTimeout, writeTimeout, sg, sslOptions) // TODO: should we expose the queue size?
-      ex  <- Resource.liftF(Exchange[F])
-    } yield
+      p   <- Resource.liftF(fromMessageSocket(bms, nam))
+    } yield p
+      // new Protocol[F] {
+
+      //   // Not super sure about this but it does make the sub-protocol implementations cleaner.
+      //   // We'll see how well it works out.
+      //   implicit val ms: MessageSocket[F] = bms
+      //   implicit val na: Namer[F] = nam
+      //   implicit val ExchangeF: protocol.Exchange[F] = ex
+
+      //   override def notifications(maxQueued: Int): Stream[F, Notification] =
+      //     bms.notifications(maxQueued)
+
+      //   override def parameters: Signal[F, Map[String, String]] =
+      //     bms.parameters
+
+      //   override def prepare[A](command: Command[A], ty: Typer): Resource[F, PreparedCommand[F, A]] =
+      //     protocol.Prepare[F].apply(command, ty)
+
+      //   override def prepare[A, B](query: Query[A, B], ty: Typer): Resource[F, PreparedQuery[F, A, B]] =
+      //     protocol.Prepare[F].apply(query, ty)
+
+      //   override def execute(command: Command[Void]): F[Completion] =
+      //     protocol.Query[F].apply(command)
+
+      //   override def execute[B](query: Query[Void, B], ty: Typer): F[List[B]] =
+      //     protocol.Query[F].apply(query, ty)
+
+      //   override def startup(user: String, database: String, password: Option[String]): F[Unit] =
+      //     protocol.Startup[F].apply(user, database, password)
+
+      //   override def transactionStatus: Signal[F, TransactionStatus] =
+      //     bms.transactionStatus
+
+      // }
+
+  def fromMessageSocket[F[_]: Concurrent: ContextShift: Trace](
+    bms: BufferedMessageSocket[F],
+    nam: Namer[F]
+  ): F[Protocol[F]] =
+    Exchange[F].map { ex =>
       new Protocol[F] {
 
         // Not super sure about this but it does make the sub-protocol implementations cleaner.
@@ -229,6 +269,7 @@ object Protocol {
           bms.transactionStatus
 
       }
+    }
 
 }
 
