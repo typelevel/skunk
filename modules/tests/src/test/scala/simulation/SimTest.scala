@@ -47,7 +47,7 @@ trait SimTest extends FTest with SimMessageSocket.DSL {
       ses <- Session.fromProtocol(pro, nam, Strategy.BuiltinsOnly)
     } yield ses
 
-  def simTest(name: String, sim: Simulator, user: String = "Bob", database: String = "db", password: Option[String] = None)(f: Session[IO] => IO[_]): Unit =
+  def simTest[A](name: String, sim: Simulator, user: String = "Bob", database: String = "db", password: Option[String] = None)(f: Session[IO] => IO[A]): Unit =
     test(name)(simSession(sim, user, database, password).flatMap(f))
 
 }
