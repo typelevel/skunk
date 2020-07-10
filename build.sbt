@@ -155,7 +155,7 @@ lazy val docs = project
     publish / skip     := true,
     paradoxTheme       := Some(builtinParadoxTheme("generic")),
     version            := version.value.takeWhile(_ != '+'), // strip off the +3-f22dca22+20191110-1520-SNAPSHOT business
-    paradoxProperties ++= Map(
+    paradoxProperties in Compile ++= Map(
       "scala-versions"          -> (crossScalaVersions in core).value.map(CrossVersion.partialVersion).flatten.map(_._2).mkString("2.", "/", ""),
       "org"                     -> organization.value,
       "scala.binary.version"    -> s"2.${CrossVersion.partialVersion(scalaVersion.value).get._2}",
@@ -164,9 +164,9 @@ lazy val docs = project
       "version"                 -> version.value,
       "scaladoc.skunk.base_url" -> s"https://static.javadoc.io/org.tpolecat/skunk-core_2.12/${version.value}",
       "scaladoc.fs2.io.base_url"-> s"https://static.javadoc.io/co.fs2/fs2-io_2.12/${fs2Version}",
+      "github.base_url"         -> s"https://github.com/tpolecat/skunk/tree/v${version.value}"
     ),
     mdocIn := (baseDirectory.value) / "src" / "main" / "paradox",
-    Compile / paradox / sourceDirectory := mdocOut.value,
     makeSite := makeSite.dependsOn(mdoc.toTask("")).value,
     mdocExtraArguments := Seq("--no-link-hygiene"), // paradox handles this
 )
