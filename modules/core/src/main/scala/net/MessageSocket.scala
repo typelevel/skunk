@@ -23,7 +23,7 @@ trait MessageSocket[F[_]] {
   def receive: F[BackendMessage]
 
   /** Send the specified message. */
-  def send[A: FrontendMessage](a: A): F[Unit]
+  def send(message: FrontendMessage): F[Unit]
 
   /** Destructively read the last `n` messages from the circular buffer. */
   def history(max: Int): F[List[Either[Any, Any]]]
@@ -62,11 +62,11 @@ object MessageSocket {
             _   <- Sync[F].delay(println(s" ← ${Console.GREEN}$msg${Console.RESET}")).whenA(debug)
           } yield msg
 
-        override def send[A](a: A)(implicit ev: FrontendMessage[A]): F[Unit] =
+        override def send(message: FrontendMessage): F[Unit] =
           for {
-            _ <- Sync[F].delay(println(s" → ${Console.YELLOW}$a${Console.RESET}")).whenA(debug)
-            _ <- bvs.write(ev.fullEncoder.encode(a).require)
-            _ <- cb.enqueue1(Left(a))
+            _ <- Sync[F].delay(println(s" → ${Console.YELLOW}$message${Console.RESET}")).whenA(debug)
+            _ <- bvs.write(message.encode)
+            _ <- cb.enqueue1(Left(message))
           } yield ()
 
         override def history(max: Int): F[List[Either[Any, Any]]] =

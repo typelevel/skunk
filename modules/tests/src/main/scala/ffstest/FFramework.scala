@@ -43,7 +43,7 @@ trait FTest {
               case _ =>
             }
           } *>
-          IO(e.printStackTrace()).whenA(show) *> e.pure[IO]
+          IO(e.printStackTrace(Console.err)).whenA(show) *> e.pure[IO]
         case Left(e)    => IO.raiseError(e)
         case Right(a)   => fail[E](s"Expected ${implicitly[ClassTag[E]].runtimeClass.getName}, got $a")
       }
@@ -107,7 +107,7 @@ case class FTask(taskDef: TaskDef, testClassLoader: ClassLoader) extends Task {
       eventHandler.handle(event)
     }
 
-    obj.tests.parTraverse_ { case (name, fa) =>
+    obj.tests.traverse_ { case (name, fa) =>
       type AE = AssertionError // to make the lines shorter below :-\
       FTask.timed(obj.ioContextShift.shift *> fa).attempt.map {
         case Right((ms, a)) => report(GREEN, s"✓ $name ($a, $ms ms)",      FEvent(Success, duration = ms))

@@ -8,7 +8,9 @@ import scodec._
 import scodec.codecs._
 
 // TODO: SUPPORT OTHER PARAMETERS
-case class StartupMessage(user: String, database: String) {
+case class StartupMessage(user: String, database: String) extends UntaggedFrontendMessage {
+
+  def encodeBody = StartupMessage.encoder.encode(this)
 
   // HACK: we will take a plist eventually
   val properties: Map[String, String] =
@@ -26,24 +28,23 @@ object StartupMessage {
       "client_encoding"     -> "UTF8",
     )
 
-  implicit val StartupMessageFrontendMessage: FrontendMessage[StartupMessage] =
-    FrontendMessage.untagged {
+  val encoder: Encoder[StartupMessage] = {
 
-      def pair(key: String): Codec[String] =
-        utf8z.applied(key) ~> utf8z
+    def pair(key: String): Codec[String] =
+      utf8z.applied(key) ~> utf8z
 
-      val version: Codec[Unit] =
-        int32.applied(196608)
+    val version: Codec[Unit] =
+      int32.applied(196608)
 
-      // After user and database we have a null-terminated list of fixed key-value pairs, which
-      // specify connection properties that affect serialization and are REQUIRED by Skunk.
-      val tail: Codec[Unit] =
-        ConnectionProperties.foldRight(byte.applied(0)) { case ((k, v), e) => pair(k).applied(v) <~ e}
+    // After user and database we have a null-terminated list of fixed key-value pairs, which
+    // specify connection properties that affect serialization and are REQUIRED by Skunk.
+    val tail: Codec[Unit] =
+      ConnectionProperties.foldRight(byte.applied(0)) { case ((k, v), e) => pair(k).applied(v) <~ e}
 
-      (version ~> pair("user") ~ pair("database") <~ tail)
-        .asEncoder
-        .contramap(m => m.user ~ m.database)
+    (version ~> pair("user") ~ pair("database") <~ tail)
+      .asEncoder
+      .contramap(m => m.user ~ m.database)
 
-    }
+  }
 
 }

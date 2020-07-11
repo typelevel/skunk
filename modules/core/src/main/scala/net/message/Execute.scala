@@ -5,16 +5,17 @@
 package skunk.net.message
 
 import scodec.codecs._
+import scodec.Encoder
 
-case class Execute(portal: String, maxRows: Int)
+case class Execute(portal: String, maxRows: Int) extends TaggedFrontendMessage('E') {
+  def encodeBody = Execute.encoder.encode(this)
+}
 
 object Execute {
 
-  implicit val ExecuteFrontendMessage: FrontendMessage[Execute] =
-    FrontendMessage.tagged('E') {
-      (utf8z ~ int32).contramap[Execute] { p =>
-        p.portal ~ p.maxRows
-      }
+  val encoder: Encoder[Execute] =
+    (utf8z ~ int32).contramap[Execute] { p =>
+      p.portal ~ p.maxRows
     }
 
 }

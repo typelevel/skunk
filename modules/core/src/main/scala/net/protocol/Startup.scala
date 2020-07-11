@@ -11,6 +11,7 @@ import skunk.net.message._
 import skunk.exception.StartupException
 import natchez.Trace
 import skunk.exception.SkunkException
+import skunk.exception.UnsupportedAuthenticationSchemeException
 
 trait Startup[F[_]] {
   def apply(user: String, database: String, password: Option[String]): F[Unit]
@@ -32,6 +33,16 @@ object Startup {
             _ <- flatExpect {
                     case AuthenticationOk                => ().pure[F]
                     case AuthenticationMD5Password(salt) => authenticationMD5Password[F](sm, password, salt)
+                    case m @ (
+                      AuthenticationCleartextPassword |
+                      AuthenticationGSS |
+                      AuthenticationKerberosV5 |
+                      AuthenticationSASL(_) |
+                      AuthenticationSCMCredential |
+                      AuthenticationSSPI )               => new UnsupportedAuthenticationSchemeException(m).raiseError[F, Unit]
+                    case ErrorResponse(info) =>
+                      val e = new StartupException(info, sm.properties)
+                      e.raiseError[F, Unit]
                  }
             _ <- flatExpect {
                    case ReadyForQuery(_) => ().pure[F]

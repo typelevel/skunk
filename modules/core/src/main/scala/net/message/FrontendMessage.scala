@@ -8,38 +8,32 @@ import cats.implicits._
 import scodec._
 import scodec.codecs._
 import scodec.interop.cats._
+import scodec.bits.BitVector
 
-/** A typeclass for messages we send to the server. */
-trait FrontendMessage[A] {
-
-  /** Payload encoder (only). */
-  def encoder: Encoder[A]
-
-  /** Full encoder that adds a tag (if any) and length prefix. */
-  def fullEncoder: Encoder[A]
-
+sealed trait FrontendMessage {
+  protected def encodeBody: Attempt[BitVector]
+  def encode: BitVector
 }
 
-object FrontendMessage {
+abstract class UntaggedFrontendMessage extends FrontendMessage {
+  final def encode: BitVector = {
+    for {
+      b <- encodeBody
+      l <- int32.encode(((b.size) / 8).toInt + 4)
+    } yield l |+| b
+  } .require
+}
 
-  private def lengthPrefixed[A](e: Encoder[A]): Encoder[A] =
-    Encoder { (a: A) =>
-      for {
-        p <- e.encode(a)
-        l <- int32.encode((p.size / 8).toInt + 4)
-      } yield l ++ p
-    }
+abstract class TaggedFrontendMessage(tag: Byte) extends FrontendMessage {
+  final def encode: BitVector = {
+    for {
+      t <- byte.encode(tag)
+      b <- encodeBody
+      l <- int32.encode((b.size / 8).toInt + 4)
+    } yield t |+| l |+| b
+  } .require
+}
 
-  def tagged[A](tag: Byte)(enc: Encoder[A]): FrontendMessage[A] =
-    new FrontendMessage[A] {
-      override val encoder: Encoder[A] = enc
-      override val fullEncoder: Encoder[A] = Encoder(a => byte.encode(tag) |+| lengthPrefixed(enc).encode(a))
-    }
-
-  def untagged[A](enc: Encoder[A]): FrontendMessage[A] =
-    new FrontendMessage[A] {
-      override val encoder: Encoder[A] = enc
-      override val fullEncoder: Encoder[A] = lengthPrefixed(enc)
-    }
-
+abstract class ConstFrontendMessage(tag: Byte) extends TaggedFrontendMessage(tag) {
+  final def encodeBody = Attempt.successful(BitVector.empty)
 }

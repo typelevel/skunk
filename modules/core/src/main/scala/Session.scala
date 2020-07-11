@@ -315,7 +315,7 @@ object Session {
    * started up.
    * @group Constructors
    */
-  private def fromProtocol[F[_]: Sync](
+  def fromProtocol[F[_]: Sync](
     proto:    Protocol[F],
     namer:    Namer[F],
     strategy: Typer.Strategy
