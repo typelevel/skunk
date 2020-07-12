@@ -27,7 +27,10 @@ object Pretty {
 
     // Normalize tabs
     val s3 = {
-      val drop = s2.linesIterator.map(_.takeWhile(_ == ' ').length).min
+      val drop = {
+        val ns = s2.linesIterator.map(_.takeWhile(_ == ' ').length)
+        if (ns.isEmpty) 0 else ns.min
+      }
       s2.linesIterator.map(s => s"  ${Console.GREEN}" + s.drop(drop) + Console.RESET).mkString("\n")
     }
 
