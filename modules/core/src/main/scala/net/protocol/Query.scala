@@ -164,7 +164,11 @@ object Query {
             "command.sql" -> command.sql
           ) *> send(QueryMessage(command.sql)) *> flatExpect {
 
-            case CommandComplete(c) => finishUp(command).as(c)
+            case CommandComplete(c) =>
+              finishUp(command).as(c)
+
+            case EmptyQueryResponse =>
+              finishUp(command) *> new EmptyStatementException(command).raiseError[F, Completion]
 
             case ErrorResponse(e) =>
               for {
