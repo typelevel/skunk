@@ -13,6 +13,8 @@ import skunk.net.{ Protocol, MessageSocket }
 import skunk.net.message.{ Execute => ExecuteMessage, _ }
 import skunk.util.Typer
 import natchez.Trace
+import skunk.exception.CopyNotSupportedException
+import skunk.exception.EmptyStatementException
 
 trait Execute[F[_]] {
   def apply[A](portal: Protocol.CommandPortal[F, A]): F[Completion]
@@ -30,7 +32,27 @@ object Execute {
             _  <- send(ExecuteMessage(portal.id.value, 0))
             _  <- send(Flush)
             c  <- flatExpect {
-              case CommandComplete(c)  => send(Sync) *> expect { case ReadyForQuery(_) => c } // https://github.com/tpolecat/skunk/issues/210
+              case CommandComplete(c) => send(Sync) *> expect { case ReadyForQuery(_) => c } // https://github.com/tpolecat/skunk/issues/210
+
+              case EmptyQueryResponse =>
+                send(Sync) *>
+                expect { case ReadyForQuery(_) => } *>
+                new EmptyStatementException(portal.preparedCommand.command).raiseError[F, Completion]
+
+              case CopyOutResponse(_) =>
+                receive.iterateUntil {
+                  case CommandComplete(_) => true
+                  case _                  => false
+                } *>
+                new CopyNotSupportedException(portal.preparedCommand.command).raiseError[F, Completion]
+
+              case CopyInResponse(_) =>
+                send(CopyFail) *>
+                expect { case ErrorResponse(_) => } *>
+                send(Sync) *>
+                expect { case ReadyForQuery(_) => } *>
+                new CopyNotSupportedException(portal.preparedCommand.command).raiseError[F, Completion]
+
               case ErrorResponse(info) =>
                 for {
                   hi <- history(Int.MaxValue)
