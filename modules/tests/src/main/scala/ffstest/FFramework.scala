@@ -107,7 +107,7 @@ case class FTask(taskDef: TaskDef, testClassLoader: ClassLoader) extends Task {
       eventHandler.handle(event)
     }
 
-    obj.tests.traverse_ { case (name, fa) =>
+    obj.tests.parTraverse_ { case (name, fa) =>
       type AE = AssertionError // to make the lines shorter below :-\
       FTask.timed(obj.ioContextShift.shift *> fa).attempt.map {
         case Right((ms, a)) => report(GREEN, s"✓ $name ($a, $ms ms)",      FEvent(Success, duration = ms))

@@ -27,6 +27,11 @@ object BackendMessage {
        case BindComplete.Tag          => BindComplete.decoder
        case CloseComplete.Tag         => CloseComplete.decoder
        case CommandComplete.Tag       => CommandComplete.decoder
+       case CopyData.Tag              => CopyData.decoder
+       case CopyDone.Tag              => CopyDone.decoder
+       case CopyInResponse.Tag        => CopyInResponse.decoder
+       case CopyOutResponse.Tag       => CopyOutResponse.decoder
+       case EmptyQueryResponse.Tag    => EmptyQueryResponse.decoder
        case ErrorResponse.Tag         => ErrorResponse.decoder
        case NoData.Tag                => NoData.decoder
        case NotificationResponse.Tag  => NotificationResponse.decoder

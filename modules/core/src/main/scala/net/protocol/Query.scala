@@ -8,12 +8,15 @@ import cats.MonadError
 import cats.implicits._
 import skunk.{ Command, Void }
 import skunk.data.Completion
-import skunk.exception.{ ColumnAlignmentException, NoDataException, PostgresErrorException }
+import skunk.exception._
 import skunk.net.message.{ Query => QueryMessage, _ }
 import skunk.net.MessageSocket
 import skunk.util.Typer
 import skunk.exception.UnknownOidException
 import natchez.Trace
+import skunk.Statement
+import skunk.exception.SkunkException
+import skunk.exception.EmptyStatementException
 
 trait Query[F[_]] {
   def apply(command: Command[Void]): F[Completion]
@@ -24,6 +27,45 @@ object Query {
 
   def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket: Trace]: Query[F] =
     new Unroll[F] with Query[F] {
+
+      def finishCopyOut: F[Unit] =
+        receive.iterateUntil {
+          case CommandComplete(_) => true
+          case _        => false
+        } .void
+
+      def finishUp(stmt: Statement[_], multipleStatements: Boolean = false): F[Unit] =
+        receive.flatMap {
+
+          case ReadyForQuery(_) =>
+            new SkunkException(
+              message   = "Multi-statement queries and commands are not supported.",
+              hint      = Some("Break up semicolon-separated statements and execute them independently."),
+              sql       = Some(stmt.sql),
+              sqlOrigin = Some(stmt.origin),
+            ).raiseError[F, Unit].whenA(multipleStatements)
+
+          case RowDescription(_) | RowData(_) | CommandComplete(_) | ErrorResponse(_) | EmptyQueryResponse =>
+            finishUp(stmt, true)
+
+          case CopyInResponse(_) =>
+            send(CopyFail)                      *>
+            expect { case ErrorResponse(_) => } *>
+            finishUp(stmt, true)
+
+          case CopyOutResponse(_) =>
+            finishCopyOut *>
+            finishUp(stmt, true)
+
+        }
+
+      // If there is an error we just want to receive and discard everything until we have seen
+      // CommandComplete followed by ReadyForQuery.
+      def discard(stmt: Statement[_]): F[Unit] =
+        receive.flatMap {
+          case RowData(_)         => discard(stmt)
+          case CommandComplete(_) => finishUp(stmt)
+        }
 
       override def apply[B](query: skunk.Query[Void, B], ty: Typer): F[List[B]] =
         exchange("query") {
@@ -51,27 +93,44 @@ object Query {
                       encoder        = Void.codec,
                       rowDescription = td,
                       decoder        = query.decoder,
-                    ).map(_._1) <* expect { case ReadyForQuery(_) => }
+                    ).map(_._1) <* finishUp(query)
                   } else {
-                    discard *> ColumnAlignmentException(query, td).raiseError[F, List[B]]
+                    discard(query) *> ColumnAlignmentException(query, td).raiseError[F, List[B]]
                   }
 
                 case Left(err) =>
-                  discard *> UnknownOidException(query, err, ty.strategy).raiseError[F, List[B]]
+                  discard(query) *> UnknownOidException(query, err, ty.strategy).raiseError[F, List[B]]
 
               }
+
+            // We don't support COPY FROM STDIN yet but we do need to be able to clean up if a user
+            // tries it.
+            case CopyInResponse(_) =>
+              send(CopyFail)  *>
+              expect { case ErrorResponse(_) => } *>
+              finishUp(query) *>
+              new CopyNotSupportedException(query).raiseError[F, List[B]]
+
+            case CopyOutResponse(_) =>
+              finishCopyOut *>
+              finishUp(query) *>
+              new CopyNotSupportedException(query).raiseError[F, List[B]]
+
+            // Query is empty, whitespace, all comments, etc.
+            case EmptyQueryResponse =>
+              finishUp(query) *> new EmptyStatementException(query).raiseError[F, List[B]]
 
             // If we get CommandComplete it means our Query was actually a Command. Postgres doesn't
             // distinguish these but we do, so this is an error.
             case CommandComplete(_) =>
-              expect { case ReadyForQuery(_) => } *> NoDataException(query).raiseError[F, List[B]]
+              finishUp(query) *> NoDataException(query).raiseError[F, List[B]]
 
             // If we get an ErrorResponse it means there was an error in the query. In this case we
             // simply await ReadyForQuery and then raise an error.
             case ErrorResponse(e) =>
               for {
                 hi <- history(Int.MaxValue)
-                _  <- expect { case ReadyForQuery(_) => }
+                _  <- finishUp(query)
                 rs <- (new PostgresErrorException(
                         sql       = query.sql,
                         sqlOrigin = Some(query.origin),
@@ -87,7 +146,7 @@ object Query {
               for {
                 hi <- history(Int.MaxValue)
                 _  <- expect { case CommandComplete(_) => }
-                _  <- expect { case ReadyForQuery(_) => }
+                _  <- finishUp(query)
                 rs <- (new PostgresErrorException(
                         sql       = query.sql,
                         sqlOrigin = Some(query.origin),
@@ -106,13 +165,14 @@ object Query {
           ) *> send(QueryMessage(command.sql)) *> flatExpect {
 
             case CommandComplete(c) =>
-              for {
-                _ <- expect { case ReadyForQuery(_) => }
-              } yield c
+              finishUp(command).as(c)
+
+            case EmptyQueryResponse =>
+              finishUp(command) *> new EmptyStatementException(command).raiseError[F, Completion]
 
             case ErrorResponse(e) =>
               for {
-                _ <- expect { case ReadyForQuery(_) => }
+                _ <- finishUp(command)
                 h <- history(Int.MaxValue)
                 c <- new PostgresErrorException(command.sql, Some(command.origin), e, h, Nil, None).raiseError[F, Completion]
               } yield c
@@ -120,23 +180,33 @@ object Query {
             case NoticeResponse(e) =>
               for {
                 _ <- expect { case CommandComplete(_) => }
-                _ <- expect { case ReadyForQuery(_) =>  }
+                _ <- finishUp(command)
                 h <- history(Int.MaxValue)
                 c <- new PostgresErrorException(command.sql, Some(command.origin), e, h, Nil, None).raiseError[F, Completion]
               } yield c
 
-            // TODO: case RowDescription => oops, this returns rows, it needs to be a query
+            // If we get rows back it means this should have been a query!
+            case RowDescription(_) =>
+              finishUp(command) *> UnexpectedDataException(command).raiseError[F, Completion]
 
-          }
+            // We don't support COPY FROM STDIN yet but we do need to be able to clean up if a user
+            // tries it.
+            case CopyInResponse(_) =>
+              send(CopyFail)  *>
+              expect { case ErrorResponse(_) => } *>
+              finishUp(command) *>
+              new CopyNotSupportedException(command).raiseError[F, Completion]
+
+            case CopyOutResponse(_) =>
+              finishCopyOut *>
+              finishUp(command) *>
+              new CopyNotSupportedException(command).raiseError[F, Completion]
+
+            }
+
+
         }
 
-      // If there is an error we just want to receive and discard everything until we have seen
-      // CommandComplete followed by ReadyForQuery.
-      val discard: F[Unit] =
-        receive.flatMap {
-          case RowData(_)         => discard
-          case CommandComplete(_) => expect { case ReadyForQuery(_) => }
-        }
 
 
     }
