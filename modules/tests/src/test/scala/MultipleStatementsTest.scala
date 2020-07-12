@@ -9,6 +9,8 @@ import skunk._
 import skunk.implicits._
 import skunk.codec.all._
 import skunk.exception.SkunkException
+import cats.effect.IO
+import skunk.exception.PostgresErrorException
 
 object MultipleStatementsTest extends SkunkTest {
 
@@ -22,6 +24,18 @@ object MultipleStatementsTest extends SkunkTest {
   statements.foreach { case (q, c) =>
     sessionTest(s"query: ${q.sql}") { s =>  s.execute(q).assertFailsWith[SkunkException] *> s.assertHealthy }
     sessionTest(s"command: ${c.sql}") { s =>  s.execute(c).assertFailsWith[SkunkException] *> s.assertHealthy }
+  }
+
+  sessionTest("extended query (postgres raises an error here)") { s =>
+    s.prepare(sql"select 1;commit".query(int4))
+      .use(_ => IO.unit)
+      .assertFailsWith[PostgresErrorException] *> s.assertHealthy
+  }
+
+  sessionTest("extended command (postgres raises an error here)") { s =>
+    s.prepare(sql"select 1;commit".command)
+      .use(_ => IO.unit)
+      .assertFailsWith[PostgresErrorException] *> s.assertHealthy
   }
 
 }
