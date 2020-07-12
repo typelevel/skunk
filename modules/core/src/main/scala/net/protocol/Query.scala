@@ -28,6 +28,12 @@ object Query {
   def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket: Trace]: Query[F] =
     new Unroll[F] with Query[F] {
 
+      def finishCopyOut: F[Unit] =
+        receive.iterateUntil {
+          case CommandComplete(_) => true
+          case _        => false
+        } .void
+
       def finishUp(stmt: Statement[_], multipleStatements: Boolean = false): F[Unit] =
         receive.flatMap {
 
@@ -43,11 +49,13 @@ object Query {
             finishUp(stmt, true)
 
           case CopyInResponse(_) =>
-              send(CopyFail)                      *>
-              expect { case ErrorResponse(_) => } *>
-              finishUp(stmt, true)
+            send(CopyFail)                      *>
+            expect { case ErrorResponse(_) => } *>
+            finishUp(stmt, true)
 
-          // case CopyOutReponse =>
+          case CopyOutResponse(_) =>
+            finishCopyOut *>
+            finishUp(stmt, true)
 
         }
 
@@ -100,6 +108,11 @@ object Query {
             case CopyInResponse(_) =>
               send(CopyFail)  *>
               expect { case ErrorResponse(_) => } *>
+              finishUp(query) *>
+              new CopyNotSupportedException(query).raiseError[F, List[B]]
+
+            case CopyOutResponse(_) =>
+              finishCopyOut *>
               finishUp(query) *>
               new CopyNotSupportedException(query).raiseError[F, List[B]]
 
@@ -179,7 +192,14 @@ object Query {
               expect { case ErrorResponse(_) => } *>
               finishUp(command) *>
               new CopyNotSupportedException(command).raiseError[F, Completion]
+
+            case CopyOutResponse(_) =>
+              finishCopyOut *>
+              finishUp(command) *>
+              new CopyNotSupportedException(command).raiseError[F, Completion]
+
             }
+
 
         }
 

@@ -8,15 +8,15 @@ import skunk.implicits._
 import skunk.codec.all._
 import skunk.exception.CopyNotSupportedException
 
-object CopyInTest extends SkunkTest {
+object CopyOutTest extends SkunkTest {
 
-  sessionTest("copy in") { s =>
-    s.execute(sql"COPY country FROM STDIN".query(int4))
+  sessionTest("copy out") { s =>
+    s.execute(sql"COPY country TO STDOUT".query(int4))
       .assertFailsWith[CopyNotSupportedException] *> s.assertHealthy
   }
 
-  sessionTest("copy in (as command)") { s =>
-    s.execute(sql"COPY country FROM STDIN".command)
+  sessionTest("copy out (as command)") { s =>
+    s.execute(sql"COPY country TO STDOUT".command)
       .assertFailsWith[CopyNotSupportedException] *> s.assertHealthy
   }
 

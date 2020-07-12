@@ -13,7 +13,7 @@ import skunk.exception.SkunkException
 object MultipleStatementsTest extends SkunkTest {
 
   val statements: List[(Query[Void,Int], Command[Void])] =
-    List("select 1","commit","copy country from stdin")
+    List("select 1","commit","copy country from stdin","copy country to stdout") // one per protocol
       .permutations
       .toList
       .map { ss => ss.intercalate(";") }
