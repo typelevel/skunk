@@ -91,7 +91,7 @@ lazy val refined = project
   .settings(commonSettings)
   .settings(
     publish / skip := true,
-    libraryDependencies += "eu.timepit" %% "refined" % "0.9.14",
+    libraryDependencies += "eu.timepit" %% "refined" % "0.9.15",
   )
 
 lazy val circe = project
