@@ -31,7 +31,7 @@
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.0.11
+0.0.14
 </div>
 </div>
 <div class="nav-toc">
@@ -86,7 +86,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.0.11
+0.0.14
 </div>
 </div>
 <div class="nav-toc">
@@ -145,7 +145,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 // res0: Fragment[String] = Fragment(
 //   List(
 //     Left(&quot;SELECT name FROM country WHERE code = &quot;),
-//     Right(cats.data.IndexedStateT@12c50200),
+//     Right(cats.data.IndexedStateT@48d18f0a),
 //     Left(&quot;&quot;)
 //   ),
 //   Codec(varchar),
@@ -157,9 +157,9 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 // res1: Fragment[(String, Long)] = Fragment(
 //   List(
 //     Left(&quot;SELECT name FROM country WHERE code = &quot;),
-//     Right(cats.data.IndexedStateT@12c50200),
+//     Right(cats.data.IndexedStateT@48d18f0a),
 //     Left(&quot; AND population &lt; &quot;),
-//     Right(cats.data.IndexedStateT@3ad7a4fa),
+//     Right(cats.data.IndexedStateT@478613ee),
 //     Left(&quot;&quot;)
 //   ),
 //   Codec(varchar, int8),
@@ -174,7 +174,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 // res2: Fragment[(String, Int)] = Fragment(
 //   List(
 //     Left(&quot;INSERT INTO person (name, age) VALUES (&quot;),
-//     Right(cats.data.IndexedStateT@568a3c39),
+//     Right(cats.data.IndexedStateT@4c28ba00),
 //     Left(&quot;)&quot;)
 //   ),
 //   Codec(varchar, int4),
@@ -183,15 +183,15 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 </code></pre>
 <p>Here is a statement with a base encoder and a composite encoder constructed from three base encoders. Note that the composite structure is &ldquo;flattened&rdquo; in the resulting SQL statement; it is purely for convenience on the Scala side.</p>
 <pre class="prettyprint"><code class="language-scala">val enc = varchar ~ int4 ~ float4
-// enc: Codec[((String, Int), Double)] = Codec(varchar, int4, float4)
+// enc: Codec[((String, Int), Float)] = Codec(varchar, int4, float4)
 
 sql&quot;INSERT INTO person (comment, name, age, weight, comment) VALUES ($text, $enc)&quot;
-// res3: Fragment[(String, ((String, Int), Double))] = Fragment(
+// res3: Fragment[(String, ((String, Int), Float))] = Fragment(
 //   List(
 //     Left(&quot;INSERT INTO person (comment, name, age, weight, comment) VALUES (&quot;),
-//     Right(cats.data.IndexedStateT@6d0519ce),
+//     Right(cats.data.IndexedStateT@399cb37a),
 //     Left(&quot;, &quot;),
-//     Right(cats.data.IndexedStateT@27583cca),
+//     Right(cats.data.IndexedStateT@6b9072b9),
 //     Left(&quot;)&quot;)
 //   ),
 //   Codec(text, varchar, int4, float4),
@@ -207,7 +207,7 @@ sql&quot;INSERT INTO person (name, age) VALUES $enc&quot;
 // res4: Fragment[(String, Int)] = Fragment(
 //   List(
 //     Left(&quot;INSERT INTO person (name, age) VALUES &quot;),
-//     Right(cats.data.IndexedStateT@202facaf),
+//     Right(cats.data.IndexedStateT@1cfe0546),
 //     Left(&quot;&quot;)
 //   ),
 //   Encoder(varchar, int4),
@@ -222,7 +222,7 @@ sql&quot;INSERT INTO person (name, age) VALUES ${enc.list(3)}&quot;
 // res5: Fragment[List[(String, Int)]] = Fragment(
 //   List(
 //     Left(&quot;INSERT INTO person (name, age) VALUES &quot;),
-//     Right(cats.data.IndexedStateT@27433767),
+//     Right(cats.data.IndexedStateT@158f4463),
 //     Left(&quot;&quot;)
 //   ),
 //   Encoder(varchar, int4, varchar, int4, varchar, int4),
@@ -240,7 +240,7 @@ sql&quot;INSERT INTO person (name, age) VALUES $person&quot;
 // res6: Fragment[Person] = Fragment(
 //   List(
 //     Left(&quot;INSERT INTO person (name, age) VALUES &quot;),
-//     Right(cats.data.IndexedStateT@4154fd7),
+//     Right(cats.data.IndexedStateT@49d432cb),
 //     Left(&quot;&quot;)
 //   ),
 //   Encoder(varchar, int4),
@@ -257,7 +257,7 @@ sql&quot;INSERT INTO person (name, age) VALUES $person&quot;
 // res8: Fragment[Person] = Fragment(
 //   List(
 //     Left(&quot;INSERT INTO person (name, age) VALUES &quot;),
-//     Right(cats.data.IndexedStateT@5902d12e),
+//     Right(cats.data.IndexedStateT@213994f2),
 //     Left(&quot;&quot;)
 //   ),
 //   Encoder(varchar, int4),
@@ -265,7 +265,7 @@ sql&quot;INSERT INTO person (name, age) VALUES $person&quot;
 // )
 </code></pre>
 <div class="source-github">
-The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/v0.0.11/modules/docs/target/mdoc/reference/Encoders.md">here</a>.
+The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/master/modules/docs/target/mdoc/reference/Encoders.md">here</a>.
 </div>
 
 <div class="nav-next">
@@ -351,7 +351,7 @@ The source code for this page can be found <a href="https://github.com/tpolecat/
 <script type="text/javascript" src="../lib/prettify/prettify.js"></script>
 <script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
 <script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
-<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.11', 'https://github.com/tpolecat/skunk')});</script>
+<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.14', 'https://github.com/tpolecat/skunk')});</script>
 
 
 </html>

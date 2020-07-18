@@ -31,7 +31,7 @@
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.0.11
+0.0.14
 </div>
 </div>
 <div class="nav-toc">
@@ -86,7 +86,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.0.11
+0.0.14
 </div>
 </div>
 <div class="nav-toc">
@@ -136,7 +136,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <div class="page-content row">
 <div class="small-12 large-9 column" id="docs">
 <h1><a href="#transactions" name="transactions" class="anchor"><span class="anchor-link"></span></a>Transactions</h1>
-<p>Skunk has rich support for transactions (and error-handling, which are closely related).</p>
+<p>Skunk has pretty good support for transactions (and error-handling, which are closely related).</p>
 <p>See <a href="https://www.postgresql.org/docs/10/tutorial-transactions.html">§3.4</a> in the PostgreSQL documentation for an introduction to transactions. The text that follows assumes you have a working knowledge of the information in that section.</p><div class="callout warning "><div class="callout-title">Warning</div>
 <p>There is never more than one transaction in progress on a given session, and all operations on that session during the transaction&rsquo;s lifespan will take part in the transaction. It is recommended that sessions not be used concurrently in the presence of transactions.</p></div>
 <h2><a href="#a-simple-transaction" name="a-simple-transaction" class="anchor"><span class="anchor-link"></span></a>A Simple Transaction</h2>
@@ -184,16 +184,65 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <p>talk about savepoints</p>
 <h2><a href="#full-example" name="full-example" class="anchor"><span class="anchor-link"></span></a>Full Example</h2>
 <p>Here is a complete program listing that demonstrates our knowledge thus far.</p>
-<pre class="prettyprint"><code class="language-scala">// Copyright (c) 2018-2020 by Rob Norris
-// This software is licensed under the MIT License (MIT).
-// For more information see LICENSE or https://opensource.org/licenses/MIT
-
-import cats.effect._
+<pre class="prettyprint"><code class="language-scala">import cats.effect._
 import cats.implicits._
 import natchez.Trace.Implicits.noop
 import skunk._
 import skunk.codec.all._
 import skunk.implicits._
+
+// a data type
+case class Pet(name: String, age: Short)
+
+// a service interface
+trait PetService[F[_]] {
+  def tryInsertAll(pets: List[Pet]): F[Unit]
+  def selectAll: F[List[Pet]]
+}
+
+// a companion with a constructor
+object PetService {
+
+  // command to insert a pet
+  private val insertOne: Command[Pet] =
+    sql&quot;INSERT INTO pets VALUES ($varchar, $int2)&quot;
+      .command
+      .gcontramap[Pet]
+
+  // query to select all pets
+  private val all: Query[Void, Pet] =
+    sql&quot;SELECT name, age FROM pets&quot;
+      .query(varchar ~ int2)
+      .gmap[Pet]
+
+  // construct a PetService, preparing our statement once on construction
+  def fromSession[F[_]: Sync](s: Session[F]): Resource[F, PetService[F]] =
+    s.prepare(insertOne).map { pc =&gt;
+      new PetService[F] {
+
+        // Attempt to insert each pet in turn, in a single transaction, rolling back to a savepoint
+        // if a unique violation is encountered. Note that a bulk insert with an ON CONFLICT clause
+        // would be much more efficient, this is just for demonstration.
+        def tryInsertAll(pets: List[Pet]): F[Unit] =
+          s.transaction.use { xa =&gt;
+            pets.traverse_ { p =&gt;
+              for {
+                _  &lt;- Sync[F].delay(println(s&quot;Trying to insert $p&quot;))
+                sp &lt;- xa.savepoint
+                _  &lt;- pc.execute(p).recoverWith {
+                        case SqlState.UniqueViolation(ex) =&gt;
+                          Sync[F].delay(println(s&quot;Unique violation: ${ex.constraintName.getOrElse(&quot;&lt;unknown&gt;&quot;)}, rolling back...&quot;)) *&gt;
+                          xa.rollback(sp)
+                      }
+              } yield ()
+            }
+          }
+
+        def selectAll: F[List[Pet]] = s.execute(all)
+      }
+    }
+
+}
 
 object TransactionExample extends IOApp {
 
@@ -203,7 +252,7 @@ object TransactionExample extends IOApp {
       host     = &quot;localhost&quot;,
       user     = &quot;jimmy&quot;,
       database = &quot;world&quot;,
-      password = Some(&quot;banana&quot;),
+      password = Some(&quot;banana&quot;)
     )
 
   // a resource that creates and drops a temporary table
@@ -213,72 +262,58 @@ object TransactionExample extends IOApp {
     Resource.make(alloc)(_ =&gt; free)
   }
 
-  // a data type
-  case class Pet(name: String, age: Short)
+  // We can monitor the changing transaction status by tapping into the provided `fs2.Signal`
+  def transactionStatusLogger[A](ss: Session[IO]): Resource[IO, Unit] = {
+    val alloc: IO[Fiber[IO, Unit]] =
+      ss.transactionStatus
+        .discrete
+        .changes
+        .evalMap(s =&gt; IO(println(s&quot;xa status: $s&quot;)))
+        .compile
+        .drain
+        .start
+    Resource.make(alloc)(_.cancel).void
+  }
 
-  // command to insert a pet
-  val insert: Command[Pet] =
-    sql&quot;INSERT INTO pets VALUES ($varchar, $int2)&quot;
-      .command
-      .gcontramap[Pet]
-
-  // query to select all pets
-  def selectAll: Query[Void, Pet] =
-    sql&quot;SELECT name, age FROM pets&quot;
-      .query(varchar ~ int2)
-      .gmap[Pet]
-
-  // A resource that yields a session and prepared command
-  def resource: Resource[IO, (Session[IO], PreparedCommand[IO, Pet])] =
+  // A resource that puts it all together.
+  val resource: Resource[IO, PetService[IO]] =
     for {
       s  &lt;- session
       _  &lt;- withPetsTable(s)
-      pc &lt;- s.prepare(insert)
-    } yield (s, pc)
+      _  &lt;- transactionStatusLogger(s)
+      ps &lt;- PetService.fromSession(s)
+    } yield ps
 
-  // a combinator to monitor transaction status while we run an action
-  def monitorTransactionStatus[A](s: Session[IO])(action: IO[A]): IO[A] =
-     s.transactionStatus
-      .discrete
-      .evalMap(s =&gt; IO(println(s&quot;xa status: $s&quot;)))
-      .compile
-      .drain
-      .start
-      .flatMap(f =&gt; action.guarantee(f.cancel))
+  // Some test data
+  val pets = List(
+    Pet(&quot;Alice&quot;, 3),
+    Pet(&quot;Bob&quot;,  42),
+    Pet(&quot;Bob&quot;,  21),
+    Pet(&quot;Steve&quot;, 9)
+  )
 
+  // Our entry point
   def run(args: List[String]): IO[ExitCode] =
-    resource.use { case (s, pc) =&gt;
-      monitorTransactionStatus(s) {
-        for {
-          _  &lt;- pc.execute(Pet(&quot;Alice&quot;, 3))
-          _  &lt;- s.transaction.use { xa =&gt;
-            for {
-              _  &lt;- pc.execute(Pet(&quot;Bob&quot;, 42))
-              sp &lt;- xa.savepoint
-              _  &lt;- pc.execute(Pet(&quot;Bob&quot;, 21)).recoverWith {
-                case SqlState.UniqueViolation(ex) =&gt;
-                  IO(println(s&quot;Unique violation: ${ex.constraintName.getOrElse(&quot;&lt;unknown&gt;&quot;)}&quot;)) *&gt;
-                  xa.rollback(sp)
-              }
-              _  &lt;- pc.execute(Pet(&quot;Steve&quot;, 9))
-            } yield ()
-          }
-          ps &lt;- s.execute(selectAll)
-          _  &lt;- ps.traverse(p =&gt; IO(println(p)))
-        } yield ExitCode.Success
-      }
+    resource.use { ps =&gt;
+      for {
+        _   &lt;- ps.tryInsertAll(pets)
+        all &lt;- ps.selectAll
+        _   &lt;- all.traverse_(p =&gt; IO(println(p)))
+      } yield ExitCode.Success
     }
 
-  }
+}
 </code></pre>
 <p>Running this program yields the following.</p>
 <pre><code>xa status: Idle
 xa status: Active
-xa status: Active
+Trying to insert Pet(Alice,3)
+Trying to insert Pet(Bob,42)
+Trying to insert Pet(Bob,21)
 xa status: Failed
-Unique violation: pets_name_key
+Unique violation: pets_name_key, rolling back...
 xa status: Active
-xa status: Idle
+Trying to insert Pet(Steve,9)
 xa status: Idle
 Pet(Alice,3)
 Pet(Bob,42)
@@ -286,10 +321,11 @@ Pet(Steve,9)
 </code></pre>
 <h2><a href="#experiment" name="experiment" class="anchor"><span class="anchor-link"></span></a>Experiment</h2>
 <ul>
-  <li>PostgreSQL does not permit nested transactions. What happens if we try?</li>
+  <li>PostgreSQL does not permit nested transactions. What happens if you try?</li>
+  <li>What happens if you remove the error handler in <code>tryInsertAll</code>?</li>
 </ul>
 <div class="source-github">
-The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/v0.0.11/modules/docs/target/mdoc/tutorial/Transactions.md">here</a>.
+The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/master/modules/docs/target/mdoc/tutorial/Transactions.md">here</a>.
 </div>
 
 <div class="nav-next">
@@ -375,7 +411,7 @@ The source code for this page can be found <a href="https://github.com/tpolecat/
 <script type="text/javascript" src="../lib/prettify/prettify.js"></script>
 <script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
 <script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
-<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.11', 'https://github.com/tpolecat/skunk')});</script>
+<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.14', 'https://github.com/tpolecat/skunk')});</script>
 
 
 </html>

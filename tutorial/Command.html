@@ -31,7 +31,7 @@
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.0.11
+0.0.14
 </div>
 </div>
 <div class="nav-toc">
@@ -86,7 +86,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.0.11
+0.0.14
 </div>
 </div>
 <div class="nav-toc">
@@ -142,33 +142,23 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <p>First let&rsquo;s look at a command that sets the session&rsquo;s random number seed.</p>
 <pre class="prettyprint"><code class="language-scala">val a: Command[Void] =
   sql&quot;SET SEED TO 0.123&quot;.command
-// a: Command[Void] = Command(
-//   &quot;SET SEED TO 0.123&quot;,
-//   Origin(&quot;Command.md&quot;, 33),
-//   Codec()
-// )
 </code></pre>
 <p>Observe the following:</p>
 <ul>
-  <li>We are using the <a href="../reference/Fragments.html">sql interpolator</a> to construct a <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.0.11/skunk/Fragment.html" title="skunk.Fragment"><code>Fragment</code></a>, which we then turn into a <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.0.11/skunk/Command.html" title="skunk.Command"><code>Command</code></a> by calling the <code>command</code> method.</li>
+  <li>We are using the <a href="../reference/Fragments.html">sql interpolator</a> to construct a <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.0.14/skunk/Fragment.html" title="skunk.Fragment"><code>Fragment</code></a>, which we then turn into a <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.0.14/skunk/Command.html" title="skunk.Command"><code>Command</code></a> by calling the <code>command</code> method.</li>
   <li><code>Command</code> is parameterized by its input type. Because this command has no parameters the input type is <code>Void</code>.</li>
 </ul>
 <p>The command above is a <em>simple command</em>.</p><div class="callout note "><div class="callout-title">Definition</div>
 <p>A <em>simple command</em> is a command with no parameters.</p></div>
-<p>The same <a href="https://www.postgresql.org/docs/10/protocol-flow.html#id-1.10.5.7.4">protocol</a> that executes simple queries also executes simple commands. Such commands can be passed directly to <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.0.11/skunk/Session.html#execute" title="skunk.Session"><code>Session.execute</code></a>.</p>
+<p>The same <a href="https://www.postgresql.org/docs/10/protocol-flow.html#id-1.10.5.7.4">protocol</a> that executes simple queries also executes simple commands. Such commands can be passed directly to <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.0.14/skunk/Session.html#execute" title="skunk.Session"><code>Session.execute</code></a>.</p>
 <pre class="prettyprint"><code class="language-scala">// assume s: Session[IO]
 s.execute(a) // IO[Completion]
 </code></pre>
-<p>On success a command will yield a <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.0.11/skunk/data/Completion.html" title="skunk.data.Completion"><code>Completion</code></a>, which is an ADT that encodes responses from various commands. In this case our completion is simply the value <code>Completion.Set</code>.</p>
+<p>On success a command will yield a <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.0.14/skunk/data/Completion.html" title="skunk.data.Completion"><code>Completion</code></a>, which is an ADT that encodes responses from various commands. In this case our completion is simply the value <code>Completion.Set</code>.</p>
 <h2><a href="#parameterized-command" name="parameterized-command" class="anchor"><span class="anchor-link"></span></a>Parameterized Command</h2>
 <p>Now let&rsquo;s add a parameter to the command.</p>
 <pre class="prettyprint"><code class="language-scala">val c: Command[String] =
   sql&quot;DELETE FROM country WHERE name = $varchar&quot;.command
-// c: Command[String] = Command(
-//   &quot;DELETE FROM country WHERE name = $1&quot;,
-//   Origin(&quot;Command.md&quot;, 51),
-//   Codec(varchar)
-// )
 </code></pre>
 <p>Observe that we have interpolated a value called <code>varchar</code>, which has type <code>Encoder[String]</code>. This works the same way as with queries. See the previous chapter for more information about statement parameters.</p>
 <p>The command above is an <em>extended command</em>.</p><div class="callout note "><div class="callout-title">Definition</div>
@@ -199,15 +189,6 @@ val update2: Command[Info] =
     WHERE  code = ${bpchar(3)}
   &quot;&quot;&quot;.command                                          // Command[String ~ String]
      .contramap { case Info(code, hos) =&gt; code ~ hos } // Command[Info]
-// update2: Command[Info] = Command(
-//   &quot;&quot;&quot;
-//     UPDATE country
-//     SET    headofstate = $1
-//     WHERE  code = $2
-//   &quot;&quot;&quot;,
-//   Origin(&quot;Command.md&quot;, 89),
-//   Encoder(varchar, bpchar(3))
-// )
 </code></pre>
 <p>However in this case the mapping is entirely mechanical. Similar to <code>gmap</code> on query results, we can skip the boilerplate and <code>gcontramap</code> directly to an isomosphic case class.</p>
 <pre class="prettyprint"><code class="language-scala">val update3: Command[Info] =
@@ -217,15 +198,6 @@ val update2: Command[Info] =
     WHERE  code = ${bpchar(3)}
   &quot;&quot;&quot;.command          // Command[String ~ String]
      .gcontramap[Info] // Command[Info]
-// update3: Command[Info] = Command(
-//   &quot;&quot;&quot;
-//     UPDATE country
-//     SET    headofstate = $1
-//     WHERE  code = $2
-//   &quot;&quot;&quot;,
-//   Origin(&quot;Command.md&quot;, 101),
-//   Encoder(varchar, bpchar(3))
-// )
 </code></pre>
 <h2><a href="#list-parameters" name="list-parameters" class="anchor"><span class="anchor-link"></span></a>List Parameters</h2>
 <p>Sometimes we want to repeat a parameter, for instance if we&rsquo;re using an <code>IN</code> clause. Here is a command that takes a <code>List[String]</code> as an argument and turns it into a list of <code>varchar</code>. We must specify the length when constructing the statement.</p>
@@ -295,13 +267,54 @@ s.prepare(insertPairs).use { pc =&gt; pc.execute(pairs.drop(1)) }
   <li>you will be using the command more than once per session.</li>
 </ul>
 <h2><a href="#full-example" name="full-example" class="anchor"><span class="anchor-link"></span></a>Full Example</h2>
-<p>Here is a complete program listing that demonstrates our knowledge thus far.</p>
+<p>Here is a complete program listing that demonstrates our knowledge thus far, using the service pattern introduced earlier.</p>
 <pre class="prettyprint"><code class="language-scala">import cats.effect._
 import cats.implicits._
 import natchez.Trace.Implicits.noop
 import skunk._
 import skunk.codec.all._
 import skunk.implicits._
+
+// a data type
+case class Pet(name: String, age: Short)
+
+// a service interface
+trait PetService[F[_]] {
+  def insert(pet: Pet): F[Unit]
+  def insert(ps: List[Pet]): F[Unit]
+  def selectAll: F[List[Pet]]
+}
+
+// a companion with a constructor
+object PetService {
+
+  // command to insert a pet
+  private val insertOne: Command[Pet] =
+    sql&quot;INSERT INTO pets VALUES ($varchar, $int2)&quot;
+      .command
+      .gcontramap[Pet]
+
+  // command to insert a specific list of pets
+  private def insertMany(ps: List[Pet]): Command[ps.type] = {
+    val enc = (varchar ~ int2).gcontramap[Pet].values.list(ps)
+    sql&quot;INSERT INTO pets VALUES $enc&quot;.command
+  }
+
+  // query to select all pets
+  private val all: Query[Void, Pet] =
+    sql&quot;SELECT name, age FROM pets&quot;
+      .query(varchar ~ int2)
+      .gmap[Pet]
+
+  // construct a PetService
+  def fromSession[F[_]: Bracket[*[_], Throwable]](s: Session[F]): PetService[F] =
+    new PetService[F] {
+      def insert(pet: Pet): F[Unit] = s.prepare(insertOne).use(_.execute(pet)).void
+      def insert(ps: List[Pet]): F[Unit] = s.prepare(insertMany(ps)).use(_.execute(ps)).void
+      def selectAll: F[List[Pet]] = s.execute(all)
+    }
+
+}
 
 object CommandExample extends IOApp {
 
@@ -321,38 +334,17 @@ object CommandExample extends IOApp {
     Resource.make(alloc)(_ =&gt; free)
   }
 
-  // a data type
-  case class Pet(name: String, age: Short)
-
-  // command to insert a pet
-  val insertOne: Command[Pet] =
-    sql&quot;INSERT INTO pets VALUES ($varchar, $int2)&quot;
-      .command
-      .gcontramap[Pet]
-
-  // command to insert a specific list of pets
-  def insertMany(ps: List[Pet]): Command[ps.type] = {
-    val enc = (varchar ~ int2).gcontramap[Pet].values.list(ps)
-    sql&quot;INSERT INTO pets VALUES $enc&quot;.command
-  }
-
-  // query to select all pets
-  def selectAll: Query[Void, Pet] =
-    sql&quot;SELECT name, age FROM pets&quot;
-      .query(varchar ~ int2)
-      .gmap[Pet]
-
   // some sample data
   val bob     = Pet(&quot;Bob&quot;, 12)
-  val beatles = List(Pet(&quot;John&quot;, 2), Pet(&quot;George&quot;, 3), Pet(&quot;Paul&quot;, 6), Pet(&quot;Ringo&quot;, 3))
+  val beagles = List(Pet(&quot;John&quot;, 2), Pet(&quot;George&quot;, 3), Pet(&quot;Paul&quot;, 6), Pet(&quot;Ringo&quot;, 3))
 
   // our entry point
   def run(args: List[String]): IO[ExitCode] =
-    session.flatTap(withPetsTable).use { s =&gt;
+    session.flatTap(withPetsTable).map(PetService.fromSession(_)).use { s =&gt;
       for {
-        _  &lt;- s.prepare(insertOne).use(pc =&gt; pc.execute(Pet(&quot;Bob&quot;, 12)))
-        _  &lt;- s.prepare(insertMany(beatles)).use(pc =&gt; pc.execute(beatles))
-        ps &lt;- s.execute(selectAll)
+        _  &lt;- s.insert(Pet(&quot;Bob&quot;, 12))
+        _  &lt;- s.insert(beagles)
+        ps &lt;- s.selectAll
         _  &lt;- ps.traverse(p =&gt; IO(println(p)))
       } yield ExitCode.Success
     }
@@ -370,9 +362,10 @@ Pet(Ringo,3)
 <ul>
   <li>Change <code>insertMany</code> to pass an <code>Int</code> to <code>.list</code> and then pass a size other than the length of <code>beatles</code> and observe the error.</li>
   <li>Add a unique constraint on <code>name</code> in the DDL and then violate it by inserting two pets with the same name. Follow the hint in the error message to add an handler that recovers gracefully.</li>
+  <li>Change the service constructor to prepare the statements once on construction, rather than each time <code>insert</code> is called.</li>
 </ul>
 <div class="source-github">
-The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/v0.0.11/modules/docs/target/mdoc/tutorial/Command.md">here</a>.
+The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/master/modules/docs/target/mdoc/tutorial/Command.md">here</a>.
 </div>
 
 <div class="nav-next">
@@ -460,7 +453,7 @@ The source code for this page can be found <a href="https://github.com/tpolecat/
 <script type="text/javascript" src="../lib/prettify/prettify.js"></script>
 <script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
 <script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
-<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.11', 'https://github.com/tpolecat/skunk')});</script>
+<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.14', 'https://github.com/tpolecat/skunk')});</script>
 
 
 </html>
