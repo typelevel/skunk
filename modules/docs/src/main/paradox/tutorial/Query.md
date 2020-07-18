@@ -20,7 +20,7 @@ A *query* is a SQL statement that can return rows.
 
 First let's look at a query that selects a single column and decodes rows as Scala strings.
 
-```scala mdoc
+```scala mdoc:silent
 val a: Query[Void, String] =
   sql"SELECT name FROM country".query(varchar)
 ```
@@ -32,7 +32,7 @@ Observe the following:
 - The first type argument for our `Query` type is `Void`, which means this query has no parameters. The second type argument is `String`, which means we expect rows to be decoded as `String` values (via our `varchar` decoder).
 
 @@@ note
-Queries and Command types are usually inferrable, but specifying a type ensures that the chosen encoders and decoders are consistent with the expected input and output Scala types. For this reason (and for clarity) we will always use explicit type annotations in the documentation.
+Query and Command types are usually inferrable, but specifying a type ensures that the chosen encoders and decoders are consistent with the expected input and output Scala types. For this reason (and for clarity) we will always use explicit type annotations in the documentation.
 @@@
 
 The query above is a *simple query*.
@@ -60,18 +60,18 @@ s.execute(a) // IO[List[String]]
 
 Our next example selects two columns.
 
-```scala mdoc
+```scala mdoc:silent
 val b: Query[Void, String ~ Int] =
   sql"SELECT name, population FROM country".query(varchar ~ int4)
 ```
 
-Observe that the argument to `query` is a pair of decoders conjoined with the `~` operator, yielding a return type of `String ~ Int`, which is an alias for `(String, Int)`. See the section on @ref:[twiddle lists](../reference/TwiddleLists.md) for more information on this mechanism.
+Observe that the argument to `query` is a pair of decoders conjoined with the `~` operator, yielding a `Decoder[String ~ Int]`. Executing this query will yield a `List[String ~ Int]`, which is an alias for `List[(String, Int)]`. See the section on @ref:[twiddle lists](../reference/TwiddleLists.md) for more information on this mechanism.
 
 ### Mapping Query Results
 
-Decoding into a twiddle list isn't ideal, so let's define a `Country` data type. We can then call `map` on our query to adapt the row type.
+Decoding into a twiddle list (i.e., nested pairs) isn't ideal, so let's define a `Country` data type. We can then call `map` on our query to adapt the row type.
 
-```scala mdoc
+```scala mdoc:silent
 case class Country(name: String, population: Int)
 
 val c: Query[Void, Country] =
@@ -91,7 +91,7 @@ So that is one way to do it.
 
 A more reusable way to do this is to define a `Decoder[Country]` based on the `varchar ~ int4` decoder. We can then decode directly into our `Country` data type.
 
-```scala mdoc
+```scala mdoc:silent
 val country: Decoder[Country] =
   (varchar ~ int4).map { case (n, p) => Country(n, p) }     // (1)
 
@@ -104,25 +104,22 @@ Observe the following:
 - At ① we map the `varchar ~ int4` decoder directly to Scala type `Country`, yielding a `Decoder[Country]`.
 - At ② we use our `country` decoder directly, yielding a `Query[Void, Country]`.
 
-And again we can pass the query to @scaladoc[Session#execute](skunk.Session#execute).
-
-```scala mdoc:compile-only
-// assume s: Session[IO]
-s.execute(d) // IO[List[Country]]
-```
+@@@ note { title=Tip }
+Because decoders are structural (i.e., they rely only on the position of column values) it can become a maintenance issue when queries and their decoders become separated in code. Try to keep decoders close to the queries that use them.
+@@@
 
 ### Mapping Decoder Results Generically
 
 Because `Country` is a simple case class we can generate the mapping code mechanically. To do this, use `gmap` and specify the target data type.
 
-```scala mdoc
+```scala mdoc:silent
 val country2: Decoder[Country] =
   (varchar ~ int4).gmap[Country]
 ```
 
-Alternatively, instead of constructing a named decoder you can `gmap` the `Query` itself.
+Even better, instead of constructing a named decoder you can `gmap` the `Query` itself.
 
-```scala mdoc
+```scala mdoc:silent
 val c2: Query[Void, Country] =
   sql"SELECT name, population FROM country"
     .query(varchar ~ int4)
@@ -131,9 +128,9 @@ val c2: Query[Void, Country] =
 
 ## Parameterized Query
 
-Now let's add a parameter to the query. We'll also reformat the query to be more readable.
+Now let's add a parameter to the query.
 
-```scala mdoc
+```scala mdoc:silent
 val e: Query[String, Country] =
   sql"""
     SELECT name, population
@@ -147,7 +144,7 @@ Observe that we have interpolated a value called `varchar`, which has type `Enco
 This means that Postgres will expect an argument of type `varchar`, which will have Scala type `String`. The relationship between Postgres types and Scala types is summarized in the reference section @ref:[Schema Types](../reference/SchemaTypes.md).
 
 @@@ note
-We have already seen `varchar` used as a row *decoder* for `String` and now we're using it as an *encoder* for `String`. We can do this because `encoder` actually has type `Codec[String]`, which extends both `Encoder[String]` and `Decoder[String]`. All type mappings provided by Skunk are codecs and thus can be used in both positions.
+We have already seen `varchar` used as a row *decoder* for `String` and now we're using it as an *encoder* for `String`. We can do this because `encoder` actually has type `Codec[String]`, which extends both `Encoder[String]` and `Decoder[String]`. All type mappings provided by Skunk are codecs and can be used in both positions.
 @@@
 
 The query above is an *extended query*.
@@ -156,7 +153,7 @@ The query above is an *extended query*.
 An *extended query* is a query with parameters, or a simple query that is executed via the extended query protocol.
 @@@
 
-Postgres provides a [protocol](https://www.postgresql.org/docs/10/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY) for executing extended queries which is more involved than simple query protocol. It provides for prepared statements that can be reused with different sets of arguments, and provides cursors which allow results to be paged and streamed in constant space.
+Postgres provides a [protocol](https://www.postgresql.org/docs/10/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY) for executing extended queries which is more involved than simple query protocol. It provides for prepared statements that can be reused with different sets of arguments, and provides cursors which allow results to be paged and streamed.
 
 Here we use the extended query protocol to stream directly to the console using constant space.
 
@@ -170,7 +167,7 @@ s.prepare(e).use { ps =>
 } // IO[Unit]
 ```
 
-Observe that `prepare` returns a `Resource` that prepares the statement before use and then frees it on completion. Here we use @scaladoc[PreparedQuery#stream](skunk.PreparedQuery#stream) to pass our parameter `"U%"` and then create a stream that fetches rows in blocks of 64 and prints them to the console.
+Observe that `prepare` returns a `Resource` that prepares the statement before use and then frees it on completion. Here we use @scaladoc[PreparedQuery#stream](skunk.PreparedQuery#stream) to pass our parameter `"U%"` and then create an [fs2](http://fs2.io) stream that fetches rows in blocks of 64 and prints them to the console.
 
 Note that when using `Resource` and `Stream` together it is often convenient to express the entire program in terms of `Stream`.
 
@@ -201,7 +198,7 @@ This program does the same thing, but perhaps in a more convenient style.
 
 Multiple parameters work analogously to multiple columns.
 
-```scala mdoc
+```scala mdoc:silent
 val f: Query[String ~ Int, Country] =
   sql"""
     SELECT name, population
@@ -230,15 +227,20 @@ And we pass the value `"U%" ~ 2000000` as our statement argument.
 The *simple query protocol* (i.e., `Session#execute`) is slightly more efficient in terms of message exchange, so use it if:
 
 - Your query has no parameters; and
+
 - you are querying for a small number of rows; and
+
 - you will be using the query only once per session.
 
 
 The *extend query protocol* (i.e., `Session#prepare`) is more powerful and more general, but requires additional network exchanges. Use it if:
 
 - Your query has parameters; and/or
+
 - you are querying for a large or unknown number of rows; and/or
+
 - you intend to stream the results; and/or
+
 - you will be using the query more than once per session.
 
 ## Full Example
@@ -351,7 +353,7 @@ object Service {
       FROM   country
       WHERE  name like $text
     """.query(varchar ~ bpchar(3) ~ int4)
-      .gmap[Country]
+       .gmap[Country]
 
   def fromSession[F[_]: Applicative](s: Session[F]): Resource[F, Service[F]] =
     s.prepare(countries).map { pq =>
@@ -398,7 +400,7 @@ object QueryExample2 extends IOApp {
 }
 ```
 
-Running this program the same output as above.
+Running this program yields the same output as above.
 
 ```scala mdoc:passthrough
 println("```")
