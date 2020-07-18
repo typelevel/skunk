@@ -20,7 +20,7 @@ A *command* is a SQL statement that does not return rows.
 
 First let's look at a command that sets the session's random number seed.
 
-```scala mdoc
+```scala mdoc:silent
 val a: Command[Void] =
   sql"SET SEED TO 0.123".command
 ```
@@ -50,7 +50,7 @@ On success a command will yield a @scaladoc[Completion](skunk.data.Completion), 
 
 Now let's add a parameter to the command.
 
-```scala mdoc
+```scala mdoc:silent
 val c: Command[String] =
   sql"DELETE FROM country WHERE name = $varchar".command
 ```
@@ -89,7 +89,7 @@ s.prepare(c).use { pc =>
 
 Similar to `map`ping the _output_ of a Query, we can `contramap` the _input_ to a command or query. Here we provide a function that turns an `Info` into a `String ~ String`, yielding a `Command[Info]`.
 
-```scala mdoc
+```scala mdoc:silent
 case class Info(code: String, hos: String)
 
 val update2: Command[Info] =
@@ -103,7 +103,7 @@ val update2: Command[Info] =
 
 However in this case the mapping is entirely mechanical. Similar to `gmap` on query results, we can skip the boilerplate and `gcontramap` directly to an isomosphic case class.
 
-```scala mdoc
+```scala mdoc:silent
 val update3: Command[Info] =
   sql"""
     UPDATE country
@@ -179,7 +179,7 @@ The *extend command protocol* (i.e., `Session#prepare`) is more powerful and mor
 
 ## Full Example
 
-Here is a complete program listing that demonstrates our knowledge thus far.
+Here is a complete program listing that demonstrates our knowledge thus far, using the service pattern introduced earlier.
 
 ```scala mdoc:reset
 import cats.effect._
@@ -188,6 +188,47 @@ import natchez.Trace.Implicits.noop
 import skunk._
 import skunk.codec.all._
 import skunk.implicits._
+
+// a data type
+case class Pet(name: String, age: Short)
+
+// a service interface
+trait PetService[F[_]] {
+  def insert(pet: Pet): F[Unit]
+  def insert(ps: List[Pet]): F[Unit]
+  def selectAll: F[List[Pet]]
+}
+
+// a companion with a constructor
+object PetService {
+
+  // command to insert a pet
+  private val insertOne: Command[Pet] =
+    sql"INSERT INTO pets VALUES ($varchar, $int2)"
+      .command
+      .gcontramap[Pet]
+
+  // command to insert a specific list of pets
+  private def insertMany(ps: List[Pet]): Command[ps.type] = {
+    val enc = (varchar ~ int2).gcontramap[Pet].values.list(ps)
+    sql"INSERT INTO pets VALUES $enc".command
+  }
+
+  // query to select all pets
+  private val all: Query[Void, Pet] =
+    sql"SELECT name, age FROM pets"
+      .query(varchar ~ int2)
+      .gmap[Pet]
+
+  // construct a PetService
+  def fromSession[F[_]: Bracket[*[_], Throwable]](s: Session[F]): PetService[F] =
+    new PetService[F] {
+      def insert(pet: Pet): F[Unit] = s.prepare(insertOne).use(_.execute(pet)).void
+      def insert(ps: List[Pet]): F[Unit] = s.prepare(insertMany(ps)).use(_.execute(ps)).void
+      def selectAll: F[List[Pet]] = s.execute(all)
+    }
+
+}
 
 object CommandExample extends IOApp {
 
@@ -207,38 +248,17 @@ object CommandExample extends IOApp {
     Resource.make(alloc)(_ => free)
   }
 
-  // a data type
-  case class Pet(name: String, age: Short)
-
-  // command to insert a pet
-  val insertOne: Command[Pet] =
-    sql"INSERT INTO pets VALUES ($varchar, $int2)"
-      .command
-      .gcontramap[Pet]
-
-  // command to insert a specific list of pets
-  def insertMany(ps: List[Pet]): Command[ps.type] = {
-    val enc = (varchar ~ int2).gcontramap[Pet].values.list(ps)
-    sql"INSERT INTO pets VALUES $enc".command
-  }
-
-  // query to select all pets
-  def selectAll: Query[Void, Pet] =
-    sql"SELECT name, age FROM pets"
-      .query(varchar ~ int2)
-      .gmap[Pet]
-
   // some sample data
   val bob     = Pet("Bob", 12)
-  val beatles = List(Pet("John", 2), Pet("George", 3), Pet("Paul", 6), Pet("Ringo", 3))
+  val beagles = List(Pet("John", 2), Pet("George", 3), Pet("Paul", 6), Pet("Ringo", 3))
 
   // our entry point
   def run(args: List[String]): IO[ExitCode] =
-    session.flatTap(withPetsTable).use { s =>
+    session.flatTap(withPetsTable).map(PetService.fromSession(_)).use { s =>
       for {
-        _  <- s.prepare(insertOne).use(pc => pc.execute(Pet("Bob", 12)))
-        _  <- s.prepare(insertMany(beatles)).use(pc => pc.execute(beatles))
-        ps <- s.execute(selectAll)
+        _  <- s.insert(Pet("Bob", 12))
+        _  <- s.insert(beagles)
+        ps <- s.selectAll
         _  <- ps.traverse(p => IO(println(p)))
       } yield ExitCode.Success
     }
@@ -258,3 +278,4 @@ println("```")
 
 - Change `insertMany` to pass an `Int` to `.list` and then pass a size other than the length of `beatles` and observe the error.
 - Add a unique constraint on `name` in the DDL and then violate it by inserting two pets with the same name. Follow the hint in the error message to add an handler that recovers gracefully.
+- Change the service constructor to prepare the statements once on construction, rather than each time `insert` is called.

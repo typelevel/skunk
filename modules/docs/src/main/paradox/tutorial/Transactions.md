@@ -1,6 +1,6 @@
 # Transactions
 
-Skunk has rich support for transactions (and error-handling, which are closely related).
+Skunk has pretty good support for transactions (and error-handling, which are closely related).
 
 See [§3.4](https://www.postgresql.org/docs/10/tutorial-transactions.html) in the PostgreSQL documentation for an introduction to transactions. The text that follows assumes you have a working knowledge of the information in that section.
 
@@ -41,16 +41,65 @@ talk about savepoints
 Here is a complete program listing that demonstrates our knowledge thus far.
 
 ```scala mdoc:reset
-// Copyright (c) 2018-2020 by Rob Norris
-// This software is licensed under the MIT License (MIT).
-// For more information see LICENSE or https://opensource.org/licenses/MIT
-
 import cats.effect._
 import cats.implicits._
 import natchez.Trace.Implicits.noop
 import skunk._
 import skunk.codec.all._
 import skunk.implicits._
+
+// a data type
+case class Pet(name: String, age: Short)
+
+// a service interface
+trait PetService[F[_]] {
+  def tryInsertAll(pets: List[Pet]): F[Unit]
+  def selectAll: F[List[Pet]]
+}
+
+// a companion with a constructor
+object PetService {
+
+  // command to insert a pet
+  private val insertOne: Command[Pet] =
+    sql"INSERT INTO pets VALUES ($varchar, $int2)"
+      .command
+      .gcontramap[Pet]
+
+  // query to select all pets
+  private val all: Query[Void, Pet] =
+    sql"SELECT name, age FROM pets"
+      .query(varchar ~ int2)
+      .gmap[Pet]
+
+  // construct a PetService, preparing our statement once on construction
+  def fromSession[F[_]: Sync](s: Session[F]): Resource[F, PetService[F]] =
+    s.prepare(insertOne).map { pc =>
+      new PetService[F] {
+
+        // Attempt to insert each pet in turn, in a single transaction, rolling back to a savepoint
+        // if a unique violation is encountered. Note that a bulk insert with an ON CONFLICT clause
+        // would be much more efficient, this is just for demonstration.
+        def tryInsertAll(pets: List[Pet]): F[Unit] =
+          s.transaction.use { xa =>
+            pets.traverse_ { p =>
+              for {
+                _  <- Sync[F].delay(println(s"Trying to insert $p"))
+                sp <- xa.savepoint
+                _  <- pc.execute(p).recoverWith {
+                        case SqlState.UniqueViolation(ex) =>
+                          Sync[F].delay(println(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...")) *>
+                          xa.rollback(sp)
+                      }
+              } yield ()
+            }
+          }
+
+        def selectAll: F[List[Pet]] = s.execute(all)
+      }
+    }
+
+}
 
 object TransactionExample extends IOApp {
 
@@ -60,7 +109,7 @@ object TransactionExample extends IOApp {
       host     = "localhost",
       user     = "jimmy",
       database = "world",
-      password = Some("banana"),
+      password = Some("banana")
     )
 
   // a resource that creates and drops a temporary table
@@ -70,63 +119,47 @@ object TransactionExample extends IOApp {
     Resource.make(alloc)(_ => free)
   }
 
-  // a data type
-  case class Pet(name: String, age: Short)
+  // We can monitor the changing transaction status by tapping into the provided `fs2.Signal`
+  def transactionStatusLogger[A](ss: Session[IO]): Resource[IO, Unit] = {
+    val alloc: IO[Fiber[IO, Unit]] =
+      ss.transactionStatus
+        .discrete
+        .changes
+        .evalMap(s => IO(println(s"xa status: $s")))
+        .compile
+        .drain
+        .start
+    Resource.make(alloc)(_.cancel).void
+  }
 
-  // command to insert a pet
-  val insert: Command[Pet] =
-    sql"INSERT INTO pets VALUES ($varchar, $int2)"
-      .command
-      .gcontramap[Pet]
-
-  // query to select all pets
-  def selectAll: Query[Void, Pet] =
-    sql"SELECT name, age FROM pets"
-      .query(varchar ~ int2)
-      .gmap[Pet]
-
-  // A resource that yields a session and prepared command
-  def resource: Resource[IO, (Session[IO], PreparedCommand[IO, Pet])] =
+  // A resource that puts it all together.
+  val resource: Resource[IO, PetService[IO]] =
     for {
       s  <- session
       _  <- withPetsTable(s)
-      pc <- s.prepare(insert)
-    } yield (s, pc)
+      _  <- transactionStatusLogger(s)
+      ps <- PetService.fromSession(s)
+    } yield ps
 
-  // a combinator to monitor transaction status while we run an action
-  def monitorTransactionStatus[A](s: Session[IO])(action: IO[A]): IO[A] =
-     s.transactionStatus
-      .discrete
-      .evalMap(s => IO(println(s"xa status: $s")))
-      .compile
-      .drain
-      .start
-      .flatMap(f => action.guarantee(f.cancel))
+  // Some test data
+  val pets = List(
+    Pet("Alice", 3),
+    Pet("Bob",  42),
+    Pet("Bob",  21),
+    Pet("Steve", 9)
+  )
 
+  // Our entry point
   def run(args: List[String]): IO[ExitCode] =
-    resource.use { case (s, pc) =>
-      monitorTransactionStatus(s) {
-        for {
-          _  <- pc.execute(Pet("Alice", 3))
-          _  <- s.transaction.use { xa =>
-            for {
-              _  <- pc.execute(Pet("Bob", 42))
-              sp <- xa.savepoint
-              _  <- pc.execute(Pet("Bob", 21)).recoverWith {
-                case SqlState.UniqueViolation(ex) =>
-                  IO(println(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}")) *>
-                  xa.rollback(sp)
-              }
-              _  <- pc.execute(Pet("Steve", 9))
-            } yield ()
-          }
-          ps <- s.execute(selectAll)
-          _  <- ps.traverse(p => IO(println(p)))
-        } yield ExitCode.Success
-      }
+    resource.use { ps =>
+      for {
+        _   <- ps.tryInsertAll(pets)
+        all <- ps.selectAll
+        _   <- all.traverse_(p => IO(println(p)))
+      } yield ExitCode.Success
     }
 
-  }
+}
 ```
 
 Running this program yields the following.
@@ -139,4 +172,5 @@ println("```")
 
 ## Experiment
 
-- PostgreSQL does not permit nested transactions. What happens if we try?
+- PostgreSQL does not permit nested transactions. What happens if you try?
+- What happens if you remove the error handler in `tryInsertAll`?
