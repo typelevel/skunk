@@ -30,6 +30,7 @@ Skunk is published for Scala $scala-versions$ and can be included in your projec
 
 Prerequisites:
 
+- We assume you are comfortable with Postgres.
 - We assume you are comfortable with [cats](http://typelevel.org/cats/), [cats-effect](https://typelevel.org/cats-effect/), and [fs2](https://fs2.io).
 - If not, give it a try anyway! If you run into trouble the linked websites have many learning resources.
 
