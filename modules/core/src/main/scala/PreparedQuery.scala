@@ -8,7 +8,7 @@ import cats._
 import cats.arrow.Profunctor
 import cats.effect._
 import cats.implicits._
-import fs2.{ Chunk, Stream }
+import fs2.{ Chunk, Stream, Pipe }
 import skunk.exception.SkunkException
 import skunk.net.Protocol
 import skunk.util.{ CallSite, Origin }
@@ -44,6 +44,13 @@ trait PreparedQuery[F[_], A, B] {
    * Fetch and return exactly one row, raising an exception if there are more or fewer.
    */
   def unique(args: A)(implicit or: Origin): F[B]
+
+  /**
+   * A `Pipe` that executes this `PreparedQuery` for each input value, concatenating the resulting
+   * streams. See `stream` for details on the `chunkSize` parameter.
+   */
+  def pipe(chunkSize: Int)(implicit or: Origin): Pipe[F, A, B] =
+    _.flatMap(stream(_, chunkSize))
 
 }
 
