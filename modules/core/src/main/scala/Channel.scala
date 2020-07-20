@@ -8,7 +8,7 @@ import cats.{ Contravariant, Functor, ~> }
 import cats.arrow.Profunctor
 import cats.effect.Resource
 import cats.implicits._
-import fs2.Stream
+import fs2.{ Pipe, Stream }
 import skunk.data.{ Identifier, Notification }
 import skunk.net.Protocol
 import skunk.util.Origin
@@ -22,7 +22,7 @@ import skunk.util.Origin
  * @see [[https://www.postgresql.org/docs/10/static/sql-notify.html NOTIFY]]
  * @group Session
  */
-trait Channel[F[_], A, B] { outer =>
+trait Channel[F[_], A, B] extends Pipe[F, A, Unit] { outer =>
 
   /**
    * Construct a `Stream` that subscribes to notifications for this Channel, emits any notifications
@@ -36,7 +36,11 @@ trait Channel[F[_], A, B] { outer =>
    * @group Notifications
    * @see [[https://www.postgresql.org/docs/10/static/sql-listen.html LISTEN]]
    */
-  def listen(maxQueued: Int): Stream[F, B]
+  def listen(maxQueued: Int): Stream[F, Notification[B]]
+
+  /** This `Channel` acts as an fs2 `Pipe`. */
+  def apply(sa: Stream[F, A]): Stream[F,Unit] =
+    sa.evalMap(notify)
 
   /**
    * Send a notification on the given channel. Note that if the session is in an active transaction
@@ -68,7 +72,7 @@ trait Channel[F[_], A, B] { outer =>
    */
   def dimap[C, D](f: C => A)(g: B => D): Channel[F, C, D] =
     new Channel[F, C, D] {
-      def listen(maxQueued: Int): Stream[F, D] = outer.listen(maxQueued).map(g)
+      def listen(maxQueued: Int): Stream[F, Notification[D]] = outer.listen(maxQueued).map(_.map(g))
       def notify(message: C): F[Unit] = outer.notify(f(message))
     }
 
@@ -78,7 +82,7 @@ trait Channel[F[_], A, B] { outer =>
    */
   def mapK[G[_]](fk: F ~> G): Channel[G, A, B] =
     new Channel[G, A, B] {
-      def listen(maxQueued: Int): Stream[G, B] = outer.listen(maxQueued).translate(fk)
+      def listen(maxQueued: Int): Stream[G, Notification[B]] = outer.listen(maxQueued).translate(fk)
       def notify(message: A): G[Unit] = fk(outer.notify(message))
     }
 
@@ -92,8 +96,8 @@ object Channel {
    * normally a `Channel` is obtained from a `Session`).
    * @group Constructors
    */
-  def fromNameAndProtocol[F[_]: Functor](name: Identifier, proto: Protocol[F]): Channel[F, String, Notification] =
-    new Channel[F, String, Notification] {
+  def fromNameAndProtocol[F[_]: Functor](name: Identifier, proto: Protocol[F]): Channel[F, String, String] =
+    new Channel[F, String, String] {
 
     val listen: F[Unit] =
       proto.execute(Command(s"LISTEN ${name.value}", Origin.unknown, Void.codec)).void
@@ -101,7 +105,7 @@ object Channel {
     val unlisten: F[Unit] =
       proto.execute(Command(s"UNLISTEN ${name.value}", Origin.unknown, Void.codec)).void
 
-    def listen(maxQueued: Int): Stream[F, Notification] =
+    def listen(maxQueued: Int): Stream[F, Notification[String]] =
       for {
         _ <- Stream.resource(Resource.make(listen)(_ => unlisten))
         n <- proto.notifications(maxQueued).filter(_.channel === name)
