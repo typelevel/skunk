@@ -1,20 +1,70 @@
+```scala mdoc:invisible
+import cats.effect._
+import cats.implicits._
+import skunk._
+import skunk.implicits._
+import skunk.codec.all._
+import natchez.Trace.Implicits.noop
+import fs2.Stream
+val s: Session[IO] = null
+```
 # Transactions
 
 Skunk has pretty good support for transactions (and error-handling, which are closely related).
 
 See [§3.4](https://www.postgresql.org/docs/10/tutorial-transactions.html) in the PostgreSQL documentation for an introduction to transactions. The text that follows assumes you have a working knowledge of the information in that section.
 
-@@@ warning
-There is never more than one transaction in progress on a given session, and all operations on that session during the transaction's lifespan will take part in the transaction. It is recommended that sessions not be used concurrently in the presence of transactions.
+## Transaction Status
+
+Postgres connections are always in one of three transaction states.
+
+| Status | Comment |
+|-------|---------|
+| **Idle**    | There is no transaction in progress. |
+| **Active**  | A transaction is in progress and can proceed. |
+| **Error**   | An error has occurred. The transaction must be rolled back to a savepoint to continue; or must be rolled back entirely to terminate. |
+
+Because transaction status is a property of the session itself, all operations on that session during a transaction's lifespan will take part in the transaction. For this reason it is recommended that sessions not be used concurrently in the presence of transactions. See the chapter on @ref:[Concurrency](../reference/Concurrency.md) for more details.
+
+`Sesson`'s transaction status is available via its `transactionStatus` member (an fs2 `Signal`). The example below takes advantage of this facility.
+
+## Basic Usage Pattern
+
+Each session has a `transaction` resource that you can `use` to execute an action within a transaction.
+
+```scala
+// assume s:Session[IO]
+s.transaction.use { xa =>
+  // transactional action here
+}
+```
+
+The basic usage pattern is as follows.
+
+- Wrap an action with `transaction.use` to create a new action that runs transactionally.
+- If the action completes normally, the transaction will be committed.
+- If the action is cancelled (via `Fiber.cancel`) the transaction will be rolled back.
+- If the action raises an exception, the transaction will be rolled back and the exception will be re-raised.
+
+The `xa` parameter provided by `use` is a reference to the transaction itself, which can be ignored for the basic usage pattern.
+
+@@@warning
+If you perform non-database actions wihin a transaction (such as writing to a file or making an http post) these actions cannot be rolled back if the transaction fails. Best practice is to factor these things out and only perform them if the `use` block completes normally.
 @@@
 
+## Advanced Usage Pattern
 
+The advanced pattern uses the transaction reference `xa`, which provides the following actions:
 
-## A Simple Transaction
+| Action | Meaning |
+|---------|----|
+| `xa.status` | Yields the session's current `TransactionStatus`. |
+| `xa.commit` | Commits the transaction. |
+| `xa.rollback` | Rolls back the transaction in its entirety. |
+| `xa.savepoint` | Creates an `xa.Savepoint`. |
+| `xa.rollback(sp)` | Rolls back to a previously created `xa.Savepoint`, allowing the transaction to continue following an error. |
 
-... code example
-
-### Transaction Finalization
+Transaction finalization is more complex in the advanced case because you are able to commit and roll back explicitly. For this reason the finalizer consults the transaction status as well as the action's exit case to figure out what to do,
 
 If the `use` block exits normally there are three cases to consider, based on the session's transaction status on exit.
 
@@ -31,10 +81,6 @@ Transaction finalization is summarized in the following matrix.
 | **Idle**   | — | — | re-raise |
 | **Active** | commit | roll back | roll back, re-raise |
 | **Error**  | roll back | roll back | roll back, re-raise |
-
-## Savepoints
-
-talk about savepoints
 
 ## Full Example
 
@@ -77,9 +123,9 @@ object PetService {
     s.prepare(insertOne).map { pc =>
       new PetService[F] {
 
-        // Attempt to insert each pet in turn, in a single transaction, rolling back to a savepoint
-        // if a unique violation is encountered. Note that a bulk insert with an ON CONFLICT clause
-        // would be much more efficient, this is just for demonstration.
+        // Attempt to insert all pets, in a single transaction, handling each in turn and rolling
+        // back to a savepoint if a unique violation is encountered. Note that a bulk insert with an
+        // ON CONFLICT clause would be much more efficient, this is just for demonstration.
         def tryInsertAll(pets: List[Pet]): F[Unit] =
           s.transaction.use { xa =>
             pets.traverse_ { p =>
@@ -120,7 +166,7 @@ object TransactionExample extends IOApp {
   }
 
   // We can monitor the changing transaction status by tapping into the provided `fs2.Signal`
-  def transactionStatusLogger[A](ss: Session[IO]): Resource[IO, Unit] = {
+  def withTransactionStatusLogger[A](ss: Session[IO]): Resource[IO, Unit] = {
     val alloc: IO[Fiber[IO, Unit]] =
       ss.transactionStatus
         .discrete
@@ -137,7 +183,7 @@ object TransactionExample extends IOApp {
     for {
       s  <- session
       _  <- withPetsTable(s)
-      _  <- transactionStatusLogger(s)
+      _  <- withTransactionStatusLogger(s)
       ps <- PetService.fromSession(s)
     } yield ps
 
