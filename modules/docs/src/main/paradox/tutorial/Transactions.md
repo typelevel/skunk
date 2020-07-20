@@ -82,6 +82,10 @@ Transaction finalization is summarized in the following matrix.
 | **Active** | commit | roll back | roll back, re-raise |
 | **Error**  | roll back | roll back | roll back, re-raise |
 
+## Transaction Characteristics
+
+To specify a non-default isolation level (or other transaction characteristics) execute a [`SET TRANSACTION`](https://www.postgresql.org/docs/10/sql-set-transaction.html) command as the first operation inside your transaction. A future version of Skunk might make this more ergonomic.
+
 ## Full Example
 
 Here is a complete program listing that demonstrates our knowledge thus far.

@@ -5,6 +5,7 @@ import skunk._
 import skunk.implicits._
 import skunk.codec.all._
 import natchez.Trace.Implicits.noop
+import fs2.Stream
 val s: Session[IO] = null
 ```
 
@@ -83,6 +84,15 @@ If we're slighly more clever we can do this with `traverse` and return a list of
 s.prepare(c).use { pc =>
   List("xyzzy", "fnord", "blech").traverse(s => pc.execute(s))
 } // IO[List[Completion]]
+```
+
+And if we're yet more clever we can turn `pc` into an fs2 `Pipe`.
+
+```scala mdoc:compile-only
+// assume s: Session[IO]
+Stream.resource(s.prepare(c)).flatMap { pc =>
+  Stream("xyzzy", "fnord", "blech").through(pc.pipe)
+} // Stream[IO, Completion]
 ```
 
 ### Contramapping Commands

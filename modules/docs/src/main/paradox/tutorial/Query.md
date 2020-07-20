@@ -185,14 +185,15 @@ stream.compile.drain // IO[Unit]
 
 This program does the same thing, but perhaps in a more convenient style.
 
-@scaladoc[PreparedQuery](skunk.PreparedQuery) provides the following methods for execution. See the Scaladoc for more information.
+@scaladoc[PreparedQuery[A, B]](skunk.PreparedQuery) provides the following methods for execution. See the Scaladoc for more information.
 
 | Method    | Return Type                | Notes                                             |
 |-----------|----------------------------|---------------------------------------------------|
-| `stream`  | `Stream[F,A]`              | All results, as a stream.                         |
-| `option`  | `F[Option[A]]`             | Zero or one result, otherwise an error is raised. |
-| `unique`  | `F[A]`                     | Exactly one result, otherwise an error is raised. |
-| `cursor`  | `Resource[F,Cursor[F,A]]`  | A cursor that returns pages of results.           |
+| `stream`  | `Stream[F,B]`              | All results, as a stream.                         |
+| `option`  | `F[Option[B]]`             | Zero or one result, otherwise an error is raised. |
+| `unique`  | `F[B]`                     | Exactly one result, otherwise an error is raised. |
+| `cursor`  | `Resource[F,Cursor[F,B]]`  | A cursor that returns pages of results.           |
+| `pipe`    | `Pipe[F, A, B]`            | A pipe that executes the query for each input value, concatenating the results. |
 
 ## Multi-Parameter Query
 
