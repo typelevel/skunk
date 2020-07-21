@@ -8,7 +8,7 @@ import scodec.Decoder
 import scodec.codecs._
 import skunk.data.Notification
 
-case class NotificationResponse(value: Notification) extends BackendMessage
+case class NotificationResponse(value: Notification[String]) extends BackendMessage
 
 object NotificationResponse {
   final val Tag = 'A'

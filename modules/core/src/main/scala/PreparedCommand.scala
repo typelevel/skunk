@@ -9,6 +9,7 @@ import cats.effect.Bracket
 import skunk.data.Completion
 import skunk.net.Protocol
 import skunk.util.Origin
+import fs2.Pipe
 
 /**
  * A prepared command, valid for the life of its defining `Session`.
@@ -17,6 +18,13 @@ import skunk.util.Origin
 trait PreparedCommand[F[_], A] { outer =>
 
   def execute(args: A)(implicit origin: Origin): F[Completion]
+
+  /**
+   * A `Pipe` that executes this `PreparedCommand` for each input value, yielding a stream of
+   * `Completion`s.
+   */
+  def pipe(implicit origin: Origin): Pipe[F, A, Completion] =
+    _.evalMap(execute)
 
   /**
    * Transform this `PreparedCommand` by a given `FunctionK`.

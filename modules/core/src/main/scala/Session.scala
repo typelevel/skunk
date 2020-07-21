@@ -148,7 +148,7 @@ trait Session[F[_]] {
    * A named asynchronous channel that can be used for inter-process communication.
    * @group Channels
    */
-  def channel(name: Identifier): Channel[F, String, Notification]
+  def channel(name: Identifier): Channel[F, String, String]
 
   /**
    * Resource that wraps a transaction block. A transaction is begun before entering the `use`
@@ -335,7 +335,7 @@ object Session {
         override def execute(command: Command[Void]): F[Completion] =
           proto.execute(command)
 
-        override def channel(name: Identifier): Channel[F, String, Notification] =
+        override def channel(name: Identifier): Channel[F, String, String] =
           Channel.fromNameAndProtocol(name, proto)
 
         override def parameters: Signal[F, Map[String, String]] =
@@ -396,7 +396,7 @@ object Session {
     def mapK[G[_]: Applicative: Defer](fk: F ~> G): Session[G] =
       new Session[G] {
         override val typer: Typer = outer.typer
-        override def channel(name: Identifier): Channel[G,String,Notification] = outer.channel(name).mapK(fk)
+        override def channel(name: Identifier): Channel[G,String,String] = outer.channel(name).mapK(fk)
         override def execute(command: Command[Void]): G[Completion] = fk(outer.execute(command))
         override def execute[A](query: Query[Void,A]): G[List[A]] = fk(outer.execute(query))
         override def option[A](query: Query[Void,A]): G[Option[A]] = fk(outer.option(query))
