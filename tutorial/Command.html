@@ -31,7 +31,7 @@
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.0.14
+0.0.15
 </div>
 </div>
 <div class="nav-toc">
@@ -86,7 +86,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.0.14
+0.0.15
 </div>
 </div>
 <div class="nav-toc">
@@ -145,16 +145,16 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 </code></pre>
 <p>Observe the following:</p>
 <ul>
-  <li>We are using the <a href="../reference/Fragments.html">sql interpolator</a> to construct a <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.0.14/skunk/Fragment.html" title="skunk.Fragment"><code>Fragment</code></a>, which we then turn into a <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.0.14/skunk/Command.html" title="skunk.Command"><code>Command</code></a> by calling the <code>command</code> method.</li>
+  <li>We are using the <a href="../reference/Fragments.html">sql interpolator</a> to construct a <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.0.15/skunk/Fragment.html" title="skunk.Fragment"><code>Fragment</code></a>, which we then turn into a <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.0.15/skunk/Command.html" title="skunk.Command"><code>Command</code></a> by calling the <code>command</code> method.</li>
   <li><code>Command</code> is parameterized by its input type. Because this command has no parameters the input type is <code>Void</code>.</li>
 </ul>
 <p>The command above is a <em>simple command</em>.</p><div class="callout note "><div class="callout-title">Definition</div>
 <p>A <em>simple command</em> is a command with no parameters.</p></div>
-<p>The same <a href="https://www.postgresql.org/docs/10/protocol-flow.html#id-1.10.5.7.4">protocol</a> that executes simple queries also executes simple commands. Such commands can be passed directly to <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.0.14/skunk/Session.html#execute" title="skunk.Session"><code>Session.execute</code></a>.</p>
+<p>The same <a href="https://www.postgresql.org/docs/10/protocol-flow.html#id-1.10.5.7.4">protocol</a> that executes simple queries also executes simple commands. Such commands can be passed directly to <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.0.15/skunk/Session.html#execute" title="skunk.Session"><code>Session.execute</code></a>.</p>
 <pre class="prettyprint"><code class="language-scala">// assume s: Session[IO]
 s.execute(a) // IO[Completion]
 </code></pre>
-<p>On success a command will yield a <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.0.14/skunk/data/Completion.html" title="skunk.data.Completion"><code>Completion</code></a>, which is an ADT that encodes responses from various commands. In this case our completion is simply the value <code>Completion.Set</code>.</p>
+<p>On success a command will yield a <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.0.15/skunk/data/Completion.html" title="skunk.data.Completion"><code>Completion</code></a>, which is an ADT that encodes responses from various commands. In this case our completion is simply the value <code>Completion.Set</code>.</p>
 <h2><a href="#parameterized-command" name="parameterized-command" class="anchor"><span class="anchor-link"></span></a>Parameterized Command</h2>
 <p>Now let&rsquo;s add a parameter to the command.</p>
 <pre class="prettyprint"><code class="language-scala">val c: Command[String] =
@@ -177,6 +177,12 @@ s.prepare(c).use { pc =&gt;
 s.prepare(c).use { pc =&gt;
   List(&quot;xyzzy&quot;, &quot;fnord&quot;, &quot;blech&quot;).traverse(s =&gt; pc.execute(s))
 } // IO[List[Completion]]
+</code></pre>
+<p>And if we&rsquo;re yet more clever we can turn <code>pc</code> into an fs2 <code>Pipe</code>.</p>
+<pre class="prettyprint"><code class="language-scala">// assume s: Session[IO]
+Stream.resource(s.prepare(c)).flatMap { pc =&gt;
+  Stream(&quot;xyzzy&quot;, &quot;fnord&quot;, &quot;blech&quot;).through(pc.pipe)
+} // Stream[IO, Completion]
 </code></pre>
 <h3><a href="#contramapping-commands" name="contramapping-commands" class="anchor"><span class="anchor-link"></span></a>Contramapping Commands</h3>
 <p>Similar to <code>map</code>ping the <em>output</em> of a Query, we can <code>contramap</code> the <em>input</em> to a command or query. Here we provide a function that turns an <code>Info</code> into a <code>String ~ String</code>, yielding a <code>Command[Info]</code>.</p>
@@ -207,7 +213,7 @@ val update2: Command[Info] =
 val delete3 = deleteMany(3) // takes a list of size 3
 // delete3: Command[List[String]] = Command(
 //   &quot;DELETE FROM country WHERE name IN ($1, $2, $3)&quot;,
-//   Origin(&quot;Command.md&quot;, 113),
+//   Origin(&quot;Command.md&quot;, 129),
 //   Encoder(varchar, varchar, varchar)
 // )
 </code></pre>
@@ -220,7 +226,7 @@ val delete3 = deleteMany(3) // takes a list of size 3
 val insert3 = insertMany(3)
 // insert3: Command[List[(String, Short)]] = Command(
 //   &quot;INSERT INTO pets VALUES ($1, $2), ($3, $4), ($5, $6)&quot;,
-//   Origin(&quot;Command.md&quot;, 124),
+//   Origin(&quot;Command.md&quot;, 140),
 //   Encoder(varchar, int2, varchar, int2, varchar, int2)
 // )
 </code></pre>
@@ -237,7 +243,7 @@ val pairs = List[(String, Short)]((&quot;Bob&quot;, 3), (&quot;Alice&quot;, 6))
 val insertPairs = insertExactly(pairs)
 // insertPairs: Command[pairs.type] = Command(
 //   &quot;INSERT INTO pets VALUES ($1, $2), ($3, $4)&quot;,
-//   Origin(&quot;Command.md&quot;, 136),
+//   Origin(&quot;Command.md&quot;, 152),
 //   Encoder(varchar, int2, varchar, int2)
 // )
 </code></pre>
@@ -365,7 +371,7 @@ Pet(Ringo,3)
   <li>Change the service constructor to prepare the statements once on construction, rather than each time <code>insert</code> is called.</li>
 </ul>
 <div class="source-github">
-The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/master/modules/docs/target/mdoc/tutorial/Command.md">here</a>.
+The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/v0.0.15/modules/docs/target/mdoc/tutorial/Command.md">here</a>.
 </div>
 
 <div class="nav-next">
@@ -453,7 +459,7 @@ The source code for this page can be found <a href="https://github.com/tpolecat/
 <script type="text/javascript" src="../lib/prettify/prettify.js"></script>
 <script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
 <script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
-<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.14', 'https://github.com/tpolecat/skunk')});</script>
+<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.15', 'https://github.com/tpolecat/skunk')});</script>
 
 
 </html>

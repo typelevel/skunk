@@ -31,7 +31,7 @@
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.0.14
+0.0.15
 </div>
 </div>
 <div class="nav-toc">
@@ -86,7 +86,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.0.14
+0.0.15
 </div>
 </div>
 <div class="nav-toc">
@@ -137,11 +137,82 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <div class="small-12 large-9 column" id="docs">
 <h1><a href="#transactions" name="transactions" class="anchor"><span class="anchor-link"></span></a>Transactions</h1>
 <p>Skunk has pretty good support for transactions (and error-handling, which are closely related).</p>
-<p>See <a href="https://www.postgresql.org/docs/10/tutorial-transactions.html">§3.4</a> in the PostgreSQL documentation for an introduction to transactions. The text that follows assumes you have a working knowledge of the information in that section.</p><div class="callout warning "><div class="callout-title">Warning</div>
-<p>There is never more than one transaction in progress on a given session, and all operations on that session during the transaction&rsquo;s lifespan will take part in the transaction. It is recommended that sessions not be used concurrently in the presence of transactions.</p></div>
-<h2><a href="#a-simple-transaction" name="a-simple-transaction" class="anchor"><span class="anchor-link"></span></a>A Simple Transaction</h2>
-<p>&hellip; code example</p>
-<h3><a href="#transaction-finalization" name="transaction-finalization" class="anchor"><span class="anchor-link"></span></a>Transaction Finalization</h3>
+<p>See <a href="https://www.postgresql.org/docs/10/tutorial-transactions.html">§3.4</a> in the PostgreSQL documentation for an introduction to transactions. The text that follows assumes you have a working knowledge of the information in that section.</p>
+<h2><a href="#transaction-status" name="transaction-status" class="anchor"><span class="anchor-link"></span></a>Transaction Status</h2>
+<p>Postgres connections are always in one of three transaction states.</p>
+<table>
+  <thead>
+    <tr>
+      <th>Status </th>
+      <th>Comment </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Idle</strong> </td>
+      <td>There is no transaction in progress. </td>
+    </tr>
+    <tr>
+      <td><strong>Active</strong> </td>
+      <td>A transaction is in progress and can proceed. </td>
+    </tr>
+    <tr>
+      <td><strong>Error</strong> </td>
+      <td>An error has occurred. The transaction must be rolled back to a savepoint to continue; or must be rolled back entirely to terminate. </td>
+    </tr>
+  </tbody>
+</table>
+<p>Because transaction status is a property of the session itself, all operations on that session during a transaction&rsquo;s lifespan will take part in the transaction. For this reason it is recommended that sessions not be used concurrently in the presence of transactions. See the chapter on <a href="../reference/Concurrency.html">Concurrency</a> for more details.</p>
+<p><code>Sesson</code>&rsquo;s transaction status is available via its <code>transactionStatus</code> member (an fs2 <code>Signal</code>). The example below takes advantage of this facility.</p>
+<h2><a href="#basic-usage-pattern" name="basic-usage-pattern" class="anchor"><span class="anchor-link"></span></a>Basic Usage Pattern</h2>
+<p>Each session has a <code>transaction</code> resource that you can <code>use</code> to execute an action within a transaction.</p>
+<pre class="prettyprint"><code class="language-scala">// assume s:Session[IO]
+s.transaction.use { xa =&gt;
+  // transactional action here
+}
+</code></pre>
+<p>The basic usage pattern is as follows.</p>
+<ul>
+  <li>Wrap an action with <code>transaction.use</code> to create a new action that runs transactionally.</li>
+  <li>If the action completes normally, the transaction will be committed.</li>
+  <li>If the action is cancelled (via <code>Fiber.cancel</code>) the transaction will be rolled back.</li>
+  <li>If the action raises an exception, the transaction will be rolled back and the exception will be re-raised.</li>
+</ul>
+<p>The <code>xa</code> parameter provided by <code>use</code> is a reference to the transaction itself, which can be ignored for the basic usage pattern.</p><div class="callout warning "><div class="callout-title">Warning</div>
+<p>If you perform non-database actions wihin a transaction (such as writing to a file or making an http post) these actions cannot be rolled back if the transaction fails. Best practice is to factor these things out and only perform them if the <code>use</code> block completes normally.</p></div>
+<h2><a href="#advanced-usage-pattern" name="advanced-usage-pattern" class="anchor"><span class="anchor-link"></span></a>Advanced Usage Pattern</h2>
+<p>The advanced pattern uses the transaction reference <code>xa</code>, which provides the following actions:</p>
+<table>
+  <thead>
+    <tr>
+      <th>Action </th>
+      <th>Meaning </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>xa.status</code> </td>
+      <td>Yields the session&rsquo;s current <code>TransactionStatus</code>. </td>
+    </tr>
+    <tr>
+      <td><code>xa.commit</code> </td>
+      <td>Commits the transaction. </td>
+    </tr>
+    <tr>
+      <td><code>xa.rollback</code> </td>
+      <td>Rolls back the transaction in its entirety. </td>
+    </tr>
+    <tr>
+      <td><code>xa.savepoint</code> </td>
+      <td>Creates an <code>xa.Savepoint</code>. </td>
+    </tr>
+    <tr>
+      <td><code>xa.rollback(sp)</code> </td>
+      <td>Rolls back to a previously created <code>xa.Savepoint</code>, allowing the transaction to continue following an error. </td>
+    </tr>
+  </tbody>
+</table>
+<p>Transaction finalization is more complex in the advanced case because you are able to commit and roll back explicitly. For this reason the finalizer consults the transaction status as well as the action&rsquo;s exit case to figure out what to do,</p>
 <p>If the <code>use</code> block exits normally there are three cases to consider, based on the session&rsquo;s transaction status on exit.</p>
 <ul>
   <li><strong>Active</strong> means all went well and the transaction will be committed. This is the typical success case.</li>
@@ -180,8 +251,8 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     </tr>
   </tbody>
 </table>
-<h2><a href="#savepoints" name="savepoints" class="anchor"><span class="anchor-link"></span></a>Savepoints</h2>
-<p>talk about savepoints</p>
+<h2><a href="#transaction-characteristics" name="transaction-characteristics" class="anchor"><span class="anchor-link"></span></a>Transaction Characteristics</h2>
+<p>To specify a non-default isolation level (or other transaction characteristics) execute a <a href="https://www.postgresql.org/docs/10/sql-set-transaction.html"><code>SET TRANSACTION</code></a> command as the first operation inside your transaction. A future version of Skunk might make this more ergonomic.</p>
 <h2><a href="#full-example" name="full-example" class="anchor"><span class="anchor-link"></span></a>Full Example</h2>
 <p>Here is a complete program listing that demonstrates our knowledge thus far.</p>
 <pre class="prettyprint"><code class="language-scala">import cats.effect._
@@ -220,9 +291,9 @@ object PetService {
     s.prepare(insertOne).map { pc =&gt;
       new PetService[F] {
 
-        // Attempt to insert each pet in turn, in a single transaction, rolling back to a savepoint
-        // if a unique violation is encountered. Note that a bulk insert with an ON CONFLICT clause
-        // would be much more efficient, this is just for demonstration.
+        // Attempt to insert all pets, in a single transaction, handling each in turn and rolling
+        // back to a savepoint if a unique violation is encountered. Note that a bulk insert with an
+        // ON CONFLICT clause would be much more efficient, this is just for demonstration.
         def tryInsertAll(pets: List[Pet]): F[Unit] =
           s.transaction.use { xa =&gt;
             pets.traverse_ { p =&gt;
@@ -263,7 +334,7 @@ object TransactionExample extends IOApp {
   }
 
   // We can monitor the changing transaction status by tapping into the provided `fs2.Signal`
-  def transactionStatusLogger[A](ss: Session[IO]): Resource[IO, Unit] = {
+  def withTransactionStatusLogger[A](ss: Session[IO]): Resource[IO, Unit] = {
     val alloc: IO[Fiber[IO, Unit]] =
       ss.transactionStatus
         .discrete
@@ -280,7 +351,7 @@ object TransactionExample extends IOApp {
     for {
       s  &lt;- session
       _  &lt;- withPetsTable(s)
-      _  &lt;- transactionStatusLogger(s)
+      _  &lt;- withTransactionStatusLogger(s)
       ps &lt;- PetService.fromSession(s)
     } yield ps
 
@@ -325,7 +396,7 @@ Pet(Steve,9)
   <li>What happens if you remove the error handler in <code>tryInsertAll</code>?</li>
 </ul>
 <div class="source-github">
-The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/master/modules/docs/target/mdoc/tutorial/Transactions.md">here</a>.
+The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/v0.0.15/modules/docs/target/mdoc/tutorial/Transactions.md">here</a>.
 </div>
 
 <div class="nav-next">
@@ -340,8 +411,10 @@ The source code for this page can be found <a href="https://github.com/tpolecat/
 <ul>
   <li><a href="../tutorial/Transactions.html#transactions" class="header">Transactions</a>
   <ul>
-    <li><a href="../tutorial/Transactions.html#a-simple-transaction" class="header">A Simple Transaction</a></li>
-    <li><a href="../tutorial/Transactions.html#savepoints" class="header">Savepoints</a></li>
+    <li><a href="../tutorial/Transactions.html#transaction-status" class="header">Transaction Status</a></li>
+    <li><a href="../tutorial/Transactions.html#basic-usage-pattern" class="header">Basic Usage Pattern</a></li>
+    <li><a href="../tutorial/Transactions.html#advanced-usage-pattern" class="header">Advanced Usage Pattern</a></li>
+    <li><a href="../tutorial/Transactions.html#transaction-characteristics" class="header">Transaction Characteristics</a></li>
     <li><a href="../tutorial/Transactions.html#full-example" class="header">Full Example</a></li>
     <li><a href="../tutorial/Transactions.html#experiment" class="header">Experiment</a></li>
   </ul></li>
@@ -411,7 +484,7 @@ The source code for this page can be found <a href="https://github.com/tpolecat/
 <script type="text/javascript" src="../lib/prettify/prettify.js"></script>
 <script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
 <script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
-<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.14', 'https://github.com/tpolecat/skunk')});</script>
+<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.15', 'https://github.com/tpolecat/skunk')});</script>
 
 
 </html>
