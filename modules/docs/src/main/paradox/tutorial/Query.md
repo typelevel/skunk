@@ -144,7 +144,7 @@ Observe that we have interpolated a value called `varchar`, which has type `Enco
 This means that Postgres will expect an argument of type `varchar`, which will have Scala type `String`. The relationship between Postgres types and Scala types is summarized in the reference section @ref:[Schema Types](../reference/SchemaTypes.md).
 
 @@@ note
-We have already seen `varchar` used as a row *decoder* for `String` and now we're using it as an *encoder* for `String`. We can do this because `encoder` actually has type `Codec[String]`, which extends both `Encoder[String]` and `Decoder[String]`. All type mappings provided by Skunk are codecs and can be used in both positions.
+We have already seen `varchar` used as a row *decoder* for `String` and now we're using it as an *encoder* for `String`. We can do this because `varchar` actually has type `Codec[String]`, which extends both `Encoder[String]` and `Decoder[String]`. All type mappings provided by Skunk are codecs and can be used in both positions.
 @@@
 
 The query above is an *extended query*.
