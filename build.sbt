@@ -80,7 +80,7 @@ lazy val core = project
       "org.scodec"    %% "scodec-core"  % "1.11.7",
       "org.scodec"    %% "scodec-cats"  % "1.0.0",
       "com.beachape"  %% "enumeratum"   % "1.6.1",
-      "org.tpolecat"  %% "natchez-core" % "0.0.11",
+      "org.tpolecat"  %% "natchez-core" % "0.0.12",
     )
   )
 
@@ -131,8 +131,8 @@ lazy val example = project
   .settings(
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.11",
-      "org.tpolecat"  %% "natchez-jaeger"      % "0.0.11",
+      "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.12",
+      "org.tpolecat"  %% "natchez-jaeger"      % "0.0.12",
       "org.http4s"    %% "http4s-dsl"          % "0.21.6",
       "org.http4s"    %% "http4s-blaze-server" % "0.21.6",
       "org.http4s"    %% "http4s-circe"        % "0.21.6",
@@ -171,6 +171,6 @@ lazy val docs = project
     makeSite := makeSite.dependsOn(mdoc.toTask("")).value,
     mdocExtraArguments := Seq("--no-link-hygiene"), // paradox handles this
     libraryDependencies ++= Seq(
-      "org.tpolecat"  %% "natchez-jaeger"      % "0.0.11",
+      "org.tpolecat"  %% "natchez-jaeger"      % "0.0.12",
     ),
 )
