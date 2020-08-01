@@ -27,6 +27,21 @@ trait Decoder[A] { outer =>
       override val types: List[Type] = outer.types
     }
 
+  /** Map decoded results to a new type `B` or an error, yielding a `Decoder[B]`. */
+  def emap[B](f: A => Either[String, B]): Decoder[B] =
+    new Decoder[B] {
+      override def decode(offset: Int, ss: List[Option[String]]): Either[Decoder.Error, B] =
+        outer.decode(offset, ss).flatMap(f(_).leftMap(Decoder.Error(offset, length, _)))
+      override val types: List[Type] = outer.types
+    }
+
+  /**
+   * An equivalent decoder that filters results, failing with a generic error message when the
+   * filter condition is not met. For a custom error message use `emap`.
+   */
+  def filter[B](f: A => Boolean): Decoder[A] =
+    emap(a => Either.cond(f(a), a, "Filter condition failed."))
+
   /** Adapt this `Decoder` from twiddle-list type A to isomorphic case-class type `B`. */
   def gmap[B](implicit ev: Twiddler.Aux[B, A]): Decoder[B] =
     map(ev.from)
