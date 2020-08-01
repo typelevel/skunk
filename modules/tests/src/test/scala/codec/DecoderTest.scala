@@ -63,4 +63,18 @@ case object DecoderTest extends SkunkTest {
     }
   }
 
+  test("int4.filter (ok)") {
+    int4.filter(_ > 0).decode(1, List(Some("1"))) match {
+      case Left(err) => fail(s"expected success, got $err")
+      case Right(n)  => assertEqual("one", n, 1)
+    }
+  }
+
+  test("int4.filter (fail)") {
+    int4.filter(_ > 0).decode(1, List(Some("-1"))) match {
+      case Left(err) => assertEqual("error", err, Decoder.Error(1, 1, "Filter condition failed.", None))
+      case Right(n)  => fail(s"Expected failure, got $n")
+    }
+  }
+
 }
