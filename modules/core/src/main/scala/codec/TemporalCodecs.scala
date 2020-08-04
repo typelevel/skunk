@@ -18,6 +18,7 @@ import skunk.data.Type
 import java.time.temporal.TemporalAccessor
 import java.time.format.DateTimeFormatterBuilder
 import java.time.Duration
+import java.util.Locale
 
 trait TemporalCodecs {
 
@@ -49,7 +50,7 @@ trait TemporalCodecs {
         .optionalEnd
     }
 
-    requiredPart.toFormatter
+    requiredPart.toFormatter(Locale.US)
 
   }
 
@@ -62,7 +63,7 @@ trait TemporalCodecs {
       .appendValue(MONTH_OF_YEAR, 2)
       .appendLiteral('-')
       .appendValue(DAY_OF_MONTH, 2)
-      .toFormatter
+      .toFormatter(Locale.US)
 
   private val eraFormatter: DateTimeFormatter =
     DateTimeFormatter.ofPattern(" G")
@@ -71,7 +72,7 @@ trait TemporalCodecs {
     new DateTimeFormatterBuilder()
       .append(localDateFormatterWithoutEra)
       .appendOptional(eraFormatter)
-      .toFormatter
+      .toFormatter(Locale.US)
 
   private def localDateTimeFormatter(precision: Int): DateTimeFormatter =
     new DateTimeFormatterBuilder()
@@ -79,7 +80,7 @@ trait TemporalCodecs {
       .appendLiteral(' ')
       .append(timeFormatter(precision))
       .appendOptional(eraFormatter)
-      .toFormatter
+      .toFormatter(Locale.US)
 
   // If the offset is only hours, postgres will return time like this: "12:40:50+13"
   // We need to provide a custom offset format to parse this with DateTimeFormatter
@@ -87,7 +88,7 @@ trait TemporalCodecs {
     new DateTimeFormatterBuilder()
       .append(timeFormatter(precision))
       .appendOffset("+HH:mm", "")
-      .toFormatter
+      .toFormatter(Locale.US)
 
   private def offsetDateTimeFormatter(precision: Int): DateTimeFormatter =
     new DateTimeFormatterBuilder()
@@ -96,7 +97,7 @@ trait TemporalCodecs {
       .append(timeFormatter(precision))
       .appendOffset("+HH:mm", "")
       .appendOptional(eraFormatter)
-      .toFormatter
+      .toFormatter(Locale.US)
 
   val date: Codec[LocalDate] =
     temporal(localDateFormatter, LocalDate.parse, Type.date)
