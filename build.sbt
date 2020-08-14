@@ -1,6 +1,6 @@
 
 // This is used in a couple places
-lazy val fs2Version = "2.4.2"
+lazy val fs2Version = "2.5.0-SNAPSHOT"
 
 // Global Settings
 lazy val commonSettings = Seq(

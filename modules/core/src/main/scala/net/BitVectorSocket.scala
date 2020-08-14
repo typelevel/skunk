@@ -51,7 +51,7 @@ object BitVectorSocket {
           case None => ev.raiseError(new Exception("Fatal: EOF"))
           case Some(c) =>
             if (c.size == n) c.toArray.pure[F]
-            else ev.raiseError(new Exception(s"Fatal: EOF before $n bytes could be read."))
+            else ev.raiseError(new Exception(s"Fatal: Read ${c.size} bytes, expected $n."))
         }
 
       override def read(nBytes: Int): F[BitVector] =
