@@ -19,6 +19,10 @@ import skunk.net.Protocol
 import skunk.util._
 import skunk.util.Typer.Strategy.{ BuiltinsOnly, SearchPath }
 import skunk.net.SSLNegotiation
+import skunk.data.TransactionIsolationLevel
+import skunk.data.TransactionAccessMode
+import skunk.data.TransactionIsolationLevel.ReadCommitted
+import skunk.data.TransactionAccessMode.ReadWrite
 
 /**
  * Represents a live connection to a Postgres database. Operations provided here are safe to use
@@ -166,6 +170,15 @@ trait Session[F[_]] {
    * @group Transactions
    */
   def transaction[A]: Resource[F, Transaction[F]]
+
+
+  /**
+    * Resource that wraps a transaction block.
+    * It has the ability to specify a non-default isolation level and access mode.
+    * @see Session#transaction for more information
+    * @group Transactions
+    */
+  def transaction[A](isolationLevel: TransactionIsolationLevel, accessMode: TransactionAccessMode): Resource[F, Transaction[F]]
 
   def typer: Typer
 
@@ -371,7 +384,10 @@ object Session {
           proto.prepare(command, typer).map(PreparedCommand.fromProto(_))
 
         override def transaction[A]: Resource[F, Transaction[F]] =
-          Transaction.fromSession(this, namer)
+          Transaction.fromSession(this, namer, ReadCommitted, ReadWrite)
+
+        override def transaction[A](isolationLevel: TransactionIsolationLevel, accessMode: TransactionAccessMode): Resource[F, Transaction[F]] =
+          Transaction.fromSession(this, namer, isolationLevel, accessMode)
 
       }
     }
@@ -395,18 +411,34 @@ object Session {
      */
     def mapK[G[_]: Applicative: Defer](fk: F ~> G): Session[G] =
       new Session[G] {
+
         override val typer: Typer = outer.typer
+
         override def channel(name: Identifier): Channel[G,String,String] = outer.channel(name).mapK(fk)
+
         override def execute(command: Command[Void]): G[Completion] = fk(outer.execute(command))
+
         override def execute[A](query: Query[Void,A]): G[List[A]] = fk(outer.execute(query))
+
         override def option[A](query: Query[Void,A]): G[Option[A]] = fk(outer.option(query))
+
         override def parameter(key: String): Stream[G,String] = outer.parameter(key).translate(fk)
+
         override def parameters: Signal[G,Map[String,String]] = outer.parameters.mapK(fk)
+
         override def prepare[A, B](query: Query[A,B]): Resource[G,PreparedQuery[G,A,B]] = outer.prepare(query).mapK(fk).map(_.mapK(fk))
+
         override def prepare[A](command: Command[A]): Resource[G,PreparedCommand[G,A]] = outer.prepare(command).mapK(fk).map(_.mapK(fk))
+
         override def transaction[A]: Resource[G,Transaction[G]] = outer.transaction[A].mapK(fk).map(_.mapK(fk))
+
+        override def transaction[A](isolationLevel: TransactionIsolationLevel, accessMode: TransactionAccessMode): Resource[G,Transaction[G]] =
+          outer.transaction[A](isolationLevel, accessMode).mapK(fk).map(_.mapK(fk))
+
         override def transactionStatus: Signal[G,TransactionStatus] = outer.transactionStatus.mapK(fk)
+
         override def unique[A](query: Query[Void,A]): G[A] = fk(outer.unique(query))
+
       }
   }
 
