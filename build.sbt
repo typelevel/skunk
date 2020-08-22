@@ -1,6 +1,6 @@
 
 // This is used in a couple places
-lazy val fs2Version = "2.5.0-SNAPSHOT"
+lazy val fs2Version = "2.4.4"
 
 // Global Settings
 lazy val commonSettings = Seq(
@@ -74,7 +74,7 @@ lazy val core = project
     resolvers   +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core"    % "2.1.1",
-      "org.typelevel" %% "cats-effect"  % "2.1.3",
+      "org.typelevel" %% "cats-effect"  % "2.1.4",
       "co.fs2"        %% "fs2-core"     % fs2Version,
       "co.fs2"        %% "fs2-io"       % fs2Version,
       "org.scodec"    %% "scodec-core"  % "1.11.7",
@@ -133,9 +133,9 @@ lazy val example = project
     libraryDependencies ++= Seq(
       "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.12",
       "org.tpolecat"  %% "natchez-jaeger"      % "0.0.12",
-      "org.http4s"    %% "http4s-dsl"          % "0.21.6",
-      "org.http4s"    %% "http4s-blaze-server" % "0.21.6",
-      "org.http4s"    %% "http4s-circe"        % "0.21.6",
+      "org.http4s"    %% "http4s-dsl"          % "0.21.7",
+      "org.http4s"    %% "http4s-blaze-server" % "0.21.7",
+      "org.http4s"    %% "http4s-circe"        % "0.21.7",
       "io.circe"      %% "circe-generic"       % "0.13.0",
     )
   )
