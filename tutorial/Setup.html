@@ -31,7 +31,7 @@
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.0.15
+0.0.18
 </div>
 </div>
 <div class="nav-toc">
@@ -86,7 +86,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.0.15
+0.0.18
 </div>
 </div>
 <div class="nav-toc">
@@ -143,12 +143,12 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 </code></pre>
 <p>If you wish to use your own Postgres server you can download <code>world/world.sql</code> from the Skunk repository and load it up yourself.</p>
 <h2><a href="#scala-setup" name="scala-setup" class="anchor"><span class="anchor-link"></span></a>Scala Setup</h2>
-<p>Create a new project with Skunk as a dependency.</p><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">libraryDependencies += "org.tpolecat" %% "skunk-core" % "0.0.15"</code></pre></dd><dt>Maven</dt><dd><pre class="prettyprint"><code class="language-xml">&lt;dependency&gt;
+<p>Create a new project with Skunk as a dependency.</p><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">libraryDependencies += "org.tpolecat" %% "skunk-core" % "0.0.18"</code></pre></dd><dt>Maven</dt><dd><pre class="prettyprint"><code class="language-xml">&lt;dependency&gt;
   &lt;groupId&gt;org.tpolecat&lt;/groupId&gt;
   &lt;artifactId&gt;skunk-core_2.13&lt;/artifactId&gt;
-  &lt;version&gt;0.0.15&lt;/version&gt;
+  &lt;version&gt;0.0.18&lt;/version&gt;
 &lt;/dependency&gt;</code></pre></dd><dt>Gradle</dt><dd><pre class="prettyprint"><code class="language-gradle">dependencies {
-  compile group: 'org.tpolecat', name: 'skunk-core_2.13', version: '0.0.15'
+  compile group: 'org.tpolecat', name: 'skunk-core_2.13', version: '0.0.18'
 }</code></pre></dd></dl>
 <h2><a href="#verify-your-setup" name="verify-your-setup" class="anchor"><span class="anchor-link"></span></a>Verify Your Setup</h2>
 <p>Try out this minimal <a href="https://typelevel.org/cats-effect/datatypes/ioapp.html">IOApp</a> that connects to the database and selects the current date.</p>
@@ -187,7 +187,7 @@ object Hello extends IOApp {
   <li>At ④ we use the <a href="../reference/Fragments.html">sql interpolator</a> to construct a <code>Query</code> that selects a single column of schema type <code>date</code> (yielding <code>d</code>, a value of type <code>java.time.LocalDate</code>), then we ask the session to execute it, expecting a <em>unique</em> value back; i.e., exactly one row.</li>
 </ul>
 <p>When we run the program we see the current date.</p>
-<pre><code>The current date is 2020-07-21.
+<pre><code>The current date is 2020-08-23.
 </code></pre>
 <h2><a href="#experiment" name="experiment" class="anchor"><span class="anchor-link"></span></a>Experiment</h2>
 <p>Here are some modifications that will cause runtime failures. Give them a try and see how Skunk responds.</p>
@@ -197,9 +197,13 @@ object Hello extends IOApp {
   <li>Change the decoder from <code>date</code> to another type like <code>timestamp</code>.</li>
 </ul>
 <p>We will see more examples later in the tutorial.</p>
+<script type="text/javascript" src="../js/link_fix.js"></script>
+
 <div class="source-github">
-The source code for this page can be found <a href="https://github.com/tpolecat/skunk/tree/v0.0.15/modules/docs/target/mdoc/tutorial/Setup.md">here</a>.
+The source code for this page can be found <a id="source-link" href="https://github.com/tpolecat/skunk/tree/v0.0.18/modules/docs/target/mdoc/tutorial/Setup.md">here</a>.
 </div>
+
+<script type="text/javascript">jQuery(function(){sourceUrlFix('https://github.com/tpolecat/skunk/tree/v0.0.18/modules/docs/target/mdoc/tutorial/Setup.md')});</script>
 
 <div class="nav-next">
 <p><strong>Next:</strong> <a href="../tutorial/Query.html">Queries</a></p>
@@ -284,7 +288,7 @@ The source code for this page can be found <a href="https://github.com/tpolecat/
 <script type="text/javascript" src="../lib/prettify/prettify.js"></script>
 <script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
 <script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
-<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.15', 'https://github.com/tpolecat/skunk')});</script>
+<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.18', 'https://github.com/tpolecat/skunk')});</script>
 
 
 </html>
