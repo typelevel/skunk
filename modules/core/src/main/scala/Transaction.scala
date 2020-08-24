@@ -90,8 +90,8 @@ object Transaction {
     s: Session[F],
     n: Namer[F],
     // o: Origin // origin of the call to .begin
-    i: TransactionIsolationLevel,
-    a: TransactionAccessMode
+    iOp: Option[TransactionIsolationLevel],
+    aOp: Option[TransactionAccessMode]
   ): Resource[F, Transaction[F]] = {
 
     def assertIdle(cs: CallSite): F[Unit] =
@@ -150,8 +150,8 @@ object Transaction {
       assertIdle(CallSite("begin", Origin.unknown)) *>
       s.execute(
         internal"""BEGIN
-                   ISOLATION LEVEL ${TransactionIsolationLevel.toLiteral(i)}
-                    ${TransactionAccessMode.toLiteral(a)}""".command
+                  ${iOp.map(i => s"ISOLATION LEVEL ${i.sql}").getOrElse("")}
+                  ${aOp.map(_.sql).getOrElse("")}""".command
       ).map { _ =>
         new Transaction[F] {
 

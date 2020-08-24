@@ -21,8 +21,6 @@ import skunk.util.Typer.Strategy.{ BuiltinsOnly, SearchPath }
 import skunk.net.SSLNegotiation
 import skunk.data.TransactionIsolationLevel
 import skunk.data.TransactionAccessMode
-import skunk.data.TransactionIsolationLevel.ReadCommitted
-import skunk.data.TransactionAccessMode.ReadWrite
 
 /**
  * Represents a live connection to a Postgres database. Operations provided here are safe to use
@@ -384,10 +382,10 @@ object Session {
           proto.prepare(command, typer).map(PreparedCommand.fromProto(_))
 
         override def transaction[A]: Resource[F, Transaction[F]] =
-          Transaction.fromSession(this, namer, ReadCommitted, ReadWrite)
+          Transaction.fromSession(this, namer, none, none)
 
         override def transaction[A](isolationLevel: TransactionIsolationLevel, accessMode: TransactionAccessMode): Resource[F, Transaction[F]] =
-          Transaction.fromSession(this, namer, isolationLevel, accessMode)
+          Transaction.fromSession(this, namer, isolationLevel.some, accessMode.some)
 
       }
     }

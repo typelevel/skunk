@@ -5,17 +5,11 @@
 package skunk.data
 
 /** Enumerated type of transaction access mode values. */
-sealed abstract class TransactionAccessMode extends Product with Serializable
+sealed abstract class TransactionAccessMode(private[skunk] val sql: String) extends Product with Serializable
 object TransactionAccessMode {
 
-  case object ReadOnly extends TransactionAccessMode
+  case object ReadOnly extends TransactionAccessMode("READ ONLY")
 
-  case object ReadWrite extends TransactionAccessMode
-
-  def toLiteral(accessMode: TransactionAccessMode): String =
-    accessMode match {
-      case TransactionAccessMode.ReadWrite => "READ WRITE"
-      case TransactionAccessMode.ReadOnly => "READ ONLY"
-    }
-
+  case object ReadWrite extends TransactionAccessMode("READ WRITE")
+ 
 }

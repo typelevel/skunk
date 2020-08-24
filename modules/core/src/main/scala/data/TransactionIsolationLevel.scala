@@ -5,23 +5,15 @@
 package skunk.data
 
 /** Enumerated type of transaction isolation level values. */
-sealed abstract class TransactionIsolationLevel extends Product with Serializable
+sealed abstract class TransactionIsolationLevel(private[skunk] val sql: String) extends Product with Serializable
 object TransactionIsolationLevel {
 
-  case object Serializable extends TransactionIsolationLevel
+  case object Serializable extends TransactionIsolationLevel("SERIALIZABLE")
 
-  case object RepeatableRead extends TransactionIsolationLevel
+  case object RepeatableRead extends TransactionIsolationLevel("REPEATABLE READ")
 
-  case object ReadCommitted extends TransactionIsolationLevel
+  case object ReadCommitted extends TransactionIsolationLevel("READ COMMITTED")
 
-  case object ReadUncommitted extends TransactionIsolationLevel
-
-  def toLiteral(isolationLevel: TransactionIsolationLevel): String =
-    isolationLevel match {
-      case TransactionIsolationLevel.Serializable => "SERIALIZABLE"
-      case TransactionIsolationLevel.RepeatableRead => "REPEATABLE READ"
-      case TransactionIsolationLevel.ReadCommitted => "READ COMMITTED"
-      case TransactionIsolationLevel.ReadUncommitted => "READ UNCOMMITTED"
-    }
+  case object ReadUncommitted extends TransactionIsolationLevel("READ UNCOMMITTED")
 
 }
