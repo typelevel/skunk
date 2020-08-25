@@ -19,7 +19,7 @@ final case class Fragment[A](
   parts:   List[Either[String, State[Int, String]]],
   encoder: Encoder[A],
   origin:  Origin
-) {
+) extends (A => AppliedFragment) {
 
   lazy val sql: String =
     parts.traverse {
@@ -41,6 +41,9 @@ final case class Fragment[A](
 
   def ~[B](fb: Fragment[B]): Fragment[A ~ B] =
     product(fb)
+
+  def apply(a: A): AppliedFragment =
+    AppliedFragment(this, a)
 
   override def toString: String =
     s"Fragment($sql, $encoder)"
