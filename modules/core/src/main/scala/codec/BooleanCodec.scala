@@ -6,6 +6,8 @@ package skunk
 package codec
 
 import skunk.data.Type
+import skunk.data.TrueBooleanRepresentation
+import skunk.data.FalseBooleanRepresentation
 
 trait BooleanCodec {
 
@@ -19,6 +21,18 @@ trait BooleanCodec {
       },
       Type.bool
     )
+
+  def bool(trueRepresentation: TrueBooleanRepresentation, falseRepresentation: FalseBooleanRepresentation): Codec[Boolean] = {
+    Codec.simple(
+      b => if (b) trueRepresentation.sql else falseRepresentation.sql,
+      {
+        case "t" => Right(true)
+        case "f" => Right(false)
+        case s   => Left(s"Expected 't' or 'f', got $s")
+      },
+      Type.bool
+    )
+  }
 
 }
 
