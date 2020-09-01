@@ -150,8 +150,8 @@ object Transaction {
       assertIdle(CallSite("begin", Origin.unknown)) *>
       s.execute(
         internal"""BEGIN
-                  ${iOp.map(i => s"ISOLATION LEVEL ${i.sql}").getOrElse("")}
-                  ${aOp.map(_.sql).getOrElse("")}""".command
+                  ${iOp.foldMap(i => s"ISOLATION LEVEL ${i.sql}")}
+                  ${aOp.foldMap(_.sql)}""".command
       ).map { _ =>
         new Transaction[F] {
 
