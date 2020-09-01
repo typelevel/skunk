@@ -39,10 +39,11 @@ bin/
 # Mill
 out/
 
-# Bloop/Metals
+# Bloop/Metals/vscode
 .bloop/
 .metals/
-project/metals.sbt
+.vscode/
+metals.sbt
 
 # Transient workspace
 modules/docs/src/main/scala/
