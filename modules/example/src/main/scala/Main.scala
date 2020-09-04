@@ -8,7 +8,7 @@ import skunk._
 import skunk.codec.all._
 import skunk.implicits._
 import cats.effect._
-import cats.implicits._
+import cats.syntax.all._
 import fs2._
 import natchez.Trace.Implicits.noop
 

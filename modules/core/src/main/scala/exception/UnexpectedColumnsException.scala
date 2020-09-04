@@ -3,8 +3,6 @@
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
 package skunk.exception
-
-import cats.implicits._
 import skunk.Command
 import skunk.util.Text
 import skunk.data.TypedRowDescription

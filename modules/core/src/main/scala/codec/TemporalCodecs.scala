@@ -5,7 +5,7 @@
 package skunk
 package codec
 
-import cats.implicits._
+import cats.syntax.all._
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 import java.time.LocalDate

@@ -6,7 +6,6 @@ package example
 
 import cats._
 import cats.effect._
-import cats.implicits._
 import fs2._
 import skunk._
 import skunk.implicits._

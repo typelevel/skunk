@@ -8,7 +8,7 @@ import cats._
 import cats.effect.Resource
 import cats.effect.ExitCase
 import cats.effect.ExitCase._
-import cats.implicits._
+import cats.syntax.all._
 import skunk.implicits._
 import skunk.data.Completion
 import skunk.data.TransactionStatus._

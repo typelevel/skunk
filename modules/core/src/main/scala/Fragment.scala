@@ -6,7 +6,7 @@ package skunk
 
 import cats.ContravariantSemigroupal
 import cats.data.State
-import cats.implicits._
+import cats.syntax.all._
 import skunk.util.Origin
 
 /**

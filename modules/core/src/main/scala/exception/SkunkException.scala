@@ -4,7 +4,7 @@
 
 package skunk.exception
 
-import cats.implicits._
+import cats.syntax.all._
 import skunk.data.Type
 import skunk.Query
 import skunk.util.{ CallSite, Origin, Pretty }

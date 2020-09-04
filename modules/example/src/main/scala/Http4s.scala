@@ -6,7 +6,7 @@ package example
 
 import cats._
 import cats.effect._
-import cats.implicits._
+import cats.syntax.all._
 import fs2.Stream
 import io.circe.Encoder
 import io.circe.generic.semiauto.deriveEncoder

@@ -6,7 +6,7 @@ package skunk
 
 import skunk.data.Type
 import cats.data.State
-import cats.implicits._
+import cats.syntax.all._
 import cats.Eq
 
 /**

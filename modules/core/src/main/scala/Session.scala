@@ -6,7 +6,7 @@ package skunk
 
 import cats._
 import cats.effect._
-import cats.implicits._
+import cats.syntax.all._
 import fs2.concurrent.Signal
 import fs2.io.tcp.SocketGroup
 import fs2.Pipe

@@ -9,7 +9,7 @@ import cats.effect.concurrent.Deferred
 import cats.effect.concurrent.Ref
 import cats.effect.implicits._
 import cats.effect.Resource
-import cats.implicits._
+import cats.syntax.all._
 import skunk.exception.SkunkException
 import natchez.Trace
 

@@ -7,7 +7,7 @@ package skunk
 import cats._
 import cats.arrow.Profunctor
 import cats.effect._
-import cats.implicits._
+import cats.syntax.all._
 import fs2.{ Chunk, Stream, Pipe }
 import skunk.exception.SkunkException
 import skunk.net.Protocol

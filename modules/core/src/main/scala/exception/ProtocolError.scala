@@ -4,7 +4,7 @@
 
 package skunk.exception
 
-import cats.implicits._
+import cats.syntax.all._
 import skunk.net.message.BackendMessage
 import skunk.util.Origin
 import skunk.util.Pretty

@@ -4,7 +4,7 @@
 
 package skunk.net
 
-import cats.implicits._
+import cats.syntax.all._
 import cats.Semigroup
 import scodec.{ Attempt, Codec => SCodec, Err }
 import scodec.bits._
