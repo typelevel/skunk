@@ -74,7 +74,7 @@ lazy val core = project
     resolvers   +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core"    % "2.1.1",
-      "org.typelevel" %% "cats-effect"  % "2.1.4",
+      "org.typelevel" %% "cats-effect"  % "2.2.0",
       "co.fs2"        %% "fs2-core"     % fs2Version,
       "co.fs2"        %% "fs2-io"       % fs2Version,
       "org.scodec"    %% "scodec-core"  % "1.11.7",
