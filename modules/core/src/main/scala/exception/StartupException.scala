@@ -3,6 +3,8 @@
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
 package skunk.exception
+
+import cats.syntax.foldable._
 import skunk.util.Text
 
 class StartupException private[skunk] (

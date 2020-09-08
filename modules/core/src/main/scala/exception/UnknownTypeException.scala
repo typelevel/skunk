@@ -3,6 +3,8 @@
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
 package skunk.exception
+
+import cats.syntax.foldable._
 import skunk.net.message.RowDescription
 import skunk.util.Text
 import skunk.data.Type
