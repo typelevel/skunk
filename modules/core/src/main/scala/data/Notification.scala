@@ -6,7 +6,7 @@ package skunk
 package data
 
 import cats._
-import cats.implicits._
+import cats.syntax.all._
 
 final case class Notification[A](pid: Int, channel: Identifier, value: A) {
   def map[B](f: A => B): Notification[B] = copy(value = f(value))

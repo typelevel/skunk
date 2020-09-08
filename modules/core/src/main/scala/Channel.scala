@@ -7,7 +7,7 @@ package skunk
 import cats.{ Contravariant, Functor, ~> }
 import cats.arrow.Profunctor
 import cats.effect.Resource
-import cats.implicits._
+import cats.syntax.all._
 import fs2.{ Pipe, Stream }
 import skunk.data.{ Identifier, Notification }
 import skunk.net.Protocol

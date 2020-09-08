@@ -6,7 +6,7 @@ package skunk.net
 
 import cats._
 import cats.effect._
-import cats.implicits._
+import cats.syntax.all._
 import fs2.Chunk
 import fs2.io.tcp.Socket
 import scala.concurrent.duration.FiniteDuration

@@ -6,7 +6,7 @@ package tests
 
 import skunk.Void
 import cats.effect.IO
-import cats.implicits._
+import cats.syntax.all._
 import skunk.codec.all._
 import skunk.exception._
 import skunk.implicits._

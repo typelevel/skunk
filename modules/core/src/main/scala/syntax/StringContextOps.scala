@@ -6,7 +6,7 @@ package skunk
 package syntax
 
 import cats.data.State
-import cats.implicits._
+import cats.syntax.all._
 import scala.language.experimental.macros
 import scala.reflect.macros.whitebox
 import skunk.data.Identifier

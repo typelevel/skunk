@@ -4,7 +4,7 @@
 
 package skunk.net.protocol
 
-import cats.implicits._
+import cats.syntax.all._
 import cats.MonadError
 import skunk.~
 import skunk.data.Completion

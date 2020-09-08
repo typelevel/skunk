@@ -8,7 +8,7 @@ import fs2.io.tls.TLSContext
 import fs2.io.tls.TLSParameters
 import cats._
 import cats.effect._
-import cats.implicits._
+import cats.syntax.all._
 import fs2.io.tcp._
 import scala.concurrent.duration._
 import fs2.Chunk

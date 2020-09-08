@@ -5,7 +5,7 @@
 package skunk
 package circe.codec
 
-import cats.implicits._
+import cats.syntax.all._
 import io.circe.{ Json, Encoder => CEncoder, Decoder => CDecoder }
 import io.circe.parser.parse
 import skunk.data.Type
