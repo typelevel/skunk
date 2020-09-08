@@ -29,6 +29,7 @@ sealed trait AppliedFragment { outer =>
 
 object AppliedFragment {
 
+  /** Construct an `AppliedFragment` from a `Fragment` and its argument. */
   def apply[A](fragment: Fragment[A], argument: A): AppliedFragment = {
     // dum dee dum
     type A0 = A
@@ -41,9 +42,11 @@ object AppliedFragment {
     }
   }
 
+  /** The empty `AppliedFragment`. */
   lazy val empty: AppliedFragment =
     AppliedFragment(Fragment.empty, Void)
 
+  /** `AppliedFragment` is a monoid. */
   implicit val MonoidAppFragment: Monoid[AppliedFragment] =
     new Monoid[AppliedFragment] {
       def combine(x: AppliedFragment, y: AppliedFragment): AppliedFragment = x |+| y

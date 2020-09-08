@@ -20,11 +20,13 @@ class StringContextOps private[skunk](sc: StringContext) {
   def id(): Identifier =
     macro StringContextOps.StringOpsMacros.identifier_impl
 
+  /** Construct a constant `Fragment` with no interpolated values. */
   def const()(implicit or: Origin): Fragment[Void] =
     Fragment(sc.parts.toList.map(Left(_)), Void.codec, or)
 
+  /** Construct a constant `AppliedFragment` with no interpolated values. */
   def void()(implicit or: Origin): AppliedFragment =
-    Fragment(sc.parts.toList.map(Left(_)), Void.codec, or)(Void)
+    const()(or)(Void)
 
   private[skunk] def internal(literals: String*): Fragment[Void] = {
     val chunks = sc.parts.zipAll(literals, "", "").flatMap { case (a, b) => List(a.asLeft, b.asLeft) }
