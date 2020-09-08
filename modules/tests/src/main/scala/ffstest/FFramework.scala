@@ -23,6 +23,9 @@ trait FTest {
   implicit val ioTimer: Timer[IO] = IO.timer(ec)
 
   def test[A](name: String)(f: IO[A]): Unit = tests = tests :+ ((name, f))
+
+  def pureTest(name: String)(f: => Boolean): Unit = test(name)(assert(name, f))
+
   def fail[A](msg: String): IO[A] = IO.raiseError(new AssertionError(msg))
   def fail[A](msg: String, cause: Throwable): IO[A] = IO.raiseError(new AssertionError(msg, cause))
   def assert(msg: => String, b: => Boolean): IO[Unit] = if (b) IO.pure(()) else fail(msg)
