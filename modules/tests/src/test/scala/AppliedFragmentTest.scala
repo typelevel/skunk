@@ -4,7 +4,7 @@
 
 package tests
 
-import cats.syntax.eq._
+import cats.syntax.all._
 import skunk.implicits._
 import skunk.codec.all._
 import skunk._
@@ -18,8 +18,8 @@ case object AppliedFragmentTest extends ffstest.FTest {
     val a = sql"a1 $int4 a2".apply(42)
     val b = sql"b1 $bool b2".apply(true)
     val c = sql"c1 $varchar c2".apply("foo")
-    val af1 = ((a |+| b) |+| c)
-    val af2 = (a |+| (b |+| c))
+    val af1 = ((a combine b) combine c)
+    val af2 = (a combine (b combine c))
     af1.fragment.sql === af2.fragment.sql
 
   }
@@ -27,7 +27,7 @@ case object AppliedFragmentTest extends ffstest.FTest {
   pureTest("left identity") {
     val a = sql"a1 $int4 a2".apply(42)
     val af1 = a
-    val af2 = AppliedFragment.empty |+| a
+    val af2 = AppliedFragment.empty combine a
     af1.fragment.sql === af2.fragment.sql
   }
 
