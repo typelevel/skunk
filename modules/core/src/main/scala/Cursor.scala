@@ -5,7 +5,7 @@
 package skunk
 
 import cats.{ Functor, ~> }
-import cats.implicits._
+import cats.syntax.all._
 
 /**
  * An open cursor from which rows can be fetched, valid during the lifetime its defining `Session`.

@@ -3,8 +3,6 @@
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
 package tests.issue
-
-import cats.implicits._
 import ffstest.FTest
 import java.util.Locale
 import java.time.LocalDateTime

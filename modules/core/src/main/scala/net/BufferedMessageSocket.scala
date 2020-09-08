@@ -8,7 +8,7 @@ import cats._
 import cats.effect.{ Sync => _, _ }
 import cats.effect.concurrent._
 import cats.effect.implicits._
-import cats.implicits._
+import cats.syntax.all._
 import fs2.concurrent._
 import fs2.Stream
 import skunk.data._

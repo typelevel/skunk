@@ -5,7 +5,7 @@
 package skunk.net.protocol
 
 import cats.MonadError
-import cats.implicits._
+import cats.syntax.all._
 import skunk.net.MessageSocket
 import skunk.net.message._
 import skunk.exception.StartupException

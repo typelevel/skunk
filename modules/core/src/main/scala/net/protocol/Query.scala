@@ -5,7 +5,7 @@
 package skunk.net.protocol
 
 import cats.MonadError
-import cats.implicits._
+import cats.syntax.all._
 import skunk.{ Command, Void }
 import skunk.data.Completion
 import skunk.exception._

@@ -5,7 +5,7 @@
 package tests
 package simulation
 
-import cats.implicits._
+import cats.syntax.all._
 import skunk.exception.PostgresErrorException
 import skunk.exception.UnsupportedAuthenticationSchemeException
 import skunk.net.message._

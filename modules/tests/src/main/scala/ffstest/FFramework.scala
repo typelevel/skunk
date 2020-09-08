@@ -6,7 +6,7 @@ package ffstest
 
 import cats.Eq
 import cats.effect._
-import cats.implicits._
+import cats.syntax.all._
 import sbt.testing.{ Framework, _ }
 import sbt.testing.Status._
 import scala.concurrent.ExecutionContext

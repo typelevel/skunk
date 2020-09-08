@@ -6,7 +6,7 @@ package skunk.util
 
 import cats.effect.Sync
 import cats.effect.concurrent.Ref
-import cats.implicits._
+import cats.syntax.all._
 
 trait Namer[F[_]] {
   def nextName(prefix: String): F[String]

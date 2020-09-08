@@ -5,7 +5,7 @@
 package skunk.exception
 
 import cats.data.Ior
-import cats.implicits._
+import cats.syntax.all._
 import skunk.Query
 import skunk.data.`Type`
 import skunk.util.Text

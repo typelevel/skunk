@@ -5,7 +5,7 @@
 package tests
 
 import cats.effect.{ IO, Resource }
-import cats.implicits._
+import cats.syntax.all._
 import skunk.Session
 import skunk.data._
 import skunk.codec.all._

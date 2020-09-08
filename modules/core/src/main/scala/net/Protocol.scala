@@ -4,7 +4,7 @@
 
 package skunk.net
 
-import cats.implicits._
+import cats.syntax.all._
 import cats.effect.{ Concurrent, ContextShift, Resource }
 import fs2.concurrent.Signal
 import fs2.Stream

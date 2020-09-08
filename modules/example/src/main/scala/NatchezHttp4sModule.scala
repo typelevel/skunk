@@ -7,7 +7,7 @@ package natchez.http4s
 import cats.~>
 import cats.data.{ Kleisli, OptionT }
 import cats.effect.Bracket
-import cats.implicits._
+import cats.syntax.all._
 import natchez.{ EntryPoint, Kernel, Span }
 import org.http4s.HttpRoutes
 import natchez.Trace
