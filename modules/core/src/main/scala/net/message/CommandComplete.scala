@@ -65,6 +65,7 @@ object CommandComplete {
     case "CREATE TYPE"      => apply(Completion.CreateType)
     case "DROP TYPE"        => apply(Completion.DropType)
     case "CREATE FUNCTION"  => apply(Completion.CreateFunction)
+    case "SHOW"             => apply(Completion.Show)
     case Patterns.Select(s) => apply(Completion.Select(s.toInt))
     case Patterns.Delete(s) => apply(Completion.Delete(s.toInt))
     case Patterns.Update(s) => apply(Completion.Update(s.toInt))

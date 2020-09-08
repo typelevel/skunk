@@ -84,7 +84,10 @@ Transaction finalization is summarized in the following matrix.
 
 ## Transaction Characteristics
 
-To specify a non-default isolation level (or other transaction characteristics) execute a [`SET TRANSACTION`](https://www.postgresql.org/docs/10/sql-set-transaction.html) command as the first operation inside your transaction. A future version of Skunk might make this more ergonomic.
+Transaction characteristics can be changed by using the `transaction[A](isolationLevel: TransactionIsolationLevel, accessMode: TransactionAccessMode)` method to create the transaction resource.
+More details about the available isolation levels and access modes can be found [here](https://www.postgresql.org/docs/10/transaction-iso.html) and [here](https://www.postgresql.org/docs/9.3/sql-set-transaction.html).
+
+There is an alternative way to switch to a non-default isolation level and access mode by executing the [`SET TRANSACTION`](https://www.postgresql.org/docs/10/sql-set-transaction.html) command as the first operation inside your transaction.
 
 ## Full Example
 
