@@ -17,6 +17,8 @@ import skunk.util.CallSite
 import skunk.exception.SkunkException
 import skunk.util.Namer
 import skunk.data.TransactionStatus
+import skunk.data.TransactionIsolationLevel
+import skunk.data.TransactionAccessMode
 
 /**
  * Control methods for use within a `transaction` block. An instance is provided when you call
@@ -86,9 +88,10 @@ object Transaction {
 
   def fromSession[F[_]: MonadError[?[_], Throwable]](
     s: Session[F],
-    n: Namer[F]
+    n: Namer[F],
     // o: Origin // origin of the call to .begin
-    // also need to take an isolation level
+    iOp: Option[TransactionIsolationLevel],
+    aOp: Option[TransactionAccessMode]
   ): Resource[F, Transaction[F]] = {
 
     def assertIdle(cs: CallSite): F[Unit] =
@@ -141,11 +144,15 @@ object Transaction {
       s.execute(internal"ROLLBACK".command)
 
     def doCommit: F[Completion] =
-      s.execute(internal"COMMIT".command)
+      s.execute(internal"COMMIT".command)      
 
     val acquire: F[Transaction[F]] =
       assertIdle(CallSite("begin", Origin.unknown)) *>
-      s.execute(internal"BEGIN".command).map { _ =>
+      s.execute(
+        internal"""BEGIN
+                  ${iOp.foldMap(i => s"ISOLATION LEVEL ${i.sql}")}
+                  ${aOp.foldMap(_.sql)}""".command
+      ).map { _ =>
         new Transaction[F] {
 
           override type Savepoint = String
