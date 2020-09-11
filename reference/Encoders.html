@@ -31,7 +31,7 @@
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.0.18
+0.0.20
 </div>
 </div>
 <div class="nav-toc">
@@ -86,7 +86,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.0.18
+0.0.20
 </div>
 </div>
 <div class="nav-toc">
@@ -145,7 +145,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 // res0: Fragment[String] = Fragment(
 //   parts = List(
 //     Left(value = &quot;SELECT name FROM country WHERE code = &quot;),
-//     Right(value = cats.data.IndexedStateT@44071b4),
+//     Right(value = cats.data.IndexedStateT@43f5bcce),
 //     Left(value = &quot;&quot;)
 //   ),
 //   encoder = Codec(varchar),
@@ -157,9 +157,9 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 // res1: Fragment[(String, Long)] = Fragment(
 //   parts = List(
 //     Left(value = &quot;SELECT name FROM country WHERE code = &quot;),
-//     Right(value = cats.data.IndexedStateT@44071b4),
+//     Right(value = cats.data.IndexedStateT@43f5bcce),
 //     Left(value = &quot; AND population &lt; &quot;),
-//     Right(value = cats.data.IndexedStateT@765c66e5),
+//     Right(value = cats.data.IndexedStateT@27ceec61),
 //     Left(value = &quot;&quot;)
 //   ),
 //   encoder = Codec(varchar, int8),
@@ -174,7 +174,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 // res2: Fragment[(String, Int)] = Fragment(
 //   parts = List(
 //     Left(value = &quot;INSERT INTO person (name, age) VALUES (&quot;),
-//     Right(value = cats.data.IndexedStateT@34bbfaa7),
+//     Right(value = cats.data.IndexedStateT@5113187f),
 //     Left(value = &quot;)&quot;)
 //   ),
 //   encoder = Codec(varchar, int4),
@@ -191,9 +191,9 @@ sql&quot;INSERT INTO person (comment, name, age, weight, comment) VALUES ($text,
 //     Left(
 //       value = &quot;INSERT INTO person (comment, name, age, weight, comment) VALUES (&quot;
 //     ),
-//     Right(value = cats.data.IndexedStateT@7ff3df89),
+//     Right(value = cats.data.IndexedStateT@f9e5a9f),
 //     Left(value = &quot;, &quot;),
-//     Right(value = cats.data.IndexedStateT@1ed59a94),
+//     Right(value = cats.data.IndexedStateT@5b8408e1),
 //     Left(value = &quot;)&quot;)
 //   ),
 //   encoder = Codec(text, varchar, int4, float4),
@@ -209,7 +209,7 @@ sql&quot;INSERT INTO person (name, age) VALUES $enc&quot;
 // res4: Fragment[(String, Int)] = Fragment(
 //   parts = List(
 //     Left(value = &quot;INSERT INTO person (name, age) VALUES &quot;),
-//     Right(value = cats.data.IndexedStateT@4cf03ba7),
+//     Right(value = cats.data.IndexedStateT@a099f73),
 //     Left(value = &quot;&quot;)
 //   ),
 //   encoder = Encoder(varchar, int4),
@@ -224,7 +224,7 @@ sql&quot;INSERT INTO person (name, age) VALUES ${enc.list(3)}&quot;
 // res5: Fragment[List[(String, Int)]] = Fragment(
 //   parts = List(
 //     Left(value = &quot;INSERT INTO person (name, age) VALUES &quot;),
-//     Right(value = cats.data.IndexedStateT@4d2033a3),
+//     Right(value = cats.data.IndexedStateT@36865583),
 //     Left(value = &quot;&quot;)
 //   ),
 //   encoder = Encoder(varchar, int4, varchar, int4, varchar, int4),
@@ -242,7 +242,7 @@ sql&quot;INSERT INTO person (name, age) VALUES $person&quot;
 // res6: Fragment[Person] = Fragment(
 //   parts = List(
 //     Left(value = &quot;INSERT INTO person (name, age) VALUES &quot;),
-//     Right(value = cats.data.IndexedStateT@1295ad39),
+//     Right(value = cats.data.IndexedStateT@a895a5f),
 //     Left(value = &quot;&quot;)
 //   ),
 //   encoder = Encoder(varchar, int4),
@@ -259,7 +259,7 @@ sql&quot;INSERT INTO person (name, age) VALUES $person&quot;
 // res8: Fragment[Person] = Fragment(
 //   parts = List(
 //     Left(value = &quot;INSERT INTO person (name, age) VALUES &quot;),
-//     Right(value = cats.data.IndexedStateT@315304b5),
+//     Right(value = cats.data.IndexedStateT@30760498),
 //     Left(value = &quot;&quot;)
 //   ),
 //   encoder = Encoder(varchar, int4),
@@ -269,10 +269,10 @@ sql&quot;INSERT INTO person (name, age) VALUES $person&quot;
 <script type="text/javascript" src="../js/link_fix.js"></script>
 
 <div class="source-github">
-The source code for this page can be found <a id="source-link" href="https://github.com/tpolecat/skunk/tree/v0.0.18/modules/docs/target/mdoc/reference/Encoders.md">here</a>.
+The source code for this page can be found <a id="source-link" href="https://github.com/tpolecat/skunk/tree/v0.0.20/modules/docs/target/mdoc/reference/Encoders.md">here</a>.
 </div>
 
-<script type="text/javascript">jQuery(function(){sourceUrlFix('https://github.com/tpolecat/skunk/tree/v0.0.18/modules/docs/target/mdoc/reference/Encoders.md')});</script>
+<script type="text/javascript">jQuery(function(){sourceUrlFix('https://github.com/tpolecat/skunk/tree/v0.0.20/modules/docs/target/mdoc/reference/Encoders.md')});</script>
 
 <div class="nav-next">
 <p><strong>Next:</strong> <a href="../reference/Fragments.html">Fragments</a></p>
@@ -357,7 +357,7 @@ The source code for this page can be found <a id="source-link" href="https://git
 <script type="text/javascript" src="../lib/prettify/prettify.js"></script>
 <script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
 <script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
-<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.18', 'https://github.com/tpolecat/skunk')});</script>
+<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.20', 'https://github.com/tpolecat/skunk')});</script>
 
 
 </html>

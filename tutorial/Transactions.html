@@ -31,7 +31,7 @@
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.0.18
+0.0.20
 </div>
 </div>
 <div class="nav-toc">
@@ -86,7 +86,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.0.18
+0.0.20
 </div>
 </div>
 <div class="nav-toc">
@@ -252,7 +252,8 @@ s.transaction.use { xa =&gt;
   </tbody>
 </table>
 <h2><a href="#transaction-characteristics" name="transaction-characteristics" class="anchor"><span class="anchor-link"></span></a>Transaction Characteristics</h2>
-<p>To specify a non-default isolation level (or other transaction characteristics) execute a <a href="https://www.postgresql.org/docs/10/sql-set-transaction.html"><code>SET TRANSACTION</code></a> command as the first operation inside your transaction. A future version of Skunk might make this more ergonomic.</p>
+<p>Transaction characteristics can be changed by using the <code>transaction[A](isolationLevel: TransactionIsolationLevel, accessMode: TransactionAccessMode)</code> method to create the transaction resource. More details about the available isolation levels and access modes can be found <a href="https://www.postgresql.org/docs/10/transaction-iso.html">here</a> and <a href="https://www.postgresql.org/docs/9.3/sql-set-transaction.html">here</a>.</p>
+<p>There is an alternative way to switch to a non-default isolation level and access mode by executing the <a href="https://www.postgresql.org/docs/10/sql-set-transaction.html"><code>SET TRANSACTION</code></a> command as the first operation inside your transaction.</p>
 <h2><a href="#full-example" name="full-example" class="anchor"><span class="anchor-link"></span></a>Full Example</h2>
 <p>Here is a complete program listing that demonstrates our knowledge thus far.</p>
 <pre class="prettyprint"><code class="language-scala">import cats.effect._
@@ -398,10 +399,10 @@ Pet(Steve,9)
 <script type="text/javascript" src="../js/link_fix.js"></script>
 
 <div class="source-github">
-The source code for this page can be found <a id="source-link" href="https://github.com/tpolecat/skunk/tree/v0.0.18/modules/docs/target/mdoc/tutorial/Transactions.md">here</a>.
+The source code for this page can be found <a id="source-link" href="https://github.com/tpolecat/skunk/tree/v0.0.20/modules/docs/target/mdoc/tutorial/Transactions.md">here</a>.
 </div>
 
-<script type="text/javascript">jQuery(function(){sourceUrlFix('https://github.com/tpolecat/skunk/tree/v0.0.18/modules/docs/target/mdoc/tutorial/Transactions.md')});</script>
+<script type="text/javascript">jQuery(function(){sourceUrlFix('https://github.com/tpolecat/skunk/tree/v0.0.20/modules/docs/target/mdoc/tutorial/Transactions.md')});</script>
 
 <div class="nav-next">
 <p><strong>Next:</strong> <a href="../tutorial/Channels.html">Channels</a></p>
@@ -488,7 +489,7 @@ The source code for this page can be found <a id="source-link" href="https://git
 <script type="text/javascript" src="../lib/prettify/prettify.js"></script>
 <script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
 <script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
-<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.18', 'https://github.com/tpolecat/skunk')});</script>
+<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.20', 'https://github.com/tpolecat/skunk')});</script>
 
 
 </html>
