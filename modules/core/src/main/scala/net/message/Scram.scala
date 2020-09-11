@@ -8,12 +8,16 @@ import scodec.bits.ByteVector
 import scodec.codecs.utf8
 
 /**
-  * Implementation of [RFC5802](https://tools.ietf.org/html/rfc5802) as needed by PostgreSQL.
+  * Partial implementation of [RFC5802](https://tools.ietf.org/html/rfc5802), as needed by PostgreSQL.
   * 
   * That is, only features used by PostgreSQL are implemented -- e.g., channel binding is not supported and
-  * optional message fields that are omitted by PostgreSQL are not supported.
+  * optional message fields omitted by PostgreSQL are not supported.
   */
 private[skunk] object Scram {
+  val SaslMechanism = "SCRAM-SHA-256"
+
+  val NoChannelBinding = ByteVector.view("n,,".getBytes)
+
   private implicit class StringOps(val value: String) extends AnyVal {
     def bytesUtf8: ByteVector = ByteVector.view(value.getBytes(java.nio.charset.StandardCharsets.UTF_8))
   }
@@ -21,7 +25,7 @@ private[skunk] object Scram {
   private def normalize(value: String): String =
     com.ongres.saslprep.SaslPrep.saslPrep(value, false)
 
-  def clientFirstBare: ByteVector = {
+  def clientFirstBareWithRandomNonce: ByteVector = {
     val nonce = {
       val arr = new Array[Byte](32)
       java.security.SecureRandom.getInstanceStrong().nextBytes(arr)
@@ -40,20 +44,18 @@ private[skunk] object Scram {
     def decode(bytes: ByteVector): Option[ServerFirst] =
       utf8.decodeValue(bytes.bits).toOption.flatMap {
         case Pattern(r, s, i) =>
-          Some(ServerFirst(r, ByteVector.fromBase64(s).get, i.toInt))
+          Some(ServerFirst(r, ByteVector.fromValidBase64(s), i.toInt))
         case _ => 
           None
       }
   }
 
-  case class ClientProof(value: String) {
-    override def toString: String = value
-  }
+  case class ClientProof(value: String)
 
   case class ClientFinalWithoutProof(channelBinding: String, nonce: String) {
     override def toString: String = s"c=$channelBinding,r=$nonce"
     def encode: ByteVector = toString.bytesUtf8
-    def encodeWithProof(proof: ClientProof): ByteVector = (toString ++ s",p=$proof").bytesUtf8
+    def encodeWithProof(proof: ClientProof): ByteVector = (toString ++ s",p=${proof.value}").bytesUtf8
   }
 
   case class Verifier(value: ByteVector)
@@ -64,7 +66,7 @@ private[skunk] object Scram {
     def decode(bytes: ByteVector): Option[ServerFinal] =
       utf8.decodeValue(bytes.bits).toOption.flatMap {
         case Pattern(v) =>
-          Some(ServerFinal(Verifier(ByteVector.fromBase64(v).get)))
+          Some(ServerFinal(Verifier(ByteVector.fromValidBase64(v))))
         case _ => 
           None
       }
@@ -84,7 +86,7 @@ private[skunk] object Scram {
     ByteVector.view(salted)
   }
 
-  def makeClientProofAndServerSignature(password: String, salt: ByteVector, iterations: Int, clientFirstMessageBare: ByteVector, serverFirstMessage: ByteVector, clientFinalMessageWithoutProof: ByteVector): (ClientProof, Verifier) = {
+  private def makeClientProofAndServerSignature(password: String, salt: ByteVector, iterations: Int, clientFirstMessageBare: ByteVector, serverFirstMessage: ByteVector, clientFinalMessageWithoutProof: ByteVector): (ClientProof, Verifier) = {
     val saltedPassword = Hi(normalize(password), salt, iterations)
     val clientKey = HMAC(saltedPassword, "Client Key".bytesUtf8)
     val storedKey = H(clientKey)
@@ -95,5 +97,27 @@ private[skunk] object Scram {
     val serverKey = HMAC(saltedPassword, "Server Key".bytesUtf8)
     val serverSignature = HMAC(serverKey, authMessage)
     (ClientProof(proof.toBase64), Verifier(serverSignature))
+  }
+
+  def saslInitialResponse(channelBinding: ByteVector, clientFirstBare: ByteVector): SASLInitialResponse =
+    SASLInitialResponse(SaslMechanism, channelBinding ++ clientFirstBare)
+
+  def saslChallenge(
+      password: String, 
+      channelBinding: ByteVector, 
+      serverFirst: ServerFirst, 
+      clientFirstBare: ByteVector, 
+      serverFirstBytes: ByteVector
+  ): (SASLResponse, Verifier) = {
+    val clientFinalMessageWithoutProof = ClientFinalWithoutProof(channelBinding.toBase64, serverFirst.nonce)
+    val (clientProof, expectedVerifier) = 
+      makeClientProofAndServerSignature(
+          password, 
+          serverFirst.salt, 
+          serverFirst.iterations, 
+          clientFirstBare, 
+          serverFirstBytes, 
+          clientFinalMessageWithoutProof.encode)
+    (SASLResponse(clientFinalMessageWithoutProof.encodeWithProof(clientProof)), expectedVerifier)
   }
 }

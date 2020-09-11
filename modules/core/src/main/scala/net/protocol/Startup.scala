@@ -7,14 +7,16 @@ package skunk.net.protocol
 import cats.{ApplicativeError, MonadError}
 import cats.implicits._
 import natchez.Trace
-import scodec.bits.ByteVector
 import skunk.net.MessageSocket
 import skunk.net.message._
 import skunk.util.Origin
-import skunk.exception.StartupException
-import skunk.exception.SkunkException
-import skunk.exception.UnsupportedAuthenticationSchemeException
-import skunk.exception.UnsupportedSASLMechanismsException
+import skunk.exception.{ 
+  SCRAMProtocolException,
+  StartupException,
+  SkunkException,
+  UnsupportedAuthenticationSchemeException,
+  UnsupportedSASLMechanismsException
+}
 
 trait Startup[F[_]] {
   def apply(user: String, database: String, password: Option[String]): F[Unit]
@@ -68,54 +70,45 @@ object Startup {
       }
 
     private def authenticationSASL[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket: Trace](
-      sm: StartupMessage,
-      password: Option[String],
+      sm:         StartupMessage,
+      password:   Option[String],
       mechanisms: List[String]
     ): F[Unit] =
       Trace[F].span("authenticationSASL") {
-        if (mechanisms.contains("SCRAM-SHA-256")) {
-          requirePassword[F](sm, password).flatMap { pw =>
-            val channelBinding = ByteVector.view("n,,".getBytes)
-            val gs2Header = channelBinding
-            val clientFirstBare = Scram.clientFirstBare
-            for {
-              _ <- send(SASLInitialResponse("SCRAM-SHA-256", gs2Header ++ clientFirstBare))
-              serverFirstBytes <- flatExpectStartup(sm) {
-                case AuthenticationSASLContinue(serverFirstBytes) => serverFirstBytes.pure[F]
-              }
-              serverFirst <- Scram.ServerFirst.decode(serverFirstBytes) match {
-                case Some(serverFirst) => serverFirst.pure[F]
-                case None =>
-                  new SkunkException(
-                    sql     = None,
-                    message = "Unexpected SCRAM protocol failure.",
-                    detail  = Some(s"Failed to parse server-first-message in SASLInitialResponse: ${serverFirstBytes.toHex}.")
-                  ).raiseError[F, Scram.ServerFirst]
-              }
-              clientFinalMessageWithoutProof = Scram.ClientFinalWithoutProof(channelBinding.toBase64, serverFirst.nonce)
-              (clientProof, expectedVerifier) = Scram.makeClientProofAndServerSignature(pw, serverFirst.salt, serverFirst.iterations, clientFirstBare, serverFirstBytes, clientFinalMessageWithoutProof.encode)
-              _ <- send(SASLResponse(clientFinalMessageWithoutProof.encodeWithProof(clientProof)))
-              serverFinalBytes <- flatExpectStartup(sm) {
-                case AuthenticationSASLFinal(serverFinalBytes) => serverFinalBytes.pure[F]
-              }
-              _ <- Scram.ServerFinal.decode(serverFinalBytes) match {
-                case Some(serverFinal) =>
-                  if (serverFinal.verifier == expectedVerifier) ().pure[F]
-                  else new SkunkException(
-                    sql     = None,
-                    message = "Unexpected SCRAM protocol failure.",
-                    detail  = Some(s"Expected verifier ${expectedVerifier.value.toHex} but received ${serverFinal.verifier.value.toHex}.")
-                  ).raiseError[F, Unit]
-                case None =>
-                  new SkunkException(
-                    sql     = None,
-                    message = "Unexpected SCRAM protocol failure.",
-                    detail  = Some(s"Failed to parse server-final-message in AuthenticationSASLFinal: ${serverFinalBytes.toHex}.")
-                  ).raiseError[F, Unit]
-              }
-              _ <- flatExpectStartup(sm) { case AuthenticationOk => ().pure[F] }
-            } yield ()
-          }
+        if (mechanisms.contains(Scram.SaslMechanism)) {
+          for {
+            pw <- requirePassword[F](sm, password)
+            channelBinding = Scram.NoChannelBinding
+            clientFirstBare = Scram.clientFirstBareWithRandomNonce
+            _ <- send(Scram.saslInitialResponse(channelBinding, clientFirstBare))
+            serverFirstBytes <- flatExpectStartup(sm) {
+              case AuthenticationSASLContinue(serverFirstBytes) => serverFirstBytes.pure[F]
+            }
+            serverFirst <- Scram.ServerFirst.decode(serverFirstBytes) match {
+              case Some(serverFirst) => serverFirst.pure[F]
+              case None =>
+                new SCRAMProtocolException(
+                  s"Failed to parse server-first-message in SASLInitialResponse: ${serverFirstBytes.toHex}."
+                ).raiseError[F, Scram.ServerFirst]
+            }
+            (response, expectedVerifier) = Scram.saslChallenge(pw, channelBinding, serverFirst, clientFirstBare, serverFirstBytes)
+            _ <- send(response)
+            serverFinalBytes <- flatExpectStartup(sm) {
+              case AuthenticationSASLFinal(serverFinalBytes) => serverFinalBytes.pure[F]
+            }
+            _ <- Scram.ServerFinal.decode(serverFinalBytes) match {
+              case Some(serverFinal) =>
+                if (serverFinal.verifier == expectedVerifier) ().pure[F]
+                else new SCRAMProtocolException(
+                  s"Expected verifier ${expectedVerifier.value.toHex} but received ${serverFinal.verifier.value.toHex}."
+                ).raiseError[F, Unit]
+              case None =>
+                new SCRAMProtocolException(
+                  s"Failed to parse server-final-message in AuthenticationSASLFinal: ${serverFinalBytes.toHex}."
+                ).raiseError[F, Unit]
+            }
+            _ <- flatExpectStartup(sm) { case AuthenticationOk => ().pure[F] }
+          } yield ()
         } else {
           new UnsupportedSASLMechanismsException(mechanisms).raiseError[F, Unit]
         }
