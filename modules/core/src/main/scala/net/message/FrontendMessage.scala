@@ -4,7 +4,7 @@
 
 package skunk.net.message
 
-import cats.implicits._
+import cats.syntax.all._
 import scodec._
 import scodec.codecs._
 import scodec.interop.cats._

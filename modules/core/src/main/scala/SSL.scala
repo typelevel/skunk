@@ -5,7 +5,7 @@
 package skunk
 
 import cats.effect._
-import cats.implicits._
+import cats.syntax.all._
 import fs2.io.tls.TLSContext
 import java.nio.file.Path
 import java.security.KeyStore

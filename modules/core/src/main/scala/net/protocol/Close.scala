@@ -6,7 +6,7 @@ package skunk.net
 package protocol
 
 import cats.FlatMap
-import cats.implicits._
+import cats.syntax.all._
 import skunk.net.message.{ Close => CloseMessage, Flush, CloseComplete }
 import skunk.net.MessageSocket
 import natchez.Trace

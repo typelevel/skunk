@@ -5,7 +5,6 @@
 package skunk.data
 
 import cats.Eq
-import cats.implicits._
 
 import scala.util.matching.Regex
 

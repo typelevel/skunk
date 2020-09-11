@@ -5,7 +5,7 @@
 package skunk.util
 
 import cats._
-import cats.implicits._
+import cats.syntax.all._
 import skunk._
 import skunk.codec.all._
 import skunk.data.Type

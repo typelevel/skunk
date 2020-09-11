@@ -6,7 +6,7 @@ package skunk
 
 import cats._
 import cats.data.State
-import cats.implicits._
+import cats.syntax.all._
 import skunk.data.Type
 import skunk.util.Typer
 import skunk.util.Twiddler

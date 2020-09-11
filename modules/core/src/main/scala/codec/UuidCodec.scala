@@ -5,7 +5,7 @@
 package skunk
 package codec
 
-import cats.implicits._
+import cats.syntax.all._
 import java.util.UUID
 import skunk.data.Type
 

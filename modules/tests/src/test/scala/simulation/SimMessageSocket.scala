@@ -9,7 +9,7 @@ import cats._
 import cats.effect._
 import cats.effect.concurrent.Ref
 import cats.free.Free
-import cats.implicits._
+import cats.syntax.all._
 import scala.annotation.tailrec
 import scala.collection.immutable.Queue
 import skunk.exception.ProtocolError

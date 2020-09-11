@@ -3,8 +3,6 @@
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
 package tests.issue
-
-import cats.implicits._
 import skunk._
 import skunk.codec.all._
 import skunk.implicits._

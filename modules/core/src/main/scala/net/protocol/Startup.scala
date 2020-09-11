@@ -5,7 +5,7 @@
 package skunk.net.protocol
 
 import cats.{ApplicativeError, MonadError}
-import cats.implicits._
+import cats.syntax.all._
 import natchez.Trace
 import skunk.net.MessageSocket
 import skunk.net.message._

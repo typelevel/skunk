@@ -5,7 +5,7 @@
 package skunk.util
 
 import cats._
-import cats.implicits._
+import cats.syntax.all._
 
 /**
  * Encapsulates a function that consumes a value and produces a computation that peforms some

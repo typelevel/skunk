@@ -5,7 +5,7 @@
 package skunk.net.protocol
 
 import cats.MonadError
-import cats.implicits._
+import cats.syntax.all._
 import skunk.exception.{ UnexpectedRowsException, ColumnAlignmentException, NoDataException }
 import skunk.net.MessageSocket
 import skunk.net.Protocol.StatementId

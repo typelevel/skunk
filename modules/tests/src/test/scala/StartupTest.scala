@@ -5,7 +5,6 @@
 package tests
 
 import cats.effect._
-import cats.implicits._
 import skunk._
 import natchez.Trace.Implicits.noop
 import skunk.exception.SkunkException

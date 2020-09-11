@@ -73,8 +73,8 @@ lazy val core = project
     description := "Tagless, non-blocking data access library for Postgres.",
     resolvers   +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     libraryDependencies ++= Seq(
-      "org.typelevel" %% "cats-core"    % "2.1.1",
-      "org.typelevel" %% "cats-effect"  % "2.1.4",
+      "org.typelevel" %% "cats-core"    % "2.2.0",
+      "org.typelevel" %% "cats-effect"  % "2.2.0",
       "co.fs2"        %% "fs2-core"     % fs2Version,
       "co.fs2"        %% "fs2-io"       % fs2Version,
       "org.scodec"    %% "scodec-core"  % "1.11.7",
@@ -117,7 +117,7 @@ lazy val tests = project
     publish / skip := true,
     test / parallelExecution := false, // why? fix this!
     libraryDependencies ++= Seq(
-      "org.typelevel"     %% "cats-free"      % "2.1.1",
+      "org.typelevel"     %% "cats-free"      % "2.2.0",
       "org.scala-sbt"      % "test-interface" % "1.0",
       "io.chrisdavenport" %% "cats-time"      % "0.3.4"
     ),

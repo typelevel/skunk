@@ -5,7 +5,7 @@
 package tests
 
 import cats._
-import cats.implicits._
+import cats.syntax.all._
 import cats.effect._
 import skunk._
 import skunk.implicits._
