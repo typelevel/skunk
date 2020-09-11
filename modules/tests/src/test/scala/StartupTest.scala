@@ -20,6 +20,7 @@ case object StartupTest extends ffstest.FTest {
     val Invalid = 5431
     val MD5     = 5432
     val Trust   = 5433
+    val Scram   = 5434
   }
 
   test("md5 - successful login") {
@@ -120,6 +121,16 @@ case object StartupTest extends ffstest.FTest {
     ).use(_ => IO.unit)
      .assertFailsWith[StartupException]
      .flatMap(e => assertEqual("code", e.code, "28000"))
+  }
+
+  test("scram - successful login") {
+    Session.single[IO](
+      host     = "localhost",
+      user     = "jimmy",
+      database = "world",
+      password = Some("banana"),
+      port     = Port.Scram
+    ).use(_ => IO.unit)
   }
 
   test("invalid port") {

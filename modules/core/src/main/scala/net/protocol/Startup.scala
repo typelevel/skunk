@@ -4,14 +4,17 @@
 
 package skunk.net.protocol
 
-import cats.MonadError
+import cats.{ApplicativeError, MonadError}
 import cats.implicits._
+import natchez.Trace
+import scodec.bits.ByteVector
 import skunk.net.MessageSocket
 import skunk.net.message._
+import skunk.util.Origin
 import skunk.exception.StartupException
-import natchez.Trace
 import skunk.exception.SkunkException
 import skunk.exception.UnsupportedAuthenticationSchemeException
+import skunk.exception.UnsupportedSASLMechanismsException
 
 trait Startup[F[_]] {
   def apply(user: String, database: String, password: Option[String]): F[Unit]
@@ -30,9 +33,10 @@ object Startup {
                    "database" -> database
                  )
             _ <- send(sm)
-            _ <- flatExpect {
+            _ <- flatExpectStartup(sm) {
                     case AuthenticationOk                => ().pure[F]
                     case AuthenticationMD5Password(salt) => authenticationMD5Password[F](sm, password, salt)
+                    case AuthenticationSASL(mechanisms)  => authenticationSASL[F](sm, password, mechanisms)
                     case m @ (
                       AuthenticationCleartextPassword |
                       AuthenticationGSS |
@@ -40,15 +44,9 @@ object Startup {
                       AuthenticationSASL(_) |
                       AuthenticationSCMCredential |
                       AuthenticationSSPI )               => new UnsupportedAuthenticationSchemeException(m).raiseError[F, Unit]
-                    case ErrorResponse(info) =>
-                      val e = new StartupException(info, sm.properties)
-                      e.raiseError[F, Unit]
                  }
-            _ <- flatExpect {
+            _ <- flatExpectStartup(sm) {
                    case ReadyForQuery(_) => ().pure[F]
-                   case ErrorResponse(info) =>
-                    val e = new StartupException(info, sm.properties)
-                    e.raiseError[F, Unit]
                  }
           } yield ()
         }
@@ -61,26 +59,86 @@ object Startup {
       salt:     Array[Byte]
     ): F[Unit] =
       Trace[F].span("authenticationMD5Password") {
-        password match {
-
-          case Some(pw) =>
-            for {
-              _ <- send(PasswordMessage.md5(sm.user, pw, salt))
-              _ <- flatExpect {
-                    case AuthenticationOk => ().pure[F]
-                    case ErrorResponse(info) => new StartupException(info, sm.properties).raiseError[F, Unit]
-                  }
-            } yield ()
-
-          case None     =>
-            new SkunkException(
-              sql     = None,
-              message = "Password required.",
-              detail  = Some(s"The PostgreSQL server requested a password for '${sm.user}' but none was given."),
-              hint    = Some("Specify a password when constructing your Session or Session pool.")
-            ).raiseError[F, Unit]
-
+        requirePassword[F](sm, password).flatMap { pw =>
+          for {
+            _ <- send(PasswordMessage.md5(sm.user, pw, salt))
+            _ <- flatExpectStartup(sm) { case AuthenticationOk => ().pure[F] }
+          } yield ()
         }
       }
 
+    private def authenticationSASL[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket: Trace](
+      sm: StartupMessage,
+      password: Option[String],
+      mechanisms: List[String]
+    ): F[Unit] =
+      Trace[F].span("authenticationSASL") {
+        if (mechanisms.contains("SCRAM-SHA-256")) {
+          requirePassword[F](sm, password).flatMap { pw =>
+            val channelBinding = ByteVector.view("n,,".getBytes)
+            val gs2Header = channelBinding
+            val clientFirstBare = Scram.clientFirstBare
+            for {
+              _ <- send(SASLInitialResponse("SCRAM-SHA-256", gs2Header ++ clientFirstBare))
+              serverFirstBytes <- flatExpectStartup(sm) {
+                case AuthenticationSASLContinue(serverFirstBytes) => serverFirstBytes.pure[F]
+              }
+              serverFirst <- Scram.ServerFirst.decode(serverFirstBytes) match {
+                case Some(serverFirst) => serverFirst.pure[F]
+                case None =>
+                  new SkunkException(
+                    sql     = None,
+                    message = "Unexpected SCRAM protocol failure.",
+                    detail  = Some(s"Failed to parse server-first-message in SASLInitialResponse: ${serverFirstBytes.toHex}.")
+                  ).raiseError[F, Scram.ServerFirst]
+              }
+              clientFinalMessageWithoutProof = Scram.ClientFinalWithoutProof(channelBinding.toBase64, serverFirst.nonce)
+              (clientProof, expectedVerifier) = Scram.makeClientProofAndServerSignature(pw, serverFirst.salt, serverFirst.iterations, clientFirstBare, serverFirstBytes, clientFinalMessageWithoutProof.encode)
+              _ <- send(SASLResponse(clientFinalMessageWithoutProof.encodeWithProof(clientProof)))
+              serverFinalBytes <- flatExpectStartup(sm) {
+                case AuthenticationSASLFinal(serverFinalBytes) => serverFinalBytes.pure[F]
+              }
+              _ <- Scram.ServerFinal.decode(serverFinalBytes) match {
+                case Some(serverFinal) =>
+                  if (serverFinal.verifier == expectedVerifier) ().pure[F]
+                  else new SkunkException(
+                    sql     = None,
+                    message = "Unexpected SCRAM protocol failure.",
+                    detail  = Some(s"Expected verifier ${expectedVerifier.value.toHex} but received ${serverFinal.verifier.value.toHex}.")
+                  ).raiseError[F, Unit]
+                case None =>
+                  new SkunkException(
+                    sql     = None,
+                    message = "Unexpected SCRAM protocol failure.",
+                    detail  = Some(s"Failed to parse server-final-message in AuthenticationSASLFinal: ${serverFinalBytes.toHex}.")
+                  ).raiseError[F, Unit]
+              }
+              _ <- flatExpectStartup(sm) { case AuthenticationOk => ().pure[F] }
+            } yield ()
+          }
+        } else {
+          new UnsupportedSASLMechanismsException(mechanisms).raiseError[F, Unit]
+        }
+      }
+
+    private def requirePassword[F[_]: ApplicativeError[?[_], Throwable]](sm: StartupMessage, password: Option[String]): F[String] =
+      password match {
+        case Some(pw) => pw.pure[F]
+        case None =>
+          new SkunkException(
+            sql     = None,
+            message = "Password required.",
+            detail  = Some(s"The PostgreSQL server requested a password for '${sm.user}' but none was given."),
+            hint    = Some("Specify a password when constructing your Session or Session pool.")
+          ).raiseError[F, String]
+    }
+
+    private def flatExpectStartup[F[_], B](sm: StartupMessage)(f: PartialFunction[BackendMessage, F[B]])(
+      implicit ev: MessageSocket[F],
+               or: Origin,
+               F: ApplicativeError[F, Throwable]
+    ): F[B] = flatExpect(f orElse {
+      case ErrorResponse(info) =>
+        new StartupException(info, sm.properties).raiseError[F, B]
+    })
 }

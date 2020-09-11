@@ -81,6 +81,7 @@ lazy val core = project
       "org.scodec"    %% "scodec-cats"  % "1.0.0",
       "com.beachape"  %% "enumeratum"   % "1.6.1",
       "org.tpolecat"  %% "natchez-core" % "0.0.12",
+      "com.ongres.stringprep" % "saslprep" % "1.1"
     )
   )
 
