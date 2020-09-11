@@ -19,6 +19,7 @@ case object StartupTest extends ffstest.FTest {
     val Invalid = 5431
     val MD5     = 5432
     val Trust   = 5433
+    val Scram   = 5434
   }
 
   test("md5 - successful login") {
@@ -121,6 +122,64 @@ case object StartupTest extends ffstest.FTest {
      .flatMap(e => assertEqual("code", e.code, "28000"))
   }
 
+  test("scram - successful login") {
+    Session.single[IO](
+      host     = "localhost",
+      user     = "jimmy",
+      database = "world",
+      password = Some("banana"),
+      port     = Port.Scram
+    ).use(_ => IO.unit)
+  }
+
+  test("scram - non-existent database") {
+    Session.single[IO](
+      host     = "localhost",
+      user     = "jimmy",
+      database = "blah",
+      password = Some("banana"),
+      port     = Port.Scram,
+    ).use(_ => IO.unit)
+     .assertFailsWith[StartupException]
+     .flatMap(e => assertEqual("code", e.code, "3D000"))
+  }
+
+  test("scram - missing password") {
+    Session.single[IO](
+      host     = "localhost",
+      user     = "jimmy",
+      database = "blah",
+      password = None,
+      port     = Port.Scram,
+    ).use(_ => IO.unit)
+     .assertFailsWith[SkunkException]
+     .flatMap(e => assertEqual("message", e.message, "Password required."))
+  }
+
+  test("scram - incorrect user") {
+    Session.single[IO](
+      host     = "localhost",
+      user     = "frank",
+      database = "world",
+      password = Some("banana"),
+      port     = Port.Scram,
+    ).use(_ => IO.unit)
+     .assertFailsWith[StartupException]
+     .flatMap(e => assertEqual("code", e.code, "28P01"))
+  }
+
+  test("scram - incorrect password") {
+    Session.single[IO](
+      host     = "localhost",
+      user     = "jimmy",
+      database = "world",
+      password = Some("apple"),
+      port     = Port.Scram,
+    ).use(_ => IO.unit)
+     .assertFailsWith[StartupException]
+     .flatMap(e => assertEqual("code", e.code, "28P01"))
+  }
+
   test("invalid port") {
     Session.single[IO](
       host     = "localhost",
@@ -137,5 +196,4 @@ case object StartupTest extends ffstest.FTest {
       database = "nobody cares",
     ).use(_ => IO.unit).assertFailsWith[UnresolvedAddressException]
   }
-
 }
