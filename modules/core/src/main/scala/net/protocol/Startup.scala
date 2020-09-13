@@ -7,6 +7,8 @@ package skunk.net.protocol
 import cats.{ApplicativeError, MonadError}
 import cats.syntax.all._
 import natchez.Trace
+import scala.util.control.NonFatal
+import scodec.bits.ByteVector
 import skunk.net.MessageSocket
 import skunk.net.message._
 import skunk.util.Origin
@@ -17,6 +19,8 @@ import skunk.exception.{
   UnsupportedAuthenticationSchemeException,
   UnsupportedSASLMechanismsException
 }
+import com.ongres.scram.client.ScramClient
+import com.ongres.scram.common.stringprep.StringPreparations
 
 trait Startup[F[_]] {
   def apply(user: String, database: String, password: Option[String]): F[Unit]
@@ -75,43 +79,37 @@ object Startup {
       mechanisms: List[String]
     ): F[Unit] =
       Trace[F].span("authenticationSASL") {
-        if (mechanisms.contains(Scram.SaslMechanism)) {
           for {
-            pw <- requirePassword[F](sm, password)
-            channelBinding = Scram.NoChannelBinding
-            clientFirstBare = Scram.clientFirstBareWithRandomNonce
-            _ <- send(Scram.saslInitialResponse(channelBinding, clientFirstBare))
+            client <- {
+              try ScramClient.
+                channelBinding(ScramClient.ChannelBinding.NO).
+                stringPreparation(StringPreparations.SASL_PREPARATION).
+                selectMechanismBasedOnServerAdvertised(mechanisms.toArray: _*).
+                setup().pure[F]
+              catch {
+                case _: IllegalArgumentException => new UnsupportedSASLMechanismsException(mechanisms).raiseError[F, ScramClient]
+                case NonFatal(t) => new SCRAMProtocolException(t.getMessage).raiseError[F, ScramClient]
+              }
+            }
+            session = client.scramSession("*")
+            _ <- send(SASLInitialResponse(client.getScramMechanism.getName, bytesUtf8(session.clientFirstMessage)))
             serverFirstBytes <- flatExpectStartup(sm) {
               case AuthenticationSASLContinue(serverFirstBytes) => serverFirstBytes.pure[F]
             }
-            serverFirst <- Scram.ServerFirst.decode(serverFirstBytes) match {
-              case Some(serverFirst) => serverFirst.pure[F]
-              case None =>
-                new SCRAMProtocolException(
-                  s"Failed to parse server-first-message in SASLInitialResponse: ${serverFirstBytes.toHex}."
-                ).raiseError[F, Scram.ServerFirst]
+            serverFirst <- guardScramAction {
+              session.receiveServerFirstMessage(new String(serverFirstBytes.toArray, "UTF-8"))
             }
-            (response, expectedVerifier) = Scram.saslChallenge(pw, channelBinding, serverFirst, clientFirstBare, serverFirstBytes)
-            _ <- send(response)
+            pw <- requirePassword[F](sm, password)
+            clientFinal = serverFirst.clientFinalProcessor(pw)
+            _ <- send(SASLResponse(bytesUtf8(clientFinal.clientFinalMessage)))
             serverFinalBytes <- flatExpectStartup(sm) {
               case AuthenticationSASLFinal(serverFinalBytes) => serverFinalBytes.pure[F]
             }
-            _ <- Scram.ServerFinal.decode(serverFinalBytes) match {
-              case Some(serverFinal) =>
-                if (serverFinal.verifier == expectedVerifier) ().pure[F]
-                else new SCRAMProtocolException(
-                  s"Expected verifier ${expectedVerifier.value.toHex} but received ${serverFinal.verifier.value.toHex}."
-                ).raiseError[F, Unit]
-              case None =>
-                new SCRAMProtocolException(
-                  s"Failed to parse server-final-message in AuthenticationSASLFinal: ${serverFinalBytes.toHex}."
-                ).raiseError[F, Unit]
+            _ <- guardScramAction {
+              clientFinal.receiveServerFinalMessage(new String(serverFinalBytes.toArray, "UTF-8")).pure[F]
             }
             _ <- flatExpectStartup(sm) { case AuthenticationOk => ().pure[F] }
           } yield ()
-        } else {
-          new UnsupportedSASLMechanismsException(mechanisms).raiseError[F, Unit]
-        }
       }
 
     private def requirePassword[F[_]: ApplicativeError[?[_], Throwable]](sm: StartupMessage, password: Option[String]): F[String] =
@@ -134,4 +132,13 @@ object Startup {
       case ErrorResponse(info) =>
         new StartupException(info, sm.properties).raiseError[F, B]
     })
+
+    private def guardScramAction[F[_]: ApplicativeError[?[_], Throwable], A](f: => A): F[A] =
+      try f.pure[F]
+      catch { case NonFatal(t) => 
+        new SCRAMProtocolException(t.getMessage).raiseError[F, A]
+      }
+
+    private def bytesUtf8(value: String): ByteVector =
+      ByteVector.view(value.getBytes(java.nio.charset.StandardCharsets.UTF_8))
 }
