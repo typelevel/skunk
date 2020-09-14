@@ -96,10 +96,26 @@ case object CommandTest extends SkunkTest {
       DROP SCHEMA public_0
       """.command
 
-  sessionTest("create, alter and drop table") { s =>
+  val createIndex: Command[Void] = 
+    sql"""
+      CREATE INDEX IF NOT EXISTS id_index ON earth (
+        id
+      )
+      """.command
+
+  val dropIndex: Command[Void] = 
+    sql"""
+      DROP INDEX id_index
+      """.command
+
+  sessionTest("create table, create index, drop index, alter table and drop table") { s =>
     for {
       c <- s.execute(createTable)
       _ <- assert("completion",  c == Completion.CreateTable)
+      c <- s.execute(createIndex)
+      _ <- assert("completion",  c == Completion.CreateIndex)
+      c <- s.execute(dropIndex)
+      _ <- assert("completion",  c == Completion.DropIndex)
       c <- s.execute(alterTable)
       _ <- assert("completion",  c == Completion.AlterTable)
       c <- s.execute(dropTable)
