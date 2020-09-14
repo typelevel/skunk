@@ -4,8 +4,6 @@
 
 package tests
 package codec
-
-import cats.implicits._
 import io.circe.Json
 import io.circe.parser.parse
 import skunk._

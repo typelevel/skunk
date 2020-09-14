@@ -8,7 +8,7 @@
 package tests
 package simulation
 
-import cats.implicits._
+import cats.syntax.all._
 import skunk.codec.all._
 import skunk.implicits._
 import skunk.net.message._

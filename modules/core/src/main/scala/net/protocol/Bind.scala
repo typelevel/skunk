@@ -5,7 +5,7 @@
 package skunk.net.protocol
 
 import cats.effect.Resource
-import cats.implicits._
+import cats.syntax.all._
 import cats.MonadError
 import skunk.exception.PostgresErrorException
 import skunk.net.message.{ Bind => BindMessage, Close => _, _ }

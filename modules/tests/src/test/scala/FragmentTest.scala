@@ -5,7 +5,6 @@
 package tests
 
 import cats._
-import cats.implicits._
 import skunk._
 import skunk.codec.all._
 import skunk.implicits._

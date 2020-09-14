@@ -7,7 +7,7 @@ package skunk.net
 import skunk.net.message.BackendMessage
 import skunk.util.Origin
 import cats.effect.Concurrent
-import cats.implicits._
+import cats.syntax.all._
 import skunk.exception.ProtocolError
 import skunk.net.BufferedMessageSocket.NetworkError
 

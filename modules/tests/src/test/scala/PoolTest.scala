@@ -7,7 +7,7 @@ package tests
 import ffstest.FTest
 import cats.effect.IO
 import cats.effect.Resource
-import cats.implicits._
+import cats.syntax.all._
 import scala.concurrent.duration._
 import skunk.util.Pool
 import cats.effect.concurrent.Ref

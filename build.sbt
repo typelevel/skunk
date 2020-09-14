@@ -1,6 +1,6 @@
 
 // This is used in a couple places
-lazy val fs2Version = "2.5.0-SNAPSHOT"
+lazy val fs2Version = "2.4.4"
 
 // Global Settings
 lazy val commonSettings = Seq(
@@ -73,14 +73,15 @@ lazy val core = project
     description := "Tagless, non-blocking data access library for Postgres.",
     resolvers   +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     libraryDependencies ++= Seq(
-      "org.typelevel" %% "cats-core"    % "2.1.1",
-      "org.typelevel" %% "cats-effect"  % "2.1.3",
+      "org.typelevel" %% "cats-core"    % "2.2.0",
+      "org.typelevel" %% "cats-effect"  % "2.2.0",
       "co.fs2"        %% "fs2-core"     % fs2Version,
       "co.fs2"        %% "fs2-io"       % fs2Version,
       "org.scodec"    %% "scodec-core"  % "1.11.7",
       "org.scodec"    %% "scodec-cats"  % "1.0.0",
       "com.beachape"  %% "enumeratum"   % "1.6.1",
       "org.tpolecat"  %% "natchez-core" % "0.0.12",
+      "com.ongres.stringprep" % "saslprep" % "1.1"
     )
   )
 
@@ -116,9 +117,9 @@ lazy val tests = project
     publish / skip := true,
     test / parallelExecution := false, // why? fix this!
     libraryDependencies ++= Seq(
-      "org.typelevel"     %% "cats-free"      % "2.1.1",
+      "org.typelevel"     %% "cats-free"      % "2.2.0",
       "org.scala-sbt"      % "test-interface" % "1.0",
-      "io.chrisdavenport" %% "cats-time"      % "0.3.0"
+      "io.chrisdavenport" %% "cats-time"      % "0.3.4"
     ),
     testFrameworks += new TestFramework("ffstest.FFramework")
   )
@@ -133,9 +134,9 @@ lazy val example = project
     libraryDependencies ++= Seq(
       "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.12",
       "org.tpolecat"  %% "natchez-jaeger"      % "0.0.12",
-      "org.http4s"    %% "http4s-dsl"          % "0.21.6",
-      "org.http4s"    %% "http4s-blaze-server" % "0.21.6",
-      "org.http4s"    %% "http4s-circe"        % "0.21.6",
+      "org.http4s"    %% "http4s-dsl"          % "0.21.7",
+      "org.http4s"    %% "http4s-blaze-server" % "0.21.7",
+      "org.http4s"    %% "http4s-circe"        % "0.21.7",
       "io.circe"      %% "circe-generic"       % "0.13.0",
     )
   )

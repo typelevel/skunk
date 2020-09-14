@@ -7,7 +7,7 @@ package data
 
 import skunk.data.Identifier
 import skunk.implicits._
-import cats.implicits._
+import cats.syntax.all._
 import cats.effect.IO
 
 case object IdentifierTest extends ffstest.FTest {

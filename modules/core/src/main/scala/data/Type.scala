@@ -5,7 +5,7 @@
 package skunk.data
 
 import cats.{ Eq, Monad }
-import cats.implicits._
+import cats.syntax.all._
 
 /**
  * A type has a name and a list of component types. So it's a rose tree, isomorphic to

@@ -5,7 +5,7 @@
 package skunk.net
 
 import cats.effect._
-import cats.implicits._
+import cats.syntax.all._
 import fs2.concurrent.InspectableQueue
 import scodec.codecs._
 import skunk.net.message.{ Sync => _, _ }
