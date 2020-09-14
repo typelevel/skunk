@@ -5,7 +5,6 @@
 package tests
 
 import cats.effect.IO
-import cats.implicits._
 import skunk._
 import skunk.codec.all._
 import skunk.data.Completion

@@ -6,7 +6,7 @@ package tests
 package codec
 
 import cats._
-import cats.implicits._
+import cats.syntax.all._
 import skunk.implicits._
 import skunk._
 import skunk.codec.all._

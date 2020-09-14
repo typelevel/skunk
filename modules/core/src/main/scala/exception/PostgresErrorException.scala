@@ -4,7 +4,7 @@
 
 package skunk.exception
 
-import cats.implicits._
+import cats.syntax.all._
 import natchez.TraceValue
 import skunk.SqlState
 import skunk.data.Type

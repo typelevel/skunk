@@ -4,7 +4,7 @@
 
 package skunk.exception
 
-import cats.implicits._
+import cats.syntax.foldable._
 import skunk.net.message.RowDescription
 import skunk.util.Text
 import skunk.data.Type

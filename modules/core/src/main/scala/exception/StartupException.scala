@@ -4,7 +4,7 @@
 
 package skunk.exception
 
-import cats.implicits._
+import cats.syntax.foldable._
 import skunk.util.Text
 
 class StartupException private[skunk] (

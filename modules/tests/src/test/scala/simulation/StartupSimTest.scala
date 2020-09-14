@@ -5,9 +5,10 @@
 package tests
 package simulation
 
-import cats.implicits._
+import cats.syntax.all._
 import skunk.exception.PostgresErrorException
 import skunk.exception.UnsupportedAuthenticationSchemeException
+import skunk.exception.UnsupportedSASLMechanismsException
 import skunk.net.message._
 
 case object StartupSimTest extends SimTest {
@@ -18,14 +19,12 @@ case object StartupSimTest extends SimTest {
       e <- simSession(sim, "Bob", "db").assertFailsWith[PostgresErrorException]
       _ <- assertEqual("message", e.message, "Nope.")
     } yield ("ok")
-
   }
 
   List(
     AuthenticationCleartextPassword,
     AuthenticationGSS,
     AuthenticationKerberosV5,
-    AuthenticationSASL(List("Foo", "Bar")),
     AuthenticationSCMCredential,
     AuthenticationSSPI,
   ).foreach { msg =>
@@ -37,4 +36,10 @@ case object StartupSimTest extends SimTest {
     }
   }
 
+  test(s"unsupported sasl mechanism") {
+    val sim = flatExpect { case StartupMessage(_, _) => send(AuthenticationSASL(List("Foo", "Bar"))) *> halt }
+    simSession(sim,"bob", "db", None)
+      .assertFailsWith[UnsupportedSASLMechanismsException]
+      .as("ok")
+  }
 }

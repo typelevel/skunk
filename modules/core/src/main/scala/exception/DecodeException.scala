@@ -5,7 +5,7 @@
 package skunk.exception
 
 import cats.data.Nested
-import cats.implicits._
+import cats.syntax.all._
 import skunk.{ Encoder, Decoder }
 import skunk.util.Origin
 // import skunk.net.Protocol

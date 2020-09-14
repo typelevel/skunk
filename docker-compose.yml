@@ -22,6 +22,17 @@ services:
     environment:
       POSTGRES_DB: world
       POSTGRES_HOST_AUTH_METHOD: trust
+  # for testing scram-sha-256 login
+  scram:
+    image: postgres:11
+    ports:
+      - 5434:5432
+    environment:
+      POSTGRES_DB: world
+      POSTGRES_USER: jimmy
+      POSTGRES_PASSWORD: banana
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
 
   # Jaeger, for tracing
   jaeger:

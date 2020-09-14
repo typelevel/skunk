@@ -4,8 +4,6 @@
 
 package tests
 package codec
-
-import cats.implicits._
 import skunk.codec.all._
 import skunk.implicits._
 
