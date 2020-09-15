@@ -6,6 +6,7 @@ package skunk
 package codec
 
 import skunk.data.Type
+import skunk.util.ArrParser
 
 trait NumericCodecs {
 
@@ -22,6 +23,8 @@ trait NumericCodecs {
 
   val float4: Codec[Float]   = Codec.simple(_.toString, safe(_.toFloat), Type.float4)
   val float8: Codec[Double]  = Codec.simple(_.toString, safe(_.toDouble), Type.float8)
+
+  val _int4: Codec[Arr[Int]] = Codec.simple(_.encode(_.toString), ArrParser.parseWith(safe(_.toInt)), Type._int4)
 
 }
 
