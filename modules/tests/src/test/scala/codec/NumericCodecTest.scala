@@ -29,6 +29,12 @@ case object NumericCodecTest extends CodecTest {
   roundtripWithSpecialValueTest("NaN", float4)(Float.NaN, _.isNaN)
   decodeFailureTest(float4, List("x"))
 
+  roundtripTest(numeric)(Double.MinValue, -1, 0, 1, Double.MaxValue)
+  roundtripTest(numeric(1,0))(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+  roundtripTest(numeric(1000,999))(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+  roundtripTest(numeric(1000,0))(Double.MinValue, -1, 0 , 1, Double.MaxValue)
+  decodeFailureTest(numeric, List("x"))
+
 }
 
 
