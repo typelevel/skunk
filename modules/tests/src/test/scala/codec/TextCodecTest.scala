@@ -6,6 +6,7 @@ package tests
 package codec
 import skunk.codec.all._
 import skunk.implicits._
+import skunk.Arr
 
 class TextCodecTest extends CodecTest {
 
@@ -34,6 +35,16 @@ class TextCodecTest extends CodecTest {
       _ <- assertEqual("value should be padded to 3 chars", a, "ab ")
     } yield ()
   }
+
+  roundtripTest(varchar)("\n")
+
+  // array types
+  val arr1 = Arr("", "ab", "föf", "🔥 and 🌈", "مرحبا", "שלום", "你好", "';--'", "ab\t\b\\cd", "ab\"cd")
+  val Some(arr2) = arr1.reshape(5,1,2)
+  roundtripTest(_varchar)(arr1, arr2)
+  roundtripTest(_bpchar)(arr1, arr2)
+  roundtripTest(_text)(arr1, arr2)
+  roundtripTest(_name)(arr1, arr2)
 
 }
 

@@ -92,6 +92,10 @@ object Codec {
       List(oid)
     )
 
+  /** @group Constructors */
+  def array[A](encode: A => String, decode: String => Either[String, A], oid: Type): Codec[Arr[A]] =
+    Codec.simple(_.encode(encode), Arr.parseWith(decode), oid)
+
   /**
    * Codec is an invariant semgroupal functor.
    * @group Typeclass Instances

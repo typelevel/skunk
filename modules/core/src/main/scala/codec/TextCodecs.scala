@@ -19,6 +19,12 @@ trait TextCodecs {
   val name:    Codec[String] = Codec.simple(_.toString, _.toString.asRight, Type.name) // TODO: I think this might be `Identifier`
   val text:    Codec[String] = Codec.simple(_.toString, _.toString.asRight, Type.text)
 
+
+  val _varchar: Codec[Arr[String]] = Codec.array(identity, Right(_), Type._varchar)
+  val _bpchar:  Codec[Arr[String]] = Codec.array(identity, Right(_), Type._bpchar)
+  val _text:    Codec[Arr[String]] = Codec.array(identity, Right(_), Type._text)
+  val _name:    Codec[Arr[String]] = Codec.array(identity, Right(_), Type._name)
+
 }
 
 object text extends TextCodecs

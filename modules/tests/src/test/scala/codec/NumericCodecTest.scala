@@ -36,9 +36,23 @@ class NumericCodecTest extends CodecTest {
   roundtripTest(numeric(1000,0))(Double.MinValue, -1, 0 , 1, Double.MaxValue)
   decodeFailureTest(numeric, List("x"))
 
-  val arr1 = Arr.fromFoldable(List(1,2,3,4,5,6,7,8))
-  val Some(arr2) = arr1.reshape(2,1,4)
-  roundtripTest(_int4)(Arr.empty, arr1, arr2)
+  {
+    val arr1 = Arr.fromFoldable(List[Short](-1,-2,-3,-4,5,6,7,8))
+    val Some(arr2) = arr1.reshape(2,1,4)
+    roundtripTest(_int2)(Arr.empty, arr1, arr2)
+  }
+
+  {
+    val arr1 = Arr.fromFoldable(List(-1,-2,-3,-4,5,6,7,8))
+    val Some(arr2) = arr1.reshape(2,1,4)
+    roundtripTest(_int4)(Arr.empty, arr1, arr2)
+  }
+
+  {
+    val arr1 = Arr.fromFoldable(List[Long](-1,-2,-3,-4,5,6,7,8))
+    val Some(arr2) = arr1.reshape(2,1,4)
+    roundtripTest(_int8)(Arr.empty, arr1, arr2)
+  }
 
 }
 
