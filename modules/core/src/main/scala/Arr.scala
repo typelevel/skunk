@@ -9,27 +9,23 @@ import cats.syntax.all._
 import cats.Foldable
 import cats.kernel.Eq
 
-final class Arr[A] private[skunk] (
-  private[skunk] val data:   ArrayBuffer[A],
-  private[skunk] val extent: Array[Int]
+final class Arr[A] private (
+  private val data:   ArrayBuffer[A],
+  private val extent: Array[Int]
 ) {
 
-  // N.B. this is not the kind of programming I like to do, but this needs to be efficient so we're
-  // trying pretty hard not to allocate unless we absolutely have to.
+  // Data and extent must be consistent. Should be guaranteed but let's check anyway.
+  assert((data.isEmpty && extent.isEmpty) || (data.length  == extent.product))
 
-  // data and extent must be consistent
-  assert(
-    (data.isEmpty && extent.isEmpty) ||
-    (data.length  == extent.product)
-  )
-
-  // We need the offsets associated with each dimension
-  private val _offsets: Array[Int] =
+  // In order to access elements we need the offsets associated with each dimension. But let's not
+  // compute it unless we need to since these will be constructed in a tight loop when we unroll
+  // a resultset that contains array columns.
+  private lazy val _offsets: Array[Int] =
     extent.tails.map(_.product).drop(1).toArray
 
   /**
-   * Encode this `Arr` into a Postgres array literal, using `f` to encode/escape the values, and
-   * the given delimiter (almost always a comma).
+   * Encode this `Arr` into a Postgres array literal, using `f` to encode the values, and the given
+   * delimiter (almost always a comma).
    */
   def encode(f: A => String, delim: Char = ','): String = {
 
@@ -101,7 +97,7 @@ final class Arr[A] private[skunk] (
   }
 
 
-  val size: Int =
+  def size: Int =
     data.length
 
   def dimensions: List[Int] =
@@ -124,7 +120,7 @@ final class Arr[A] private[skunk] (
     } else None
 
   override def toString =
-    encode(_.toString)
+    encode(_.toString) // potentially misleading but works ok for a lot of things
 
 }
 
