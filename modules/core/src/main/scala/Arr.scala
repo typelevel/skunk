@@ -27,26 +27,33 @@ final class Arr[A] private[skunk] (
   private val _offsets: Array[Int] =
     extent.tails.map(_.product).drop(1).toArray
 
-  private def escape(s: String): String =
-    s.map {
-      case '"'  => "\\\""
-      case '\\' => "\\\\"
-      case c    => c
-    }.mkString("\"", "", "\"")
-
   /**
    * Encode this `Arr` into a Postgres array literal, using `f` to encode/escape the values, and
    * the given delimiter (almost always a comma).
    */
   def encode(f: A => String, delim: Char = ','): String = {
+
+    // Quote and escape every element even if it's not always necessary.
+    def appendEscaped(sb: StringBuilder, s: String): Unit = {
+      sb.append('"')
+      s.foreach {
+        case '"'  => sb.append("\\\"")
+        case '\\' => sb.append("\\\\")
+        case c    => sb.append(c)
+      }
+      sb.append('"')
+      ()
+    }
+
+    // The main loop.
     def go(offset: Int, ie: Int, sb: StringBuilder): Unit = {
-      val v = ie == extent.length - 1 // append values?
+      val v = ie == extent.length - 1
       val o = _offsets(ie)
       var i = 0
       while (i < extent(ie)) {
         if (i > 0) sb.append(delim)
         if (v) {
-          sb.append(escape(f(data(offset + i))))
+          appendEscaped(sb, f(data(offset + i)))
         } else {
           sb.append('{')
           go(offset + o * i, ie + 1, sb)
@@ -56,6 +63,7 @@ final class Arr[A] private[skunk] (
       }
     }
 
+    // And the main event.
     if (extent.isEmpty) "{}"
     else {
       val sb = new StringBuilder
@@ -64,6 +72,7 @@ final class Arr[A] private[skunk] (
       sb.append('}')
       sb.toString()
     }
+
   }
 
   // public API
@@ -257,6 +266,7 @@ object Arr {
                 datum.clear()
                 datum.append(c)
                 state = InDatumUnquoted
+
             }
 
           case InDatumQuoted =>
@@ -306,17 +316,7 @@ object Arr {
             }
 
           case InEscape =>
-            c match {
-              case 'b' => datum.append('\b')
-              case 'f' => datum.append('\f')
-              case 'n' => datum.append('\n')
-              case 'r' => datum.append('\r')
-              case 't' => datum.append('\t')
-              case 'o' => fail("octal escapes are not yet supported.")
-              case 'x' => fail("hexadecimal escapes are not yet supported.")
-              case 'u' => fail("unicode escapes are not yet supported.")
-              case  c => datum.append(c)
-            }
+            datum.append(c)
             index += 1
             state = InDatumQuoted
 
