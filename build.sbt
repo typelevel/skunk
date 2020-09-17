@@ -115,13 +115,11 @@ lazy val tests = project
   .settings(commonSettings)
   .settings(
     publish / skip := true,
-    // test / parallelExecution := false, // why? fix this!
     libraryDependencies ++= Seq(
-      "org.typelevel" %% "scalacheck-effect-munit" % "0.2.0",
-      "org.typelevel" %% "munit-cats-effect"       % "0.3.0",
-      "org.typelevel"     %% "cats-free"      % "2.2.0",
-      // "org.scala-sbt"      % "test-interface" % "1.0",
-      "io.chrisdavenport" %% "cats-time"      % "0.3.4"
+      "org.typelevel"     %% "scalacheck-effect-munit" % "0.2.0",
+      "org.typelevel"     %% "munit-cats-effect"       % "0.3.0",
+      "org.typelevel"     %% "cats-free"               % "2.2.0",
+      "io.chrisdavenport" %% "cats-time"               % "0.3.4",
     ),
     testFrameworks += new TestFramework("munit.Framework")
   )
