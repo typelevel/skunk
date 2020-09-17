@@ -12,7 +12,7 @@ import skunk.exception.DecodeException
 import cats.effect.IO
 
 // https://github.com/tpolecat/skunk/issues/129
-case object Test129 extends SkunkTest {
+class Test129 extends SkunkTest {
 
   case class Country(name: String, code: String)
   case class City(name: String, district: String)

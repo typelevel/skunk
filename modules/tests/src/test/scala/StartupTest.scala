@@ -12,7 +12,7 @@ import skunk.exception.StartupException
 import java.net.ConnectException
 import java.nio.channels.UnresolvedAddressException
 
-case object StartupTest extends ffstest.FTest {
+class StartupTest extends ffstest.FTest {
 
   // Different ports for different authentication schemes.
   object Port {

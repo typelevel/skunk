@@ -11,7 +11,7 @@ import tests.SkunkTest
 import skunk.data.Type
 import skunk.exception.UnknownOidException
 
-case object UnknownOidExceptionTest1 extends SkunkTest(strategy = Strategy.SearchPath) {
+class UnknownOidExceptionTest1 extends SkunkTest(strategy = Strategy.SearchPath) {
 
     val mood = enum[String](identity, Option(_), Type("mood"))
     sessionTest("raise UnknownOidException when referencing a new type, using Strategy.SearchPath") { s =>
@@ -24,7 +24,7 @@ case object UnknownOidExceptionTest1 extends SkunkTest(strategy = Strategy.Searc
 
 }
 
-case object UnknownOidExceptionTest2 extends SkunkTest(strategy = Strategy.BuiltinsOnly) {
+class UnknownOidExceptionTest2 extends SkunkTest(strategy = Strategy.BuiltinsOnly) {
 
     val myenum = enum[String](identity, Option(_), Type("myenum"))
     sessionTest("raise UnknownOidException when referencing a user-defined type with Strategy.BuiltinsOnly") { s =>

@@ -8,7 +8,7 @@ import cats.effect._
 import skunk._
 import natchez.Trace.Implicits.noop
 
-case object SslTest extends ffstest.FTest {
+class SslTest extends ffstest.FTest {
 
     object Port {
     val Invalid = 5431

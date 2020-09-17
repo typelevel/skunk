@@ -12,7 +12,7 @@ import java.time.OffsetDateTime
 import java.time.ZoneOffset
 
 // https://github.com/tpolecat/skunk/issues/231
-case object Test231 extends FTest {
+class Test231 extends FTest {
 
   val es_CO: Locale =
     Locale.getAvailableLocales().find(_.toString == "es_CO").getOrElse(sys.error("Cannot find es_CO locale."))

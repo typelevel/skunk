@@ -11,7 +11,7 @@ import skunk.implicits._
 import skunk.codec.all._
 import cats.arrow.FunctionK
 
-case object CursorTest extends SkunkTest {
+class CursorTest extends SkunkTest {
 
   case class Data(s: String, n: Int)
 

@@ -12,6 +12,7 @@ import skunk.codec.all._
 import skunk.implicits._
 import skunk.util.Typer
 import natchez.Trace.Implicits.noop
+import munit.Location
 
 abstract class SkunkTest(debug: Boolean = false, strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly) extends ffstest.FTest {
 
@@ -26,7 +27,7 @@ abstract class SkunkTest(debug: Boolean = false, strategy: Typer.Strategy = Type
       debug    = debug
     )
 
-  def sessionTest[A](name: String)(fa: Session[IO] => IO[A]): Unit =
+  def sessionTest[A](name: String)(fa: Session[IO] => IO[A])(implicit loc: Location): Unit =
     test(name)(session.use(fa))
 
   implicit class SkunkTestSessionOps(s: Session[IO]) {

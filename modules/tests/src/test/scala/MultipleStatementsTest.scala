@@ -12,7 +12,7 @@ import skunk.exception.SkunkException
 import cats.effect.IO
 import skunk.exception.PostgresErrorException
 
-object MultipleStatementsTest extends SkunkTest {
+class MultipleStatementsTest extends SkunkTest {
 
   val statements: List[(Query[Void,Int], Command[Void])] =
     List("select 1","commit","copy country from stdin","copy country to stdout") // one per protocol

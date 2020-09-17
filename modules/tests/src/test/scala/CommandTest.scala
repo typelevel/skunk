@@ -13,7 +13,7 @@ import cats.Contravariant
 import fs2._
 import skunk.exception.UnexpectedRowsException
 
-case object CommandTest extends SkunkTest {
+class CommandTest extends SkunkTest {
 
   case class City(id: Int, name: String, code: String, district: String, pop: Int)
 
@@ -95,14 +95,14 @@ case object CommandTest extends SkunkTest {
       DROP SCHEMA public_0
       """.command
 
-  val createIndex: Command[Void] = 
+  val createIndex: Command[Void] =
     sql"""
       CREATE INDEX IF NOT EXISTS id_index ON earth (
         id
       )
       """.command
 
-  val dropIndex: Command[Void] = 
+  val dropIndex: Command[Void] =
     sql"""
       DROP INDEX id_index
       """.command

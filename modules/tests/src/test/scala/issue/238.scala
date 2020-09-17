@@ -8,7 +8,7 @@ import cats.effect._
 import skunk._
 import natchez.Trace.Implicits.noop
 
-case object Test238 extends ffstest.FTest {
+class Test238 extends ffstest.FTest {
 
   test("see (https://github.com/functional-streams-for-scala/fs2/pull/1989)") {
     Session.single[IO](

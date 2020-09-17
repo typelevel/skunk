@@ -12,7 +12,7 @@ import skunk.data.Type
 import enumeratum._
 import enumeratum.EnumEntry.Lowercase
 
-case object EnumCodecTest extends CodecTest(strategy = Strategy.SearchPath) {
+class EnumCodecTest extends CodecTest(strategy = Strategy.SearchPath) {
 
   // Case 1: enum defined normally
   sealed abstract class Case1(val label: String)

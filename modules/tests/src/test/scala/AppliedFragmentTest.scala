@@ -9,7 +9,7 @@ import skunk.implicits._
 import skunk.codec.all._
 import skunk._
 
-case object AppliedFragmentTest extends ffstest.FTest {
+class AppliedFragmentTest extends ffstest.FTest {
 
   // We check associativity and identity with respect to SQL construction. The rest follows from
   // the types, I think. There's not really any other way to make it compile.

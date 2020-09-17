@@ -8,7 +8,7 @@ import skunk._
 import skunk.codec.all._
 import skunk.implicits._
 
-case object ListTest extends SkunkTest {
+class ListTest extends SkunkTest {
 
  // Regression test for https://github.com/tpolecat/skunk/issues/148
   sessionTest("Do not throw StackOverflowError on big list encoders") { s =>
