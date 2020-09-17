@@ -4,11 +4,15 @@
 
 package skunk
 
-import scala.collection.mutable.ArrayBuffer
+import cats._
 import cats.syntax.all._
-import cats.Foldable
-import cats.kernel.Eq
+import scala.collection.mutable.ArrayBuffer
 
+/**
+ * A Postgres array, which is either empty and zero-dimensional, or non-empty and rectangular (unlike
+ * Scala `Array`s, which are ragged) with a postive number of dimensions (all non-empty). `Arr` is a
+ * traversable functor.
+ */
 final class Arr[A] private (
   private val data:   ArrayBuffer[A],
   private val extent: Array[Int]
@@ -24,12 +28,66 @@ final class Arr[A] private (
     extent.tails.map(_.product).drop(1).toArray
 
   /**
-   * Encode this `Arr` into a Postgres array literal, using `f` to encode the values, and the given
-   * delimiter (almost always a comma).
+   * Attempt to reshape this `Arr` with the specified dimensions. This is possible if and only if
+   * dimensions factorize `size`. O(1).
+   * @group Transformation
+   */
+  def reshape(dimensions: Int*): Option[Arr[A]] =
+    if (dimensions.isEmpty) {
+      if (this.dimensions.isEmpty) Some(this)
+      else None
+    } else {
+      if (dimensions.product == data.length) Some(new Arr(data, dimensions.toArray))
+      else None
+    }
+
+  /**
+   * Total number of elements in this `Arr`.
+   * @group Accessors
+   */
+  def size: Int =
+    data.length
+
+  /**
+   * Size of this `Arr` by dimension. Invariant: if this `Arr` is non-empty then
+   * `dimensions.product` equals `size`.
+   * @group Accessors
+   */
+  def dimensions: List[Int] =
+    extent.toList
+
+  /**
+   * Retrieve the element at the specified location, if the ordinates are in range (i.e., between
+   * zero and the corresponding entry in `dimensions`).
+   * @group Accessors
+   */
+  def get(ords: Int*): Option[A] =
+    if (ords.length == extent.length) {
+      var a = 0
+      var i = 0
+      while (i < extent.length) {
+        val ii = ords(i)
+        if (ii >= 0 && ii < extent(i)) {
+          a += ords(i) * _offsets(i)
+        } else {
+          return None
+        }
+        i += 1
+      }
+      Some(data(a))
+    } else None
+
+
+  /**
+   * Encode this `Arr` into a Postgres array literal, using `f` to encode the values (which will
+   * be quoted and escaped as needed) and the given delimiter (specified in `pg_type` but almost
+   * always a comma).
+   * @group Encoding
    */
   def encode(f: A => String, delim: Char = ','): String = {
 
-    // Quote and escape every element even if it's not always necessary.
+    // We quote and escape all data, even if it's not strictly necessary. We could optimize here
+    // and only quote if needed (see https://www.postgresql.org/docs/9.6/arrays.html#ARRAYS-IO).
     def appendEscaped(sb: StringBuilder, s: String): Unit = {
       sb.append('"')
       s.foreach {
@@ -71,67 +129,35 @@ final class Arr[A] private (
 
   }
 
-  // public API
-
-  def reshape(extent: Int*): Option[Arr[A]] =
-    if (extent.isEmpty) {
-      if (this.extent.isEmpty) Some(this)
-      else None
-    } else {
-      if (extent.product == data.length) Some(new Arr(data, extent.toArray))
-      else None
-    }
-
-  def map[B](f: A => B): Arr[B] =
-    new Arr(data.map(f), extent)
-
-  def emap[B](f: A => Either[String, B]): Either[String, Arr[B]] = {
-    val _newData = ArrayBuffer.empty[B]
-    data.foreach { a =>
-      f(a) match {
-        case Right(b) => _newData.append(b)
-        case Left(s)  => return Left(s)
-      }
-    }
-    Right(new Arr(_newData, extent))
-  }
-
-
-  def size: Int =
-    data.length
-
-  def dimensions: List[Int] =
-    extent.toList
-
-  def get(is: Int*): Option[A] =
-    if (is.length == extent.length) {
-      var a = 0
-      var i = 0
-      while (i < extent.length) {
-        val ii = is(i)
-        if (ii >= 0 && ii < extent(i)) {
-          a += is(i) * _offsets(i)
-        } else {
-          return None
-        }
-        i += 1
-      }
-      Some(data(a))
-    } else None
-
+  /** Approximation of the equivalent Postgres array literal, for debugging only. */
   override def toString =
-    encode(_.toString) // potentially misleading but works ok for a lot of things
+    s"Arr(${encode(_.toString)})"
 
 }
 
+/** Companion object for `Arr`, with constructors and methods for parsing. */
 object Arr {
 
+  /**
+   * Construct a one-dimensional `Arr` from the given values (call `reshape` after construction to
+   * change dimensionality).
+   * @group Constructors
+   */
   def apply[A](as: A*): Arr[A] =
     fromFoldable(as.toList)
 
+  /**
+   * Construct an empty `Arr`.
+   * @group Constructors
+   */
   def empty[A]: Arr[A] =
     new Arr(ArrayBuffer.empty, Array.empty)
 
+  /**
+   * Construct a one-dimensional `Arr` from the given foldable (call `reshape` after construction to
+   * change dimensionality).
+   * @group Constructors
+   */
   def fromFoldable[F[_]: Foldable, A](fa: F[A]): Arr[A] = {
     val data = fa.foldLeft(new ArrayBuffer[A]) { (a, b) => a.append(b); a }
     new Arr(data, Array(data.length))
@@ -140,12 +166,37 @@ object Arr {
   /**
    * `Arr`s are comparable if their elements are comparable. They are equal if they have the same
    * elements and dimensions.
+   * @group Typeclass Instances
    */
   implicit def eqArr[A: Eq]: Eq[Arr[A]] = (a, b) =>
     (a.extent.corresponds(b.extent)(_ === _)) &&
     (a.data.corresponds(b.data)(_ === _))
 
-      // Our parse state
+  /**
+   * `Arr` is a traversable functor.
+   * @group Typeclass Instances
+   */
+  implicit val TraverseArr: Traverse[Arr] =
+    new Traverse[Arr] {
+
+      def foldLeft[A, B](fa: Arr[A], b: B)(f: (B, A) => B): B =
+        fa.data.foldLeft(b)(f)
+
+      def foldRight[A, B](fa: Arr[A], lb: Eval[B])(f: (A, Eval[B]) => Eval[B]): Eval[B] =
+        fa.data.toList.foldr(lb)(f)
+
+      def traverse[G[_]: Applicative, A, B](fa: Arr[A])(f: A => G[B]): G[Arr[B]] =
+        fa.data.toList.traverse(f).map(bs => new Arr(ArrayBuffer(bs:_*), fa.extent))
+
+      override def map[A, B](fa: Arr[A])(f: A => B): Arr[B] =
+        new Arr(fa.data.map(f), fa.extent)
+
+    }
+
+
+  // The rest of this source file is the parser.
+
+  // Our parse state
   private sealed trait ParseState
   private case object ExpectElem      extends ParseState
   private case object ExpectArray     extends ParseState
@@ -156,37 +207,36 @@ object Arr {
   private case object ElemComplete    extends ParseState
   private case object Done            extends ParseState
 
-  /** Parse a Postgres array literal into an `Arr[String]` or report an error. */
+  /**
+   * Parse a Postgres array literal into an `Arr[String]` or report an error.
+   * @group Parsing
+   */
   def parse(s: String): Either[String, Arr[String]] =
     parseWith(Right(_))(s)
 
-  /** Parse a Postgres array literal into an `Arr[A]` or report an error. */
-  def parseWith[A](f: String => Either[String, A])(s: String): Either[String, Arr[A]] = {
-
-    // This attempts to be an efficient parser, and as such it's gross. Sorry about that. We try
-    // really hard not to allocate anything unless we absolutely have to.
-
-    // This really is a special case! If there's no data it has to be "{}" (not "{{}}" etc.)
-    if (s == "{}") Right(Arr.empty)
+  /**
+   * Parse a Postgres array literal into an `Arr[A]` or report an error.
+   * @group Parsing
+   */
+  def parseWith[A](f: String => Either[String, A])(s: String): Either[String, Arr[A]] =
+    if (s == "{}") Right(Arr.empty) // This really is a special case!
     else {
 
       // The number of leading braces tells us the depth at which data lives.
       val dataDepth = s.takeWhile(_ == '{').length()
 
-      // We accumulate a buffer of stuff
+      // We accumulate a buffer of data
       val data = ArrayBuffer.empty[A]
 
-      // We reuse a StringBuilder for each datum we encounter, leaving it null if we're not
-      // currently parsing a datum.
-      val builder = new StringBuilder
-      var datum   = null : StringBuilder
+      // We reuse a StringBuilder for each datum we encounter.
+      val datum = new StringBuilder
 
       // We track our current index and our depth, as well as the current and "reference" counts of
       // elements at each depth. These allow us to ensure that the array is rectangular.
       var index     = 0
       var depth     = 0
       val curCount  = Array.fill(dataDepth + 1)(0) // +1 so we can say curCount(depth)
-      val refCount  = Array.fill(dataDepth + 1)(0)
+      val refCount  = Array.fill(dataDepth + 1)(0) // same here
 
       // We have a failure sentinal and a helper to set it.
       var failure: String = null
@@ -196,6 +246,8 @@ object Arr {
       // This is a state machine!
       var state: ParseState = ExpectArray
 
+      // After we encounter a comma we update our current count of elements at the current depth.
+      // If there is a reference count for that depth we can trap the case where we have too many.
       def updateCountersAfterComma(): Unit = {
         val ref = refCount(depth)
         val cur = curCount(depth)
@@ -207,6 +259,8 @@ object Arr {
         }
       }
 
+      // After we encounter a closing brace we set our reference count, if it's not already set. We
+      // also catch the case where the current count is too low because more elements were expected.
       def updateCountersAfterClose(): Unit = {
         val ref = refCount(depth)
         val cur = curCount(depth)
@@ -219,18 +273,21 @@ object Arr {
         }
       }
 
-      // Our main loop.
+      // Ok here is our main loop. We run as long as there are more chars in the input and we
+      // haven't recorded an error.
       while (index < s.length && failure == null) {
         val c = s(index)
-        // println(s"$state, $depth, $dataDepth, $index, $c")
         state match {
 
+          // After we encounter a closing brace that returns us to depth = 0.
           case Done =>
             fail(s"expected end of string, found $c")
 
+          // After a comma or an opening brace.
           case ExpectElem =>
             state = if (depth == dataDepth) ExpectDatum else ExpectArray
 
+          // Array expected, so we must find an opening brace and nothing else.
           case ExpectArray =>
             c match {
 
@@ -244,6 +301,7 @@ object Arr {
 
             }
 
+          // Datum expected, so we expect an opening quote or a non-syntax char.
           case ExpectDatum =>
             c match {
 
@@ -252,25 +310,23 @@ object Arr {
 
               case '"' =>
                 index += 1
-                datum = builder
                 datum.clear()
                 state = InDatumQuoted
 
               case  _  =>
                 index += 1
-                datum = builder
                 datum.clear()
                 datum.append(c)
                 state = InDatumUnquoted
 
             }
 
+          // Inside a quoted datum we expect a closing quote, an escape, or an arbitrary char.
           case InDatumQuoted =>
             c match {
 
               case '"' =>
                 f(datum.toString()).fold(fail, a => { data.append(a); () })
-                datum = null
                 index += 1
                 state = ElemComplete
 
@@ -284,6 +340,7 @@ object Arr {
 
             }
 
+          // Inside a quoted datum we expect a closing comma/brace, or a non-syntax char.
           case InDatumUnquoted =>
             c match {
 
@@ -292,15 +349,15 @@ object Arr {
 
               case ',' =>
                 updateCountersAfterComma()
+                // TODO: If the datum is 'NULL' then we need to do something else!
                 f(datum.toString()).fold(fail, a => { data.append(a); () })
-                datum = null
                 index += 1
                 state = ExpectDatum
 
               case '}' =>
                 updateCountersAfterClose()
+                // TODO: If the datum is 'NULL' then we need to do something else!
                 f(datum.toString()).fold(fail, a => { data.append(a); () })
-                datum = null
                 index += 1
                 depth -= 1
                 state = if (depth == 0) Done else ElemComplete
@@ -311,11 +368,13 @@ object Arr {
 
             }
 
+          // Following an escape (inside a quoted datum) we accept all chars.
           case InEscape =>
             datum.append(c)
             index += 1
             state = InDatumQuoted
 
+          // Following a closing quote we expect a comma or closing brace.
           case ElemComplete =>
             c match {
 
@@ -340,14 +399,14 @@ object Arr {
 
       }
 
+      // And we're done!
       if (failure != null)
         Left(failure)
       else if (depth != 0 || state != Done)
         Left(s"unterminated array literal")
       else
-        Right(new Arr(data, refCount.drop(1)))
+        Right(new Arr(data, refCount.drop(1))) // because we use 1-based indexing above
 
     }
-  }
 
 }
