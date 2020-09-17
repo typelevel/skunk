@@ -12,7 +12,7 @@ class UnsupportedAuthenticationSchemeException(
   sql = None,
   message = s"Unsupported authentication scheme.",
   hint = Some(
-    s"""|The server requested `$message`, but Skunk currently only supports `trust` and `password` (md5).
+    s"""|The server requested `$message`, but Skunk currently only supports `trust` and `password` (md5 and scram-sha-256).
         |""".stripMargin
   )
 )
