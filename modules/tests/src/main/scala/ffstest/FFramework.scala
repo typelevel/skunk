@@ -10,8 +10,12 @@ import cats.syntax.all._
 import scala.reflect.ClassTag
 import natchez.Fields
 import munit.CatsEffectSuite
+import scala.concurrent.ExecutionContext
 
 trait FTest extends CatsEffectSuite {
+
+  override val munitExecutionContext: ExecutionContext =
+    ExecutionContext.global
 
   def pureTest(name: String)(f: => Boolean): Unit = test(name)(assert(name, f))
   def fail[A](msg: String): IO[A] = IO.raiseError(new AssertionError(msg))
