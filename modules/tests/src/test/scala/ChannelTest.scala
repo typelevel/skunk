@@ -11,6 +11,7 @@ import skunk._
 import skunk.implicits._
 import cats.arrow.FunctionK
 import cats.arrow.Profunctor
+import scala.concurrent.duration._
 
 class ChannelTest extends SkunkTest {
 
@@ -22,7 +23,13 @@ class ChannelTest extends SkunkTest {
     val ch3 = Contravariant[Channel[IO, ?, String]].contramap(ch2)(identity[String])
     val ch  = Profunctor[Channel[IO, ?, ?]].dimap(ch3)(identity[String])(identity[String])
     for {
+      // There is a race here. If this fiber doesn't start running quickly enough all the data will
+      // be written to the channel before we execute LISTEN. We can't add a latch to `listen` that
+      // indicates LISTEN has completed because it makes it impossible to implement `mapK` for
+      // `Channel` and thus for `Session`. So for now we're just going to sleep a while. I'm not
+      // sure it's a problem in real life but it makes this test hard to write.
       f <- ch.listen(42).map(_.value).takeThrough(_ != data.last).compile.toList.start
+      _ <- Timer[IO].sleep(1.second) // sigh
       _ <- data.traverse_(ch.notify)
       d <- f.join
       _ <- assert(s"channel data $d $data", data.endsWith(d)) // we may miss the first few

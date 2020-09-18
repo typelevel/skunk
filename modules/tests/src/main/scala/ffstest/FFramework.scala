@@ -11,11 +11,20 @@ import scala.reflect.ClassTag
 import natchez.Fields
 import munit.CatsEffectSuite
 import scala.concurrent.ExecutionContext
+import java.util.concurrent.Executors
 
 trait FTest extends CatsEffectSuite {
 
+  // ensure that we have bountiful threads
+  val executor = Executors.newCachedThreadPool()
+
   override val munitExecutionContext: ExecutionContext =
-    ExecutionContext.global
+    ExecutionContext.fromExecutor(executor)
+
+  override def afterAll(): Unit = {
+    super.afterAll();
+    executor.shutdown()
+  }
 
   def pureTest(name: String)(f: => Boolean): Unit = test(name)(assert(name, f))
   def fail[A](msg: String): IO[A] = IO.raiseError(new AssertionError(msg))
