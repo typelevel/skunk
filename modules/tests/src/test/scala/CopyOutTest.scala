@@ -10,7 +10,7 @@ import skunk.codec.all._
 import skunk.exception.CopyNotSupportedException
 import skunk.exception.NoDataException
 
-object CopyOutTest extends SkunkTest {
+class CopyOutTest extends SkunkTest {
 
   sessionTest("copy out (simple query)") { s =>
     s.execute(sql"COPY country TO STDOUT".query(int4))

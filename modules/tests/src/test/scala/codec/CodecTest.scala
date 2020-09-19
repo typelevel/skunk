@@ -81,7 +81,7 @@ abstract class CodecTest(
 
 }
 
-case object CodecTest extends FTest {
+class CodecCombinatorsTest extends FTest {
 
   val c = int2 ~ (int4 ~ float8) ~ varchar
 

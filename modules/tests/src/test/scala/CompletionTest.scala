@@ -8,7 +8,7 @@ import skunk.data.Completion
 import cats.effect.IO
 import java.io.ByteArrayOutputStream
 
-case object CompletionTest extends ffstest.FTest {
+class CompletionTest extends ffstest.FTest {
 
   test("constructing a `Completion.Unknown` should log to stderr") {
     IO {

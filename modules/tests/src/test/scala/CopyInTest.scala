@@ -10,7 +10,7 @@ import skunk.exception.CopyNotSupportedException
 import cats.effect.IO
 import skunk.exception.NoDataException
 
-object CopyInTest extends SkunkTest {
+class CopyInTest extends SkunkTest {
 
   sessionTest("copy in") { s =>
     s.execute(sql"COPY country FROM STDIN".query(int4))

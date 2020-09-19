@@ -10,7 +10,7 @@ import skunk.implicits._
 import skunk._
 import skunk.codec.all._
 
-case object EncoderTest extends SkunkTest {
+class EncoderTest extends SkunkTest {
 
   testEncoder(int4.asEncoder ~ varchar.asEncoder)
   testEncoder(ContravariantSemigroupal[Encoder].product(int4.asEncoder, varchar.asEncoder)) // same, via ContravariantSemigroupal instance

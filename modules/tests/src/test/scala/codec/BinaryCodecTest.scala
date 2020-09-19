@@ -8,7 +8,7 @@ package codec
 import cats.kernel.Eq
 import skunk.codec.all._
 
-case object BinaryCodecTest extends CodecTest {
+class BinaryCodecTest extends CodecTest {
 
   implicit def arrayEq[A]: Eq[Array[A]] = Eq.instance(_.toList == _.toList)
 

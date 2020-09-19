@@ -18,7 +18,7 @@ import skunk.util.Pool.ShutdownException
 import natchez.Trace.Implicits.noop
 import skunk.util.Recycler
 
-case object PoolTest extends FTest {
+class PoolTest extends FTest {
 
   case class UserFailure() extends Exception("user failure")
   case class AllocFailure() extends Exception("allocation failure")

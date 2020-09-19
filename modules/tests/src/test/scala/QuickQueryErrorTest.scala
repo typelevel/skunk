@@ -10,7 +10,7 @@ import skunk.codec.all._
 import skunk.exception._
 import skunk.implicits._
 
-case object QuickQueryErrorTest extends SkunkTest {
+class QuickQueryErrorTest extends SkunkTest {
 
   sessionTest("syntax error") { s =>
     for {
