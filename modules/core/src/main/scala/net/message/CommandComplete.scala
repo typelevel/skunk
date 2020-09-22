@@ -54,6 +54,7 @@ object CommandComplete {
     case "NOTIFY"           => apply(Completion.Notify)
     case "RESET"            => apply(Completion.Reset)
     case "SET"              => apply(Completion.Set)
+    case "TRUNCATE TABLE"   => apply(Completion.Truncate)
     case "UNLISTEN"         => apply(Completion.Unlisten)
     case "ROLLBACK"         => apply(Completion.Rollback)
     case "SAVEPOINT"        => apply(Completion.Savepoint)
