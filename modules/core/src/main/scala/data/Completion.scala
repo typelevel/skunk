@@ -20,6 +20,7 @@ object Completion {
   case object Savepoint          extends Completion
   case class  Select(count: Int) extends Completion
   case object Set                extends Completion
+  case object Truncate           extends Completion
   case object Unlisten           extends Completion
   case class  Update(count: Int) extends Completion
   case class  Insert(count: Int) extends Completion
