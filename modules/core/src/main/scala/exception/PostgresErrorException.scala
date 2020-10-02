@@ -171,7 +171,7 @@ class PostgresErrorException (
 
 object PostgresErrorException {
 
-  def raiseError[F[_]: cats.MonadError[?[_], Throwable], A](
+  def raiseError[F[_]: cats.MonadError[*[_], Throwable], A](
     sql:             String,
     sqlOrigin:       Option[Origin],
     info:            Map[Char, String],

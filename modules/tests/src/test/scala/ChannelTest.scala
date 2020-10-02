@@ -19,9 +19,9 @@ class ChannelTest extends SkunkTest {
     val data = List("foo", "bar", "baz")
     val ch0 = s.channel(id"channel_test")
     val ch1 = ch0.mapK(FunctionK.id)
-    val ch2 = Functor[Channel[IO, String, ?]].map(ch1)(identity[String])
-    val ch3 = Contravariant[Channel[IO, ?, String]].contramap(ch2)(identity[String])
-    val ch  = Profunctor[Channel[IO, ?, ?]].dimap(ch3)(identity[String])(identity[String])
+    val ch2 = Functor[Channel[IO, String, *]].map(ch1)(identity[String])
+    val ch3 = Contravariant[Channel[IO, *, String]].contramap(ch2)(identity[String])
+    val ch  = Profunctor[Channel[IO, *, *]].dimap(ch3)(identity[String])(identity[String])
     for {
       // There is a race here. If this fiber doesn't start running quickly enough all the data will
       // be written to the channel before we execute LISTEN. We can't add a latch to `listen` that

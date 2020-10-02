@@ -23,7 +23,7 @@ final case class Fragment[A](
 
   lazy val sql: String =
     parts.traverse {
-      case Left(s)  => s.pure[State[Int, ?]]
+      case Left(s)  => s.pure[State[Int, *]]
       case Right(s) => s
     } .runA(1).value.combineAll
 

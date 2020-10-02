@@ -46,15 +46,15 @@ final case class Recycler[F[_], A](run: A => F[Boolean]) extends (A => F[Boolean
 object Recycler {
 
   /** Recycler forms a monoid with "andAlso" logic, if `F` is a monad. */
-  implicit def monoidRecycle[F[_]: Monad]: MonoidK[Recycler[F, ?]] =
-    new MonoidK[Recycler[F, ?]] {
+  implicit def monoidRecycle[F[_]: Monad]: MonoidK[Recycler[F, *]] =
+    new MonoidK[Recycler[F, *]] {
       def empty[A] = success[F, A]
       def combineK[A](x: Recycler[F,A], y: Recycler[F,A]): Recycler[F,A] = x andAlso y
     }
 
   /** Recycler is a contravariant functor. */
-  implicit def contravariantRecycle[F[_]]: Contravariant[Recycler[F, ?]] =
-    new Contravariant[Recycler[F, ?]] {
+  implicit def contravariantRecycle[F[_]]: Contravariant[Recycler[F, *]] =
+    new Contravariant[Recycler[F, *]] {
       def contramap[A, B](fa: Recycler[F,A])(f: B => A) = fa.contramap(f)
     }
 

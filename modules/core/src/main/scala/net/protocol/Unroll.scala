@@ -22,7 +22,7 @@ import scala.util.control.NonFatal
  * Superclass for `Query` and `Execute` sub-protocols, both of which need a way to accumulate
  * results in a `List` and report errors when decoding fails.
  */
-private[protocol] class Unroll[F[_]: MonadError[?[_], Throwable]: MessageSocket: Trace] {
+private[protocol] class Unroll[F[_]: MonadError[*[_], Throwable]: MessageSocket: Trace] {
 
   /** Receive the next batch of rows. */
   def unroll[A, B](

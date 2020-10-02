@@ -69,8 +69,8 @@ object Minimal2 extends IOApp {
   def run(args: List[String]): IO[ExitCode] =
     tracer[IO].use { t =>
       t.root("root").use { s =>
-        runF[Kleisli[IO, Span[IO], ?]].run(s) *>
-        runF[Kleisli[IO, Span[IO], ?]].run(s)
+        runF[Kleisli[IO, Span[IO], *]].run(s) *>
+        runF[Kleisli[IO, Span[IO], *]].run(s)
       }
     }
 

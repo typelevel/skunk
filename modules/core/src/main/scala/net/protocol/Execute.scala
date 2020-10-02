@@ -23,7 +23,7 @@ trait Execute[F[_]] {
 
 object Execute {
 
-  def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket: Trace]: Execute[F] =
+  def apply[F[_]: MonadError[*[_], Throwable]: Exchange: MessageSocket: Trace]: Execute[F] =
     new Unroll[F] with Execute[F] {
 
       override def apply[A](portal: Protocol.CommandPortal[F, A]): F[Completion] =

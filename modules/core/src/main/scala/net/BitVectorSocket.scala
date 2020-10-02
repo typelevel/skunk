@@ -81,7 +81,7 @@ object BitVectorSocket {
   ): Resource[F, BitVectorSocket[F]] =
     for {
       sock  <- sg.client[F](new InetSocketAddress(host, port))
-      sockʹ <- sslOptions.fold(sock.pure[Resource[F, ?]])(SSLNegotiation.negotiateSSL(sock, readTimeout, writeTimeout, _))
+      sockʹ <- sslOptions.fold(sock.pure[Resource[F, *]])(SSLNegotiation.negotiateSSL(sock, readTimeout, writeTimeout, _))
     } yield fromSocket(sockʹ, readTimeout, writeTimeout)
 
 }

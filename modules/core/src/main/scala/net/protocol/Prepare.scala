@@ -21,7 +21,7 @@ trait Prepare[F[_]] {
 
 object Prepare {
 
-  def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket: Namer: Trace]: Prepare[F] =
+  def apply[F[_]: MonadError[*[_], Throwable]: Exchange: MessageSocket: Namer: Trace]: Prepare[F] =
     new Prepare[F] {
 
       override def apply[A](command: skunk.Command[A], ty: Typer): Resource[F, PreparedCommand[F, A]] =

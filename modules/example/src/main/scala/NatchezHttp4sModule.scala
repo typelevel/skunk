@@ -21,13 +21,13 @@ import cats.Monad
 
 object implicits {
 
-  // Given an entry point and HTTP Routes in Kleisli[F, Span[F], ?] return routes in F. A new span
+  // Given an entry point and HTTP Routes in Kleisli[F, Span[F], *] return routes in F. A new span
   // is created with the URI path as the name, either as a continuation of the incoming trace, if
   // any, or as a new root. This can likely be simplified, I just did what the types were saying
   // and it works so :shrug:
-  private def liftT[F[_]: Bracket[?[_], Throwable]](
+  private def liftT[F[_]: Bracket[*[_], Throwable]](
     entryPoint: EntryPoint[F])(
-    routes:     HttpRoutes[Kleisli[F, Span[F], ?]]
+    routes:     HttpRoutes[Kleisli[F, Span[F], *]]
   ): HttpRoutes[F] =
     Kleisli { req =>
       type G[A]  = Kleisli[F, Span[F], A]
@@ -50,10 +50,10 @@ object implicits {
       new Span[F] {
         val kernel: F[Kernel] = Kernel(Map.empty).pure[F]
         def put(fields: (String, TraceValue)*): F[Unit] = Monad[F].unit
-        def span(name: String): Resource[F, Span[F]] = Monad[Resource[F, ?]].pure(this)
+        def span(name: String): Resource[F, Span[F]] = Monad[Resource[F, *]].pure(this)
       }
 
-    def liftT(routes: HttpRoutes[Kleisli[F, Span[F], ?]])(
+    def liftT(routes: HttpRoutes[Kleisli[F, Span[F], *]])(
       implicit ev: Bracket[F, Throwable]
     ): HttpRoutes[F] =
       implicits.liftT(self)(routes)
@@ -64,11 +64,11 @@ object implicits {
      * resource. The reasoning is that such a resource typically lives for the lifetime of the
      * application and it's of little use to keep a span open that long.
      */
-    def liftR(routes: Resource[Kleisli[F, Span[F], ?], HttpRoutes[Kleisli[F, Span[F], ?]]])(
+    def liftR(routes: Resource[Kleisli[F, Span[F], *], HttpRoutes[Kleisli[F, Span[F], *]]])(
       implicit ev: Bracket[F, Throwable],
                 d: Defer[F]
     ): Resource[F, HttpRoutes[F]] =
-      routes.map(liftT).mapK(λ[Kleisli[F, Span[F], ?] ~> F] { fa =>
+      routes.map(liftT).mapK(λ[Kleisli[F, Span[F], *] ~> F] { fa =>
         fa.run(dummySpan)
       })
 
@@ -87,7 +87,7 @@ object implicits {
    * - "error.message"    -> Exception message
    * - "error.stacktrace" -> Exception stack trace as a multi-line string
    */
-  def natchezMiddleware[F[_]: Bracket[?[_], Throwable]: Trace](routes: HttpRoutes[F]): HttpRoutes[F] =
+  def natchezMiddleware[F[_]: Bracket[*[_], Throwable]: Trace](routes: HttpRoutes[F]): HttpRoutes[F] =
     Kleisli { req =>
 
       val addRequestFields: F[Unit] =

@@ -37,11 +37,11 @@ trait Cursor[F[_], A] { outer =>
 object Cursor {
 
   /**
-   * `Cursor[F, ?]` is a covariant functor if `F` is.
+   * `Cursor[F, *]` is a covariant functor if `F` is.
    * @group Typeclass Instances
    */
-  implicit def functorCursor[F[_]: Functor]: Functor[Cursor[F, ?]] =
-    new Functor[Cursor[F, ?]] {
+  implicit def functorCursor[F[_]: Functor]: Functor[Cursor[F, *]] =
+    new Functor[Cursor[F, *]] {
       override def map[A, B](fa: Cursor[F, A])(f: A => B): Cursor[F, B] =
         new Cursor[F, B] {
           override def fetch(maxRows: Int): F[(List[B], Boolean)] =
