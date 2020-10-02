@@ -118,31 +118,31 @@ object Channel {
   }
 
   /**
-   * `Channel[F, T, ?]` is a covariant functor for all `F` and `T`.
+   * `Channel[F, T, *]` is a covariant functor for all `F` and `T`.
    * @group Typeclass Instances
    */
-  implicit def functorChannel[F[_], T]: Functor[Channel[F, T, ?]] =
-    new Functor[Channel[F, T, ?]] {
+  implicit def functorChannel[F[_], T]: Functor[Channel[F, T, *]] =
+    new Functor[Channel[F, T, *]] {
       def map[A, B](fa: Channel[F, T, A])(f: A => B): Channel[F, T, B] =
         fa.map(f)
     }
 
   /**
-   * `Channel[F, ?, T]` is a contravariant functor for all `F` and `T`.
+   * `Channel[F, *, T]` is a contravariant functor for all `F` and `T`.
    * @group Typeclass Instances
    */
-  implicit def contravariantChannel[F[_], T]: Contravariant[Channel[F, ?, T]] =
-    new Contravariant[Channel[F, ?, T]] {
+  implicit def contravariantChannel[F[_], T]: Contravariant[Channel[F, *, T]] =
+    new Contravariant[Channel[F, *, T]] {
       def contramap[A, B](fa: Channel[F, A, T])(f: B => A): Channel[F, B, T] =
         fa.contramap(f)
     }
 
   /**
-   * `Channel[F, ?, ?]` is a profunctor for all `F`.
+   * `Channel[F, *, *]` is a profunctor for all `F`.
    * @group Typeclass Instances
    */
-  implicit def profunctorChannel[F[_]]: Profunctor[Channel[F, ?, ?]] =
-    new Profunctor[Channel[F, ?, ?]] {
+  implicit def profunctorChannel[F[_]]: Profunctor[Channel[F, *, *]] =
+    new Profunctor[Channel[F, *, *]] {
       def dimap[A, B, C, D](fab: Channel[F, A, B])(f: C => A)(g: B => D): Channel[F, C, D] =
         fab.dimap(f)(g)
     }

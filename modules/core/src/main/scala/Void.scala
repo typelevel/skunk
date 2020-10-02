@@ -30,7 +30,7 @@ case object Void extends Void {
           case _   => Left(Decoder.Error(index, 0, s"Expected no values, found $ss"))
         }
       override val types: List[Type] = Nil
-      override val sql: State[Int, String]   = "".pure[State[Int, ?]]
+      override val sql: State[Int, String]   = "".pure[State[Int, *]]
     }
 
 }

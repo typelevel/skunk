@@ -70,7 +70,7 @@ object Http4sExample extends IOApp {
     Session.Recyclers.minimal[F].contramap(_.session)
 
   /** Given a `Session` we can create a `Countries` resource with pre-prepared statements. */
-  def countriesFromSession[F[_]: Bracket[?[_], Throwable]: Trace](
+  def countriesFromSession[F[_]: Bracket[*[_], Throwable]: Trace](
     sess: Session[F]
   ): Resource[F, PooledCountries[F]] = {
 
@@ -176,7 +176,7 @@ object Http4sExample extends IOApp {
     for {
       ep <- entryPoint[F]
       rs <- ep.liftR(routes) // Discharge the `Trace` constraint for `routes`. Type argument here
-                             // will be inferred as Kleisli[F, Span[F], ?] but we never see that
+                             // will be inferred as Kleisli[F, Span[F], *] but we never see that
                              // type in our code, which makes it a little nicer.
       _  <- server(Router("/" -> rs).orNotFound)
     } yield ()

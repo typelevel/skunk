@@ -57,7 +57,7 @@ trait PreparedQuery[F[_], A, B] {
 /** @group Companions */
 object PreparedQuery {
 
-  def fromProto[F[_]: Bracket[?[_], Throwable], A, B](proto: Protocol.PreparedQuery[F, A, B]): PreparedQuery[F, A, B] =
+  def fromProto[F[_]: Bracket[*[_], Throwable], A, B](proto: Protocol.PreparedQuery[F, A, B]): PreparedQuery[F, A, B] =
     new PreparedQuery[F, A, B] {
 
      override def cursor(args: A)(implicit or: Origin): Resource[F, Cursor[F, B]] =
@@ -136,11 +136,11 @@ object PreparedQuery {
     }
 
   /**
-   * `PreparedQuery[F, ?, B]` is a covariant functor when `F` is a monad.
+   * `PreparedQuery[F, *, B]` is a covariant functor when `F` is a monad.
    * @group Typeclass Instances
    */
-  implicit def functorPreparedQuery[F[_]: Monad, A]: Functor[PreparedQuery[F, A, ?]] =
-  new Functor[PreparedQuery[F, A, ?]] {
+  implicit def functorPreparedQuery[F[_]: Monad, A]: Functor[PreparedQuery[F, A, *]] =
+  new Functor[PreparedQuery[F, A, *]] {
     override def map[T, U](fa: PreparedQuery[F, A, T])(f: T => U): PreparedQuery[F, A, U] =
       new PreparedQuery[F, A, U] {
         override def cursor(args: A)(implicit or: Origin): Resource[F, Cursor[F, U]] = fa.cursor(args).map(_.map(f))
@@ -151,11 +151,11 @@ object PreparedQuery {
   }
 
   /**
-   * `PreparedQuery[F, ?, B]` is a contravariant functor for all `F`.
+   * `PreparedQuery[F, *, B]` is a contravariant functor for all `F`.
    * @group Typeclass Instances
    */
-  implicit def contravariantPreparedQuery[F[_], B]: Contravariant[PreparedQuery[F, ?, B]] =
-    new Contravariant[PreparedQuery[F, ?, B]] {
+  implicit def contravariantPreparedQuery[F[_], B]: Contravariant[PreparedQuery[F, *, B]] =
+    new Contravariant[PreparedQuery[F, *, B]] {
       override def contramap[T, U](fa: PreparedQuery[F, T, B])(f: U => T): PreparedQuery[F, U, B] =
         new PreparedQuery[F, U, B] {
           override def cursor(args: U)(implicit or: Origin): Resource[F, Cursor[F, B]] = fa.cursor(f(args))
@@ -166,11 +166,11 @@ object PreparedQuery {
     }
 
   /**
-   * `PreparedQuery[F, ?, ?]` is a profunctor when `F` is a monad.
+   * `PreparedQuery[F, *, *]` is a profunctor when `F` is a monad.
    * @group Typeclass Instances
    */
-  implicit def profunctorPreparedQuery[F[_]: Monad]: Profunctor[PreparedQuery[F, ?, ?]] =
-    new Profunctor[PreparedQuery[F, ?, ?]] {
+  implicit def profunctorPreparedQuery[F[_]: Monad]: Profunctor[PreparedQuery[F, *, *]] =
+    new Profunctor[PreparedQuery[F, *, *]] {
       override def dimap[A, B, C, D](fab: PreparedQuery[F, A, B])(f: C => A)(g: B => D): PreparedQuery[F, C, D] =
         contravariantPreparedQuery[F, B].contramap(fab)(f).map(g) // y u no work contravariant syntax
       override def lmap[A, B, C](fab: PreparedQuery[F, A, B])(f: C => A): PreparedQuery[F, C, B] =
