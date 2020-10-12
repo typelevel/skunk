@@ -54,14 +54,26 @@ In addition to these options, the `SSL` values themselves allow the following mo
 | `.withTLSParameters(…)` | `TLSParameters.Default` | Allows for custom @scaladoc[TLSParameters](fs2.io.tls.TLSParameters).
 
 
-## Default Session Parameters
+## Session Parameters
 
-The following Postgres session parameters affect data serialization and are specified by Skunk during startup negotiation. Changing them via a `SET` command will result in undefined behavior.
+Session parameters affect data serialization and are specified by Skunk during startup negotiation. Changing them via a `SET` command will result in undefined behavior. The following session parameters are set by default:
 
 | Parameter | Value |
 |----------|-------|
 ```scala mdoc:passthrough
-println(StartupMessage.ConnectionProperties.map { case (k, v) => s"| `$k` | `$v` |" } .mkString("\n"))
+println(StartupMessage.DefaultConnectionParameters.map { case (k, v) => s"| `$k` | `$v` |" } .mkString("\n"))
 ```
 
-Future versions of Skunk may be more flexible in this regard, but for now your application needs to be ok with these defaults.
+You may set arbitrary session parameters via the `connProps` property in your session initialization. For example, to use with Amazon Redshift:
+
+```scala mdoc:compile-only
+Session.single[IO](
+  host     = "localhost",
+  user     = "jimmy",
+  database = "world",
+  password = Some("banana"),
+  port = 5439,
+  connProps = StartupMessage.DefaultConnectionParameters
+    .filterNot { case (k, _) => k == "IntervalStyle" }
+)
+```
