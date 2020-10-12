@@ -6,6 +6,7 @@ package tests
 
 import cats.effect._
 import skunk._
+import skunk.exception.StartupException
 import skunk.net.message.StartupMessage
 import natchez.Trace.Implicits.noop
 
@@ -21,5 +22,16 @@ class RedshiftTest extends ffstest.FTest {
       connProps = StartupMessage.DefaultConnectionParameters
         .filterNot { case (k, _) => k == "IntervalStyle" }
     ).use(_ => IO.unit)
+  }
+
+  test("redshift - cannot connect with default params") {
+    Session.single[IO](
+      host = "localhost",
+      user = "postgres",
+      database = "postgres",
+      password = None,
+      port = 5439, // redshift port
+    ).use(_ => IO.unit)
+    .assertFailsWith[StartupException]
   }
 }
