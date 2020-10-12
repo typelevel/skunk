@@ -10,3 +10,5 @@ Skunk is a data access library for Scala + Postgres.
 Please proceed to the [microsite](http://tpolecat.github.io/skunk) for more information.
 
 Please drop a :star: if this project interests you. I need encouragement.
+
+To contribute, see the [contributing guide](./CONTRIBUTING.md).
