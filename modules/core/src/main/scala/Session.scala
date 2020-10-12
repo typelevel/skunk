@@ -19,6 +19,7 @@ import skunk.net.Protocol
 import skunk.util._
 import skunk.util.Typer.Strategy.{ BuiltinsOnly, SearchPath }
 import skunk.net.SSLNegotiation
+import skunk.net.message.StartupMessage
 import skunk.data.TransactionIsolationLevel
 import skunk.data.TransactionAccessMode
 
@@ -252,10 +253,11 @@ object Session {
     writeTimeout: FiniteDuration = 5.seconds,
     strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly,
     ssl:          SSL            = SSL.None,
+    connProps: Map[String, String] = StartupMessage.DefaultConnectionParameters
   ): Resource[F, Resource[F, Session[F]]] = {
 
     def session(socketGroup:  SocketGroup, sslOp: Option[SSLNegotiation.Options[F]]): Resource[F, Session[F]] =
-      fromSocketGroup[F](socketGroup, host, port, user, database, password, debug, readTimeout, writeTimeout, strategy, sslOp)
+      fromSocketGroup[F](socketGroup, host, port, user, database, password, debug, readTimeout, writeTimeout, strategy, sslOp, connProps)
 
     val logger: String => F[Unit] = s => Sync[F].delay(println(s"TLS: $s"))
 
@@ -285,6 +287,7 @@ object Session {
     writeTimeout: FiniteDuration = 5.seconds,
     strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly,
     ssl:          SSL            = SSL.None,
+    connProps: Map[String, String] = StartupMessage.DefaultConnectionParameters
   ): Resource[F, Session[F]] =
     pooled(
       host         = host,
@@ -298,6 +301,7 @@ object Session {
       writeTimeout = writeTimeout,
       strategy     = strategy,
       ssl          = ssl,
+      connProps = connProps
     ).flatten
 
 
@@ -313,11 +317,12 @@ object Session {
     writeTimeout: FiniteDuration = 5.seconds,
     strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly,
     sslOptions:   Option[SSLNegotiation.Options[F]],
+    connProps: Map[String, String]
   ): Resource[F, Session[F]] =
     for {
       namer <- Resource.liftF(Namer[F])
       proto <- Protocol[F](host, port, debug, namer, readTimeout, writeTimeout, socketGroup, sslOptions)
-      _     <- Resource.liftF(proto.startup(user, database, password))
+      _     <- Resource.liftF(proto.startup(user, database, password, connProps))
       sess  <- Resource.liftF(fromProtocol(proto, namer, strategy))
     } yield sess
 

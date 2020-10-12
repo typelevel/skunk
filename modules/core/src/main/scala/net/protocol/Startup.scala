@@ -23,16 +23,16 @@ import com.ongres.scram.client.ScramClient
 import com.ongres.scram.common.stringprep.StringPreparations
 
 trait Startup[F[_]] {
-  def apply(user: String, database: String, password: Option[String]): F[Unit]
+  def apply(user: String, database: String, password: Option[String], connProps: Map[String, String]): F[Unit]
 }
 
 object Startup {
 
   def apply[F[_]: MonadError[*[_], Throwable]: Exchange: MessageSocket: Trace]: Startup[F] =
     new Startup[F] {
-      override def apply(user: String, database: String, password: Option[String]): F[Unit] =
+      override def apply(user: String, database: String, password: Option[String], connProps: Map[String, String]): F[Unit] =
         exchange("startup") {
-          val sm = StartupMessage(user, database)
+          val sm = StartupMessage(user, database, connProps)
           for {
             _ <- Trace[F].put(
                    "user"     -> user,

@@ -8,9 +8,15 @@ import scodec._
 import scodec.codecs._
 
 // TODO: SUPPORT OTHER PARAMETERS
-case class StartupMessage(user: String, database: String) extends UntaggedFrontendMessage {
+case class StartupMessage(
+  user: String,
+  database: String,
+  connProps: Map[String, String]
+) extends UntaggedFrontendMessage {
 
-  def encodeBody = StartupMessage.encoder.encode(this)
+  def encodeBody = StartupMessage
+    .encoder(connProps)
+    .encode(this)
 
   // HACK: we will take a plist eventually
   val properties: Map[String, String] =
@@ -19,16 +25,15 @@ case class StartupMessage(user: String, database: String) extends UntaggedFronte
 }
 
 object StartupMessage {
-
-  val ConnectionProperties: List[(String, String)] =
-    List(
+  val DefaultConnectionParameters: Map[String, String] =
+    Map(
       "client_min_messages" -> "WARNING",
       "DateStyle"           -> "ISO, MDY",
       "IntervalStyle"       -> "iso_8601",
       "client_encoding"     -> "UTF8",
     )
 
-  val encoder: Encoder[StartupMessage] = {
+  def encoder(connProps: Map[String, String]): Encoder[StartupMessage] = {
 
     def pair(key: String): Codec[String] =
       utf8z.applied(key) ~> utf8z
@@ -39,7 +44,7 @@ object StartupMessage {
     // After user and database we have a null-terminated list of fixed key-value pairs, which
     // specify connection properties that affect serialization and are REQUIRED by Skunk.
     val tail: Codec[Unit] =
-      ConnectionProperties.foldRight(byte.applied(0)) { case ((k, v), e) => pair(k).applied(v) <~ e}
+      connProps.foldRight(byte.applied(0)) { case ((k, v), e) => pair(k).applied(v) <~ e}
 
     (version ~> pair("user") ~ pair("database") <~ tail)
       .asEncoder

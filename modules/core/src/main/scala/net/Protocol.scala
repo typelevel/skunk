@@ -88,7 +88,7 @@ trait Protocol[F[_]] {
   /**
    * Initiate the session. This must be the first thing you do. This is very basic at the moment.
    */
-  def startup(user: String, database: String, password: Option[String]): F[Unit]
+  def startup(user: String, database: String, password: Option[String], connProps: Map[String, String]): F[Unit]
 
   /**
    * Signal representing the current transaction status as reported by `ReadyForQuery`. It's not
@@ -191,7 +191,7 @@ object Protocol {
     readTimeout:  FiniteDuration,
     writeTimeout: FiniteDuration,
     sg:           SocketGroup,
-    sslOptions:   Option[SSLNegotiation.Options[F]],
+    sslOptions:   Option[SSLNegotiation.Options[F]]
   ): Resource[F, Protocol[F]] =
     for {
       bms <- BufferedMessageSocket[F](host, port, 256, debug, readTimeout, writeTimeout, sg, sslOptions) // TODO: should we expose the queue size?
@@ -229,8 +229,8 @@ object Protocol {
         override def execute[B](query: Query[Void, B], ty: Typer): F[List[B]] =
           protocol.Query[F].apply(query, ty)
 
-        override def startup(user: String, database: String, password: Option[String]): F[Unit] =
-          protocol.Startup[F].apply(user, database, password)
+        override def startup(user: String, database: String, password: Option[String], connProps: Map[String, String]): F[Unit] =
+          protocol.Startup[F].apply(user, database, password, connProps)
 
         override def transactionStatus: Signal[F, TransactionStatus] =
           bms.transactionStatus
