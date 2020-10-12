@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+set -eu
+
+DIR=$1
+
+print_usage() {
+  printf "\nUsage:\n \
+    ./bin/local <stack_direction>\n
+    Example:\n
+      ./bin/local up \n
+      ./bin/local down \n\n"
+}
+
+case $DIR in
+  "up") CMD="up -d";;
+  "down") CMD="down";;
+  *)
+    print_usage
+    exit 1
+  ;;
+esac
+
+# Fix postgres ssl key permissions.
+chmod 600 world/server.key
+
+docker-compose $CMD
