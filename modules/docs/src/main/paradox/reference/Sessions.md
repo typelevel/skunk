@@ -64,7 +64,7 @@ Session parameters affect data serialization and are specified by Skunk during s
 println(Session.DefaultConnectionParameters.map { case (k, v) => s"| `$k` | `$v` |" } .mkString("\n"))
 ```
 
-You may set arbitrary session parameters via the `parameters` property in your session initialization. For example, to use with Amazon Redshift:
+It is possible to modify default session parameters via the parameters session property, which is unsupported in general but may be necessary when using nonstandard Postgres variants. Amazon Redshift, for example, does not support the `IntervalStyle` parameter, and this will cause startup negotiation to fail. A workaround is demonstrated below.
 
 ```scala mdoc:compile-only
 Session.single[IO](
