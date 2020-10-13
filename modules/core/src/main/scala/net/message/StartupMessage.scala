@@ -25,13 +25,6 @@ case class StartupMessage(
 }
 
 object StartupMessage {
-  val DefaultConnectionParameters: Map[String, String] =
-    Map(
-      "client_min_messages" -> "WARNING",
-      "DateStyle"           -> "ISO, MDY",
-      "IntervalStyle"       -> "iso_8601",
-      "client_encoding"     -> "UTF8",
-    )
 
   def encoder(parameters: Map[String, String]): Encoder[StartupMessage] = {
 

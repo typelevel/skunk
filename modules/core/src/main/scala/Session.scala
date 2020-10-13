@@ -19,7 +19,6 @@ import skunk.net.Protocol
 import skunk.util._
 import skunk.util.Typer.Strategy.{ BuiltinsOnly, SearchPath }
 import skunk.net.SSLNegotiation
-import skunk.net.message.StartupMessage
 import skunk.data.TransactionIsolationLevel
 import skunk.data.TransactionAccessMode
 
@@ -187,6 +186,13 @@ trait Session[F[_]] {
 
 /** @group Companions */
 object Session {
+  val DefaultConnectionParameters: Map[String, String] =
+    Map(
+      "client_min_messages" -> "WARNING",
+      "DateStyle"           -> "ISO, MDY",
+      "IntervalStyle"       -> "iso_8601",
+      "client_encoding"     -> "UTF8",
+    )
 
   object Recyclers {
 
@@ -253,7 +259,7 @@ object Session {
     writeTimeout: FiniteDuration = 5.seconds,
     strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly,
     ssl:          SSL            = SSL.None,
-    parameters: Map[String, String] = StartupMessage.DefaultConnectionParameters
+    parameters: Map[String, String] = Session.DefaultConnectionParameters
   ): Resource[F, Resource[F, Session[F]]] = {
 
     def session(socketGroup:  SocketGroup, sslOp: Option[SSLNegotiation.Options[F]]): Resource[F, Session[F]] =
@@ -287,7 +293,7 @@ object Session {
     writeTimeout: FiniteDuration = 5.seconds,
     strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly,
     ssl:          SSL            = SSL.None,
-    parameters: Map[String, String] = StartupMessage.DefaultConnectionParameters
+    parameters: Map[String, String] = Session.DefaultConnectionParameters
   ): Resource[F, Session[F]] =
     pooled(
       host         = host,

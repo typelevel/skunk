@@ -7,7 +7,6 @@ package tests
 import cats.effect._
 import skunk._
 import skunk.exception.StartupException
-import skunk.net.message.StartupMessage
 import natchez.Trace.Implicits.noop
 
 class RedshiftTest extends ffstest.FTest {
@@ -19,7 +18,7 @@ class RedshiftTest extends ffstest.FTest {
       database = "postgres",
       password = None,
       port = 5439, // redshift port
-      parameters = StartupMessage.DefaultConnectionParameters
+      parameters = Session.DefaultConnectionParameters
         .filterNot { case (k, _) => k == "IntervalStyle" }
     ).use(_ => IO.unit)
   }

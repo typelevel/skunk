@@ -61,7 +61,7 @@ Session parameters affect data serialization and are specified by Skunk during s
 | Parameter | Value |
 |----------|-------|
 ```scala mdoc:passthrough
-println(StartupMessage.DefaultConnectionParameters.map { case (k, v) => s"| `$k` | `$v` |" } .mkString("\n"))
+println(Session.DefaultConnectionParameters.map { case (k, v) => s"| `$k` | `$v` |" } .mkString("\n"))
 ```
 
 You may set arbitrary session parameters via the `parameters` property in your session initialization. For example, to use with Amazon Redshift:
@@ -73,7 +73,7 @@ Session.single[IO](
   database = "world",
   password = Some("banana"),
   port = 5439,
-  parameters = StartupMessage.DefaultConnectionParameters
+  parameters = Session.DefaultConnectionParameters
     .filterNot { case (k, _) => k == "IntervalStyle" }
 )
 ```
