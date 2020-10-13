@@ -253,11 +253,11 @@ object Session {
     writeTimeout: FiniteDuration = 5.seconds,
     strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly,
     ssl:          SSL            = SSL.None,
-    connProps: Map[String, String] = StartupMessage.DefaultConnectionParameters
+    parameters: Map[String, String] = StartupMessage.DefaultConnectionParameters
   ): Resource[F, Resource[F, Session[F]]] = {
 
     def session(socketGroup:  SocketGroup, sslOp: Option[SSLNegotiation.Options[F]]): Resource[F, Session[F]] =
-      fromSocketGroup[F](socketGroup, host, port, user, database, password, debug, readTimeout, writeTimeout, strategy, sslOp, connProps)
+      fromSocketGroup[F](socketGroup, host, port, user, database, password, debug, readTimeout, writeTimeout, strategy, sslOp, parameters)
 
     val logger: String => F[Unit] = s => Sync[F].delay(println(s"TLS: $s"))
 
@@ -287,7 +287,7 @@ object Session {
     writeTimeout: FiniteDuration = 5.seconds,
     strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly,
     ssl:          SSL            = SSL.None,
-    connProps: Map[String, String] = StartupMessage.DefaultConnectionParameters
+    parameters: Map[String, String] = StartupMessage.DefaultConnectionParameters
   ): Resource[F, Session[F]] =
     pooled(
       host         = host,
@@ -301,7 +301,7 @@ object Session {
       writeTimeout = writeTimeout,
       strategy     = strategy,
       ssl          = ssl,
-      connProps = connProps
+      parameters = parameters
     ).flatten
 
 
@@ -317,12 +317,12 @@ object Session {
     writeTimeout: FiniteDuration = 5.seconds,
     strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly,
     sslOptions:   Option[SSLNegotiation.Options[F]],
-    connProps: Map[String, String]
+    parameters: Map[String, String]
   ): Resource[F, Session[F]] =
     for {
       namer <- Resource.liftF(Namer[F])
       proto <- Protocol[F](host, port, debug, namer, readTimeout, writeTimeout, socketGroup, sslOptions)
-      _     <- Resource.liftF(proto.startup(user, database, password, connProps))
+      _     <- Resource.liftF(proto.startup(user, database, password, parameters))
       sess  <- Resource.liftF(fromProtocol(proto, namer, strategy))
     } yield sess
 

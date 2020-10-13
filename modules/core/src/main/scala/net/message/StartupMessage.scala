@@ -11,11 +11,11 @@ import scodec.codecs._
 case class StartupMessage(
   user: String,
   database: String,
-  connProps: Map[String, String]
+  parameters: Map[String, String]
 ) extends UntaggedFrontendMessage {
 
   def encodeBody = StartupMessage
-    .encoder(connProps)
+    .encoder(parameters)
     .encode(this)
 
   // HACK: we will take a plist eventually
@@ -33,7 +33,7 @@ object StartupMessage {
       "client_encoding"     -> "UTF8",
     )
 
-  def encoder(connProps: Map[String, String]): Encoder[StartupMessage] = {
+  def encoder(parameters: Map[String, String]): Encoder[StartupMessage] = {
 
     def pair(key: String): Codec[String] =
       utf8z.applied(key) ~> utf8z
@@ -44,7 +44,7 @@ object StartupMessage {
     // After user and database we have a null-terminated list of fixed key-value pairs, which
     // specify connection properties that affect serialization and are REQUIRED by Skunk.
     val tail: Codec[Unit] =
-      connProps.foldRight(byte.applied(0)) { case ((k, v), e) => pair(k).applied(v) <~ e}
+      parameters.foldRight(byte.applied(0)) { case ((k, v), e) => pair(k).applied(v) <~ e}
 
     (version ~> pair("user") ~ pair("database") <~ tail)
       .asEncoder
