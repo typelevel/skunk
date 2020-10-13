@@ -18,8 +18,7 @@ class RedshiftTest extends ffstest.FTest {
       database = "postgres",
       password = None,
       port = 5439, // redshift port
-      parameters = Session.DefaultConnectionParameters
-        .filterNot { case (k, _) => k == "IntervalStyle" }
+      parameters = Session.DefaultConnectionParameters - "IntervalStyle"
     ).use(_ => IO.unit)
   }
 

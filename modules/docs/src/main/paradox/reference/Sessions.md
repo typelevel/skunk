@@ -73,7 +73,6 @@ Session.single[IO](
   database = "world",
   password = Some("banana"),
   port = 5439,
-  parameters = Session.DefaultConnectionParameters
-    .filterNot { case (k, _) => k == "IntervalStyle" }
+  parameters = Session.DefaultConnectionParameters - "IntervalStyle"
 )
 ```
