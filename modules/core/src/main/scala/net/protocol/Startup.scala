@@ -28,7 +28,7 @@ trait Startup[F[_]] {
 
 object Startup {
 
-  def apply[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket: Trace]: Startup[F] =
+  def apply[F[_]: MonadError[*[_], Throwable]: Exchange: MessageSocket: Trace]: Startup[F] =
     new Startup[F] {
       override def apply(user: String, database: String, password: Option[String]): F[Unit] =
         exchange("startup") {
@@ -59,7 +59,7 @@ object Startup {
     }
 
     // already inside an exchange
-    private def authenticationMD5Password[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket: Trace](
+    private def authenticationMD5Password[F[_]: MonadError[*[_], Throwable]: Exchange: MessageSocket: Trace](
       sm:       StartupMessage,
       password: Option[String],
       salt:     Array[Byte]
@@ -73,7 +73,7 @@ object Startup {
         }
       }
 
-    private def authenticationSASL[F[_]: MonadError[?[_], Throwable]: Exchange: MessageSocket: Trace](
+    private def authenticationSASL[F[_]: MonadError[*[_], Throwable]: Exchange: MessageSocket: Trace](
       sm:         StartupMessage,
       password:   Option[String],
       mechanisms: List[String]
@@ -112,7 +112,7 @@ object Startup {
           } yield ()
       }
 
-    private def requirePassword[F[_]: ApplicativeError[?[_], Throwable]](sm: StartupMessage, password: Option[String]): F[String] =
+    private def requirePassword[F[_]: ApplicativeError[*[_], Throwable]](sm: StartupMessage, password: Option[String]): F[String] =
       password match {
         case Some(pw) => pw.pure[F]
         case None =>
@@ -133,7 +133,7 @@ object Startup {
         new StartupException(info, sm.properties).raiseError[F, B]
     })
 
-    private def guardScramAction[F[_]: ApplicativeError[?[_], Throwable], A](f: => A): F[A] =
+    private def guardScramAction[F[_]: ApplicativeError[*[_], Throwable], A](f: => A): F[A] =
       try f.pure[F]
       catch { case NonFatal(t) => 
         new SCRAMProtocolException(t.getMessage).raiseError[F, A]

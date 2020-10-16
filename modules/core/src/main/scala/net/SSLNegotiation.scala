@@ -52,7 +52,7 @@ object SSLNegotiation {
 
     Resource.liftF(initiate).flatMap {
       case 'S' => sslOptions.tlsContext.client(socket, sslOptions.tlsParameters, sslOptions.logger)
-      case 'N' => if (sslOptions.fallbackOk) socket.pure[Resource[F, ?]] else Resource.liftF(fail(s"SSL not available."))
+      case 'N' => if (sslOptions.fallbackOk) socket.pure[Resource[F, *]] else Resource.liftF(fail(s"SSL not available."))
       case  c  => Resource.liftF(fail(s"SSL negotiation returned '$c', expected 'S' or 'N'."))
     }
 

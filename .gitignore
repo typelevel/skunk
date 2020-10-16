@@ -20,7 +20,6 @@ project/hydra.sbt
 .classpath
 .project
 .worksheet/
-bin/
 .settings/
 
 # OS X

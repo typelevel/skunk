@@ -92,7 +92,7 @@ lazy val refined = project
   .settings(commonSettings)
   .settings(
     publish / skip := true,
-    libraryDependencies += "eu.timepit" %% "refined" % "0.9.16",
+    libraryDependencies += "eu.timepit" %% "refined" % "0.9.17",
   )
 
 lazy val circe = project
@@ -132,11 +132,11 @@ lazy val example = project
   .settings(
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.13",
-      "org.tpolecat"  %% "natchez-jaeger"      % "0.0.13",
-      "org.http4s"    %% "http4s-dsl"          % "0.21.7",
-      "org.http4s"    %% "http4s-blaze-server" % "0.21.7",
-      "org.http4s"    %% "http4s-circe"        % "0.21.7",
+      "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.12",
+      "org.tpolecat"  %% "natchez-jaeger"      % "0.0.12",
+      "org.http4s"    %% "http4s-dsl"          % "0.21.8",
+      "org.http4s"    %% "http4s-blaze-server" % "0.21.8",
+      "org.http4s"    %% "http4s-circe"        % "0.21.8",
       "io.circe"      %% "circe-generic"       % "0.13.0",
     )
   )

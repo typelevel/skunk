@@ -40,16 +40,16 @@ trait PreparedCommand[F[_], A] { outer =>
 /** @group Companions */
 object PreparedCommand {
 
-  /** `PreparedCommand[F, ?]` is a contravariant functor for all `F`. */
-  implicit def contravariantPreparedCommand[F[_]]: Contravariant[PreparedCommand[F, ?]] =
-    new Contravariant[PreparedCommand[F, ?]] {
+  /** `PreparedCommand[F, *]` is a contravariant functor for all `F`. */
+  implicit def contravariantPreparedCommand[F[_]]: Contravariant[PreparedCommand[F, *]] =
+    new Contravariant[PreparedCommand[F, *]] {
       override def contramap[A, B](fa: PreparedCommand[F,A])(f: B => A): PreparedCommand[F, B] =
         new PreparedCommand[F, B] {
           override def execute(args: B)(implicit origin: Origin): F[Completion] = fa.execute(f(args))
         }
     }
 
-  def fromProto[F[_]: Bracket[?[_], Throwable], A](pc: Protocol.PreparedCommand[F, A]): PreparedCommand[F, A] =
+  def fromProto[F[_]: Bracket[*[_], Throwable], A](pc: Protocol.PreparedCommand[F, A]): PreparedCommand[F, A] =
     new PreparedCommand[F, A] {
       override def execute(args: A)(implicit origin: Origin): F[Completion] =
         pc.bind(args, origin).use(_.execute)

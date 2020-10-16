@@ -86,7 +86,7 @@ trait Transaction[F[_]] { outer =>
 
 object Transaction {
 
-  def fromSession[F[_]: MonadError[?[_], Throwable]](
+  def fromSession[F[_]: MonadError[*[_], Throwable]](
     s: Session[F],
     n: Namer[F],
     // o: Origin // origin of the call to .begin
