@@ -32,8 +32,10 @@ import skunk._
 import skunk.implicits._
 import skunk.codec.all._
 import natchez.Trace.Implicits.noop                          // (1)
+import scala.concurrent.ExecutionContext
 
 object Hello extends IOApp {
+  implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
 
   val session: Resource[IO, Session[IO]] =
     Session.single(                                          // (2)
