@@ -14,16 +14,16 @@ import skunk.net.BufferedMessageSocket.NetworkError
 abstract class AbstractMessageSocket[F[_]: Concurrent]
   extends MessageSocket[F] {
 
-    override def expect[B](f: PartialFunction[BackendMessage, B])(implicit or: Origin): F[B] =
-      receive.flatMap { m =>
-        if (f.isDefinedAt(m)) f(m).pure[F]
-        else m match {
-          case NetworkError(t) => Concurrent[F].raiseError(t)
-          case m => Concurrent[F].raiseError(new ProtocolError(m, or))
-        }
+  override def expect[B](f: PartialFunction[BackendMessage, B])(implicit or: Origin): F[B] =
+    receive.flatMap { m =>
+      if (f.isDefinedAt(m)) f(m).pure[F]
+      else m match {
+        case NetworkError(t) => Concurrent[F].raiseError(t)
+        case m => Concurrent[F].raiseError(new ProtocolError(m, or))
       }
+    }
 
   override def flatExpect[B](f: PartialFunction[BackendMessage, F[B]])(implicit or: Origin): F[B] =
       expect(f).flatten
 
-  }
+}

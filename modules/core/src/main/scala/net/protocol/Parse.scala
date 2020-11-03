@@ -23,7 +23,9 @@ trait Parse[F[_]] {
 
 object Parse {
 
-  def apply[F[_]: MonadError[*[_], Throwable]: Exchange: MessageSocket: Namer: Trace]: Parse[F] =
+  def apply[F[_]: Exchange: MessageSocket: Namer: Trace](
+    implicit ev: MonadError[F, Throwable]
+  ): Parse[F] =
     new Parse[F] {
 
       override def apply[A](statement: Statement[A], ty: Typer): Resource[F, StatementId] =

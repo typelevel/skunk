@@ -22,7 +22,9 @@ import scala.util.control.NonFatal
  * Superclass for `Query` and `Execute` sub-protocols, both of which need a way to accumulate
  * results in a `List` and report errors when decoding fails.
  */
-private[protocol] class Unroll[F[_]: MonadError[*[_], Throwable]: MessageSocket: Trace] {
+private[protocol] class Unroll[F[_]: MessageSocket: Trace](
+  implicit ev: MonadError[F, Throwable]
+) {
 
   /** Receive the next batch of rows. */
   def unroll[A, B](
@@ -86,39 +88,39 @@ private[protocol] class Unroll[F[_]: MonadError[*[_], Throwable]: MessageSocket:
         }
       }
 
-      rows.flatMap { case (rows, bool) =>
-        Trace[F].span("decode") {
-          rows.traverse { data =>
+    rows.flatMap { case (rows, bool) =>
+      Trace[F].span("decode") {
+        rows.traverse { data =>
 
-            // https://github.com/tpolecat/skunk/issues/129
-            // an exception thrown in a decoder will derail things here, so let's handle it.
-            val result =
-              try decoder.decode(0, data)
-              catch {
-                case NonFatal(e) => Left(Decoder.Error(0, 0, e.getClass.getName, Some(e)))
-              }
-
-            result match {
-              case Right(a) => a.pure[F]
-              case Left(e)  =>
-                send(Sync).whenA(extended) *> // if it's an extended query we need to resync
-                expect { case ReadyForQuery(_) => } *>
-                new DecodeException(
-                  data,
-                  e,
-                  sql,
-                  Some(sqlOrigin),
-                  args,
-                  argsOrigin,
-                  encoder,
-                  rowDescription,
-                  e.cause,
-                ).raiseError[F, B]
+          // https://github.com/tpolecat/skunk/issues/129
+          // an exception thrown in a decoder will derail things here, so let's handle it.
+          val result =
+            try decoder.decode(0, data)
+            catch {
+              case NonFatal(e) => Left(Decoder.Error(0, 0, e.getClass.getName, Some(e)))
             }
-          } .map(_ ~ bool)
-        }
 
+          result match {
+            case Right(a) => a.pure[F]
+            case Left(e)  =>
+              send(Sync).whenA(extended) *> // if it's an extended query we need to resync
+              expect { case ReadyForQuery(_) => } *>
+              new DecodeException(
+                data,
+                e,
+                sql,
+                Some(sqlOrigin),
+                args,
+                argsOrigin,
+                encoder,
+                rowDescription,
+                e.cause,
+              ).raiseError[F, B]
+          }
+        } .map(a => a ~ bool)
       }
+
+    }
 
   }
 }

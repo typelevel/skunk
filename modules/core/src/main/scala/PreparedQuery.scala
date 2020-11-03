@@ -57,7 +57,9 @@ trait PreparedQuery[F[_], A, B] {
 /** @group Companions */
 object PreparedQuery {
 
-  def fromProto[F[_]: Bracket[*[_], Throwable], A, B](proto: Protocol.PreparedQuery[F, A, B]): PreparedQuery[F, A, B] =
+  def fromProto[F[_], A, B](proto: Protocol.PreparedQuery[F, A, B])(
+    implicit ev: Bracket[F, Throwable]
+  ): PreparedQuery[F, A, B] =
     new PreparedQuery[F, A, B] {
 
      override def cursor(args: A)(implicit or: Origin): Resource[F, Cursor[F, B]] =

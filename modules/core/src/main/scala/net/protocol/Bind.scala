@@ -26,7 +26,9 @@ trait Bind[F[_]] {
 
 object Bind {
 
-  def apply[F[_]: MonadError[*[_], Throwable]: Exchange: MessageSocket: Namer: Trace]: Bind[F] =
+  def apply[F[_]: Exchange: MessageSocket: Namer: Trace](
+    implicit ev: MonadError[F, Throwable]
+  ): Bind[F] =
     new Bind[F] {
 
       override def apply[A](

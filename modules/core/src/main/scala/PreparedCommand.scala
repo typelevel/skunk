@@ -49,7 +49,9 @@ object PreparedCommand {
         }
     }
 
-  def fromProto[F[_]: Bracket[*[_], Throwable], A](pc: Protocol.PreparedCommand[F, A]): PreparedCommand[F, A] =
+  def fromProto[F[_], A](pc: Protocol.PreparedCommand[F, A])(
+    implicit ev: Bracket[F, Throwable]
+  ): PreparedCommand[F, A] =
     new PreparedCommand[F, A] {
       override def execute(args: A)(implicit origin: Origin): F[Completion] =
         pc.bind(args, origin).use(_.execute)

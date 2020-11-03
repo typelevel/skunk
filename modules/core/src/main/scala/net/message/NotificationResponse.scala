@@ -16,6 +16,7 @@ object NotificationResponse {
   val decoder: Decoder[NotificationResponse] =
     (int32 ~ identifier ~ utf8z).map { case pid ~ ch ~ value =>
       NotificationResponse(Notification(pid, ch, value))
+      case _ => sys.error("dotty makes me do this but it's unpossible")
     }
 
 }

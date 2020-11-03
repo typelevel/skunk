@@ -25,7 +25,9 @@ trait Query[F[_]] {
 
 object Query {
 
-  def apply[F[_]: MonadError[*[_], Throwable]: Exchange: MessageSocket: Trace]: Query[F] =
+  def apply[F[_]: Exchange: MessageSocket: Trace](
+    implicit ev: MonadError[F, Throwable]
+  ): Query[F] =
     new Unroll[F] with Query[F] {
 
       def finishCopyOut: F[Unit] =

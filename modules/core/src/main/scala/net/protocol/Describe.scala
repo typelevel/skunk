@@ -22,7 +22,9 @@ trait Describe[F[_]] {
 
 object Describe {
 
-  def apply[F[_]: MonadError[*[_], Throwable]: Exchange: MessageSocket: Trace]: Describe[F] =
+  def apply[F[_]: Exchange: MessageSocket: Trace](
+    implicit ev: MonadError[F, Throwable]
+  ): Describe[F] =
     new Describe[F] {
 
       override def apply(cmd: skunk.Command[_], id: StatementId, ty: Typer): F[Unit] =
