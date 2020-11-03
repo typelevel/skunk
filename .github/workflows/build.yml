@@ -17,9 +17,11 @@ jobs:
         run: sudo chown 999 world/server.key
       - name: Start up Postgres instances
         run: docker-compose up -d
-      - name: Run tests
-        run: csbt headerCheck clean coverage +test docs/mdoc docs/paradox coverageReport
+      # - name: Run tests
+      #   run: csbt headerCheck +clean coverage +test docs/mdoc docs/paradox coverageReport
+      - name: TODO re-enable coverage
+        run: csbt headerCheck +clean +test docs/mdoc docs/paradox
       - name: Shut down Postgres instances
         run: docker-compose down
-      - name: Upload code coverage data
-        run: bash <(curl -s https://codecov.io/bash)
+      # - name: Upload code coverage data
+      #   run: bash <(curl -s https://codecov.io/bash)

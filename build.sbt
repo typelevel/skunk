@@ -1,4 +1,9 @@
 
+
+// Our Scala versions.
+lazy val scala3 = "3.0.0-M1" // 🔥
+lazy val scala2 = "2.13.3"
+
 // This is used in a couple places
 lazy val fs2Version = "2.4.4"
 
@@ -28,8 +33,8 @@ lazy val commonSettings = Seq(
   ),
 
   // Compilation
-  scalaVersion       := "2.13.3",
-  crossScalaVersions := Seq("2.12.11", scalaVersion.value),
+  scalaVersion       := scala2,
+  crossScalaVersions := Seq(scala2, scala3),
   scalacOptions -= "-language:experimental.macros", // doesn't work cross-version
   Compile / doc     / scalacOptions --= Seq("-Xfatal-warnings"),
   Compile / doc     / scalacOptions ++= Seq(
@@ -37,10 +42,41 @@ lazy val commonSettings = Seq(
     "-sourcepath", (baseDirectory in LocalRootProject).value.getAbsolutePath,
     "-doc-source-url", "https://github.com/tpolecat/skunk/blob/v" + version.value + "€{FILE_PATH}.scala",
   ),
-  addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full),
+  libraryDependencies ++= Seq(
+    compilerPlugin("org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full),
+  ).filterNot(_ => isDotty.value),
+  scalacOptions ++= {
+    if (isDotty.value) Seq(
+      "-Ykind-projector",
+      "-language:implicitConversions",
+    ) else Seq()
+  },
 
   // Coverage Exclusions
   coverageExcludedPackages := "ffstest.*;tests.*;example.*;natchez.http4s.*",
+
+  // uncomment in case of emergency
+  // scalacOptions ++= { if (isDotty.value) Seq("-source:3.0-migration") else Nil },
+
+  // Add some more source directories
+  unmanagedSourceDirectories in Compile ++= {
+    val sourceDir = (sourceDirectory in Compile).value
+    CrossVersion.partialVersion(scalaVersion.value) match {
+      case Some((3, _))  => Seq(sourceDir / "scala-3")
+      case Some((2, _))  => Seq(sourceDir / "scala-2")
+      case _             => Seq()
+    }
+  },
+
+  // Also for test
+  unmanagedSourceDirectories in Test ++= {
+    val sourceDir = (sourceDirectory in Test).value
+    CrossVersion.partialVersion(scalaVersion.value) match {
+      case Some((3, _))  => Seq(sourceDir / "scala-3")
+      case Some((2, _))  => Seq(sourceDir / "scala-2")
+      case _             => Seq()
+    }
+  },
 
 )
 
@@ -60,7 +96,7 @@ lazy val macros = project
     name := "skunk-macros",
     libraryDependencies ++= Seq(
       "org.scala-lang" % "scala-reflect" % scalaVersion.value
-    )
+    ).filterNot(_ => isDotty.value)
   )
 
 lazy val core = project
@@ -82,7 +118,7 @@ lazy val core = project
       "com.beachape"  %% "enumeratum"   % "1.6.1",
       "org.tpolecat"  %% "natchez-core" % "0.0.12",
       "com.ongres.scram" % "client" % "2.1"
-    )
+    ).map(_.withDottyCompat(scalaVersion.value))
   )
 
 lazy val refined = project
@@ -91,8 +127,9 @@ lazy val refined = project
   .enablePlugins(AutomateHeaderPlugin)
   .settings(commonSettings)
   .settings(
-    publish / skip := true,
-    libraryDependencies += "eu.timepit" %% "refined" % "0.9.17",
+    libraryDependencies ++= Seq(
+      "eu.timepit" %% "refined" % "0.9.17",
+    ).map(_.withDottyCompat(scalaVersion.value))
   )
 
 lazy val circe = project
@@ -105,7 +142,7 @@ lazy val circe = project
     libraryDependencies ++= Seq(
       "io.circe" %% "circe-core"   % "0.13.0",
       "io.circe" %% "circe-parser" % "0.13.0"
-    )
+    ).map(_.withDottyCompat(scalaVersion.value))
   )
 
 lazy val tests = project
@@ -120,7 +157,7 @@ lazy val tests = project
       "org.typelevel"     %% "munit-cats-effect"       % "0.3.0",
       "org.typelevel"     %% "cats-free"               % "2.2.0",
       "io.chrisdavenport" %% "cats-time"               % "0.3.4",
-    ),
+    ).map(_.withDottyCompat(scalaVersion.value)),
     testFrameworks += new TestFramework("munit.Framework")
   )
 
@@ -138,7 +175,7 @@ lazy val example = project
       "org.http4s"    %% "http4s-blaze-server" % "0.21.8",
       "org.http4s"    %% "http4s-circe"        % "0.21.8",
       "io.circe"      %% "circe-generic"       % "0.13.0",
-    )
+    ).map(_.withDottyCompat(scalaVersion.value))
   )
 
 lazy val docs = project
@@ -172,6 +209,6 @@ lazy val docs = project
     makeSite := makeSite.dependsOn(mdoc.toTask("")).value,
     mdocExtraArguments := Seq("--no-link-hygiene"), // paradox handles this
     libraryDependencies ++= Seq(
-      "org.tpolecat"  %% "natchez-jaeger"      % "0.0.12",
-    ),
+      "org.tpolecat"  %% "natchez-jaeger" % "0.0.12",
+    ).map(_.withDottyCompat(scalaVersion.value)),
 )

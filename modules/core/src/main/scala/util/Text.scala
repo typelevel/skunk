@@ -5,7 +5,6 @@
 package skunk.util
 
 import cats.Monoid
-import cats.data.Nested
 import cats.implicits._
 
 // display combinators for styled text
@@ -57,7 +56,7 @@ object Text {
     }
 
   def grid(rows: List[List[Text]]): List[Text] = {
-    val lengths  = Nested(rows).map(_.length).value
+    val lengths  = rows.map(_.map(_.length))
     val paddings = LazyList.from(0).map(i => lengths.map(_.lift(i).orEmpty).max)
     rows.map(_.zipWithIndex.map { case (s, n) => s.padTo(paddings(n)) }.intercalate(Text("  ")))
   }

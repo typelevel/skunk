@@ -151,7 +151,7 @@ class PostgresErrorException (
       s"""|If this is an error you wish to trap and handle in your application, you can do
           |so with a SqlState extractor. For example:
           |
-          |  ${Console.GREEN}doSomething.recoverWith { case SqlState.${st.entryName}(ex) =>  ...}${Console.RESET}
+          |  ${Console.GREEN}doSomething.recoverWith { case SqlState.${st}(ex) =>  ...}${Console.RESET}
           |
           |""".stripMargin
     }
