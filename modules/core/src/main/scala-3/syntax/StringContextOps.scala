@@ -9,24 +9,19 @@ import cats.data.State
 import cats.syntax.all._
 import scala.language.implicitConversions
 import scala.reflect.macros.whitebox
+import scala.quoted._
 import skunk.data.Identifier
 import skunk.util.Origin
 
 class StringContextOps private[skunk](sc: StringContext) {
 
-  // def sql(argSeq: Any*): Any =
-  //   macro StringContextOps.StringOpsMacros.sql_impl
+  /** Construct a constant `Fragment` with no interpolated values. */
+  def const()(implicit or: Origin): Fragment[Void] =
+    Fragment(sc.parts.toList.map(Left(_)), Void.codec, or)
 
-  // def id(): Identifier =
-  //   macro StringContextOps.StringOpsMacros.identifier_impl
-
-  // /** Construct a constant `Fragment` with no interpolated values. */
-  // def const()(implicit or: Origin): Fragment[Void] =
-  //   Fragment(sc.parts.toList.map(Left(_)), Void.codec, or)
-
-  // /** Construct a constant `AppliedFragment` with no interpolated values. */
-  // def void()(implicit or: Origin): AppliedFragment =
-  //   const()(or)(Void)
+  /** Construct a constant `AppliedFragment` with no interpolated values. */
+  def void()(implicit or: Origin): AppliedFragment =
+    const()(or)(Void)
 
   private[skunk] def internal(literals: String*): Fragment[Void] = {
     val chunks = sc.parts.zipAll(literals, "", "").flatMap { case (a, b) => List(a.asLeft, b.asLeft) }
@@ -35,128 +30,132 @@ class StringContextOps private[skunk](sc: StringContext) {
 
 }
 
-// object StringContextOps {
+object StringContextOps {
 
-//   sealed trait Part
-//   case class Str(s: String)                     extends Part
-//   case class Par(n: State[Int, String])         extends Part // n parameters
-//   case class Emb(ps: List[Either[String, State[Int, String]]]) extends Part
+  sealed trait Part
+  case class Str(s: String)                     extends Part
+  case class Par(n: State[Int, String])         extends Part // n parameters
+  case class Emb(ps: List[Either[String, State[Int, String]]]) extends Part
 
-//   def fragmentFromParts[A](ps: List[Part], enc: Encoder[A], or: Origin): Fragment[A] =
-//     Fragment(
-//       ps.flatMap {
-//         case Str(s)  => List(Left(s))
-//         case Par(n)  => List(Right(n))
-//         case Emb(ps) => ps
-//       },
-//       enc,
-//       or
-//     )
+  def fragmentFromParts[A](ps: List[Part], enc: Encoder[A], or: Origin): Fragment[A] =
+    Fragment(
+      ps.flatMap {
+        case Str(s)  => List(Left(s))
+        case Par(n)  => List(Right(n))
+        case Emb(ps) => ps
+      },
+      enc,
+      or
+    )
 
-//   class StringOpsMacros(val c: whitebox.Context) {
-//     import c.universe._
+  def yell(s: String) = println(s"${Console.RED}$s${Console.RESET}")
 
-//     def sql_impl(argSeq: Tree*): Tree = {
+  def sqlImpl(sc: Expr[StringContext], argsExpr: Expr[Seq[Any]])(using qc:QuoteContext): Expr[Any] = {
 
-//       // Ok we want to construct an Origin here
-//       val file   = c.enclosingPosition.source.path
-//       val line   = c.enclosingPosition.line
-//       val origin = q"_root_.skunk.util.Origin($file, $line)"
+    // Ok we want to construct an Origin here
+    val origin = Origin.originImpl(using qc)
 
-//       // Our prefix looks like this, and the stringy parts of the interpolation will be a non-empty
-//       // list of string literal trees. We just know this because of the way interpolator desugaring
-//       // works. If it doesn't work something bad has happened.
-//       val parts: List[Tree] =
-//         c.prefix.tree match {
-//           case Apply(_, List(Apply(_, ts))) => ts
-//           case _ => c.abort(c.prefix.tree.pos, "Unexpected tree, oops. See StringContextOps.scala")
-//         }
+    // Our prefix looks like this, and the stringy parts of the interpolation will be a non-empty
+    // list of string expressions. We just know this because of the way interpolator desugaring
+    // works. If it doesn't work something bad has happened.
+    val strings: List[String] =
+      sc match {
+        case '{ StringContext(${Varargs(Consts(parts))}: _*) } => parts.toList
+        case _ =>
+          report.error(s"StringContext arguments must be literals.")
+          return '{???}
+      }
 
-//       // The interpolated args are a list of size `parts.length - 1`. We also just know this.
-//       val args = argSeq.toList
+    // The interpolated args are a list of size `parts.length - 1`. We also just know this.
+    val args: List[Expr[Any]] = {
+      val Varargs(args) = argsExpr
+      args.toList
+    }
 
-//       // Every arg must conform with Encoder[_] or String
-//       val EncoderType      = typeOf[Encoder[_]]
-//       val VoidFragmentType = typeOf[Fragment[Void]]
-//       val FragmentType     = typeOf[Fragment[_]]
-//       val StringType       = typeOf[String]
+    // Weave the strings and args together, and accumulate a single encoder.
+    val lastPart: Expr[Part] = '{Str(${Expr(strings.last)})}
+    val (parts, encoders): (List[Expr[Part]], List[Expr[Any]]) =
+      (strings zip args).foldRight((List[Expr[Part]](lastPart), List.empty[Expr[Any]])) {
 
-//       // Assemble a single list of Either[string tree, encoder int] by interleaving the stringy parts
-//       // and the args' lengths, as well as a list of the args. If the arg is an interpolated string
-//       // we reinterpret it as a stringy part. If the arg is a fragment we splice it in.
-//       val (finalParts, encoders) : (List[Tree /* part */], List[Tree] /* encoder */) =
-//         (parts zip args).foldRight((List(q"_root_.skunk.syntax.StringContextOps.Str(${parts.last})"), List.empty[Tree])) {
+      case ((str, arg), (parts, es)) =>
 
-//           // The stringy part had better be a string literal. If we got here via the interpolator it
-//           // always will be. If not we punt (below).
-//           case ((part @ Literal(Constant(str: String)), arg), (tail, es)) =>
+        if (str.endsWith("#")) {
 
-//             // The arg had better have a type conforming with Encoder[_] or String
-//             val argType = c.typecheck(arg, c.TYPEmode).tpe
+          // Interpolations like "...#$foo ..." require `foo` to be a String.
+          arg match {
+            case '{ $s: String } => ('{Str(${Expr(str)})} :: '{Str($s)} :: parts, es)
+            case '{ $a: $T }     =>
+              report.error(s"Found ${Type[T].show}, expected String.}", a)
+              return '{???} ///
+          }
 
-//             if (str.endsWith("#")) {
+        } else {
 
-//               // The stringy part ends in a `#` so the following arg must typecheck as a String.
-//               // Assuming it does, turn it into a string and "emit" two `Left`s.
-//               if (argType <:< StringType) {
-//                 val p1 = q"_root_.skunk.syntax.StringContextOps.Str(${str.init}.concat($arg))"
-//                 (p1 :: tail, es)
-//               } else
-//                 c.abort(arg.pos, s"type mismatch;\n  found   : $argType\n  required: $StringType")
+          arg match {
 
-//             } else if (argType <:< EncoderType) {
+            // The interpolated thing is an Encoder.
+            case '{ $e: Encoder[$T] } =>
+              val newParts    = '{Str(${Expr(str)})} :: '{Par($e.sql)} :: parts
+              val newEncoders = '{ $e : Encoder[T] } :: es
+              (newParts, newEncoders)
 
-//                 val p1 = q"_root_.skunk.syntax.StringContextOps.Str($part)"
-//                 val p2 = q"_root_.skunk.syntax.StringContextOps.Par($arg.sql)"
-//                 (p1 :: p2 :: tail, arg :: es)
+            // The interpolated thing is a Fragment[Void]
+            case '{ $f: Fragment[Void] } =>
+              val newParts    = '{Str(${Expr(str)})} :: '{Emb($f.parts)} :: parts
+              (newParts, es)
 
-//             } else if (argType <:< VoidFragmentType) {
+            // The interpolated thing is a Fragment[A] for some A other than Void
+            case '{ $f: Fragment[$A] } =>
+              val newParts    = '{Str(${Expr(str)})} :: '{Emb($f.parts)} :: parts
+              val newEncoders = '{ $f.encoder : Encoder[A] } :: es
+              (newParts, newEncoders)
 
-//                 val p1 = q"_root_.skunk.syntax.StringContextOps.Str($part)"
-//                 val p2 = q"_root_.skunk.syntax.StringContextOps.Emb($arg.parts)"
-//                 (p1 :: p2 :: tail, es)
+            case '{ $a: $T } =>
+              report.error(s"Found ${Type[T].show}, expected String, Encoder, or Fragment.", a)
+              return '{???}
 
-//             } else if (argType <:< FragmentType) {
+          }
 
-//                 val p1 = q"_root_.skunk.syntax.StringContextOps.Str($part)"
-//                 val p2 = q"_root_.skunk.syntax.StringContextOps.Emb($arg.parts)"
-//                 (p1 :: p2 :: tail, q"$arg.encoder" :: es)
+        }
 
-//             } else {
+    }
 
-//               c.abort(arg.pos, s"type mismatch;\n  found   : $argType\n  required: $EncoderType or $FragmentType")
+    val finalEnc: Expr[Any] =
+      if (encoders.isEmpty) '{ Void.codec }
+      else encoders.reduceLeft {
+        case ('{$a : Encoder[$A]}, '{ $b : Encoder[$B] }) => '{$a ~ $b}
+      }
 
-//             }
+    finalEnc match {
+      case '{ $e : Encoder[$T] } => '{ fragmentFromParts[T](${Expr.ofList(parts)}, $e, $origin) }
+    }
 
-//           // Otherwise the stringy part isn't a string literal, which means someone has gotten here
-//           // through nefarious means, like constructing a StringContext by hand.
-//           case ((p, _), _) =>
-//             c.abort(p.pos, s"StringContext parts must be string literals.")
+  }
 
-//         }
+  def idImpl(sc: Expr[StringContext])(using qc:QuoteContext): Expr[Identifier] =
+    sc match {
+      case '{ StringContext(${Varargs(Consts(Seq(part)))}: _*) } =>
+        Identifier.fromString(part) match {
+          case Right(Identifier(s)) => '{ Identifier.fromString(${Expr(s)}).fold(sys.error, identity) }
+          case Left(s) =>
+            report.error(s)
+            return '{???}
+        }
+      case _ =>
+        report.error(s"Identifiers cannot have interpolated arguments")
+        return '{???}
+    }
 
-//       // The final encoder is either `Void.codec` or `a ~ b ~ ...`
-//       val finalEncoder: Tree =
-//         encoders.reduceLeftOption((a, b) => q"$a ~ $b").getOrElse(q"_root_.skunk.Void.codec")
-
-//       // We now have what we need to construct a fragment.
-//       q"_root_.skunk.syntax.StringContextOps.fragmentFromParts($finalParts, $finalEncoder, $origin)"
-
-//     }
-
-//     def identifier_impl(): Tree = {
-//       val Apply(_, List(Apply(_, List(Literal(Constant(part: String)))))) = c.prefix.tree
-//       Identifier.fromString(part) match {
-//         case Left(s) => c.abort(c.enclosingPosition, s)
-//         case Right(Identifier(s)) => q"_root_.skunk.data.Identifier.fromString($s).fold(sys.error, identity)"
-//       }
-//     }
-
-//   }
-
-// }
+}
 
 trait ToStringContextOps {
+
+  extension (inline sc: StringContext) transparent inline def sql(inline args: Any*): Any =
+    ${ StringContextOps.sqlImpl('sc, 'args) }
+
+  extension (inline sc: StringContext) inline def id(): Identifier =
+    ${ StringContextOps.idImpl('sc) }
+
   implicit def toStringOps(sc: StringContext): StringContextOps =
     new StringContextOps(sc)
 }
