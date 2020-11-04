@@ -23,11 +23,12 @@ object Origin {
   implicit inline def instance: Origin =
     ${originImpl}
 
-  def originImpl(using ctx: QuoteContext): Expr[Origin] =
+  def originImpl(using ctx: QuoteContext): Expr[Origin] = {
     import ctx.reflect.rootPosition
     val file = Expr(rootPosition.sourceFile.jpath.toString)
     val line = Expr(rootPosition.startLine + 1)
     '{Origin($file, $line)}
+  }
 
 }
 
