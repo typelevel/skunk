@@ -83,7 +83,7 @@ object StringContextOps {
 
           // Interpolations like "...#$foo ..." require `foo` to be a String.
           arg match {
-            case '{ $s: String } => ('{Str(${Expr(str)})} :: '{Str($s)} :: parts, es)
+            case '{ $s: String } => ('{Str(${Expr(str.dropRight(1))})} :: '{Str($s)} :: parts, es)
             case '{ $a: $T }     =>
               report.error(s"Found ${Type[T].show}, expected String.}", a)
               return '{???} ///
