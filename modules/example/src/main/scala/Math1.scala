@@ -35,7 +35,9 @@ object Math1 extends IOApp {
     }
 
     // `Math` implementation that delegates its work to Postgres.
-    def fromSession[F[_]: Bracket[*[_], Throwable]](sess: Session[F]): Math[F] =
+    def fromSession[F[_]](sess: Session[F])(
+      implicit ev: Bracket[F, Throwable]
+    ): Math[F] =
       new Math[F] {
         def add(a: Int, b: Int) = sess.prepare(Statements.add).use(_.unique(a ~ b))
         def sqrt(d: Double)     = sess.prepare(Statements.sqrt).use(_.unique(d))
@@ -44,7 +46,7 @@ object Math1 extends IOApp {
   }
 
   def run(args: List[String]): IO[ExitCode] =
-    session.map(Math.fromSession(_)).use { m =>
+    (session.map(Math.fromSession(_)) : Resource[IO, Math[IO]]).use { m => // dotty requires the ascription, why?
       for {
         n  <- m.add(42, 71)
         d  <- m.sqrt(2)

@@ -15,12 +15,11 @@ import natchez.Trace.Implicits.noop
 // This does a lot of stuff and is mostly just to test features as they're being added. This class
 // will probably go away.
 object Main extends IOApp {
-  import Codec._
 
   case class Country(name: String, code: String, indepyear: Option[Short], population: Int)
 
   val country: Codec[Country] =
-    (varchar, bpchar(3), int2.opt, int4).imapN(Country.apply)(Country.unapply(_).get)
+    (varchar ~ bpchar(3) ~ int2.opt ~ int4).gimap[Country]
 
   def putStrLn(a: Any): IO[Unit] =
     IO(println(a))
