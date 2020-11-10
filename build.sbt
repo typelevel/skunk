@@ -79,6 +79,15 @@ lazy val commonSettings = Seq(
     }
   },
 
+  // dottydoc really doesn't work at all right now
+  Compile / doc / sources := {
+    val old = (Compile / doc / sources).value
+    if (isDotty.value)
+      Seq()
+    else
+      old
+  },
+
 )
 
 lazy val skunk = project
