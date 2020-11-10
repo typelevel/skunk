@@ -22,7 +22,7 @@ final class ListOps[A](as: List[A]) {
 }
 
 trait ToListOps {
-  implicit def toDoobieListOps[A](as: List[A]): ListOps[A] =
+  implicit def toSkunkListOps[A](as: List[A]): ListOps[A] =
     new ListOps(as)
 }
 

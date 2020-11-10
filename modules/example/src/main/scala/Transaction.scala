@@ -20,14 +20,14 @@ object Transaction extends IOApp {
       password = Some("banana"),
     )
 
-  def runS[F[_]: Concurrent: ContextShift]: F[_] =
+  def runS[F[_]: Concurrent: ContextShift]: F[Int] =
     session[F].use { s =>
       s.transaction.use { t =>
         for {
           p <- t.savepoint
           _ <- s.execute(sql"blah".command).attempt
           _ <- t.rollback(p)
-          n <- s.execute(sql"select 1".query(int4))
+          n <- s.unique(sql"select 1".query(int4))
         } yield n
       }
     }

@@ -7,6 +7,7 @@ package skunk.net.message
 import cats.syntax.all._
 import scodec._
 import scodec.codecs._
+import scodec.interop.cats._
 import skunk.data.TypedRowDescription
 import skunk.util.Typer
 
@@ -41,8 +42,8 @@ object RowDescription {
   object Field {
 
     val codec: Codec[Field] =
-      (utf8z ~ int32 ~ int16 ~ int32 ~ int16 ~ int32 ~ int16)
-        .map(apply)
+      (utf8z.asDecoder, int32.asDecoder, int16.asDecoder, int32.asDecoder, int16.asDecoder, int32.asDecoder, int16.asDecoder)
+        .mapN(apply)
         .decodeOnly
 
   }

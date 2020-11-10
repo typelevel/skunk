@@ -90,7 +90,7 @@ object Pool {
             // all (defer and wait).
             ref.modify {
               case (Some(a) :: os, ds) => ((os, ds), a.pure[F])
-              case (None    :: os, ds) => ((os, ds), rsrc.allocated.onError(restore))
+              case (None    :: os, ds) => ((os, ds), Concurrent[F].onError(rsrc.allocated)(restore))
               case (Nil,           ds) => ((Nil, ds :+ d), d.get.flatMap(_.liftTo[F].onError(restore)))
             } .flatten
 
@@ -128,7 +128,7 @@ object Pool {
         Trace[F].span("dispose") {
           ref.modify {
             case (os, Nil) =>  ((os :+ None, Nil), ().pure[F]) // new empty slot
-            case (os, d :: ds) =>  ((os, ds), rsrc.allocated.attempt.flatMap(d.complete)) // alloc now!
+            case (os, d :: ds) =>  ((os, ds), Concurrent[F].attempt(rsrc.allocated).flatMap(d.complete)) // alloc now!
           } .guarantee(a._2).flatten
         }
 

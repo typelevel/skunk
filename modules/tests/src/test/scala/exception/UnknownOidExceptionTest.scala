@@ -13,7 +13,7 @@ import skunk.exception.UnknownOidException
 
 class UnknownOidExceptionTest1 extends SkunkTest(strategy = Strategy.SearchPath) {
 
-    val mood = enum[String](identity, Option(_), Type("mood"))
+    val mood = `enum`[String](identity, Option(_), Type("mood"))
     sessionTest("raise UnknownOidException when referencing a new type, using Strategy.SearchPath") { s =>
       for {
         _ <- s.execute(sql"DROP TYPE IF EXISTS mood".command)
@@ -26,7 +26,7 @@ class UnknownOidExceptionTest1 extends SkunkTest(strategy = Strategy.SearchPath)
 
 class UnknownOidExceptionTest2 extends SkunkTest(strategy = Strategy.BuiltinsOnly) {
 
-    val myenum = enum[String](identity, Option(_), Type("myenum"))
+    val myenum = `enum`[String](identity, Option(_), Type("myenum"))
     sessionTest("raise UnknownOidException when referencing a user-defined type with Strategy.BuiltinsOnly") { s =>
       s.unique(sql"SELECT 'foo'::myenum AS blah".query(myenum)).assertFailsWith[UnknownOidException]
        .as("ok")

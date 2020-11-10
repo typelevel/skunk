@@ -4,6 +4,8 @@
 
 package skunk.net.message
 
+import cats.syntax.all._
+import scodec.interop.cats._
 import scodec.Encoder
 import scodec.bits.ByteVector
 import scodec.codecs.{bytes, int32, variableSizeBytes}
@@ -22,5 +24,5 @@ final case class SASLInitialResponse(mechanism: String, initialResponse: ByteVec
 
 object SASLInitialResponse {
   val encoder: Encoder[SASLInitialResponse] =
-    (utf8z ~ variableSizeBytes(int32, bytes)).contramap[SASLInitialResponse] { r => (r.mechanism, r.initialResponse) }
+    (utf8z.asEncoder, variableSizeBytes(int32, bytes).asEncoder).contramapN[SASLInitialResponse] { r => (r.mechanism, r.initialResponse) }
 }

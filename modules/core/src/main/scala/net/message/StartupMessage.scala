@@ -4,6 +4,8 @@
 
 package skunk.net.message
 
+import cats.syntax.all._
+import scodec.interop.cats._
 import scodec._
 import scodec.codecs._
 
@@ -41,9 +43,8 @@ object StartupMessage {
     val tail: Codec[Unit] =
       ConnectionProperties.foldRight(byte.applied(0)) { case ((k, v), e) => pair(k).applied(v) <~ e}
 
-    (version ~> pair("user") ~ pair("database") <~ tail)
-      .asEncoder
-      .contramap(m => m.user ~ m.database)
+    (version.asEncoder, pair("user").asEncoder, pair("database").asEncoder, tail.asEncoder)
+      .contramapN(m => ((), m.user, m.database, ()))
 
   }
 

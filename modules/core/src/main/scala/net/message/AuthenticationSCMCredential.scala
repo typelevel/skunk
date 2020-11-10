@@ -4,10 +4,12 @@
 
 package skunk.net.message
 
+import cats.syntax.all._
+import scodec.interop.cats._
 import scodec.Decoder
 
 /* Specifies that an SCM credentials message is required. */
 case object AuthenticationSCMCredential extends AuthenticationRequest {
   final val Tagʹ = 6
-  val decoderʹ: Decoder[AuthenticationSCMCredential.type] = Decoder.point(AuthenticationSCMCredential)
+  val decoderʹ: Decoder[AuthenticationSCMCredential.type] = AuthenticationSCMCredential.pure[Decoder]
 }
