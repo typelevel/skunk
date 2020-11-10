@@ -4,9 +4,11 @@
 
 package skunk.net.message
 
+import cats.syntax.all._
+import scodec.interop.cats._
 import scodec.Decoder
 
 case object BindComplete extends BackendMessage {
   final val Tag = '2'
-  def decoder: Decoder[BindComplete.type] = Decoder.point(BindComplete)
+  def decoder: Decoder[BindComplete.type] = BindComplete.pure[Decoder]
 }

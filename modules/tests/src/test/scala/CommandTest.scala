@@ -181,7 +181,7 @@ class CommandTest extends SkunkTest {
             City(5103, "Pipe4", "ARG", "Escobar", 11405),
           ).through(s.pipe(insertCity)).compile.drain
       n <- s.unique(sql"select count(*) from city where name like 'Pipe%'".query(int8))
-      _ <- assertEqual("count", n, 4)
+      _ <- assertEqual("count", n, 4L)
     } yield "ok"
   }
 

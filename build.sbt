@@ -2,11 +2,11 @@
 
 // Our Scala versions.
 lazy val `scala-3.0`  = "3.0.0-M1"
-lazy val `scala-2.12` = "2.12.12"
+// lazy val `scala-2.12` = "2.12.12"
 lazy val `scala-2.13` = "2.13.3"
 
 // This is used in a couple places
-lazy val fs2Version = "2.4.4"
+lazy val fs2Version = "2.5.0-M1"
 
 // Global Settings
 lazy val commonSettings = Seq(
@@ -35,7 +35,7 @@ lazy val commonSettings = Seq(
 
   // Compilation
   scalaVersion       := `scala-2.13`,
-  crossScalaVersions := Seq(`scala-2.12`, `scala-2.13`, `scala-3.0`),
+  crossScalaVersions := Seq(/*`scala-2.12`, */ `scala-2.13`, `scala-3.0`),
   scalacOptions -= "-language:experimental.macros", // doesn't work cross-version
   Compile / doc     / scalacOptions --= Seq("-Xfatal-warnings"),
   Compile / doc     / scalacOptions ++= Seq(
@@ -110,15 +110,16 @@ lazy val core = project
     description := "Tagless, non-blocking data access library for Postgres.",
     resolvers   +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     libraryDependencies ++= Seq(
-      "org.typelevel" %% "cats-core"    % "2.2.0",
-      "org.typelevel" %% "cats-effect"  % "2.2.0",
-      "co.fs2"        %% "fs2-core"     % fs2Version,
-      "co.fs2"        %% "fs2-io"       % fs2Version,
-      "org.scodec"    %% "scodec-core"  % "1.11.7",
-      "org.scodec"    %% "scodec-cats"  % "1.0.0",
+      "org.typelevel"    %% "cats-core"    % "2.3.0-M2",
+      "org.typelevel"    %% "cats-effect"  % "2.3.0-M1",
+      "co.fs2"           %% "fs2-core"     % fs2Version,
+      "co.fs2"           %% "fs2-io"       % fs2Version,
+      "org.scodec"       %% "scodec-core"  % (if (isDotty.value) "2.0.0-M1" else "1.11.7"),
+      "org.scodec"       %% "scodec-cats"  % "1.1.0-M2",
+      "org.tpolecat"     %% "natchez-core" % "0.0.14-M2",
+      "com.ongres.scram"  % "client"       % "2.1",
+    ) ++ Seq(
       "com.beachape"  %% "enumeratum"   % "1.6.1",
-      "org.tpolecat"  %% "natchez-core" % "0.0.12",
-      "com.ongres.scram" % "client" % "2.1"
     ).map(_.withDottyCompat(scalaVersion.value))
   )
 
@@ -143,7 +144,7 @@ lazy val circe = project
     libraryDependencies ++= Seq(
       "io.circe" %% "circe-core"   % "0.13.0",
       "io.circe" %% "circe-parser" % "0.13.0"
-    ).map(_.withDottyCompat(scalaVersion.value))
+    ).filterNot(_ => isDotty.value)
   )
 
 lazy val tests = project
@@ -154,11 +155,12 @@ lazy val tests = project
   .settings(
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "org.typelevel"     %% "scalacheck-effect-munit" % "0.2.0",
-      "org.typelevel"     %% "munit-cats-effect"       % "0.3.0",
-      "org.typelevel"     %% "cats-free"               % "2.2.0",
+      "org.typelevel"     %% "scalacheck-effect-munit" % "0.5.0",
+      "org.typelevel"     %% "munit-cats-effect-2"     % "0.9.0",
+      "org.typelevel"     %% "cats-free"               % "2.3.0-M2",
+    ) ++ Seq(
       "io.chrisdavenport" %% "cats-time"               % "0.3.4",
-    ).map(_.withDottyCompat(scalaVersion.value)),
+    ).filterNot(_ => isDotty.value),
     testFrameworks += new TestFramework("munit.Framework")
   )
 

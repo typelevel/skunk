@@ -4,6 +4,8 @@
 
 package skunk.net.message
 
+import cats.syntax.all._
+import scodec.interop.cats._
 import scodec.codecs._
 import scodec.Encoder
 
@@ -14,8 +16,8 @@ case class Parse(name: String, sql: String, types: List[Int]) extends TaggedFron
 object Parse {
 
   val encoder: Encoder[Parse] =
-    (utf8z ~ utf8z ~ int16 ~ list(int32)).contramap[Parse] { p =>
-      p.name ~ p.sql ~ p.types.length ~ p.types
+    (utf8z.asEncoder, utf8z.asEncoder, int16.asEncoder, list(int32).asEncoder).contramapN[Parse] { p =>
+      (p.name, p.sql, p.types.length, p.types)
     }
 
 }

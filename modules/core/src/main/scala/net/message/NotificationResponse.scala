@@ -4,6 +4,8 @@
 
 package skunk.net.message
 
+import cats.syntax.all._
+import scodec.interop.cats._
 import scodec.Decoder
 import scodec.codecs._
 import skunk.data.Notification
@@ -14,9 +16,8 @@ object NotificationResponse {
   final val Tag = 'A'
 
   val decoder: Decoder[NotificationResponse] =
-    (int32 ~ identifier ~ utf8z).map { case pid ~ ch ~ value =>
+    (int32.asDecoder, identifier.asDecoder, utf8z.asDecoder).mapN { case (pid, ch, value) =>
       NotificationResponse(Notification(pid, ch, value))
-      case _ => sys.error("dotty makes me do this but it's unpossible")
     }
 
 }

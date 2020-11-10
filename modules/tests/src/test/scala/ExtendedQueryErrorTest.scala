@@ -143,7 +143,7 @@ class ExtendedQueryErrorTest extends SkunkTest {
   }
 
   sessionTest("unknown type") { s =>
-    val tstate = enum[String](identity, Some(_), Type("bogus"))
+    val tstate = `enum`[String](identity, Some(_), Type("bogus"))
     s.prepare(sql"select ${tstate}".query(tstate))
       .use(_ => IO.unit)
       .assertFailsWith[UnknownTypeException]

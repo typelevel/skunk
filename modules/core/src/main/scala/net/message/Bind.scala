@@ -4,9 +4,10 @@
 
 package skunk.net.message
 
+import cats.syntax.all._
+import scodec.interop.cats._
 import scodec._
 import scodec.codecs._
-
 
 case class Bind(portal: String, statement: String, args: List[Option[String]])
   extends TaggedFrontendMessage('B') {
@@ -61,14 +62,14 @@ object Bind {
           null // :-\
         )
 
-      (utf8z ~ utf8z ~ int16 ~ int16 ~ list(arg) ~ int16).contramap[Bind] { b =>
-        b.portal      ~  // The name of the destination portal
-        b.statement   ~ // The name of the source prepared statement
-        0             ~ // The number of parameter format codes
-        b.args.length ~ // The number of parameter values
-        b.args ~        // args
+      (utf8z.asEncoder, utf8z.asEncoder, int16.asEncoder, int16.asEncoder, list(arg).asEncoder, int16.asEncoder).contramapN[Bind] { b => (
+        b.portal      ,  // The name of the destination portal
+        b.statement   , // The name of the source prepared statement
+        0             , // The number of parameter format codes
+        b.args.length , // The number of parameter values
+        b.args        , // args
         0               // The number of result-column format codes
-      }
+      )}
 
     }
 

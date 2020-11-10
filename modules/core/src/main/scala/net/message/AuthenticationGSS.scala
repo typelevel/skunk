@@ -4,10 +4,12 @@
 
 package skunk.net.message
 
+import cats.syntax.all._
+import scodec.interop.cats._
 import scodec.Decoder
 
 /** Specifies that GSSAPI authentication is required. */
 case object AuthenticationGSS extends AuthenticationRequest {
   final val Tagʹ = 7
-  val decoderʹ: Decoder[AuthenticationGSS.type] = Decoder.point(AuthenticationGSS)
+  val decoderʹ: Decoder[AuthenticationGSS.type] = AuthenticationGSS.pure[Decoder]
 }

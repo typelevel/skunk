@@ -31,10 +31,10 @@ abstract class CodecTest(
   def roundtripTest[A: Eq](codec: Codec[A])(as: A*): Unit = {
 
     // required for parametrized types
-    val sqlString = codec.types match {
+    val sqlString: Fragment[A] = (codec.types match {
       case head :: Nil => sql"select $codec::#${head.name}"
       case _           => sql"select $codec"
-    }
+    }).asInstanceOf[Fragment[A]] // macro doesn't quite work in dotty yet
 
     sessionTest(s"${codec.types.mkString(", ")}") { s =>
       s.prepare(sqlString.query(codec)).use { ps =>
@@ -63,7 +63,7 @@ abstract class CodecTest(
   // Test a specific special value like NaN where equals doesn't work
   def roundtripWithSpecialValueTest[A](name: String, codec: Codec[A], ascription: Option[String] = None)(value: A, isOk: A => Boolean): Unit =
     sessionTest(s"${codec.types.mkString(",")}") { s =>
-      s.prepare(sql"select $codec#${ascription.foldMap("::" + _)}".query(codec)).use { ps =>
+      s.prepare(sql"select $codec#${ascription.foldMap("::" + _)}".asInstanceOf[Fragment[A]].query(codec)).use { ps =>
         ps.unique(value).flatMap { a =>
           assert(name, isOk(a)).as(name)
         }

@@ -4,6 +4,7 @@
 
 package skunk.net.message
 
+import cats.syntax.all._
 import scodec.codecs._
 import scodec.Encoder
 
@@ -21,8 +22,8 @@ object Close {
     new Close('P', name) {}
 
   val encoder: Encoder[Close] =
-    (byte ~ utf8z).contramap[Close] { d =>
-      d.variant ~ d.name
+    (byte.asEncoder, utf8z.asEncoder).contramapN[Close] { d =>
+      (d.variant, d.name)
     }
 
 }

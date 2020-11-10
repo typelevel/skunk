@@ -10,7 +10,7 @@ import natchez.Trace.Implicits.noop
 
 class SslTest extends ffstest.FTest {
 
-    object Port {
+  object Port {
     val Invalid = 5431
     val MD5     = 5432
     val Trust   = 5433
@@ -36,7 +36,7 @@ class SslTest extends ffstest.FTest {
     ).use(_ => IO.unit)
   }
 
-    test("failed login with SSL.System (ssl available)") {
+  test("failed login with SSL.System (ssl available)") {
     Session.single[IO](
       host     = "localhost",
       user     = "jimmy",

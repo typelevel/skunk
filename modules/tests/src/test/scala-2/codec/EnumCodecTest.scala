@@ -7,7 +7,7 @@ package codec
 
 import cats.Eq
 import skunk._
-import skunk.codec.enum._
+import skunk.codec.`enum`._
 import skunk.data.Type
 import enumeratum._
 import enumeratum.EnumEntry.Lowercase
@@ -23,7 +23,7 @@ class EnumCodecTest extends CodecTest(strategy = Strategy.SearchPath) {
     def fromLabel(label: String): Option[Case1] = values.find(_.label == label)
     implicit val EqMyEnum: Eq[Case1] = Eq.fromUniversalEquals
   }
-  val case1 = enum[Case1](_.label, Case1.fromLabel, Type("myenum"))
+  val case1 = `enum`[Case1](_.label, Case1.fromLabel, Type("myenum"))
   roundtripTest(case1)(Case1.Foo, Case1.Bar)
   decodeFailureTest(case1, List("woozle"))
 
@@ -35,7 +35,7 @@ class EnumCodecTest extends CodecTest(strategy = Strategy.SearchPath) {
     val values = findValues
     implicit val EqCase2: Eq[Case2] = Eq.fromUniversalEquals
   }
-  val case2 = enum(Case2, Type("myenum"))
+  val case2 = `enum`(Case2, Type("myenum"))
   roundtripTest(case2)(Case2.Foo, Case2.Bar)
   decodeFailureTest(case2, List("woozle"))
 

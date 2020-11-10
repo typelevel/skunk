@@ -13,6 +13,8 @@ import scodec.interop.cats._
 import skunk.data.Identifier
 import scodec.SizeBound
 import scodec.DecodeResult
+import cats.ContravariantSemigroupal
+import scodec.Encoder
 
 /**
  * Definitions of Postgres messages, with binary encoders and decoders. Doc for this package isn't
@@ -59,5 +61,21 @@ package object message { module =>
       s  => Attempt.fromEither(Identifier.fromString(s).leftMap(Err(_))),
       id => Attempt.successful(id.value)
     )
+
+  implicit val EncoderContravariantSemigroupal: ContravariantSemigroupal[Encoder] =
+    new ContravariantSemigroupal[Encoder] {
+
+      def product[A, B](fa: Encoder[A], fb: Encoder[B]): Encoder[(A, B)] =
+        Encoder { case (a, b) =>
+          for {
+            x <- fa.encode(a)
+            y <- fb.encode(b)
+          } yield x ++ y
+        }
+
+      def contramap[A, B](fa: Encoder[A])(f: B => A): Encoder[B] =
+        fa.contramap(f)
+
+    }
 
 }
