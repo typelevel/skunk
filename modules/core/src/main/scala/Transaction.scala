@@ -86,12 +86,14 @@ trait Transaction[F[_]] { outer =>
 
 object Transaction {
 
-  def fromSession[F[_]: MonadError[*[_], Throwable]](
+  def fromSession[F[_]](
     s: Session[F],
     n: Namer[F],
     // o: Origin // origin of the call to .begin
     iOp: Option[TransactionIsolationLevel],
     aOp: Option[TransactionAccessMode]
+  )(
+    implicit ev: MonadError[F, Throwable]
   ): Resource[F, Transaction[F]] = {
 
     def assertIdle(cs: CallSite): F[Unit] =
@@ -144,7 +146,7 @@ object Transaction {
       s.execute(internal"ROLLBACK".command)
 
     def doCommit: F[Completion] =
-      s.execute(internal"COMMIT".command)      
+      s.execute(internal"COMMIT".command)
 
     val acquire: F[Transaction[F]] =
       assertIdle(CallSite("begin", Origin.unknown)) *>

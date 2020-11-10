@@ -4,6 +4,7 @@
 
 package skunk.net.message
 
+import cats.syntax.all._
 import scodec.codecs._
 import scodec.Encoder
 
@@ -21,6 +22,6 @@ object Describe {
     new Describe('P', name) {}
 
   val encoder: Encoder[Describe] =
-    (byte ~ utf8z).contramap[Describe] { d => d.variant ~ d.name }
+    (byte.asEncoder, utf8z.asEncoder).contramapN[Describe] { d => (d.variant, d.name) }
 
 }

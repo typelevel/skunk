@@ -4,10 +4,12 @@
 
 package skunk.net.message
 
+import cats.syntax.all._
+import scodec.interop.cats._
 import scodec.Decoder
 
 case object NoData extends BackendMessage {
   final val Tag = 'n'
-  def decoder: Decoder[NoData.type] = Decoder.point(NoData)
+  def decoder: Decoder[NoData.type] = NoData.pure[Decoder]
 
 }

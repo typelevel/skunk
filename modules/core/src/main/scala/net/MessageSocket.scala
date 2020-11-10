@@ -8,6 +8,7 @@ import cats.effect._
 import cats.syntax.all._
 import fs2.concurrent.InspectableQueue
 import scodec.codecs._
+import scodec.interop.cats._
 import skunk.net.message.{ Sync => _, _ }
 import skunk.util.Origin
 import scala.concurrent.duration.FiniteDuration
@@ -47,7 +48,7 @@ object MessageSocket {
         * total including self but not including the tag) in network order.
         */
         val receiveImpl: F[BackendMessage] = {
-          val header = byte ~ int32
+          val header = (byte.asDecoder, int32.asDecoder).tupled
           bvs.read(5).flatMap { bits =>
             val (tag, len) = header.decodeValue(bits).require
             val decoder    = BackendMessage.decoder(tag)

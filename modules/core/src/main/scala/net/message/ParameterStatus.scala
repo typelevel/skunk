@@ -4,12 +4,13 @@
 
 package skunk.net.message
 
+import cats.syntax.all._
+import scodec.interop.cats._
 import scodec.Decoder
-import scodec.codecs._
 
 case class ParameterStatus(name: String, value: String) extends BackendMessage
 
 object ParameterStatus {
   final val Tag = 'S'
-  val decoder: Decoder[ParameterStatus] = (utf8z ~ utf8z).map(apply)
+  val decoder: Decoder[ParameterStatus] = (utf8z.asDecoder, utf8z.asDecoder).mapN(apply)
 }

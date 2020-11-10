@@ -4,9 +4,11 @@
 
 package skunk.net.message
 
+import cats.syntax.all._
+import scodec.interop.cats._
 import scodec.Decoder
 
 case object CopyDone extends BackendMessage {
   final val Tag = 'c'
-  val decoder: Decoder[CopyDone.type] = Decoder.point(CopyDone)
+  val decoder: Decoder[CopyDone.type] = CopyDone.pure[Decoder]
 }

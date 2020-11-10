@@ -47,3 +47,6 @@ metals.sbt
 # Transient workspace
 modules/docs/src/main/scala/
 *.worksheet.sc
+
+# bsp
+.bsp/

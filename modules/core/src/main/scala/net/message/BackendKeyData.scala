@@ -4,6 +4,8 @@
 
 package skunk.net.message
 
+import cats.syntax.all._
+import scodec.interop.cats._
 import scodec.Decoder
 import scodec.codecs._
 
@@ -17,5 +19,5 @@ final case class BackendKeyData(pid: Int, key: Int) extends BackendMessage
 
 object BackendKeyData {
   final val Tag = 'K'
-  val decoder: Decoder[BackendMessage] = (int32 ~ int32).map(BackendKeyData(_, _))
+  val decoder: Decoder[BackendMessage] = (int32.asDecoder, int32.asDecoder).mapN(BackendKeyData(_, _))
 }

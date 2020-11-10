@@ -64,7 +64,7 @@ object Join extends IOApp with StreamOps {
   }
 
   def run(args: List[String]): IO[ExitCode] =
-    session.map(WorldService.fromSession(_)).use { ws =>
+    (session.map(WorldService.fromSession(_)) : Resource[IO,WorldService[IO]]).use { ws => // dotty requires that ascription, why?
       ws.countriesByName(Pattern("A%"))
         .evalMap(country => IO(println(country)))
         .compile

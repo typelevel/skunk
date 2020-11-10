@@ -4,7 +4,6 @@
 
 package skunk.exception
 
-import cats.data.Nested
 import cats.syntax.all._
 import skunk.{ Encoder, Decoder }
 import skunk.util.Origin
@@ -53,9 +52,9 @@ class DecodeException[F[_], A, B](
   val MaxValue: Int = 15
 
   // Truncate column values at MaxValue char
-  private val dataʹ = Nested(data).map { s =>
+  private val dataʹ = data.map(_.map { s =>
     if (s.length > MaxValue) s.take(MaxValue) + "⋯" else s
-  } .value
+  })
 
   def describe(col: ((Field, Int), Option[String])): List[Text] = {
     val ((t, n), op) = col

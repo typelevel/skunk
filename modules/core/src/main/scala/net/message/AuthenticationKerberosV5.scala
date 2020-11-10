@@ -4,10 +4,12 @@
 
 package skunk.net.message
 
+import cats.syntax.all._
+import scodec.interop.cats._
 import scodec.Decoder
 
 /* Specifies that Kerberos V5 authentication is required. */
 case object AuthenticationKerberosV5 extends AuthenticationRequest {
   final val Tagʹ = 2
-  val decoderʹ: Decoder[AuthenticationKerberosV5.type] = Decoder.point(AuthenticationKerberosV5)
+  val decoderʹ: Decoder[AuthenticationKerberosV5.type] = AuthenticationKerberosV5.pure[Decoder]
 }

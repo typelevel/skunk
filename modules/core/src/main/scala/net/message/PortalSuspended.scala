@@ -4,9 +4,11 @@
 
 package skunk.net.message
 
+import cats.syntax.all._
+import scodec.interop.cats._
 import scodec.Decoder
 
 case object PortalSuspended extends BackendMessage {
   final val Tag = 's'
-  def decoder: Decoder[PortalSuspended.type] = Decoder.point(PortalSuspended)
+  def decoder: Decoder[PortalSuspended.type] = PortalSuspended.pure[Decoder]
 }

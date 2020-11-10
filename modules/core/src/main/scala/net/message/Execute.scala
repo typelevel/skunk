@@ -4,6 +4,8 @@
 
 package skunk.net.message
 
+import cats.syntax.all._
+import scodec.interop.cats._
 import scodec.codecs._
 import scodec.Encoder
 
@@ -14,7 +16,7 @@ case class Execute(portal: String, maxRows: Int) extends TaggedFrontendMessage('
 object Execute {
 
   val encoder: Encoder[Execute] =
-    (utf8z ~ int32).contramap[Execute] { p =>
+    (utf8z.asEncoder, int32.asEncoder).contramapN[Execute] { p =>
       p.portal ~ p.maxRows
     }
 

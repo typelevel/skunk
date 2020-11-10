@@ -151,7 +151,7 @@ class PostgresErrorException (
       s"""|If this is an error you wish to trap and handle in your application, you can do
           |so with a SqlState extractor. For example:
           |
-          |  ${Console.GREEN}doSomething.recoverWith { case SqlState.${st.entryName}(ex) =>  ...}${Console.RESET}
+          |  ${Console.GREEN}doSomething.recoverWith { case SqlState.${st}(ex) =>  ...}${Console.RESET}
           |
           |""".stripMargin
     }
@@ -171,13 +171,15 @@ class PostgresErrorException (
 
 object PostgresErrorException {
 
-  def raiseError[F[_]: cats.MonadError[*[_], Throwable], A](
+  def raiseError[F[_], A](
     sql:             String,
     sqlOrigin:       Option[Origin],
     info:            Map[Char, String],
     history:         List[Either[Any, Any]],
     arguments:       List[(Type, Option[String])] = Nil,
     argumentsOrigin: Option[Origin]               = None
+  )(
+    implicit ev: cats.MonadError[F, Throwable]
   ): F[A] =
     new PostgresErrorException(sql, sqlOrigin, info, history, arguments, argumentsOrigin)
       .raiseError[F, A]

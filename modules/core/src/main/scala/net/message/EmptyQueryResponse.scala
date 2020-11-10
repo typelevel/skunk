@@ -4,9 +4,11 @@
 
 package skunk.net.message
 
+import cats.syntax.all._
+import scodec.interop.cats._
 import scodec.Decoder
 
 case object EmptyQueryResponse extends BackendMessage {
   final val Tag = 'I'
-  val decoder: Decoder[EmptyQueryResponse.type] = Decoder.point(EmptyQueryResponse)
+  val decoder: Decoder[EmptyQueryResponse.type] = EmptyQueryResponse.pure[Decoder]
 }
