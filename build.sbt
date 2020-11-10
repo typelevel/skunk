@@ -181,13 +181,14 @@ lazy val example = project
   .settings(
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.12",
-      "org.tpolecat"  %% "natchez-jaeger"      % "0.0.12",
+      "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.14-M2",
+      "org.tpolecat"  %% "natchez-jaeger"      % "0.0.14-M2",
+    ) ++ Seq(
       "org.http4s"    %% "http4s-dsl"          % "0.21.8",
       "org.http4s"    %% "http4s-blaze-server" % "0.21.8",
       "org.http4s"    %% "http4s-circe"        % "0.21.8",
       "io.circe"      %% "circe-generic"       % "0.13.0",
-    ).map(_.withDottyCompat(scalaVersion.value))
+    ).filterNot(_ => isDotty.value)
   )
 
 lazy val docs = project
