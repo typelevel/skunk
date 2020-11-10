@@ -66,10 +66,10 @@ package object message { module =>
     new ContravariantSemigroupal[Encoder] {
 
       def product[A, B](fa: Encoder[A], fb: Encoder[B]): Encoder[(A, B)] =
-        Encoder { case (a, b) =>
+        Encoder { (p : (A, B)) =>
           for {
-            x <- fa.encode(a)
-            y <- fb.encode(b)
+            x <- fa.encode(p._1)
+            y <- fb.encode(p._2)
           } yield x ++ y
         }
 

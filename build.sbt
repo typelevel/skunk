@@ -2,7 +2,7 @@
 
 // Our Scala versions.
 lazy val `scala-3.0`  = "3.0.0-M1"
-// lazy val `scala-2.12` = "2.12.12"
+lazy val `scala-2.12` = "2.12.12"
 lazy val `scala-2.13` = "2.13.3"
 
 // This is used in a couple places
@@ -35,7 +35,7 @@ lazy val commonSettings = Seq(
 
   // Compilation
   scalaVersion       := `scala-2.13`,
-  crossScalaVersions := Seq(/*`scala-2.12`, */ `scala-2.13`, `scala-3.0`),
+  crossScalaVersions := Seq(`scala-2.12`, `scala-2.13`, `scala-3.0`),
   scalacOptions -= "-language:experimental.macros", // doesn't work cross-version
   Compile / doc     / scalacOptions --= Seq("-Xfatal-warnings"),
   Compile / doc     / scalacOptions ++= Seq(
