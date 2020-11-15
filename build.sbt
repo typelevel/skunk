@@ -123,7 +123,7 @@ lazy val core = project
       "org.typelevel"    %% "cats-effect"  % "2.3.0-M1",
       "co.fs2"           %% "fs2-core"     % fs2Version,
       "co.fs2"           %% "fs2-io"       % fs2Version,
-      "org.scodec"       %% "scodec-core"  % (if (isDotty.value) "2.0.0-M1" else "1.11.7"),
+      "org.scodec"       %% "scodec-core"  % (if (isDotty.value) "2.0-795f21e" else "1.11.7"),
       "org.scodec"       %% "scodec-cats"  % "1.1.0-M2",
       "org.tpolecat"     %% "natchez-core" % "0.0.14-M2",
       "com.ongres.scram"  % "client"       % "2.1",
