@@ -8,8 +8,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
-      - uses: olafurpg/setup-scala@v2
-      - uses: olafurpg/setup-gpg@v2
+      - uses: olafurpg/setup-scala@v10
+      - uses: olafurpg/setup-gpg@v3
       - name: Publish
         run: csbt ci-release
         env:
