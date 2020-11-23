@@ -16,7 +16,7 @@ import munit.Location
 
 abstract class SkunkTest(debug: Boolean = false, strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly) extends ffstest.FTest {
 
-  val session: Resource[IO, Session[IO]] =
+  def session: Resource[IO, Session[IO]] =
     Session.single(
       host     = "localhost",
       port     = 5432,
