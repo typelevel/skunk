@@ -87,7 +87,7 @@ trait TemporalCodecs {
   private def offsetTimeFormatter(precision: Int): DateTimeFormatter =
     new DateTimeFormatterBuilder()
       .append(timeFormatter(precision))
-      .appendOffset("+HH:mm", "")
+      .appendOffset("+HH:mm", "Z")
       .toFormatter(Locale.US)
 
   private def offsetDateTimeFormatter(precision: Int): DateTimeFormatter =
@@ -95,7 +95,7 @@ trait TemporalCodecs {
       .append(localDateFormatterWithoutEra)
       .appendLiteral(' ')
       .append(timeFormatter(precision))
-      .appendOffset("+HH:mm", "")
+      .appendOffset("+HH:mm", "Z")
       .appendOptional(eraFormatter)
       .toFormatter(Locale.US)
 
