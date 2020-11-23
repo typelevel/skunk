@@ -22,7 +22,7 @@ class TemporalCodecTest extends CodecTest {
     Eq.by(_.toInstant)
 
   // Also, run these tests with the session set to a timezone other than UTC. Our test instance is
-  // set to UTX, which masks the error reported at https://github.com/tpolecat/skunk/issues/313.
+  // set to UTC, which masks the error reported at https://github.com/tpolecat/skunk/issues/313.
   override def session: Resource[IO,Session[IO]] =
     super.session.evalTap(s => s.execute(sql"SET TIME ZONE +3".command))
 

@@ -12,8 +12,9 @@ import skunk.codec.all._
 import java.time.ZoneOffset
 import cats.kernel.Eq
 
-// N.B. TemporalCodecTest now runs in UTC+3 as well, which is a more general test. This case
+// N.B. TemporalCodecTest now runs in UTC+3 as well, which is a more general test. So this case
 // is unnecessary strictly speaking but is here for reference.
+
 // https://github.com/tpolecat/skunk/issues/313
 class Test313 extends SkunkTest {
 
