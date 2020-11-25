@@ -56,8 +56,9 @@ lazy val commonSettings = Seq(
   // Coverage Exclusions
   coverageExcludedPackages := "ffstest.*;tests.*;example.*;natchez.http4s.*",
 
-  // uncomment in case of emergency
-  // scalacOptions ++= { if (isDotty.value) Seq("-source:3.0-migration") else Nil },
+  // Unused Exclusion (false positives)
+  // see https://github.com/cb372/sbt-explicit-dependencies/issues/33 for moduleFilter() below
+  unusedCompileDependenciesFilter := moduleFilter() - moduleFilter("org.scala-lang", "scala3-library"),
 
   // Add some more source directories
   unmanagedSourceDirectories in Compile ++= {
@@ -119,17 +120,25 @@ lazy val core = project
     description := "Tagless, non-blocking data access library for Postgres.",
     resolvers   +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     libraryDependencies ++= Seq(
-      "org.typelevel"    %% "cats-core"    % "2.3.0-M2",
-      "org.typelevel"    %% "cats-effect"  % "2.3.0-M1",
-      "co.fs2"           %% "fs2-core"     % fs2Version,
-      "co.fs2"           %% "fs2-io"       % fs2Version,
-      "org.scodec"       %% "scodec-core"  % (if (isDotty.value) "2.0.0-M1" else "1.11.7"),
-      "org.scodec"       %% "scodec-cats"  % "1.1.0-M2",
-      "org.tpolecat"     %% "natchez-core" % "0.0.14-M2",
-      "com.ongres.scram"  % "client"       % "2.1",
+      "co.fs2"           %% "fs2-io"          % fs2Version,
+      "com.ongres.scram"  % "client"          % "2.1",
+      "org.scodec"       %% "scodec-cats"     % "1.1.0-M2",
+      "org.scodec"       %% "scodec-core"     % (if (isDotty.value) "2.0.0-M1" else "1.11.7"),
+      "org.tpolecat"     %% "natchez-core"    % "0.0.14-M2",
+      "co.fs2"           %% "fs2-core"        % "2.5.0-M1",        // TRANSITIVE
+      "com.ongres.scram"  % "common"          % "2.1",             // TRANSITIVE
+      "org.scodec"       %% "scodec-bits"     % "1.1.21",          // TRANSITIVE
+      "org.typelevel"    %% "cats-core"       % "2.3.0-M2",        // TRANSITIVE
+      "org.typelevel"    %% "cats-effect"     % "2.3.0-M1",        // TRANSITIVE
+      "org.typelevel"    %% "cats-kernel"     % "2.3.0-M2",        // TRANSITIVE
     ) ++ Seq(
-      "com.beachape"  %% "enumeratum"   % "1.6.1",
-    ).map(_.withDottyCompat(scalaVersion.value))
+      "com.beachape"     %% "enumeratum"      % "1.6.1",
+      "com.chuusai"      %% "shapeless"       % "2.3.3",           // TRANSITIVE
+      "org.scala-lang"    % "scala-reflect"   % scalaVersion.value,
+    ).filterNot(_ => isDotty.value) ++ Seq(
+      "com.beachape"      % "enumeratum_2.13" % "1.6.1",           // TRANSITIVE
+      "com.chuusai"       % "shapeless_2.13"  % "2.3.3" % Runtime, // TRANSITIVE
+    ).filter(_ => isDotty.value)
   )
 
 lazy val refined = project
@@ -140,7 +149,9 @@ lazy val refined = project
   .settings(
     libraryDependencies ++= Seq(
       "eu.timepit" %% "refined" % "0.9.18",
-    ).map(_.withDottyCompat(scalaVersion.value))
+    ).filterNot(_ => isDotty.value) ++ Seq(
+      "eu.timepit" % "refined_2.13" % "0.9.18",
+    ).filter(_ => isDotty.value)
   )
 
 lazy val circe = project
@@ -151,8 +162,9 @@ lazy val circe = project
   .settings(
     name := "skunk-circe",
     libraryDependencies ++= Seq(
-      "io.circe" %% "circe-core"   % "0.13.0",
-      "io.circe" %% "circe-parser" % "0.13.0"
+      "io.circe"      %% "circe-parser" % "0.13.0",
+      "io.circe"      %% "circe-core"   % "0.13.0",  // TRANSITIVE
+      "org.typelevel" %% "cats-core"   % "2.3.0-M2", // TRANSITIVE
     ).filterNot(_ => isDotty.value)
   )
 
@@ -164,11 +176,15 @@ lazy val tests = project
   .settings(
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "org.typelevel"     %% "scalacheck-effect-munit" % "0.5.0",
-      "org.typelevel"     %% "munit-cats-effect-2"     % "0.9.0",
-      "org.typelevel"     %% "cats-free"               % "2.3.0-M2",
+      "org.typelevel"     %% "munit-cats-effect-2" % "0.9.0",
+      "org.typelevel"     %% "cats-free"           % "2.3.0-M2" % Test,
+      "org.scalameta"     %% "munit"               % "0.7.16",    // TRANSITIVE
+      "org.tpolecat"      %% "natchez-core"        % "0.0.14-M2", // TRANSITIVE
+      "org.typelevel"     %% "cats-core"           % "2.3.0-M2",  // TRANSITIVE
+      "org.typelevel"     %% "cats-effect"         % "2.3.0-M1",  // TRANSITIVE
+      "org.typelevel"     %% "cats-kernel"         % "2.3.0-M2",  // TRANSITIVE
     ) ++ Seq(
-      "io.chrisdavenport" %% "cats-time"               % "0.3.4",
+      "io.chrisdavenport" %% "cats-time"           % "0.3.4" % Test,
     ).filterNot(_ => isDotty.value),
     testFrameworks += new TestFramework("munit.Framework")
   )
@@ -181,13 +197,23 @@ lazy val example = project
   .settings(
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.14-M2",
-      "org.tpolecat"  %% "natchez-jaeger"      % "0.0.14-M2",
+      "org.tpolecat"    %% "natchez-jaeger"      % "0.0.14-M2",
+      "co.fs2"          %% "fs2-core"            % "2.5.0-M1", // TRANSITIVE
+      "io.jaegertracing" % "jaeger-core"         % "1.4.0",    // TRANSITIVE
+      "org.tpolecat"    %% "natchez-core"        % "0.0.14-M2",// TRANSITIVE
+      "org.typelevel"   %% "cats-core"           % "2.3.0-M2", // TRANSITIVE
+      "org.typelevel"   %% "cats-effect"         % "2.3.0-M1", // TRANSITIVE
+      "org.typelevel"   %% "cats-kernel"         % "2.3.0-M2", // TRANSITIVE
     ) ++ Seq(
-      "org.http4s"    %% "http4s-dsl"          % "0.21.12",
-      "org.http4s"    %% "http4s-blaze-server" % "0.21.12",
-      "org.http4s"    %% "http4s-circe"        % "0.21.12",
-      "io.circe"      %% "circe-generic"       % "0.13.0",
+      "org.http4s"      %% "http4s-dsl"          % "0.21.12",
+      "org.http4s"      %% "http4s-blaze-server" % "0.21.12",
+      "org.http4s"      %% "http4s-circe"        % "0.21.12",
+      "io.circe"        %% "circe-generic"       % "0.13.0",
+      "co.fs2"          %% "fs2-io"              % "2.5.0-M1", // TRANSITIVE
+      "com.chuusai"     %% "shapeless"           % "2.3.3",    // TRANSITIVE
+      "org.http4s"      %% "http4s-core"         % "0.21.12",  // TRANSITIVE
+      "org.http4s"      %% "http4s-server"       % "0.21.12",  // TRANSITIVE
+      "io.circe"        %% "circe-core"          % "0.13.0",   // TRANSITIVE
     ).filterNot(_ => isDotty.value)
   )
 

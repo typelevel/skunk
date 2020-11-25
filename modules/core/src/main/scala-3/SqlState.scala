@@ -5,7 +5,6 @@
 package skunk
 
 import scala.collection.immutable.IndexedSeq
-import enumeratum.{ EnumEntry, Enum }
 import skunk.exception.PostgresErrorException
 
 /**

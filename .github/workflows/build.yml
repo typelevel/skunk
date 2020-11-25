@@ -18,7 +18,7 @@ jobs:
       - name: Start up Postgres instances
         run: docker-compose up -d
       - name: Compile (All) and Test/Coverage (Scala 2 Only)
-        run: csbt headerCheck +clean coverage test docs/makeSite coverageReport coverageOff +test
+        run: csbt headerCheck +clean coverage +unusedCompileDependenciesTest +undeclaredCompileDependenciesTest test docs/makeSite coverageReport coverageOff +test
       - name: Shut down Postgres instances
         run: docker-compose down
       - name: Upload code coverage data
