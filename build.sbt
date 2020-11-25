@@ -61,7 +61,7 @@ lazy val commonSettings = Seq(
   unusedCompileDependenciesFilter :=
     moduleFilter() -
     moduleFilter("org.scala-lang", "scala3-library") -
-    moduleFilter("org.scoverage",  "scalac-scoverage-runtime"),
+    moduleFilter("org.scala-lang", "scala-reflect"), // only in CI, why??!?
 
   // Add some more source directories
   unmanagedSourceDirectories in Compile ++= {
