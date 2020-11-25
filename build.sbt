@@ -58,7 +58,10 @@ lazy val commonSettings = Seq(
 
   // Unused Exclusion (false positives)
   // see https://github.com/cb372/sbt-explicit-dependencies/issues/33 for moduleFilter() below
-  unusedCompileDependenciesFilter := moduleFilter() - moduleFilter("org.scala-lang", "scala3-library"),
+  unusedCompileDependenciesFilter :=
+    moduleFilter() -
+    moduleFilter("org.scala-lang", "scala3-library") -
+    moduleFilter("org.scoverage",  "scalac-scoverage-runtime"),
 
   // Add some more source directories
   unmanagedSourceDirectories in Compile ++= {
