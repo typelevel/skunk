@@ -165,7 +165,7 @@ lazy val tests = project
     publish / skip := true,
     libraryDependencies ++= Seq(
       "org.typelevel"     %% "scalacheck-effect-munit" % "0.5.0",
-      "org.typelevel"     %% "munit-cats-effect-2"     % "0.9.0",
+      "org.typelevel"     %% "munit-cats-effect-2"     % "0.11.0",
       "org.typelevel"     %% "cats-free"               % "2.3.0-M2",
     ) ++ Seq(
       "io.chrisdavenport" %% "cats-time"               % "0.3.4",
