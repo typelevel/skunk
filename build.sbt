@@ -1,12 +1,13 @@
 
 
 // Our Scala versions.
-lazy val `scala-3.0`  = "3.0.0-M1"
-lazy val `scala-2.12` = "2.12.12"
-lazy val `scala-2.13` = "2.13.3"
+lazy val `scala-2.12`     = "2.12.12"
+lazy val `scala-2.13`     = "2.13.3"
+lazy val `scala-3.0-prev` = "3.0.0-M1"
+lazy val `scala-3.0-curr` = "3.0.0-M2"
 
 // This is used in a couple places
-lazy val fs2Version = "2.5.0-M1"
+lazy val fs2Version = "2.5.0-M2"
 
 // Global Settings
 lazy val commonSettings = Seq(
@@ -35,7 +36,7 @@ lazy val commonSettings = Seq(
 
   // Compilation
   scalaVersion       := `scala-2.13`,
-  crossScalaVersions := Seq(`scala-2.12`, `scala-2.13`, `scala-3.0`),
+  crossScalaVersions := Seq(`scala-2.12`, `scala-2.13`, `scala-3.0-prev`, `scala-3.0-curr`),
   scalacOptions -= "-language:experimental.macros", // doesn't work cross-version
   Compile / doc     / scalacOptions --= Seq("-Xfatal-warnings"),
   Compile / doc     / scalacOptions ++= Seq(
@@ -44,7 +45,7 @@ lazy val commonSettings = Seq(
     "-doc-source-url", "https://github.com/tpolecat/skunk/blob/v" + version.value + "€{FILE_PATH}.scala",
   ),
   libraryDependencies ++= Seq(
-    compilerPlugin("org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full),
+    compilerPlugin("org.typelevel" %% "kind-projector" % "0.11.1" cross CrossVersion.full),
   ).filterNot(_ => isDotty.value),
   scalacOptions ++= {
     if (isDotty.value) Seq(
@@ -119,13 +120,13 @@ lazy val core = project
     description := "Tagless, non-blocking data access library for Postgres.",
     resolvers   +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     libraryDependencies ++= Seq(
-      "org.typelevel"    %% "cats-core"    % "2.3.0-M2",
-      "org.typelevel"    %% "cats-effect"  % "2.3.0-M1",
+      "org.typelevel"    %% "cats-core"    % "2.3.0",
+      "org.typelevel"    %% "cats-effect"  % "2.3.0",
       "co.fs2"           %% "fs2-core"     % fs2Version,
       "co.fs2"           %% "fs2-io"       % fs2Version,
-      "org.scodec"       %% "scodec-core"  % (if (isDotty.value) "2.0.0-M1" else "1.11.7"),
-      "org.scodec"       %% "scodec-cats"  % "1.1.0-M2",
-      "org.tpolecat"     %% "natchez-core" % "0.0.14-M2",
+      "org.scodec"       %% "scodec-core"  % (if (isDotty.value) "2.0.0-M2" else "1.11.7"),
+      "org.scodec"       %% "scodec-cats"  % "1.1.0-M3",
+      "org.tpolecat"     %% "natchez-core" % "0.0.14",
       "com.ongres.scram"  % "client"       % "2.1",
     ) ++ Seq(
       "com.beachape"  %% "enumeratum"   % "1.6.1",
@@ -164,9 +165,9 @@ lazy val tests = project
   .settings(
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "org.typelevel"     %% "scalacheck-effect-munit" % "0.5.0",
-      "org.typelevel"     %% "munit-cats-effect-2"     % "0.9.0",
-      "org.typelevel"     %% "cats-free"               % "2.3.0-M2",
+      "org.typelevel"     %% "scalacheck-effect-munit" % "0.6.0",
+      "org.typelevel"     %% "munit-cats-effect-2"     % "0.11.0",
+      "org.typelevel"     %% "cats-free"               % "2.3.0",
     ) ++ Seq(
       "io.chrisdavenport" %% "cats-time"               % "0.3.4",
     ).filterNot(_ => isDotty.value),
@@ -181,8 +182,8 @@ lazy val example = project
   .settings(
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.14-M2",
-      "org.tpolecat"  %% "natchez-jaeger"      % "0.0.14-M2",
+      "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.14",
+      "org.tpolecat"  %% "natchez-jaeger"      % "0.0.14",
     ) ++ Seq(
       "org.http4s"    %% "http4s-dsl"          % "0.21.13",
       "org.http4s"    %% "http4s-blaze-server" % "0.21.13",
