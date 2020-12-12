@@ -282,7 +282,8 @@ Running this program yields the following.
 
 ```scala mdoc:passthrough
 println("```")
-CommandExample.main(Array.empty)
+import cats.effect.unsafe.implicits.global
+CommandExample.run(Nil).unsafeRunSync()
 println("```")
 ```
 

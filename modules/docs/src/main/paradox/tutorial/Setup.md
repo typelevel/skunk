@@ -66,7 +66,8 @@ When we run the program we see the current date.
 
 ```scala mdoc:passthrough
 println("```")
-Hello.main(Array.empty)
+import cats.effect.unsafe.implicits.global
+Hello.run(Nil).unsafeRunSync()
 println("```")
 ```
 

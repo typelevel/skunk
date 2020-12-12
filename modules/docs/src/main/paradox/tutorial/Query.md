@@ -315,7 +315,8 @@ Running this program yields the following.
 
 ```scala mdoc:passthrough
 println("```")
-QueryExample.main(Array.empty)
+import cats.effect.unsafe.implicits.global
+QueryExample.run(Nil).unsafeRunSync()
 println("```")
 ```
 
@@ -405,7 +406,8 @@ Running this program yields the same output as above.
 
 ```scala mdoc:passthrough
 println("```")
-QueryExample2.main(Array.empty)
+import cats.effect.unsafe.implicits.global
+QueryExample2.run(Nil).unsafeRunSync()
 println("```")
 ```
 
