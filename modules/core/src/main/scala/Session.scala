@@ -241,7 +241,7 @@ object Session {
    * @param strategy
    * @group Constructors
    */
-  def pooled[F[_]: Async: Trace: Network: Console](
+  def pooled[F[_]: Concurrent: Trace: Network: Console](
     host:         String,
     port:         Int            = 5432,
     user:         String,
@@ -263,7 +263,7 @@ object Session {
     for {
       sockGrp <- SocketGroup[F]()
       sslOp   <- Resource.liftF(ssl.toSSLNegotiationOptions(if (debug) logger.some else none))
-      pool    <- Pool.of(session(sockGrp, sslOp), max)(Recyclers.full(Sync[F]))
+      pool    <- Pool.of(session(sockGrp, sslOp), max)(Recyclers.full)
     } yield pool
 
   }
@@ -274,7 +274,7 @@ object Session {
    * single-session pool. This method is shorthand for `Session.pooled(..., max = 1, ...).flatten`.
    * @see pooled
    */
-  def single[F[_]: Async: Trace: Network: Console](
+  def single[F[_]: Concurrent: Trace: Network: Console](
     host:         String,
     port:         Int            = 5432,
     user:         String,
