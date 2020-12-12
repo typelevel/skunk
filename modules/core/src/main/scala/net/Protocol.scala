@@ -5,7 +5,8 @@
 package skunk.net
 
 import cats.syntax.all._
-import cats.effect.{ Concurrent, ContextShift, Resource }
+import cats.effect.{ Concurrent, Resource }
+import cats.effect.std.Console
 import fs2.concurrent.Signal
 import fs2.Stream
 import skunk.{ Command, Query, Statement, ~, Void }
@@ -15,6 +16,7 @@ import scala.concurrent.duration.FiniteDuration
 import skunk.util.Typer
 import natchez.Trace
 import fs2.io.tcp.SocketGroup
+import fs2.io.Network
 import skunk.net.protocol.Exchange
 
 /**
@@ -183,7 +185,7 @@ object Protocol {
    * @param host  Postgres server host
    * @param port  Postgres port, default 5432
    */
-  def apply[F[_]: Concurrent: ContextShift: Trace](
+  def apply[F[_]: Concurrent: Trace: Network: Console](
     host:         String,
     port:         Int,
     debug:        Boolean,
@@ -198,7 +200,7 @@ object Protocol {
       p   <- Resource.liftF(fromMessageSocket(bms, nam))
     } yield p
 
-  def fromMessageSocket[F[_]: Concurrent: ContextShift: Trace](
+  def fromMessageSocket[F[_]: Concurrent: Trace](
     bms: BufferedMessageSocket[F],
     nam: Namer[F]
   ): F[Protocol[F]] =

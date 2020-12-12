@@ -8,10 +8,11 @@ import cats.effect._
 import cats.syntax.all._
 import skunk._, skunk.implicits._, skunk.codec.all.int4
 import natchez.Trace.Implicits.noop
+import cats.effect.std.Console
 
 object Transaction extends IOApp {
 
-  def session[F[_]: Concurrent: ContextShift]: Resource[F, Session[F]] =
+  def session[F[_]: Async: Console]: Resource[F, Session[F]] =
     Session.single(
       host     = "localhost",
       port     = 5432,
@@ -20,7 +21,7 @@ object Transaction extends IOApp {
       password = Some("banana"),
     )
 
-  def runS[F[_]: Concurrent: ContextShift]: F[Int] =
+  def runS[F[_]: Async: Console]: F[Int] =
     session[F].use { s =>
       s.transaction.use { t =>
         for {

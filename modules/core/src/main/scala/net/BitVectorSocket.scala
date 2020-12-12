@@ -13,6 +13,7 @@ import scala.concurrent.duration.FiniteDuration
 import scodec.bits.BitVector
 import java.net.InetSocketAddress
 import fs2.io.tcp.SocketGroup
+import fs2.io.Network
 
 /** A higher-level `Socket` interface defined in terms of `BitVector`. */
 trait BitVectorSocket[F[_]] {
@@ -71,14 +72,14 @@ object BitVectorSocket {
    * @param writeTimeout a write timeout, typically no more than a few seconds.
    * @group Constructors
    */
-  def apply[F[_]: Concurrent: ContextShift](
+  def apply[F[_]: Network](
     host:         String,
     port:         Int,
     readTimeout:  FiniteDuration,
     writeTimeout: FiniteDuration,
     sg:           SocketGroup,
     sslOptions:   Option[SSLNegotiation.Options[F]],
-  ): Resource[F, BitVectorSocket[F]] =
+  )(implicit ev: MonadError[F, Throwable]): Resource[F, BitVectorSocket[F]] =
     for {
       sock  <- sg.client[F](new InetSocketAddress(host, port))
       sockʹ <- sslOptions.fold(sock.pure[Resource[F, *]])(SSLNegotiation.negotiateSSL(sock, readTimeout, writeTimeout, _))

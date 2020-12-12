@@ -6,8 +6,8 @@ package skunk
 
 import cats._
 import cats.effect.Resource
-import cats.effect.ExitCase
-import cats.effect.ExitCase._
+import cats.effect.Resource.ExitCase
+import cats.effect.Resource.ExitCase._
 import cats.syntax.all._
 import skunk.implicits._
 import skunk.data.Completion
@@ -184,7 +184,7 @@ object Transaction {
         }
       }
 
-    val release: (Transaction[F], ExitCase[Throwable]) => F[Unit] = (_, ec) =>
+    val release: (Transaction[F], ExitCase) => F[Unit] = (_, ec) =>
       s.transactionStatus.get.flatMap {
         case Idle              =>
           // This means the user committed manually, so there's nothing to do
@@ -192,20 +192,20 @@ object Transaction {
         case Failed =>
           ec match {
             // This is the normal failure case
-            case Error(t)  => doRollback *> t.raiseError[F, Unit]
+            case Errored(t)  => doRollback *> t.raiseError[F, Unit]
             // This is possible if you swallow an error
-            case Completed => doRollback.void
+            case Succeeded => doRollback.void
             // This is possible if you swallow an error and the someone cancels the fiber
             case Canceled  => doRollback.void
           }
         case Active =>
           ec match {
             // This is the normal success case
-            case Completed => doCommit.void
+            case Succeeded => doCommit.void
             // If someone cancels the fiber we roll back
             case Canceled  => doRollback.void
             // If an error escapes we roll back
-            case Error(t)  => doRollback *> t.raiseError[F, Unit]
+            case Errored(t)  => doRollback *> t.raiseError[F, Unit]
           }
       }
 

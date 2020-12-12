@@ -12,6 +12,7 @@ import cats.syntax.all._
 import fs2.io.tcp._
 import scala.concurrent.duration._
 import fs2.Chunk
+import fs2.io.Network
 
 object SSLNegotiation {
 
@@ -31,7 +32,7 @@ object SSLNegotiation {
    * Negotiate SSL with Postgres, given a brand new connected `Socket` and a `TLSContext`. If SSL is
    * unavailable, fall back to the unencrypted socket if `fallbackOk`, otherwise raise an exception.
    */
-  def negotiateSSL[F[_]: Sync: Concurrent: ContextShift](
+  def negotiateSSL[F[_]: Network](
     socket:       Socket[F],
     readTimeout:  FiniteDuration,
     writeTimeout: FiniteDuration,

@@ -231,7 +231,9 @@ object PetService {
       .gmap[Pet]
 
   // construct a PetService
-  def fromSession[F[_]: Bracket[*[_], Throwable]](s: Session[F]): PetService[F] =
+  def fromSession[F[_]](s: Session[F])(
+    implicit ev: MonadCancel[F, Throwable]
+  ): PetService[F] =
     new PetService[F] {
       def insert(pet: Pet): F[Unit] = s.prepare(insertOne).use(_.execute(pet)).void
       def insert(ps: List[Pet]): F[Unit] = s.prepare(insertMany(ps)).use(_.execute(ps)).void

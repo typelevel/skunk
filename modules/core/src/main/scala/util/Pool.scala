@@ -5,8 +5,8 @@
 package skunk.util
 
 import cats.effect.Concurrent
-import cats.effect.concurrent.Deferred
-import cats.effect.concurrent.Ref
+import cats.effect.Deferred
+import cats.effect.Ref
 import cats.effect.implicits._
 import cats.effect.Resource
 import cats.syntax.all._
@@ -115,7 +115,7 @@ object Pool {
       def recycle(a: Alloc): F[Unit] =
         Trace[F].span("recycle") {
           ref.modify {
-            case (os, d :: ds) => ((os, ds), d.complete(a.asRight))  // hand it back out
+            case (os, d :: ds) => ((os, ds), d.complete(a.asRight).void)  // hand it back out
             case (os, Nil)     => ((Some(a) :: os, Nil), ().pure[F]) // return to pool
           } .flatten
         }
@@ -128,7 +128,7 @@ object Pool {
         Trace[F].span("dispose") {
           ref.modify {
             case (os, Nil) =>  ((os :+ None, Nil), ().pure[F]) // new empty slot
-            case (os, d :: ds) =>  ((os, ds), Concurrent[F].attempt(rsrc.allocated).flatMap(d.complete)) // alloc now!
+            case (os, d :: ds) =>  ((os, ds), Concurrent[F].attempt(rsrc.allocated).flatMap(d.complete).void) // alloc now!
           } .guarantee(a._2).flatten
         }
 

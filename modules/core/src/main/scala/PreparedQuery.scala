@@ -58,7 +58,7 @@ trait PreparedQuery[F[_], A, B] {
 object PreparedQuery {
 
   def fromProto[F[_], A, B](proto: Protocol.PreparedQuery[F, A, B])(
-    implicit ev: Bracket[F, Throwable]
+    implicit ev: MonadCancel[F, Throwable]
   ): PreparedQuery[F, A, B] =
     new PreparedQuery[F, A, B] {
 

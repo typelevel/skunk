@@ -18,7 +18,7 @@ import skunk.net.message.FrontendMessage
 import skunk.util.Origin
 import fs2.concurrent.Signal
 import skunk.data.TransactionStatus
-import cats.effect.concurrent.Deferred
+import cats.effect.Deferred
 import skunk.data.Notification
 import skunk.net.message.BackendKeyData
 import skunk.net.MessageSocket

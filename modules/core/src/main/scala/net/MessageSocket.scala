@@ -5,14 +5,17 @@
 package skunk.net
 
 import cats.effect._
+import cats.effect.std.Console
 import cats.syntax.all._
 import fs2.concurrent.InspectableQueue
+import scala.io.AnsiColor
 import scodec.codecs._
 import scodec.interop.cats._
 import skunk.net.message.{ Sync => _, _ }
 import skunk.util.Origin
 import scala.concurrent.duration.FiniteDuration
 import fs2.io.tcp.SocketGroup
+import fs2.io.Network
 
 /** A higher-level `BitVectorSocket` that speaks in terms of `Message`. */
 trait MessageSocket[F[_]] {
@@ -36,7 +39,7 @@ trait MessageSocket[F[_]] {
 
 object MessageSocket {
 
-  def fromBitVectorSocket[F[_]: Concurrent](
+  def fromBitVectorSocket[F[_]: Concurrent: Console](
     bvs: BitVectorSocket[F],
     debug: Boolean
   ): F[MessageSocket[F]] =
@@ -60,12 +63,12 @@ object MessageSocket {
           for {
             msg <- receiveImpl
             _   <- cb.enqueue1(Right(msg))
-            _   <- Sync[F].delay(println(s" ← ${Console.GREEN}$msg${Console.RESET}")).whenA(debug)
+            _   <- Console[F].println(s" ← ${AnsiColor.GREEN}$msg${AnsiColor.RESET}").whenA(debug)
           } yield msg
 
         override def send(message: FrontendMessage): F[Unit] =
           for {
-            _ <- Sync[F].delay(println(s" → ${Console.YELLOW}$message${Console.RESET}")).whenA(debug)
+            _ <- Console[F].println(s" → ${AnsiColor.YELLOW}$message${AnsiColor.RESET}").whenA(debug)
             _ <- bvs.write(message.encode)
             _ <- cb.enqueue1(Left(message))
           } yield ()
@@ -76,7 +79,7 @@ object MessageSocket {
       }
     }
 
-  def apply[F[_]: Concurrent: ContextShift](
+  def apply[F[_]: Concurrent: Network: Console](
     host:         String,
     port:         Int,
     debug:        Boolean,

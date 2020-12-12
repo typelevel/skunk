@@ -6,10 +6,11 @@ package skunk.net
 
 import cats._
 import cats.effect.{ Sync => _, _ }
-import cats.effect.concurrent._
 import cats.effect.implicits._
+import cats.effect.std.Console
 import cats.syntax.all._
 import fs2.concurrent._
+import fs2.io.Network
 import fs2.Stream
 import skunk.data._
 import skunk.net.message._
@@ -75,7 +76,7 @@ trait BufferedMessageSocket[F[_]] extends MessageSocket[F] {
 
 object BufferedMessageSocket {
 
-  def apply[F[_]: Concurrent: ContextShift](
+  def apply[F[_]: Concurrent: Network: Console](
     host:         String,
     port:         Int,
     queueSize:    Int,
@@ -112,10 +113,10 @@ object BufferedMessageSocket {
       case m @ ReadyForQuery(s)        => Stream.eval(xaSig.set(s).as(m)) // observe and then emit
 
       // These are handled here and are never seen by the higher-level API.
-      case     ParameterStatus(k, v)   => Stream.eval_(paSig.update(_ + (k -> v)))
-      case     NotificationResponse(n) => Stream.eval_(noTop.publish1(n))
+      case     ParameterStatus(k, v)   => Stream.exec(paSig.update(_ + (k -> v)))
+      case     NotificationResponse(n) => Stream.exec(noTop.publish1(n))
       case     NoticeResponse(_)       => Stream.empty // TODO -- we're throwing these away!
-      case m @ BackendKeyData(_, _)    => Stream.eval_(bkDef.complete(m))
+      case m @ BackendKeyData(_, _)    => Stream.exec(bkDef.complete(m).void)
 
       // Everything else is passed through.
       case m                           => Stream.emit(m)
