@@ -8,7 +8,7 @@ lazy val `scala-3.0-curr` = "3.0.0-M2"
 
 // This is used in a couple places
 lazy val fs2Version = "3.0-26-d3b6089"
-
+lazy val natchezVersion = "0.1.0-M1"
 // Global Settings
 lazy val commonSettings = Seq(
 
@@ -126,7 +126,7 @@ lazy val core = project
       "co.fs2"           %% "fs2-io"       % fs2Version,
       "org.scodec"       %% "scodec-core"  % (if (isDotty.value) "2.0.0-M2" else "1.11.7"),
       "org.scodec"       %% "scodec-cats"  % "1.1.0-M3",
-      "org.tpolecat"     %% "natchez-core" % "0.0.14",
+      "org.tpolecat"     %% "natchez-core" % natchezVersion,
       "com.ongres.scram"  % "client"       % "2.1",
     ) ++ Seq(
       "com.beachape"  %% "enumeratum"   % "1.6.1",
@@ -182,8 +182,8 @@ lazy val example = project
   .settings(
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.14",
-      "org.tpolecat"  %% "natchez-jaeger"      % "0.0.14",
+      "org.tpolecat"  %% "natchez-honeycomb"   % natchezVersion,
+      "org.tpolecat"  %% "natchez-jaeger"      % natchezVersion,
     ) ++ Seq(
       "org.http4s"    %% "http4s-dsl"          % "0.21.13",
       "org.http4s"    %% "http4s-blaze-server" % "0.21.13",
@@ -223,6 +223,6 @@ lazy val docs = project
     makeSite := makeSite.dependsOn(mdoc.toTask("")).value,
     mdocExtraArguments := Seq("--no-link-hygiene"), // paradox handles this
     libraryDependencies ++= Seq(
-      "org.tpolecat"  %% "natchez-jaeger" % "0.0.14-M2",
+      "org.tpolecat"  %% "natchez-jaeger" % natchezVersion,
     )
 )
