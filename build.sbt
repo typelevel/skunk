@@ -9,6 +9,15 @@ lazy val `scala-3.0-curr` = "3.0.0-M2"
 // This is used in a couple places
 lazy val fs2Version = "3.0-26-d3b6089"
 lazy val natchezVersion = "0.1.0-M1"
+
+
+// We do `evictionCheck` in CI
+inThisBuild(Seq(
+  evictionRules ++= Seq(
+    "org.typelevel" % "cats-*" % "semver-spec",
+  )
+))
+
 // Global Settings
 lazy val commonSettings = Seq(
 
@@ -184,11 +193,11 @@ lazy val example = project
     libraryDependencies ++= Seq(
       "org.tpolecat"  %% "natchez-honeycomb"   % natchezVersion,
       "org.tpolecat"  %% "natchez-jaeger"      % natchezVersion,
-    ) ++ Seq(
-      "org.http4s"    %% "http4s-dsl"          % "0.21.13",
-      "org.http4s"    %% "http4s-blaze-server" % "0.21.13",
-      "org.http4s"    %% "http4s-circe"        % "0.21.13",
-      "io.circe"      %% "circe-generic"       % "0.13.0",
+    // ) ++ Seq(
+    //   "org.http4s"    %% "http4s-dsl"          % "0.21.13",
+    //   "org.http4s"    %% "http4s-blaze-server" % "0.21.13",
+    //   "org.http4s"    %% "http4s-circe"        % "0.21.13",
+    //   "io.circe"      %% "circe-generic"       % "0.13.0",
     ).filterNot(_ => isDotty.value)
   )
 
