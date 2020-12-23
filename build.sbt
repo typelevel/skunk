@@ -126,7 +126,7 @@ lazy val core = project
       "co.fs2"           %% "fs2-io"       % fs2Version,
       "org.scodec"       %% "scodec-core"  % (if (isDotty.value) "2.0.0-M2" else "1.11.7"),
       "org.scodec"       %% "scodec-cats"  % "1.1.0-M3",
-      "org.tpolecat"     %% "natchez-core" % "0.0.14",
+      "org.tpolecat"     %% "natchez-core" % "0.0.15",
       "com.ongres.scram"  % "client"       % "2.1",
     ) ++ Seq(
       "com.beachape"  %% "enumeratum"   % "1.6.1",
@@ -182,8 +182,8 @@ lazy val example = project
   .settings(
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.14",
-      "org.tpolecat"  %% "natchez-jaeger"      % "0.0.14",
+      "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.15",
+      "org.tpolecat"  %% "natchez-jaeger"      % "0.0.15",
     ) ++ Seq(
       "org.http4s"    %% "http4s-dsl"          % "0.21.14",
       "org.http4s"    %% "http4s-blaze-server" % "0.21.14",
