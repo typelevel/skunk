@@ -77,4 +77,11 @@ class DecoderTest extends SkunkTest {
     }
   }
 
+  test("pure (ok)") {
+    Applicative[Decoder].pure(42).decode(0, List(Some("a"), Some("b"))) match {
+      case Left(err) => fail(err.message)
+      case Right(v) => assertEqual("pure", v, 42)
+    }
+  }
+
 }
