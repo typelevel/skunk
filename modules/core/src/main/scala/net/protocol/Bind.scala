@@ -39,7 +39,7 @@ object Bind {
         Resource.make {
           exchange("bind") {
             for {
-              pn <- nextName("portal").map(PortalId)
+              pn <- nextName("portal").map(PortalId(_))
               _  <- Trace[F].put(
                       "arguments" -> args.toString,
                       "portal-id" -> pn.value
