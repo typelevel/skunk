@@ -47,7 +47,6 @@ lazy val commonSettings = Seq(
   scalaVersion       := `scala-2.13`,
   crossScalaVersions := Seq(`scala-2.12`, `scala-2.13`, `scala-3.0-prev`, `scala-3.0-curr`),
   scalacOptions -= "-language:experimental.macros", // doesn't work cross-version
-  scalacOptions -= "-Xfatal-warnings",
   Compile / doc     / scalacOptions --= Seq("-Xfatal-warnings"),
   Compile / doc     / scalacOptions ++= Seq(
     "-groups",

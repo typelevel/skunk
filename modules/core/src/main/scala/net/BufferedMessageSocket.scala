@@ -7,7 +7,7 @@ package skunk.net
 import cats._
 import cats.effect.{ Sync => _, _ }
 import cats.effect.implicits._
-import cats.effect.std.Console
+import cats.effect.std.{ Console, Queue }
 import cats.syntax.all._
 import fs2.concurrent._
 import fs2.io.Network
@@ -135,14 +135,14 @@ object BufferedMessageSocket {
       paSig <- SignallingRef[F, Map[String, String]](Map.empty)
       bkSig <- Deferred[F, BackendKeyData]
       noTop <- Topic[F, Notification[String]](Notification(-1, Identifier.dummy, "")) // blech
-      fib   <- next(ms, xaSig, paSig, bkSig, noTop).repeat.through(queue.enqueue).compile.drain.attempt.flatMap {
-        case Left(e)  => queue.enqueue1(NetworkError(e)) // publish the failure
+      fib   <- next(ms, xaSig, paSig, bkSig, noTop).repeat.evalMap(queue.offer).compile.drain.attempt.flatMap {
+        case Left(e)  => queue.offer(NetworkError(e)) // publish the failure
         case Right(a) => a.pure[F]
       } .start
     } yield
       new AbstractMessageSocket[F] with BufferedMessageSocket[F] {
 
-        override def receive: F[BackendMessage] = queue.dequeue1
+        override def receive: F[BackendMessage] = queue.take
         override def send(message: FrontendMessage): F[Unit] = ms.send(message)
         override def transactionStatus: SignallingRef[F, TransactionStatus] = xaSig
         override def parameters: SignallingRef[F, Map[String, String]] = paSig
