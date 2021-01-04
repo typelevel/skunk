@@ -262,7 +262,7 @@ object Session {
 
     for {
       sockGrp <- SocketGroup[F]()
-      sslOp   <- Resource.liftF(ssl.toSSLNegotiationOptions(if (debug) logger.some else none))
+      sslOp   <- Resource.eval(ssl.toSSLNegotiationOptions(if (debug) logger.some else none))
       pool    <- Pool.of(session(sockGrp, sslOp), max)(Recyclers.full)
     } yield pool
 
@@ -314,10 +314,10 @@ object Session {
     sslOptions:   Option[SSLNegotiation.Options[F]],
   ): Resource[F, Session[F]] =
     for {
-      namer <- Resource.liftF(Namer[F])
+      namer <- Resource.eval(Namer[F])
       proto <- Protocol[F](host, port, debug, namer, readTimeout, writeTimeout, socketGroup, sslOptions)
-      _     <- Resource.liftF(proto.startup(user, database, password))
-      sess  <- Resource.liftF(fromProtocol(proto, namer, strategy))
+      _     <- Resource.eval(proto.startup(user, database, password))
+      sess  <- Resource.eval(fromProtocol(proto, namer, strategy))
     } yield sess
 
   /**
@@ -409,7 +409,9 @@ object Session {
      * Transform this `Session` by a given `FunctionK`.
      * @group Transformations
      */
-    def mapK[G[_]: Applicative: Defer](fk: F ~> G): Session[G] =
+    def mapK[G[_]: MonadCancelThrow: Defer](fk: F ~> G)(
+      implicit mcf: MonadCancel[F, _]
+    ): Session[G] =
       new Session[G] {
 
         override val typer: Typer = outer.typer

@@ -32,7 +32,7 @@ object Parse {
         statement.encoder.oids(ty) match {
 
           case Right(os) if os.length > Short.MaxValue =>
-            Resource.liftF(TooManyParametersException(statement).raiseError[F, StatementId])
+            Resource.eval(TooManyParametersException(statement).raiseError[F, StatementId])
 
           case Right(os) =>
             Resource.make {
@@ -55,7 +55,7 @@ object Parse {
             } { Close[F].apply }
 
           case Left(err) =>
-            Resource.liftF(UnknownTypeException(statement, err, ty.strategy).raiseError[F, StatementId])
+            Resource.eval(UnknownTypeException(statement, err, ty.strategy).raiseError[F, StatementId])
 
         }
 

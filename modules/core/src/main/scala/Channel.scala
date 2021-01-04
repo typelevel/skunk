@@ -7,12 +7,12 @@ package skunk
 import cats.{ Contravariant, Functor, ~> }
 import cats.arrow.Profunctor
 import cats.effect.Resource
+import cats.effect.kernel.MonadCancelThrow
 import cats.syntax.all._
 import fs2.{ Pipe, Stream }
 import skunk.data.{ Identifier, Notification }
 import skunk.net.Protocol
 import skunk.util.Origin
-import cats.Applicative
 
 /**
  * A '''channel''' that can be used for inter-process communication, implemented in terms of
@@ -97,7 +97,7 @@ object Channel {
    * normally a `Channel` is obtained from a `Session`).
    * @group Constructors
    */
-  def fromNameAndProtocol[F[_]: Applicative](name: Identifier, proto: Protocol[F]): Channel[F, String, String] =
+  def fromNameAndProtocol[F[_]: MonadCancelThrow](name: Identifier, proto: Protocol[F]): Channel[F, String, String] =
     new Channel[F, String, String] {
 
     val listen: F[Unit] =

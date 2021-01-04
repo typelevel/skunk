@@ -90,7 +90,7 @@ object MessageSocket {
   ): Resource[F, MessageSocket[F]] =
     for {
       bvs <- BitVectorSocket(host, port, readTimeout, writeTimeout, sg, sslOptions)
-      ms  <- Resource.liftF(fromBitVectorSocket(bvs, debug))
+      ms  <- Resource.eval(fromBitVectorSocket(bvs, debug))
     } yield ms
 
 

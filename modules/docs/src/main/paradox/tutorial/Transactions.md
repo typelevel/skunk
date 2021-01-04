@@ -142,11 +142,11 @@ object PetService {
           s.transaction.use { xa =>
             pets.traverse_ { p =>
               for {
-                _  <- IO(println(s"Trying to insert $p"))
+                _  <- IO.println(s"Trying to insert $p")
                 sp <- xa.savepoint
                 _  <- pc.execute(p).recoverWith {
                         case SqlState.UniqueViolation(ex) =>
-                         IO(println(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...")) *>
+                         IO.println(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...") *>
                           xa.rollback(sp)
                       }
               } yield ()
@@ -183,7 +183,7 @@ object TransactionExample extends IOApp {
       ss.transactionStatus
         .discrete
         .changes
-        .evalMap(s => IO(println(s"xa status: $s")))
+        .evalMap(s => IO.println(s"xa status: $s"))
         .compile
         .drain
         .start
@@ -213,7 +213,7 @@ object TransactionExample extends IOApp {
       for {
         _   <- ps.tryInsertAll(pets)
         all <- ps.selectAll
-        _   <- all.traverse_(p => IO(println(p)))
+        _   <- all.traverse_(p => IO.println(p))
       } yield ExitCode.Success
     }
 
@@ -224,8 +224,8 @@ Running this program yields the following.
 
 ```scala mdoc:passthrough
 println("```")
-import cats.effect.unsafe.implicits.global
-TransactionExample.run(Nil).unsafeRunSync()
+import skunk.mdoc._
+TransactionExample.run(Nil).unsafeRunSyncWithRedirect()
 println("```")
 ```
 

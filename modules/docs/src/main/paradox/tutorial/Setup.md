@@ -48,7 +48,7 @@ object Hello extends IOApp {
     session.use { s =>                                       // (3)
       for {
         d <- s.unique(sql"select current_date".query(date))  // (4)
-        _ <- IO(println(s"The current date is $d."))
+        _ <- IO.println(s"The current date is $d.")
       } yield ExitCode.Success
     }
 
@@ -66,8 +66,8 @@ When we run the program we see the current date.
 
 ```scala mdoc:passthrough
 println("```")
-import cats.effect.unsafe.implicits.global
-Hello.run(Nil).unsafeRunSync()
+import skunk.mdoc._
+Hello.run(Nil).unsafeRunSyncWithRedirect()
 println("```")
 ```
 

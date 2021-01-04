@@ -271,7 +271,7 @@ object CommandExample extends IOApp {
         _  <- s.insert(Pet("Bob", 12))
         _  <- s.insert(beagles)
         ps <- s.selectAll
-        _  <- ps.traverse(p => IO(println(p)))
+        _  <- ps.traverse(p => IO.println(p))
       } yield ExitCode.Success
     }
 
@@ -282,8 +282,8 @@ Running this program yields the following.
 
 ```scala mdoc:passthrough
 println("```")
-import cats.effect.unsafe.implicits.global
-CommandExample.run(Nil).unsafeRunSync()
+import skunk.mdoc._
+CommandExample.run(Nil).unsafeRunSyncWithRedirect()
 println("```")
 ```
 

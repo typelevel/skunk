@@ -7,7 +7,7 @@ lazy val `scala-3.0-prev` = "3.0.0-M1"
 lazy val `scala-3.0-curr` = "3.0.0-M2"
 
 // This is used in a couple places
-lazy val fs2Version = "3.0-26-d3b6089"
+lazy val fs2Version = "3.0.0-M7"
 lazy val natchezVersion = "0.1.0-M1"
 
 
@@ -47,6 +47,7 @@ lazy val commonSettings = Seq(
   scalaVersion       := `scala-2.13`,
   crossScalaVersions := Seq(`scala-2.12`, `scala-2.13`, `scala-3.0-prev`, `scala-3.0-curr`),
   scalacOptions -= "-language:experimental.macros", // doesn't work cross-version
+  scalacOptions -= "-Xfatal-warnings",
   Compile / doc     / scalacOptions --= Seq("-Xfatal-warnings"),
   Compile / doc     / scalacOptions ++= Seq(
     "-groups",
@@ -130,7 +131,7 @@ lazy val core = project
     resolvers   +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     libraryDependencies ++= Seq(
       "org.typelevel"    %% "cats-core"    % "2.3.0",
-      "org.typelevel"    %% "cats-effect"  % "3.0.0-M4",
+      "org.typelevel"    %% "cats-effect"  % "3.0.0-M5",
       "co.fs2"           %% "fs2-core"     % fs2Version,
       "co.fs2"           %% "fs2-io"       % fs2Version,
       "org.scodec"       %% "scodec-core"  % (if (isDotty.value) "2.0.0-M2" else "1.11.7"),
