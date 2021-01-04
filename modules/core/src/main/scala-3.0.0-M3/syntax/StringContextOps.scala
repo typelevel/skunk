@@ -54,7 +54,10 @@ object StringContextOps {
     import qc.reflect.report
 
     // Ok we want to construct an Origin here
-    val origin = Origin.originImpl(using qc)
+    val origin = '{
+      val sp = ${org.tpolecat.sourcepos.SourcePosPlatform.sourcePos_impl(using qc)}
+      Origin(sp.file, sp.line)
+    }
 
     // Our prefix looks like this, and the stringy parts of the interpolation will be a non-empty
     // list of string expressions. We just know this because of the way interpolator desugaring

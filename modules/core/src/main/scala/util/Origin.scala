@@ -4,8 +4,7 @@
 
 package skunk.util
 
-import scala.language.experimental.macros
-import scala.reflect.macros.blackbox
+import org.tpolecat.sourcepos.SourcePos
 
 final case class Origin(file: String, line: Int) {
 
@@ -21,17 +20,8 @@ object Origin {
 
   val unknown = Origin("«skunk internal»", 0)
 
-  implicit def instance: Origin =
-    macro OriginMacros.instance_impl
-
-  class OriginMacros(val c: blackbox.Context) {
-    import c.universe._
-    def instance_impl: Tree = {
-      val file = c.enclosingPosition.source.path
-      val line = c.enclosingPosition.line
-      q"_root_.skunk.util.Origin($file, $line)"
-    }
-  }
+  implicit def instance(implicit sp: SourcePos): Origin =
+    Origin(sp.file, sp.line)
 
 }
 

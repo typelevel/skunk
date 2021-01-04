@@ -90,23 +90,11 @@ lazy val skunk = project
   .enablePlugins(AutomateHeaderPlugin)
   .settings(commonSettings)
   .settings(publish / skip := true)
-  .dependsOn(macros, core, tests, circe, refined, example)
-  .aggregate(macros, core, tests, circe, refined, example)
-
-lazy val macros = project
-  .in(file("modules/macros"))
-  .enablePlugins(AutomateHeaderPlugin)
-  .settings(commonSettings)
-  .settings(
-    name := "skunk-macros",
-    libraryDependencies ++= Seq(
-      "org.scala-lang" % "scala-reflect" % scalaVersion.value
-    ).filterNot(_ => isDotty.value)
-  )
+  .dependsOn(core, tests, circe, refined, example)
+  .aggregate(core, tests, circe, refined, example)
 
 lazy val core = project
   .in(file("modules/core"))
-  .dependsOn(macros)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(commonSettings)
   .settings(
@@ -121,6 +109,7 @@ lazy val core = project
       "org.scodec"       %% "scodec-core"  % (if (scalaVersion.value == "3.0.0-M2") "2.0.0-M2" else if (scalaVersion.value == "3.0.0-M3") "2.0.0-M3" else "1.11.7"),
       "org.scodec"       %% "scodec-cats"  % (if (scalaVersion.value == "3.0.0-M2") "1.1.0-M3" else "1.1.0-M4"),
       "org.tpolecat"     %% "natchez-core" % "0.0.16",
+      "org.tpolecat"     %% "sourcepos"    % "0.1.0",
       "com.ongres.scram"  % "client"       % "2.1",
     ) ++ Seq(
       "com.beachape"  %% "enumeratum"   % "1.6.1",
