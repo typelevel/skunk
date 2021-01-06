@@ -86,11 +86,15 @@ object Decoder {
     implicit val EqError: Eq[Error] = Eq.fromUniversalEquals
   }
 
-  implicit val ApplyDecoder: Apply[Decoder] =
-    new Apply[Decoder] {
+  implicit val ApplicativeDecoder: Applicative[Decoder] =
+    new Applicative[Decoder] {
       override def map[A, B](fa: Decoder[A])(f: A => B): Decoder[B] = fa map f
       override def ap[A, B](fab: Decoder[A => B])(fa: Decoder[A]): Decoder[B] =
         map(fab.product(fa)) { case (fabb, a) => fabb(a) }
+      override def pure[A](x: A): Decoder[A] = new Decoder[A] {
+        def types: List[Type] = Nil
+        def decode(offset: Int, ss: List[Option[String]]): Either[Error, A] = Right(x)
+      }
     }
 
 }

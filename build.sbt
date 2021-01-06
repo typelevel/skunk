@@ -2,13 +2,13 @@
 
 // Our Scala versions.
 lazy val `scala-2.12`     = "2.12.12"
-lazy val `scala-2.13`     = "2.13.3"
-lazy val `scala-3.0-prev` = "3.0.0-M1"
-lazy val `scala-3.0-curr` = "3.0.0-M2"
+lazy val `scala-2.13`     = "2.13.4"
+lazy val `scala-3.0-prev` = "3.0.0-M2"
+lazy val `scala-3.0-curr` = "3.0.0-M3"
 
 // This is used in a couple places
 lazy val fs2Version = "3.0.0-M7"
-lazy val natchezVersion = "0.1.0-M1"
+lazy val natchezVersion = "0.1.0-M2"
 
 
 // We do `evictionCheck` in CI
@@ -56,12 +56,6 @@ lazy val commonSettings = Seq(
   libraryDependencies ++= Seq(
     compilerPlugin("org.typelevel" %% "kind-projector" % "0.11.2" cross CrossVersion.full),
   ).filterNot(_ => isDotty.value),
-  scalacOptions ++= {
-    if (isDotty.value) Seq(
-      "-Ykind-projector",
-      "-language:implicitConversions",
-    ) else Seq()
-  },
 
   // Coverage Exclusions
   coverageExcludedPackages := "ffstest.*;tests.*;example.*;natchez.http4s.*",
@@ -105,23 +99,11 @@ lazy val skunk = project
   .enablePlugins(AutomateHeaderPlugin)
   .settings(commonSettings)
   .settings(publish / skip := true)
-  .dependsOn(macros, core, tests, circe, refined, example)
-  .aggregate(macros, core, tests, circe, refined, example)
-
-lazy val macros = project
-  .in(file("modules/macros"))
-  .enablePlugins(AutomateHeaderPlugin)
-  .settings(commonSettings)
-  .settings(
-    name := "skunk-macros",
-    libraryDependencies ++= Seq(
-      "org.scala-lang" % "scala-reflect" % scalaVersion.value
-    ).filterNot(_ => isDotty.value)
-  )
+  .dependsOn(core, tests, circe, refined, example)
+  .aggregate(core, tests, circe, refined, example)
 
 lazy val core = project
   .in(file("modules/core"))
-  .dependsOn(macros)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(commonSettings)
   .settings(
@@ -129,14 +111,15 @@ lazy val core = project
     description := "Tagless, non-blocking data access library for Postgres.",
     resolvers   +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     libraryDependencies ++= Seq(
-      "org.typelevel"    %% "cats-core"    % "2.3.0",
+      "org.typelevel"    %% "cats-core"    % "2.3.1",
       "org.typelevel"    %% "cats-effect"  % "3.0.0-M5",
       "co.fs2"           %% "fs2-core"     % fs2Version,
       "co.fs2"           %% "fs2-io"       % fs2Version,
-      "org.scodec"       %% "scodec-core"  % (if (isDotty.value) "2.0.0-M2" else "1.11.7"),
-      "org.scodec"       %% "scodec-cats"  % "1.1.0-M3",
+      "org.scodec"       %% "scodec-core"  % (if (scalaVersion.value == `scala-3.0-prev`) "2.0.0-M2" else if (scalaVersion.value == `scala-3.0-curr`) "2.0.0-M3" else "1.11.7"),
+      "org.scodec"       %% "scodec-cats"  % (if (scalaVersion.value == `scala-3.0-prev`) "1.1.0-M3" else "1.1.0-M4"),
       "org.tpolecat"     %% "natchez-core" % natchezVersion,
       "com.ongres.scram"  % "client"       % "2.1",
+      "org.tpolecat"     %% "sourcepos"    % "0.1.0",
     ) ++ Seq(
       "com.beachape"  %% "enumeratum"   % "1.6.1",
     ).map(_.withDottyCompat(scalaVersion.value))
@@ -173,10 +156,11 @@ lazy val tests = project
   .settings(commonSettings)
   .settings(
     publish / skip := true,
+    scalacOptions  -= "-Xfatal-warnings",
     libraryDependencies ++= Seq(
-      // "org.typelevel"     %% "scalacheck-effect-munit" % "0.6.0",
-      "org.typelevel"     %% "munit-cats-effect-3"     % "0.11.0",
-      "org.typelevel"     %% "cats-free"               % "2.3.0",
+      "org.typelevel"     %% "scalacheck-effect-munit" % "0.7.0",
+      "org.typelevel"     %% "munit-cats-effect-3"     % "0.12.0",
+      "org.typelevel"     %% "cats-free"               % "2.3.1",
     ) ++ Seq(
       "io.chrisdavenport" %% "cats-time"               % "0.3.4",
     ).filterNot(_ => isDotty.value),
@@ -193,12 +177,13 @@ lazy val example = project
     libraryDependencies ++= Seq(
       "org.tpolecat"  %% "natchez-honeycomb"   % natchezVersion,
       "org.tpolecat"  %% "natchez-jaeger"      % natchezVersion,
+    )
     // ) ++ Seq(
     //   "org.http4s"    %% "http4s-dsl"          % "0.21.13",
     //   "org.http4s"    %% "http4s-blaze-server" % "0.21.13",
     //   "org.http4s"    %% "http4s-circe"        % "0.21.13",
     //   "io.circe"      %% "circe-generic"       % "0.13.0",
-    ).filterNot(_ => isDotty.value)
+    // ).filterNot(_ => isDotty.value)
   )
 
 lazy val docs = project

@@ -38,7 +38,7 @@ object Parse {
             Resource.make {
               exchange("parse") {
                 for {
-                  id <- nextName("statement").map(StatementId)
+                  id <- nextName("statement").map(StatementId(_))
                   _  <- Trace[F].put(
                           "statement-name"            -> id.value,
                           "statement-sql"             -> statement.sql,
