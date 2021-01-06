@@ -50,17 +50,21 @@ object StringContextOps {
 
   def yell(s: String) = println(s"${Console.RED}$s${Console.RESET}")
 
-  def sqlImpl(sc: Expr[StringContext], argsExpr: Expr[Seq[Any]])(using qc:QuoteContext): Expr[Any] = {
+  def sqlImpl(sc: Expr[StringContext], argsExpr: Expr[Seq[Any]])(using qc:Quotes): Expr[Any] = {
+    import qc.reflect.report
 
     // Ok we want to construct an Origin here
-    val origin = Origin.originImpl(using qc)
+    val origin = '{
+      val sp = ${org.tpolecat.sourcepos.SourcePosPlatform.sourcePos_impl(using qc)}
+      Origin(sp.file, sp.line)
+    }
 
     // Our prefix looks like this, and the stringy parts of the interpolation will be a non-empty
     // list of string expressions. We just know this because of the way interpolator desugaring
     // works. If it doesn't work something bad has happened.
     val strings: List[String] =
       sc match {
-        case '{ StringContext(${Varargs(Consts(parts))}: _*) } => parts.toList
+        case '{ StringContext(${Varargs(Exprs(parts))}: _*) } => parts.toList
         case _ =>
           report.error(s"StringContext arguments must be literals.")
           return '{???}
@@ -84,8 +88,8 @@ object StringContextOps {
           // Interpolations like "...#$foo ..." require `foo` to be a String.
           arg match {
             case '{ $s: String } => ('{Str(${Expr(str.dropRight(1))})} :: '{Str($s)} :: parts, es)
-            case '{ $a: $T }     =>
-              report.error(s"Found ${Type[T].show}, expected String.}", a)
+            case '{ $a: t }     =>
+              report.error(s"Found ${Type.show[t]}, expected String.}", a)
               return '{???} ///
           }
 
@@ -94,9 +98,9 @@ object StringContextOps {
           arg match {
 
             // The interpolated thing is an Encoder.
-            case '{ $e: Encoder[$T] } =>
+            case '{ $e: Encoder[t] } =>
               val newParts    = '{Str(${Expr(str)})} :: '{Par($e.sql)} :: parts
-              val newEncoders = '{ $e : Encoder[T] } :: es
+              val newEncoders = '{ $e : Encoder[t] } :: es
               (newParts, newEncoders)
 
             // The interpolated thing is a Fragment[Void]
@@ -105,13 +109,13 @@ object StringContextOps {
               (newParts, es)
 
             // The interpolated thing is a Fragment[A] for some A other than Void
-            case '{ $f: Fragment[$A] } =>
+            case '{ $f: Fragment[a] } =>
               val newParts    = '{Str(${Expr(str)})} :: '{Emb($f.parts)} :: parts
-              val newEncoders = '{ $f.encoder : Encoder[A] } :: es
+              val newEncoders = '{ $f.encoder : Encoder[a] } :: es
               (newParts, newEncoders)
 
-            case '{ $a: $T } =>
-              report.error(s"Found ${Type[T].show}, expected String, Encoder, or Fragment.", a)
+            case '{ $a: t } =>
+              report.error(s"Found ${Type.show[t]}, expected String, Encoder, or Fragment.", a)
               return '{???}
 
           }
@@ -123,18 +127,19 @@ object StringContextOps {
     val finalEnc: Expr[Any] =
       if (encoders.isEmpty) '{ Void.codec }
       else encoders.reduceLeft {
-        case ('{$a : Encoder[$A]}, '{ $b : Encoder[$B] }) => '{$a ~ $b}
+        case ('{$a : Encoder[a]}, '{ $b : Encoder[b] }) => '{$a ~ $b}
       }
 
     finalEnc match {
-      case '{ $e : Encoder[$T] } => '{ fragmentFromParts[T](${Expr.ofList(parts)}, $e, $origin) }
+      case '{ $e : Encoder[t] } => '{ fragmentFromParts[t](${Expr.ofList(parts)}, $e, $origin) }
     }
 
   }
 
-  def idImpl(sc: Expr[StringContext])(using qc:QuoteContext): Expr[Identifier] =
+  def idImpl(sc: Expr[StringContext])(using qc: Quotes): Expr[Identifier] =
+    import qc.reflect.report
     sc match {
-      case '{ StringContext(${Varargs(Consts(Seq(part)))}: _*) } =>
+      case '{ StringContext(${Varargs(Exprs(Seq(part)))}: _*) } =>
         Identifier.fromString(part) match {
           case Right(Identifier(s)) => '{ Identifier.fromString(${Expr(s)}).fold(sys.error, identity) }
           case Left(s) =>
