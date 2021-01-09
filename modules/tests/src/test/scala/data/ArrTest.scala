@@ -13,6 +13,7 @@ import org.scalacheck.Prop._
 import org.scalacheck.Cogen
 import munit.DisciplineSuite
 import cats.laws.discipline.TraverseTests
+import cats.kernel.laws.discipline.EqTests
 
 class ArrTest extends DisciplineSuite {
 
@@ -35,6 +36,7 @@ class ArrTest extends DisciplineSuite {
   implicit def cogArr[A: Cogen]: Cogen[Arr[A]] =
     Cogen[(List[A], List[Int])].contramap(arr => (arr.flattenTo(List), arr.dimensions))
 
+  checkAll("Arr.EqLaws", EqTests[Arr[Int]].eqv)
   checkAll("Arr.TraverseLaws", TraverseTests[Arr].traverse[Int, Int, Int, Set[Int], Option, Option])
 
   property("size == 0 <=> isEmpty") {
