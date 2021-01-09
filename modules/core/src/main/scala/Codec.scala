@@ -7,7 +7,7 @@ package skunk
 import cats._
 import cats.data._
 import cats.syntax.all._
-import skunk.data.Type
+import skunk.data.{Arr,Type}
 import skunk.util.Twiddler
 
 /**

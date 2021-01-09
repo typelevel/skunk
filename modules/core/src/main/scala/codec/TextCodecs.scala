@@ -6,7 +6,7 @@ package skunk
 package codec
 
 import cats.syntax.all._
-import skunk.data.Type
+import skunk.data.{Arr,Type}
 
 trait TextCodecs {
 

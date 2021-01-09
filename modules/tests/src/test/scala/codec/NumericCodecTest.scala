@@ -5,7 +5,7 @@
 package tests
 package codec
 import skunk.codec.all._
-import skunk.Arr
+import skunk.data.Arr
 
 /** Test that we can round=trip values via codecs. */
 class NumericCodecTest extends CodecTest {

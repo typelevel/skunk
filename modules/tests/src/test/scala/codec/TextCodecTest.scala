@@ -6,7 +6,7 @@ package tests
 package codec
 import skunk.codec.all._
 import skunk.implicits._
-import skunk.Arr
+import skunk.data.Arr
 
 class TextCodecTest extends CodecTest {
 

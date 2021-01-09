@@ -5,7 +5,7 @@
 package skunk
 package codec
 
-import skunk.data.Type
+import skunk.data.{Arr, Type}
 
 trait NumericCodecs {
 

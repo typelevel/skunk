@@ -2,11 +2,12 @@
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
-package skunk
+package skunk.data
 
 import cats._
 import cats.syntax.all._
 import scala.collection.mutable.ArrayBuffer
+import scala.collection.Factory
 
 /**
  * A Postgres array, which is either empty and zero-dimensional, or non-empty and rectangular (unlike
@@ -48,6 +49,17 @@ final class Arr[A] private (
   def size: Int =
     data.length
 
+  /** True if this `Arr` is empty. Invariant: `isEmpty == dimensions.isEmpty`. */
+  def isEmpty: Boolean =
+    data.isEmpty
+
+  /**
+   * Construct this `Arr`'s elements as a collection `C`, as if first reshaped to be
+   * single-dimensional.
+   */
+  def flattenTo[C](implicit fact: Factory[A, C]): C =
+    data.to(fact)
+
   /**
    * Size of this `Arr` by dimension. Invariant: if this `Arr` is non-empty then
    * `dimensions.product` equals `size`.
@@ -76,7 +88,6 @@ final class Arr[A] private (
       }
       Some(data(a))
     } else None
-
 
   /**
    * Encode this `Arr` into a Postgres array literal, using `f` to encode the values (which will
@@ -160,7 +171,7 @@ object Arr {
    */
   def fromFoldable[F[_]: Foldable, A](fa: F[A]): Arr[A] = {
     val data = fa.foldLeft(new ArrayBuffer[A]) { (a, b) => a.append(b); a }
-    new Arr(data, Array(data.length))
+    if (data.isEmpty) Arr.empty[A] else new Arr(data, Array(data.length))
   }
 
   /**
