@@ -72,6 +72,12 @@ class ArrTest extends DisciplineSuite {
     }
   }
 
+  property("can't reshape to nothing unless array is empty") {
+    forAll { (arr: Arr[Byte]) =>
+      assertEquals(arr.isEmpty, arr.reshape().isDefined)
+    }
+  }
+
   property("flattenTo consistent with reshape(length)") {
     forAll { (arr: Arr[Byte]) =>
       val flat     = arr.flattenTo(Array)
@@ -82,7 +88,7 @@ class ArrTest extends DisciplineSuite {
     }
   }
 
-  property("encode/parse round-trip") {
+  property("encode/parseWith round-trip") {
     forAll { (arr: Arr[Byte]) =>
       val encoded = arr.encode(_.toString)
       val decoded = Arr.parseWith(_.toByte.asRight)(encoded)
@@ -90,7 +96,15 @@ class ArrTest extends DisciplineSuite {
     }
   }
 
-  test("get") {
+  property("encode/parse round-trip (String)") {
+    forAll { (arr: Arr[String]) =>
+      val encoded = arr.encode(identity)
+      val decoded = Arr.parse(encoded)
+      assert(decoded === Right(arr))
+    }
+  }
+
+  test("get consistent with indexing") {
 
     // A Scala multi-dimensional array of size (3)(2)(1)
     val data: List[List[List[Int]]] =
@@ -114,6 +128,44 @@ class ArrTest extends DisciplineSuite {
     // Should all be true!
     assert(same.forall(identity))
 
+  }
+
+  property("get fails if wrong number of indices") {
+    forAll { (arr: Arr[Byte]) =>
+      assertEquals(arr.get(0,0).isDefined, arr.dimensions.length == 2)
+    }
+  }
+
+  test("parse failure: unterminated") {
+    assertEquals(Arr.parse("{1,2"), Left("unterminated array literal"))
+  }
+
+  test("parse failure: non-rectangular (slice too large)") {
+    assertEquals(Arr.parse("{{1},{2,3}}"), Left("parse error at index 7: expected 1 element(s) here; found more"))
+  }
+
+  test("parse failure: non-rectangular (slice too small)") {
+    assertEquals(Arr.parse("{{1,2},{3}}"), Left("parse error at index 9: expected 2 element here, only found 1"))
+  }
+
+  test("parse failure: non-rectangular (data above leaf level)") {
+    assertEquals(Arr.parse("{{1},2}"), Left("parse error at index 5: expected '{', found 2"))
+  }
+
+  test("parse failure: extra data") {
+    assertEquals(Arr.parse("{1}foo"), Left("parse error at index 3: expected end of string, found f"))
+  }
+
+  test("parse failure: expected datum") {
+    assertEquals(Arr.parse("{1,}"), Left("parse error at index 3: expected datum, found '}'"))
+  }
+
+  test("parse failure: malformed datum") {
+    assertEquals(Arr.parse("{abc,de{f,ghi}"), Left("parse error at index 7: illegal character in unquoted datum: '{'"))
+  }
+
+  test("parse failure: missing terminator") {
+    assertEquals(Arr.parse("{{abc}x"), Left("parse error at index 6: expected ',' or '}', found x"))
   }
 
 }
