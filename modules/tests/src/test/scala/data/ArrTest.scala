@@ -14,6 +14,7 @@ import org.scalacheck.Cogen
 import munit.DisciplineSuite
 import cats.laws.discipline.TraverseTests
 import cats.kernel.laws.discipline.EqTests
+import scala.collection.compat._
 
 class ArrTest extends DisciplineSuite {
 
@@ -89,7 +90,7 @@ class ArrTest extends DisciplineSuite {
     }
   }
 
-  property("get") {
+  test("get") {
 
     // A Scala multi-dimensional array of size (3)(2)(1)
     val data: List[List[List[Int]]] =

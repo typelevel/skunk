@@ -58,8 +58,9 @@ lazy val commonSettings = Seq(
   unmanagedSourceDirectories in Compile ++= {
     val sourceDir = (sourceDirectory in Compile).value
     CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((3, _))  => Seq(sourceDir / "scala-3")
-      case Some((2, _))  => Seq(sourceDir / "scala-2")
+      case Some((3, _))  => Seq(sourceDir / "scala-3", sourceDir / "scala-2.13+")
+      case Some((2, 12)) => Seq(sourceDir / "scala-2")
+      case Some((2, _))  => Seq(sourceDir / "scala-2", sourceDir / "scala-2.13+")
       case _             => Seq()
     }
   },
@@ -108,12 +109,14 @@ lazy val core = project
       "co.fs2"           %% "fs2-io"       % fs2Version,
       "org.scodec"       %% "scodec-core"  % (if (scalaVersion.value == "3.0.0-M2") "2.0.0-M2" else if (scalaVersion.value == "3.0.0-M3") "2.0.0-M3" else "1.11.7"),
       "org.scodec"       %% "scodec-cats"  % (if (scalaVersion.value == "3.0.0-M2") "1.1.0-M3" else "1.1.0-M4"),
-      "org.tpolecat"     %% "natchez-core" % "0.0.16",
+      "org.tpolecat"     %% "natchez-core" % "0.0.17",
       "org.tpolecat"     %% "sourcepos"    % "0.1.0",
       "com.ongres.scram"  % "client"       % "2.1",
     ) ++ Seq(
       "com.beachape"  %% "enumeratum"   % "1.6.1",
-    ).map(_.withDottyCompat(scalaVersion.value))
+    ).map(_.withDottyCompat(scalaVersion.value)) ++ Seq(
+      "org.scala-lang.modules" %% "scala-collection-compat" % (if (scalaVersion.value == "3.0.0-M2") "2.3.1" else "2.3.2"),
+    )
   )
 
 lazy val refined = project
@@ -168,8 +171,8 @@ lazy val example = project
   .settings(
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.16",
-      "org.tpolecat"  %% "natchez-jaeger"      % "0.0.16",
+      "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.17",
+      "org.tpolecat"  %% "natchez-jaeger"      % "0.0.17",
     ) ++ Seq(
       "org.http4s"    %% "http4s-dsl"          % "0.21.15",
       "org.http4s"    %% "http4s-blaze-server" % "0.21.15",

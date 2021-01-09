@@ -7,7 +7,6 @@ package skunk.data
 import cats._
 import cats.syntax.all._
 import scala.collection.mutable.ArrayBuffer
-import scala.collection.Factory
 
 /**
  * A Postgres array, which is either empty and zero-dimensional, or non-empty and rectangular (unlike
@@ -15,9 +14,9 @@ import scala.collection.Factory
  * traversable functor.
  */
 final class Arr[A] private (
-  private val data:   ArrayBuffer[A],
-  private val extent: Array[Int]
-) {
+  protected val data:   ArrayBuffer[A],
+  private   val extent: Array[Int]
+) extends ArrPlatform[A] {
 
   // Data and extent must be consistent. Should be guaranteed but let's check anyway.
   assert((data.isEmpty && extent.isEmpty) || (data.length  == extent.product))
@@ -52,13 +51,6 @@ final class Arr[A] private (
   /** True if this `Arr` is empty. Invariant: `isEmpty == dimensions.isEmpty`. */
   def isEmpty: Boolean =
     data.isEmpty
-
-  /**
-   * Construct this `Arr`'s elements as a collection `C`, as if first reshaped to be
-   * single-dimensional.
-   */
-  def flattenTo[C](implicit fact: Factory[A, C]): C =
-    data.to(fact)
 
   /**
    * Size of this `Arr` by dimension. Invariant: if this `Arr` is non-empty then
