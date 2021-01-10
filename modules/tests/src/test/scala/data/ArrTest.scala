@@ -168,5 +168,13 @@ class ArrTest extends DisciplineSuite {
     assertEquals(Arr.parse("{{abc}x"), Left("parse error at index 6: expected ',' or '}', found x"))
   }
 
+  test("parse failure: null element") {
+    assertEquals(Arr.parse("{foo,bar,null}"), Left("parse error at index 13: encountered NULL array element (currently unsupported)"))
+  }
+
+  test("quoted null (ok)") {
+    assert(Arr.parse("{foo,bar,\"null\"}") === Right(Arr("foo", "bar", "null")))
+  }
+
 }
 

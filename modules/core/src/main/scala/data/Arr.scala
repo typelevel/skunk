@@ -351,15 +351,15 @@ object Arr {
                 fail(s"illegal character in unquoted datum: '$c'")
 
               case ',' =>
+                if (datum.toString().equalsIgnoreCase("null")) fail(s"encountered NULL array element (currently unsupported)")
                 updateCountersAfterComma()
-                // TODO: If the datum is 'NULL' then we need to do something else!
                 f(datum.toString()).fold(fail, a => { data.append(a); () })
                 index += 1
                 state = ExpectDatum
 
               case '}' =>
+                if (datum.toString().equalsIgnoreCase("null")) fail(s"encountered NULL array element (currently unsupported)")
                 updateCountersAfterClose()
-                // TODO: If the datum is 'NULL' then we need to do something else!
                 f(datum.toString()).fold(fail, a => { data.append(a); () })
                 index += 1
                 depth -= 1
