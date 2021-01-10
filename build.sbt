@@ -58,8 +58,9 @@ lazy val commonSettings = Seq(
   unmanagedSourceDirectories in Compile ++= {
     val sourceDir = (sourceDirectory in Compile).value
     CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((3, _))  => Seq(sourceDir / "scala-3")
-      case Some((2, _))  => Seq(sourceDir / "scala-2")
+      case Some((3, _))  => Seq(sourceDir / "scala-3", sourceDir / "scala-2.13+")
+      case Some((2, 12)) => Seq(sourceDir / "scala-2")
+      case Some((2, _))  => Seq(sourceDir / "scala-2", sourceDir / "scala-2.13+")
       case _             => Seq()
     }
   },
@@ -113,7 +114,9 @@ lazy val core = project
       "com.ongres.scram"  % "client"       % "2.1",
     ) ++ Seq(
       "com.beachape"  %% "enumeratum"   % "1.6.1",
-    ).map(_.withDottyCompat(scalaVersion.value))
+    ).map(_.withDottyCompat(scalaVersion.value)) ++ Seq(
+      "org.scala-lang.modules" %% "scala-collection-compat" % (if (scalaVersion.value == "3.0.0-M2") "2.3.1" else "2.3.2"),
+    )
   )
 
 lazy val refined = project
@@ -152,6 +155,8 @@ lazy val tests = project
       "org.typelevel"     %% "scalacheck-effect-munit" % "0.7.0",
       "org.typelevel"     %% "munit-cats-effect-2"     % "0.12.0",
       "org.typelevel"     %% "cats-free"               % "2.3.1",
+      "org.typelevel"     %% "cats-laws"               % "2.3.1",
+      "org.typelevel"     %% "discipline-munit"        % "1.0.4",
     ) ++ Seq(
       "io.chrisdavenport" %% "cats-time"               % "0.3.4",
     ).filterNot(_ => isDotty.value),

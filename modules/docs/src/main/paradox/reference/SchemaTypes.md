@@ -169,8 +169,35 @@ val codec1: Codec[Int ~ Json] = int4 ~ jsonb
 val codec2: Codec[Int ~ MyType] = int4 ~ jsonb[MyType]
 ```
 
+## Arrays
+
+Postgres arrays are either empty and zero-dimensional, or non-empty and rectangular (unlike Scala `Array`s, which are ragged) with a postive number of dimensions (all non-empty). This data type is represented by `skunk.data.Arr`.
+
+@@@ warning
+- Skunk does not yet support arrays containing nullable elements. Attempting to decode such a value will provoke a runtime failure.
+- The API for `Arr` is not finalized and is likely to change in future versions.
+@@@
+
+#### Numeric Array Types
+
+| Postgres Type   | Scala Type        | Notes |
+|-----------------|-------------------|---|
+| `_int2`         | `Arr[Short]`      |  |
+| `_int4`         | `Arr[Int]`        |  |
+| `_int8`         | `Arr[Long]`       | Precision argument not yet supported. |
+| `_numeric`      | `Arr[BigDecimal]` |  |
+| `_float4`       | `Arr[Float]`      |  |
+| `_float8`       | `Arr[Double]`     |  |
+
+#### Character Types
+
+| Postgres Type   | Scala Type        | Notes |
+|-----------------|-------------------|--------|
+| `_varchar` | `Arr[String]` | Length argument not yet supported. |
+| `_bpchar`  | `Arr[String]` | Length argument not yet supported |
+| `_text`    | `Arr[String]` |  |
+
 #### Notes
 
-- This codec constructor is importable from `skunk.circe.codec.json._` or `skunk.circe.codec.all._`.
-- See [§8.14](https://www.postgresql.org/docs/11/datatype-json.html) in the Postgres documentation for more information on JSON data types.
+- See [§8.15](https://www.postgresql.org/docs/11/arrays.html) in the Postgres documentation for more information on JSON data types.
 
