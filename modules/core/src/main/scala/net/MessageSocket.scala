@@ -7,6 +7,7 @@ package skunk.net
 import cats.Applicative
 import cats.effect._
 import cats.effect.std.Console
+import cats.effect.std.Queue
 import cats.syntax.all._
 import scala.io.AnsiColor
 import scodec.codecs._
@@ -42,7 +43,7 @@ object MessageSocket {
     bvs: BitVectorSocket[F],
     debug: Boolean
   ): F[MessageSocket[F]] =
-    cats.effect.std.Queue.circularBuffer[F, Either[Any, Any]](10).map { cb =>
+    Queue.circularBuffer[F, Either[Any, Any]](10).map { cb =>
       new AbstractMessageSocket[F] with MessageSocket[F] {
 
         /**
