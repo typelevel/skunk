@@ -17,7 +17,7 @@ import natchez.jaeger.Jaeger
 import natchez.EntryPoint
 import io.jaegertracing.Configuration.SamplerConfiguration
 import io.jaegertracing.Configuration.ReporterConfiguration
-import fs2.io.Network
+import fs2.io.net.Network
 import cats.effect.std.Console
 
 object Minimal2 extends IOApp {

@@ -8,12 +8,11 @@ import cats._
 import cats.effect._
 import cats.syntax.all._
 import fs2.Chunk
-import fs2.io.tcp.Socket
-import scala.concurrent.duration.FiniteDuration
 import scodec.bits.BitVector
-import java.net.InetSocketAddress
-import fs2.io.tcp.SocketGroup
-import fs2.io.Network
+import fs2.io.net.tcp.Socket
+import fs2.io.net.tcp.SocketGroup
+import fs2.io.net.Network
+import com.comcast.ip4s._
 
 /** A higher-level `Socket` interface defined in terms of `BitVector`. */
 trait BitVectorSocket[F[_]] {
@@ -33,22 +32,17 @@ object BitVectorSocket {
   /**
    * Construct a `BitVectorSocket` by wrapping an existing `Socket`.
    * @param socket the underlying `Socket`
-   * @param readTimeout a read timeout, typically `Int.MaxValue.seconds` because we must wait
-   *   actively for asynchronous messages.
-   * @param writeTimeout a write timeout, typically no more than a few seconds.
    * @group Constructors
    */
   def fromSocket[F[_]](
-    socket:       Socket[F],
-    readTimeout:  FiniteDuration,
-    writeTimeout: FiniteDuration
+    socket:       Socket[F]
   )(
     implicit ev: MonadError[F, Throwable]
   ): BitVectorSocket[F] =
     new BitVectorSocket[F] {
 
       def readBytes(n: Int): F[Array[Byte]] =
-        socket.readN(n, Some(readTimeout)).flatMap {
+        socket.readN(n).flatMap {
           case None => ev.raiseError(new Exception("Fatal: EOF"))
           case Some(c) =>
             if (c.size == n) c.toArray.pure[F]
@@ -59,7 +53,7 @@ object BitVectorSocket {
         readBytes(nBytes).map(BitVector(_))
 
       override def write(bits: BitVector): F[Unit] =
-        socket.write(Chunk.array(bits.toByteArray), Some(writeTimeout))
+        socket.write(Chunk.array(bits.toByteArray))
 
     }
 
@@ -67,23 +61,18 @@ object BitVectorSocket {
    * Construct a `BitVectorSocket` by constructing and wrapping a `Socket`.
    * @param host the remote hostname
    * @param port the remote port
-   * @param readTimeout a read timeout, typically `Int.MaxValue.seconds` because we must wait
-   *   actively for asynchronous messages.
-   * @param writeTimeout a write timeout, typically no more than a few seconds.
    * @group Constructors
    */
   def apply[F[_]: Network](
     host:         String,
     port:         Int,
-    readTimeout:  FiniteDuration,
-    writeTimeout: FiniteDuration,
-    sg:           SocketGroup,
+    sg:           SocketGroup[F],
     sslOptions:   Option[SSLNegotiation.Options[F]],
   )(implicit ev: MonadError[F, Throwable]): Resource[F, BitVectorSocket[F]] =
     for {
-      sock  <- sg.client[F](new InetSocketAddress(host, port))
-      sockʹ <- sslOptions.fold(sock.pure[Resource[F, *]])(SSLNegotiation.negotiateSSL(sock, readTimeout, writeTimeout, _))
-    } yield fromSocket(sockʹ, readTimeout, writeTimeout)
+      sock  <- sg.client(SocketAddress(Hostname(host).get, Port(port).get)) // TODO
+      sockʹ <- sslOptions.fold(sock.pure[Resource[F, *]])(SSLNegotiation.negotiateSSL(sock, _))
+    } yield fromSocket(sockʹ)
 
 }
 

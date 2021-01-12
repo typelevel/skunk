@@ -4,21 +4,20 @@
 
 package skunk.net
 
-import fs2.io.tls.TLSContext
-import fs2.io.tls.TLSParameters
 import cats._
 import cats.effect._
 import cats.syntax.all._
-import fs2.io.tcp._
-import scala.concurrent.duration._
 import fs2.Chunk
-import fs2.io.Network
+import fs2.io.net.Network
+import fs2.io.net.tcp._
+import fs2.io.net.tls.TLSContext
+import fs2.io.net.tls.TLSParameters
 
 object SSLNegotiation {
 
   /** Parameters for `negotiateSSL`. */
   case class Options[F[_]](
-    tlsContext:    TLSContext,
+    tlsContext:    TLSContext[F],
     tlsParameters: TLSParameters,
     fallbackOk:    Boolean,
     logger:        Option[String => F[Unit]],
@@ -34,9 +33,7 @@ object SSLNegotiation {
    */
   def negotiateSSL[F[_]: Network](
     socket:       Socket[F],
-    readTimeout:  FiniteDuration,
-    writeTimeout: FiniteDuration,
-    sslOptions:   SSLNegotiation.Options[F],
+    sslOptions:   SSLNegotiation.Options[F]
   )(
     implicit ev: MonadError[F, Throwable]
   ): Resource[F, Socket[F]] = {
@@ -45,8 +42,8 @@ object SSLNegotiation {
       ev.raiseError(new Exception(s"Fatal failure during SSL negotiation: $msg"))
 
     val initiate: F[Byte] =
-      socket.write(SSLRequest, Some(writeTimeout)) *>
-      socket.read(1, Some(readTimeout)).map(_.flatMap(_.get(0))).flatMap {
+      socket.write(SSLRequest) *>
+      socket.read(1).map(_.flatMap(_.get(0))).flatMap {
         case None    => fail(s"EOF before 1 byte could be read.")
         case Some(b) => b.pure[F]
       }

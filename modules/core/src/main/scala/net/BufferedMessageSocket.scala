@@ -10,12 +10,11 @@ import cats.effect.implicits._
 import cats.effect.std.{ Console, Queue }
 import cats.syntax.all._
 import fs2.concurrent._
-import fs2.io.Network
 import fs2.Stream
 import skunk.data._
 import skunk.net.message._
-import scala.concurrent.duration._
-import fs2.io.tcp.SocketGroup
+import fs2.io.net.Network
+import fs2.io.net.tcp.SocketGroup
 
 /**
  * A `MessageSocket` that buffers incoming messages, removing and handling asynchronous back-end
@@ -81,13 +80,11 @@ object BufferedMessageSocket {
     port:         Int,
     queueSize:    Int,
     debug:        Boolean,
-    readTimeout:  FiniteDuration,
-    writeTimeout: FiniteDuration,
-    sg:           SocketGroup,
+    sg:           SocketGroup[F],
     sslOptions:   Option[SSLNegotiation.Options[F]],
   ): Resource[F, BufferedMessageSocket[F]] =
     for {
-      ms  <- MessageSocket(host, port, debug, readTimeout, writeTimeout, sg, sslOptions)
+      ms  <- MessageSocket(host, port, debug, sg, sslOptions)
       ams <- Resource.make(BufferedMessageSocket.fromMessageSocket[F](ms, queueSize))(_.terminate)
     } yield ams
 
