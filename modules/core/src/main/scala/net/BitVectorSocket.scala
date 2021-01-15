@@ -9,9 +9,7 @@ import cats.effect._
 import cats.syntax.all._
 import fs2.Chunk
 import scodec.bits.BitVector
-import fs2.io.net.tcp.Socket
-import fs2.io.net.tcp.SocketGroup
-import fs2.io.net.Network
+import fs2.io.net.{ Network, Socket, SocketGroup }
 import com.comcast.ip4s._
 
 /** A higher-level `Socket` interface defined in terms of `BitVector`. */

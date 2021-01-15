@@ -14,8 +14,7 @@ import scodec.codecs._
 import scodec.interop.cats._
 import skunk.net.message.{ Sync => _, _ }
 import skunk.util.Origin
-import fs2.io.net.tcp.SocketGroup
-import fs2.io.net.Network
+import fs2.io.net.{ Network, SocketGroup }
 
 /** A higher-level `BitVectorSocket` that speaks in terms of `Message`. */
 trait MessageSocket[F[_]] {

@@ -14,8 +14,7 @@ import skunk.data._
 import skunk.util.{ Namer, Origin }
 import skunk.util.Typer
 import natchez.Trace
-import fs2.io.net.tcp.SocketGroup
-import fs2.io.net.Network
+import fs2.io.net.{ Network, SocketGroup }
 import skunk.net.protocol.Exchange
 
 /**

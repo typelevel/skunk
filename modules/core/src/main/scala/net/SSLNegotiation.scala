@@ -8,8 +8,7 @@ import cats._
 import cats.effect._
 import cats.syntax.all._
 import fs2.Chunk
-import fs2.io.net.Network
-import fs2.io.net.tcp._
+import fs2.io.net.{ Network, Socket }
 import fs2.io.net.tls.TLSContext
 import fs2.io.net.tls.TLSParameters
 

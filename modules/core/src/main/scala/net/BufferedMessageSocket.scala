@@ -13,8 +13,7 @@ import fs2.concurrent._
 import fs2.Stream
 import skunk.data._
 import skunk.net.message._
-import fs2.io.net.Network
-import fs2.io.net.tcp.SocketGroup
+import fs2.io.net.{ Network, SocketGroup }
 
 /**
  * A `MessageSocket` that buffers incoming messages, removing and handling asynchronous back-end

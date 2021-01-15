@@ -9,8 +9,7 @@ import cats.effect._
 import cats.effect.std.Console
 import cats.syntax.all._
 import fs2.concurrent.Signal
-import fs2.io.net.Network
-import fs2.io.net.tcp.SocketGroup
+import fs2.io.net.{ Network, SocketGroup }
 import fs2.Pipe
 import fs2.Stream
 import natchez.Trace
@@ -256,9 +255,8 @@ object Session {
     val logger: String => F[Unit] = s => Console[F].println(s"TLS: $s")
 
     for {
-      sockGrp <- Network[F].tcpSocketGroup
       sslOp   <- Resource.eval(ssl.toSSLNegotiationOptions(if (debug) logger.some else none))
-      pool    <- Pool.of(session(sockGrp, sslOp), max)(Recyclers.full)
+      pool    <- Pool.of(session(Network[F], sslOp), max)(Recyclers.full)
     } yield pool
 
   }
