@@ -7,7 +7,7 @@ lazy val `scala-3.0-prev` = "3.0.0-M2"
 lazy val `scala-3.0-curr` = "3.0.0-M3"
 
 // This is used in a couple places
-lazy val fs2Version = "3.0-33-7e6e1d2"
+lazy val fs2Version = "3.0-57-3fb340a"
 lazy val natchezVersion = "0.1.0-M2"
 
 
