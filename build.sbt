@@ -115,7 +115,7 @@ lazy val core = project
     ) ++ Seq(
       "com.beachape"  %% "enumeratum"   % "1.6.1",
     ).map(_.withDottyCompat(scalaVersion.value)) ++ Seq(
-      "org.scala-lang.modules" %% "scala-collection-compat" % (if (scalaVersion.value == "3.0.0-M2") "2.3.1" else "2.3.2"),
+      "org.scala-lang.modules" %% "scala-collection-compat" % (if (scalaVersion.value == "3.0.0-M2") "2.3.1" else "2.4.0"),
     )
   )
 
