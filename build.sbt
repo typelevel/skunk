@@ -153,7 +153,7 @@ lazy val tests = project
     scalacOptions  -= "-Xfatal-warnings",
     libraryDependencies ++= Seq(
       "org.typelevel"     %% "scalacheck-effect-munit" % "0.7.0",
-      "org.typelevel"     %% "munit-cats-effect-2"     % "0.12.0",
+      "org.typelevel"     %% "munit-cats-effect-2"     % "0.13.0",
       "org.typelevel"     %% "cats-free"               % "2.3.1",
       "org.typelevel"     %% "cats-laws"               % "2.3.1",
       "org.typelevel"     %% "discipline-munit"        % "1.0.4",
