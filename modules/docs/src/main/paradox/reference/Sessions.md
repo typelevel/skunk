@@ -54,14 +54,25 @@ In addition to these options, the `SSL` values themselves allow the following mo
 | `.withTLSParameters(…)` | `TLSParameters.Default` | Allows for custom @scaladoc[TLSParameters](fs2.io.tls.TLSParameters).
 
 
-## Default Session Parameters
+## Session Parameters
 
-The following Postgres session parameters affect data serialization and are specified by Skunk during startup negotiation. Changing them via a `SET` command will result in undefined behavior.
+Session parameters affect data serialization and are specified by Skunk during startup negotiation. Changing them via a `SET` command will result in undefined behavior. The following session parameters are set by default:
 
 | Parameter | Value |
 |----------|-------|
 ```scala mdoc:passthrough
-println(StartupMessage.ConnectionProperties.map { case (k, v) => s"| `$k` | `$v` |" } .mkString("\n"))
+println(Session.DefaultConnectionParameters.map { case (k, v) => s"| `$k` | `$v` |" } .mkString("\n"))
 ```
 
-Future versions of Skunk may be more flexible in this regard, but for now your application needs to be ok with these defaults.
+It is possible to modify default session parameters via the parameters session property, which is unsupported in general but may be necessary when using nonstandard Postgres variants. Amazon Redshift, for example, does not support the `IntervalStyle` parameter, and this will cause startup negotiation to fail. A workaround is demonstrated below.
+
+```scala mdoc:compile-only
+Session.single[IO](
+  host     = "localhost",
+  user     = "jimmy",
+  database = "world",
+  password = Some("banana"),
+  port = 5439,
+  parameters = Session.DefaultConnectionParameters - "IntervalStyle"
+)
+```
