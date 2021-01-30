@@ -111,6 +111,7 @@ object Http4sExample extends IOApp {
       password     = Some("banana"),
       socketGroup  = socketGroup,
       sslOptions   = None,
+      parameters   = Session.DefaultConnectionParameters
     ).flatMap(countriesFromSession(_))
 
   /** Resource yielding a pool of `Countries`, backed by a single `Blocker` and `SocketGroup`. */
