@@ -156,7 +156,7 @@ lazy val tests = project
       "org.typelevel"     %% "munit-cats-effect-2"     % "0.12.0",
       "org.typelevel"     %% "cats-free"               % "2.3.1",
       "org.typelevel"     %% "cats-laws"               % "2.3.1",
-      "org.typelevel"     %% "discipline-munit"        % "1.0.4",
+      "org.typelevel"     %% "discipline-munit"        % "1.0.5",
     ) ++ Seq(
       "io.chrisdavenport" %% "cats-time"               % "0.3.4",
     ).filterNot(_ => isDotty.value),
