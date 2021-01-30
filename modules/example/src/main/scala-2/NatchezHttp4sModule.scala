@@ -54,6 +54,7 @@ object implicits {
         def span(name: String): Resource[F, Span[F]] = Monad[Resource[F, *]].pure(this)
         def traceId: F[Option[String]] = Monad[F].pure(None)
         def traceUri: F[Option[URI]] = Monad[F].pure(None)
+        def spanId: F[Option[String]] = Monad[F].pure(None)
       }
 
     def liftT(routes: HttpRoutes[Kleisli[F, Span[F], *]])(
