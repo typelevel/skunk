@@ -103,7 +103,7 @@ lazy val core = project
     description := "Tagless, non-blocking data access library for Postgres.",
     resolvers   +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     libraryDependencies ++= Seq(
-      "org.typelevel"    %% "cats-core"    % "2.3.1",
+      "org.typelevel"    %% "cats-core"    % "2.4.0",
       "org.typelevel"    %% "cats-effect"  % "2.3.1",
       "co.fs2"           %% "fs2-core"     % fs2Version,
       "co.fs2"           %% "fs2-io"       % fs2Version,
@@ -154,8 +154,8 @@ lazy val tests = project
     libraryDependencies ++= Seq(
       "org.typelevel"     %% "scalacheck-effect-munit" % "0.7.0",
       "org.typelevel"     %% "munit-cats-effect-2"     % "0.13.0",
-      "org.typelevel"     %% "cats-free"               % "2.3.1",
-      "org.typelevel"     %% "cats-laws"               % "2.3.1",
+      "org.typelevel"     %% "cats-free"               % "2.4.0",
+      "org.typelevel"     %% "cats-laws"               % "2.4.0",
       "org.typelevel"     %% "discipline-munit"        % "1.0.5",
     ) ++ Seq(
       "io.chrisdavenport" %% "cats-time"               % "0.3.4",
