@@ -53,6 +53,8 @@ object MessageSocket {
             val (tag, len) = header.decodeValue(bits).require
             val decoder    = BackendMessage.decoder(tag)
             bvs.read(len - 4).map(decoder.decodeValue(_).require)
+          } .onError {
+            case t => Sync[F].delay(println(s" ← ${Console.RED}${t.getMessage}${Console.RESET}")).whenA(debug)
           }
         }
 
