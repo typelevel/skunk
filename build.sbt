@@ -108,7 +108,7 @@ lazy val core = project
       "co.fs2"           %% "fs2-core"     % fs2Version,
       "co.fs2"           %% "fs2-io"       % fs2Version,
       "org.scodec"       %% "scodec-core"  % (if (scalaVersion.value == "3.0.0-M2") "2.0.0-M2" else if (scalaVersion.value == "3.0.0-M3") "2.0.0-M3" else "1.11.7"),
-      "org.scodec"       %% "scodec-cats"  % (if (scalaVersion.value == "3.0.0-M2") "1.1.0-M3" else "1.1.0-M4"),
+      "org.scodec"       %% "scodec-cats"  % (if (scalaVersion.value == "3.0.0-M2") "1.1.0-M3" else "1.1.0-RC1"),
       "org.tpolecat"     %% "natchez-core" % "0.0.19",
       "org.tpolecat"     %% "sourcepos"    % "0.1.0",
       "com.ongres.scram"  % "client"       % "2.1",
