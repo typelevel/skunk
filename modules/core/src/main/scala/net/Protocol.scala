@@ -198,7 +198,7 @@ object Protocol {
       p   <- Resource.liftF(fromMessageSocket(bms, nam))
     } yield p
 
-  def fromMessageSocket[F[_]: Concurrent: ContextShift: Trace](
+  def fromMessageSocket[F[_]: Concurrent: Trace](
     bms: BufferedMessageSocket[F],
     nam: Namer[F]
   ): F[Protocol[F]] =
