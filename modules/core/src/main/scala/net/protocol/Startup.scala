@@ -61,7 +61,7 @@ object Startup {
     }
 
   // already inside an exchange
-  private def authenticationMD5Password[F[_]: Exchange: MessageSocket: Trace](
+  private def authenticationMD5Password[F[_]: MessageSocket: Trace](
     sm:       StartupMessage,
     password: Option[String],
     salt:     Array[Byte]
@@ -77,7 +77,7 @@ object Startup {
       }
     }
 
-  private def authenticationSASL[F[_]: Exchange: MessageSocket: Trace](
+  private def authenticationSASL[F[_]: MessageSocket: Trace](
     sm:         StartupMessage,
     password:   Option[String],
     mechanisms: List[String]

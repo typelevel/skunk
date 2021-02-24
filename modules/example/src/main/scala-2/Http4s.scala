@@ -124,7 +124,7 @@ object Http4sExample extends IOApp {
     } yield r.widen // forget we're a PooledCountries
 
   /** Given a pool of `Countries` we can create an `HttpRoutes`. */
-  def countryRoutes[F[_]: Concurrent: ContextShift: Defer: Trace](
+  def countryRoutes[F[_]: Concurrent: Trace](
     pool: Resource[F, Countries[F]]
   ): HttpRoutes[F] = {
     object dsl extends Http4sDsl[F]; import dsl._
