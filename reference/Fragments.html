@@ -12,6 +12,7 @@
 <script type="text/javascript" src="../js/page.js"></script>
 <script type="text/javascript" src="../js/warnOldVersion.js"></script>
 <script type="text/javascript" src="../js/groups.js"></script>
+<script type="text/javascript" src="../js/snippets.js"></script>
 <link rel="stylesheet" type="text/css" href="../lib/foundation/dist/foundation.min.css"/>
 <link rel="stylesheet" type="text/css" href="../css/page.css"/>
 
@@ -31,7 +32,7 @@
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.0.23
+0.0.24
 </div>
 </div>
 <div class="nav-toc">
@@ -86,7 +87,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.0.23
+0.0.24
 </div>
 </div>
 <div class="nav-toc">
@@ -136,19 +137,152 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <div class="page-content row">
 <div class="small-12 large-9 column" id="docs">
 <h1><a href="#fragments" name="fragments" class="anchor"><span class="anchor-link"></span></a>Fragments</h1>
-<h2><a href="#the-sql-interpolator" name="the-sql-interpolator" class="anchor"><span class="anchor-link"></span></a>The SQL Interpolator</h2>
+<p><code>Fragment[A]</code> encapsulates a SQL statement, together with an <code>Encoder</code> for a statement parameter of type <code>A</code>. Fragments are normally constructed via the <code>sql</code> interpolator, which constructs a fragment of a type determined by interpolated parameter encoders, if any.</p>
+<pre class="prettyprint"><code class="language-scala">// A fragment with no interpolated encoders.
+val f1 = sql&quot;SELECT 42&quot;
+// f1: Fragment[Void] = Fragment(sql = &quot;SELECT 42&quot;, encoder = Codec(void))
+
+// A fragment with an interpolated encoder.
+val f2 = sql&quot;SELECT foo FROM bar WHERE baz = $int8&quot;
+// f2: Fragment[Long] = Fragment(
+//   sql = &quot;SELECT foo FROM bar WHERE baz = $1&quot;,
+//   encoder = Codec(int8)
+// )
+</code></pre>
+<p>The following sections provide more details on constructing fragments.</p>
 <h2><a href="#interpolating-parameter-encoders" name="interpolating-parameter-encoders" class="anchor"><span class="anchor-link"></span></a>Interpolating Parameter Encoders</h2>
-<p>Note what happens when we interpolate a multi-column encoder.</p>
+<p>Interpolated encoders are replaced with statement parameters (see the first element shown in the <code>Fragment</code> string representation below).</p>
+<pre class="prettyprint"><code class="language-scala">val f3 = sql&quot;foo $int4 bar $varchar bar&quot;
+// f3: Fragment[(Int, String)] = Fragment(
+//   sql = &quot;foo $1 bar $2 bar&quot;,
+//   encoder = Codec(int4, varchar)
+// )
+</code></pre>
+<p>The resulting statement is prepared, and arguments (encoded) are passed separately as part of the extended query protocol. <strong>Skunk never interpolates statement arguments.</strong></p>
+<p>Some encoder combinators have an effect on the SQL that is generated when they are interpolated. In the examples below we will use <code>Fragment</code>&rsquo;s <code>sql</code> member for clarity.</p>
+<p>Interpolating an encoder <strong>product</strong> (as constructed with <code>~</code> for instance) yields a comma-separated sequence of parameters in the resulting SQL.</p>
+<pre class="prettyprint"><code class="language-scala">sql&quot;foo ${int4 ~ varchar} bar&quot;.sql
+// res0: String = &quot;foo $1, $2 bar&quot;
+</code></pre>
+<p>The <code>values</code> combinator wraps an encoder&rsquo;s SQL in parentheses.</p>
+<pre class="prettyprint"><code class="language-scala">sql&quot;foo ${(int4 ~ varchar).values} bar&quot;.sql
+// res1: String = &quot;foo ($1, $2) bar&quot;
+</code></pre>
+<p>The <code>list</code> combinator yields a sequence of parameters, one per element (this is why we must know the length when constructing the fragment).</p>
+<pre class="prettyprint"><code class="language-scala">sql&quot;foo ${int4.list(4)} bar&quot;.sql
+// res2: String = &quot;foo $1, $2, $3, $4 bar&quot;
+</code></pre>
+<p>When used in combination these can be quite useful.</p>
+<pre class="prettyprint"><code class="language-scala">sql&quot;INSERT ... VALUES ${(int4 ~ varchar).values.list(3)}&quot;.sql
+// res3: String = &quot;INSERT ... VALUES ($1, $2), ($3, $4), ($5, $6)&quot;
+</code></pre>
 <h2><a href="#interpolating-literal-strings" name="interpolating-literal-strings" class="anchor"><span class="anchor-link"></span></a>Interpolating Literal Strings</h2>
+<p>Parameters can only appear in syntactic positions where values can appear (you cannot use a parameter in place of a table name for instance). In these cases you can interpolate a literal strings, by escaping it with <code>#$</code>.</p><div class="callout warning "><div class="callout-title">Warning</div>
+<p>Interpolating a literal string into a <code>Fragment</code> is a SQL injection risk. Never interpolate values that have been supplied by the user.</p></div>
+<p>Here is an example with an iterpolated literal string, as well as a normal parameter.</p>
+<pre class="prettyprint"><code class="language-scala">val table = &quot;my_table&quot;
+val frag  = sql&quot;SELECT foo, bar FROM #$table where foo = $int4&quot;
+</code></pre>
+<p>The resulting SQL will contain <code>table</code> verbatim.</p>
+<pre class="prettyprint"><code class="language-scala">frag.sql
+// res4: String = &quot;SELECT foo, bar FROM my_table where foo = $1&quot;
+</code></pre>
 <h2><a href="#composing-fragments" name="composing-fragments" class="anchor"><span class="anchor-link"></span></a>Composing Fragments</h2>
-<h2><a href="#nested-fragments" name="nested-fragments" class="anchor"><span class="anchor-link"></span></a>Nested Fragments</h2>
+<p>Fragment products operate like encoder products, appending the resulting SQL.</p>
+<pre class="prettyprint"><code class="language-scala">val f4 = sql&quot;SELECT $int4, foo FROM blah WHERE &quot;
+// f4: Fragment[Int] = Fragment(
+//   sql = &quot;SELECT $1, foo FROM blah WHERE &quot;,
+//   encoder = Codec(int4)
+// )
+
+val f5 = sql&quot;bar = $varchar&quot;
+// f5: Fragment[String] = Fragment(sql = &quot;bar = $1&quot;, encoder = Codec(varchar))
+
+val f6 = f4 ~ f5
+// f6: Fragment[(Int, String)] = Fragment(
+//   sql = &quot;SELECT $1, foo FROM blah WHERE bar = $2&quot;,
+//   encoder = Encoder(int4, varchar)
+// )
+</code></pre>
+<p>Alternatively we can interpolate fragments inside one another.</p>
+<pre class="prettyprint"><code class="language-scala">val f7 = sql&quot;bar = $varchar&quot;
+// f7: Fragment[String] = Fragment(sql = &quot;bar = $1&quot;, encoder = Codec(varchar))
+
+val f8 = sql&quot;SELECT $int4, foo FROM blah WHERE $f7 AND x = $int2&quot;
+// f8: Fragment[((Int, String), Short)] = Fragment(
+//   sql = &quot;SELECT $1, foo FROM blah WHERE bar = $2 AND x = $3&quot;,
+//   encoder = Encoder(int4, varchar, int2)
+// )
+</code></pre>
+<p>Note how the output type is computed, and parameters are renumbered as necessary.</p>
+<h2><a href="#contramapping-fragments" name="contramapping-fragments" class="anchor"><span class="anchor-link"></span></a>Contramapping Fragments</h2>
+<p>Fragments form a contravariant semigroupal functor, and this can be tupled (with <code>~</code> as above) and can be contramapped to change their input type.</p>
+<pre class="prettyprint"><code class="language-scala">case class Person(name: String, age: Int)
+
+val f9 = sql&quot;INSERT ... VALUES ($varchar, $int4)&quot;
+// f9: Fragment[(String, Int)] = Fragment(
+//   sql = &quot;INSERT ... VALUES ($1, $2)&quot;,
+//   encoder = Codec(varchar, int4)
+// )
+
+// note the return type
+val f10 = f9.contramap[Person](p =&gt; (p.name, p.age))
+// f10: Fragment[Person] = Fragment(
+//   sql = &quot;INSERT ... VALUES ($1, $2)&quot;,
+//   encoder = Encoder(varchar, int4)
+// )
+</code></pre>
+<h2><a href="#applied-fragments" name="applied-fragments" class="anchor"><span class="anchor-link"></span></a>Applied Fragments</h2>
+<p>It is sometimes useful to bind a fragment to a set of arguments. The resulting <code>AppliedFragment</code> forms a monoid, with an opaque argument of an existential argument type. Applied fragments can be useful when constructing statements on the fly.</p>
+<pre class="prettyprint"><code class="language-scala">def countryQuery(name: Option[String], pop: Option[Int]): AppliedFragment = {
+
+  // Our base query
+  val base = sql&quot;SELECT code FROM country&quot;
+
+  // Some filter conditions
+  val nameLike       = sql&quot;name LIKE $varchar&quot;
+  val popGreaterThan = sql&quot;population &gt; $int4&quot;
+
+  // Applied fragments for conditions, if any.
+  val conds: List[AppliedFragment] =
+    List(
+      name.map(nameLike),
+      pop .map(popGreaterThan),
+    ).flatten
+
+  // The composed filter.
+  val filter =
+    if (conds.isEmpty) AppliedFragment.empty
+    else conds.foldSmash(void&quot; WHERE &quot;, void&quot; AND &quot;, AppliedFragment.empty)
+
+  // Prepend the base query and we&#39;re done.
+  base(Void) |+| filter
+
+}
+
+countryQuery(Some(&quot;Un%&quot;), Some(99999)).fragment.sql
+// res5: String = &quot;SELECT code FROM country WHERE name LIKE $1 AND population &gt; $2&quot;
+
+countryQuery(Some(&quot;Un%&quot;), None).fragment.sql
+// res6: String = &quot;SELECT code FROM country WHERE name LIKE $1&quot;
+
+countryQuery(None, None).fragment.sql
+// res7: String = &quot;SELECT code FROM country&quot;
+</code></pre>
+<p>To prepare and execute some <code>af: AppliedFragment</code> you must extract its underlying <code>fragment: Query[af.A]</code> and <code>arg: af.A</code> members, as below.</p>
+<pre class="prettyprint"><code class="language-scala">def usage(s: Session[IO]) = {
+  val f = countryQuery(Some(&quot;Un%&quot;), None) // AppliedFragment
+  val q = f.fragment.query(varchar)       // Query[f.A, String]
+  s.prepare(q).use(_.stream(f.argument, 64).compile.to(List))
+}
+</code></pre>
 <script type="text/javascript" src="../js/link_fix.js"></script>
 
 <div class="source-github">
-The source code for this page can be found <a id="source-link" href="https://github.com/tpolecat/skunk/tree/v0.0.23/modules/docs/target/mdoc/reference/Fragments.md">here</a>.
+The source code for this page can be found <a id="source-link" href="https://github.com/tpolecat/skunk/tree/v0.0.24/modules/docs/target/mdoc/reference/Fragments.md">here</a>.
 </div>
 
-<script type="text/javascript">jQuery(function(){sourceUrlFix('https://github.com/tpolecat/skunk/tree/v0.0.23/modules/docs/target/mdoc/reference/Fragments.md')});</script>
+<script type="text/javascript">jQuery(function(){sourceUrlFix('https://github.com/tpolecat/skunk/tree/v0.0.24/modules/docs/target/mdoc/reference/Fragments.md')});</script>
 
 <div class="nav-next">
 <p><strong>Next:</strong> <a href="../reference/Identifiers.html">Identifiers</a></p>
@@ -162,11 +296,11 @@ The source code for this page can be found <a id="source-link" href="https://git
 <ul>
   <li><a href="../reference/Fragments.html#fragments" class="header">Fragments</a>
   <ul>
-    <li><a href="../reference/Fragments.html#the-sql-interpolator" class="header">The SQL Interpolator</a></li>
     <li><a href="../reference/Fragments.html#interpolating-parameter-encoders" class="header">Interpolating Parameter Encoders</a></li>
     <li><a href="../reference/Fragments.html#interpolating-literal-strings" class="header">Interpolating Literal Strings</a></li>
     <li><a href="../reference/Fragments.html#composing-fragments" class="header">Composing Fragments</a></li>
-    <li><a href="../reference/Fragments.html#nested-fragments" class="header">Nested Fragments</a></li>
+    <li><a href="../reference/Fragments.html#contramapping-fragments" class="header">Contramapping Fragments</a></li>
+    <li><a href="../reference/Fragments.html#applied-fragments" class="header">Applied Fragments</a></li>
   </ul></li>
 </ul>
 </div>
@@ -234,7 +368,7 @@ The source code for this page can be found <a id="source-link" href="https://git
 <script type="text/javascript" src="../lib/prettify/prettify.js"></script>
 <script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
 <script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
-<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.23', 'https://github.com/tpolecat/skunk')});</script>
+<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.24', 'https://github.com/tpolecat/skunk')});</script>
 
 
 </html>

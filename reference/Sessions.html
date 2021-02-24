@@ -12,6 +12,7 @@
 <script type="text/javascript" src="../js/page.js"></script>
 <script type="text/javascript" src="../js/warnOldVersion.js"></script>
 <script type="text/javascript" src="../js/groups.js"></script>
+<script type="text/javascript" src="../js/snippets.js"></script>
 <link rel="stylesheet" type="text/css" href="../lib/foundation/dist/foundation.min.css"/>
 <link rel="stylesheet" type="text/css" href="../css/page.css"/>
 
@@ -31,7 +32,7 @@
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.0.23
+0.0.24
 </div>
 </div>
 <div class="nav-toc">
@@ -86,7 +87,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.0.23
+0.0.24
 </div>
 </div>
 <div class="nav-toc">
@@ -210,7 +211,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     <tr>
       <td><code>.withTLSParameters(…)</code> </td>
       <td><code>TLSParameters.Default</code> </td>
-      <td>Allows for custom <a href="https://static.javadoc.io/co.fs2/fs2-io_2.12/2.5.0/fs2/io/tls/TLSParameters.html" title="fs2.io.tls.TLSParameters"><code>TLSParameters</code></a>.</td>
+      <td>Allows for custom <a href="https://static.javadoc.io/co.fs2/fs2-io_2.12/2.5.3/fs2/io/tls/TLSParameters.html" title="fs2.io.tls.TLSParameters"><code>TLSParameters</code></a>.</td>
     </tr>
   </tbody>
 </table>
@@ -244,21 +245,50 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 </table>
 <p>It is possible to modify default session parameters via the parameters session property, which is unsupported in general but may be necessary when using nonstandard Postgres variants. Amazon Redshift, for example, does not support the <code>IntervalStyle</code> parameter, and this will cause startup negotiation to fail. A workaround is demonstrated below.</p>
 <pre class="prettyprint"><code class="language-scala">Session.single[IO](
-  host     = &quot;localhost&quot;,
-  user     = &quot;jimmy&quot;,
-  database = &quot;world&quot;,
-  password = Some(&quot;banana&quot;),
-  port = 5439,
+  host       = &quot;localhost&quot;,
+  user       = &quot;jimmy&quot;,
+  database   = &quot;world&quot;,
+  password   = Some(&quot;banana&quot;),
+  port       = 5439,
   parameters = Session.DefaultConnectionParameters - &quot;IntervalStyle&quot;
 )
 </code></pre>
+<h2><a href="#error-conditions" name="error-conditions" class="anchor"><span class="anchor-link"></span></a>Error Conditions</h2>
+<p>A <code>Session</code> is ultimately a TCP Socket, and as such a number of error conditions can arise. These conditions immediately invalidate the session and raise exceptions in your effect type <code>F</code>, with the expectation that the operation will fail, or will perhaps be retried with a new session.</p>
+<table>
+  <thead>
+    <tr>
+      <th>Condition </th>
+      <th>Exception </th>
+      <th>Meaning </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Connect&nbsp;Timeout </td>
+      <td>TBD </td>
+      <td>TBD - The connect timeout expired before a connection can be established with the Postgres server. </td>
+    </tr>
+    <tr>
+      <td>Protocol&nbsp;Timeout </td>
+      <td>TBD </td>
+      <td>TBD - The protocol timeout expired before receiving an expected response from the Postgres server. </td>
+    </tr>
+    <tr>
+      <td>Disconnection </td>
+      <td><code>EofException</code> </td>
+      <td>The underlying socket has been closed. </td>
+    </tr>
+  </tbody>
+</table>
+<p>Note that if you wish to <strong>limit statement execution time</strong>, it&rsquo;s best to use the <code>statement_timeout</code> session parameter (settable via SQL or via <code>parameters</code> above), which will raise a server-side exception on expiration and will <em>not</em> invalidate the session.</p>
 <script type="text/javascript" src="../js/link_fix.js"></script>
 
 <div class="source-github">
-The source code for this page can be found <a id="source-link" href="https://github.com/tpolecat/skunk/tree/v0.0.23/modules/docs/target/mdoc/reference/Sessions.md">here</a>.
+The source code for this page can be found <a id="source-link" href="https://github.com/tpolecat/skunk/tree/v0.0.24/modules/docs/target/mdoc/reference/Sessions.md">here</a>.
 </div>
 
-<script type="text/javascript">jQuery(function(){sourceUrlFix('https://github.com/tpolecat/skunk/tree/v0.0.23/modules/docs/target/mdoc/reference/Sessions.md')});</script>
+<script type="text/javascript">jQuery(function(){sourceUrlFix('https://github.com/tpolecat/skunk/tree/v0.0.24/modules/docs/target/mdoc/reference/Sessions.md')});</script>
 
 <div class="nav-next">
 <p><strong>Next:</strong> <a href="../reference/TwiddleLists.html">Twiddle Lists</a></p>
@@ -276,6 +306,7 @@ The source code for this page can be found <a id="source-link" href="https://git
     <li><a href="../reference/Sessions.html#authentication" class="header">Authentication</a></li>
     <li><a href="../reference/Sessions.html#encryption-with-ssl" class="header">Encryption with SSL</a></li>
     <li><a href="../reference/Sessions.html#session-parameters" class="header">Session Parameters</a></li>
+    <li><a href="../reference/Sessions.html#error-conditions" class="header">Error Conditions</a></li>
   </ul></li>
 </ul>
 </div>
@@ -343,7 +374,7 @@ The source code for this page can be found <a id="source-link" href="https://git
 <script type="text/javascript" src="../lib/prettify/prettify.js"></script>
 <script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
 <script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
-<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.23', 'https://github.com/tpolecat/skunk')});</script>
+<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.0.24', 'https://github.com/tpolecat/skunk')});</script>
 
 
 </html>
