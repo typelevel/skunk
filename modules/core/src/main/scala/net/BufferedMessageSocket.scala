@@ -10,12 +10,10 @@ import cats.effect.implicits._
 import cats.effect.std.{ Console, Queue }
 import cats.syntax.all._
 import fs2.concurrent._
-import fs2.io.Network
 import fs2.Stream
 import skunk.data._
 import skunk.net.message._
-import scala.concurrent.duration._
-import fs2.io.tcp.SocketGroup
+import fs2.io.net.SocketGroup
 
 /**
  * A `MessageSocket` that buffers incoming messages, removing and handling asynchronous back-end
@@ -76,18 +74,16 @@ trait BufferedMessageSocket[F[_]] extends MessageSocket[F] {
 
 object BufferedMessageSocket {
 
-  def apply[F[_]: Concurrent: Network: Console](
+  def apply[F[_]: Concurrent: Console](
     host:         String,
     port:         Int,
     queueSize:    Int,
     debug:        Boolean,
-    readTimeout:  FiniteDuration,
-    writeTimeout: FiniteDuration,
-    sg:           SocketGroup,
+    sg:           SocketGroup[F],
     sslOptions:   Option[SSLNegotiation.Options[F]],
   ): Resource[F, BufferedMessageSocket[F]] =
     for {
-      ms  <- MessageSocket(host, port, debug, readTimeout, writeTimeout, sg, sslOptions)
+      ms  <- MessageSocket(host, port, debug, sg, sslOptions)
       ams <- Resource.make(BufferedMessageSocket.fromMessageSocket[F](ms, queueSize))(_.terminate)
     } yield ams
 
@@ -134,7 +130,7 @@ object BufferedMessageSocket {
       xaSig <- SignallingRef[F, TransactionStatus](TransactionStatus.Idle) // initial state (ok)
       paSig <- SignallingRef[F, Map[String, String]](Map.empty)
       bkSig <- Deferred[F, BackendKeyData]
-      noTop <- Topic[F, Notification[String]](Notification(-1, Identifier.dummy, "")) // blech
+      noTop <- Topic[F, Notification[String]]
       fib   <- next(ms, xaSig, paSig, bkSig, noTop).repeat.evalMap(queue.offer).compile.drain.attempt.flatMap {
         case Left(e)  => queue.offer(NetworkError(e)) // publish the failure
         case Right(a) => a.pure[F]
@@ -149,7 +145,7 @@ object BufferedMessageSocket {
         override def backendKeyData: Deferred[F, BackendKeyData] = bkSig
 
         override def notifications(maxQueued: Int): Stream[F, Notification[String]] =
-          noTop.subscribe(maxQueued).filter(_.pid > 0) // filter out the bogus initial value
+          noTop.subscribe(maxQueued)
 
         override protected def terminate: F[Unit] =
           fib.cancel *>      // stop processing incoming messages
