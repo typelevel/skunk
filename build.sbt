@@ -1,7 +1,7 @@
 
 
 // Our Scala versions.
-lazy val `scala-2.12`     = "2.12.13"
+lazy val `scala-2.12`     = "2.13.5"
 lazy val `scala-2.13`     = "2.13.5"
 lazy val `scala-3.0-prev` = "3.0.0-M3"
 lazy val `scala-3.0-curr` = "3.0.0-RC1"
