@@ -8,7 +8,7 @@ import cats._
 import cats.effect._
 import cats.syntax.all._
 import fs2.Chunk
-import fs2.io.net.{ Network, Socket }
+import fs2.io.net.Socket
 import fs2.io.net.tls.TLSContext
 import fs2.io.net.tls.TLSParameters
 
@@ -30,7 +30,7 @@ object SSLNegotiation {
    * Negotiate SSL with Postgres, given a brand new connected `Socket` and a `TLSContext`. If SSL is
    * unavailable, fall back to the unencrypted socket if `fallbackOk`, otherwise raise an exception.
    */
-  def negotiateSSL[F[_]: Network](
+  def negotiateSSL[F[_]](
     socket:       Socket[F],
     sslOptions:   SSLNegotiation.Options[F]
   )(

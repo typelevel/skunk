@@ -14,7 +14,7 @@ import skunk.data._
 import skunk.util.{ Namer, Origin }
 import skunk.util.Typer
 import natchez.Trace
-import fs2.io.net.{ Network, SocketGroup }
+import fs2.io.net.SocketGroup
 import skunk.net.protocol.Exchange
 
 /**
@@ -183,7 +183,7 @@ object Protocol {
    * @param host  Postgres server host
    * @param port  Postgres port, default 5432
    */
-  def apply[F[_]: Concurrent: Trace: Network: Console](
+  def apply[F[_]: Concurrent: Trace: Console](
     host:         String,
     port:         Int,
     debug:        Boolean,

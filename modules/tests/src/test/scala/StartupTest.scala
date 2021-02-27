@@ -10,7 +10,6 @@ import natchez.Trace.Implicits.noop
 import skunk.exception.SkunkException
 import skunk.exception.StartupException
 import java.net.ConnectException
-import java.nio.channels.UnresolvedAddressException
 
 class StartupTest extends ffstest.FTest {
 
@@ -194,6 +193,6 @@ class StartupTest extends ffstest.FTest {
       host     = "blergh",
       user     = "bob",
       database = "nobody cares",
-    ).use(_ => IO.unit).assertFailsWith[UnresolvedAddressException]
+    ).use(_ => IO.unit).assertFailsWith[java.net.UnknownHostException]
   }
 }

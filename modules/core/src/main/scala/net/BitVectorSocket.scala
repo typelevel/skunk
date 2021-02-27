@@ -9,7 +9,7 @@ import cats.effect._
 import cats.syntax.all._
 import fs2.Chunk
 import scodec.bits.BitVector
-import fs2.io.net.{ Network, Socket, SocketGroup }
+import fs2.io.net.{ Socket, SocketGroup }
 import com.comcast.ip4s._
 
 /** A higher-level `Socket` interface defined in terms of `BitVector`. */
@@ -40,11 +40,9 @@ object BitVectorSocket {
     new BitVectorSocket[F] {
 
       def readBytes(n: Int): F[Array[Byte]] =
-        socket.readN(n).flatMap {
-          case None => ev.raiseError(new Exception("Fatal: EOF"))
-          case Some(c) =>
-            if (c.size == n) c.toArray.pure[F]
-            else ev.raiseError(new Exception(s"Fatal: Read ${c.size} bytes, expected $n."))
+        socket.readN(n).flatMap { c =>
+          if (c.size == n) c.toArray.pure[F]
+          else ev.raiseError(new Exception(s"Fatal: Read ${c.size} bytes, expected $n."))
         }
 
       override def read(nBytes: Int): F[BitVector] =
@@ -61,14 +59,14 @@ object BitVectorSocket {
    * @param port the remote port
    * @group Constructors
    */
-  def apply[F[_]: Network](
+  def apply[F[_]](
     host:         String,
     port:         Int,
     sg:           SocketGroup[F],
     sslOptions:   Option[SSLNegotiation.Options[F]],
   )(implicit ev: MonadError[F, Throwable]): Resource[F, BitVectorSocket[F]] =
     for {
-      sock  <- sg.client(SocketAddress(Hostname(host).get, Port(port).get)) // TODO
+      sock  <- sg.client(SocketAddress(Hostname.fromString(host).get, Port.fromInt(port).get)) // TODO
       sockʹ <- sslOptions.fold(sock.pure[Resource[F, *]])(SSLNegotiation.negotiateSSL(sock, _))
     } yield fromSocket(sockʹ)
 

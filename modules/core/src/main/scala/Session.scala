@@ -289,7 +289,7 @@ object Session {
       ssl          = ssl,
     ).flatten
 
-  def fromSocketGroup[F[_]: Concurrent: Trace: Network: Console](
+  def fromSocketGroup[F[_]: Concurrent: Trace: Console](
     socketGroup:  SocketGroup[F],
     host:         String,
     port:         Int            = 5432,
@@ -396,7 +396,7 @@ object Session {
      * Transform this `Session` by a given `FunctionK`.
      * @group Transformations
      */
-    def mapK[G[_]: MonadCancelThrow: Defer](fk: F ~> G)(
+    def mapK[G[_]: MonadCancelThrow](fk: F ~> G)(
       implicit mcf: MonadCancel[F, _]
     ): Session[G] =
       new Session[G] {
