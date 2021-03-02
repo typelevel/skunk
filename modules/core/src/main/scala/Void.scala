@@ -31,7 +31,6 @@ case object Void extends Void {
         }
       override val types: List[Type] = Nil
       override val sql: State[Int, String]   = "".pure[State[Int, *]]
-      override def toString: String = "Codec(void)"
     }
 
 }

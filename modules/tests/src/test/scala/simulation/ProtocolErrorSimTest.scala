@@ -19,7 +19,7 @@ class ProtocolErrorSimTest extends SimTest {
 
   val sim: Simulator =
     flatExpect {
-      case StartupMessage(_, _, _) =>
+      case StartupMessage(_, _) =>
         send(AuthenticationOk)                      *>
         send(ReadyForQuery(TransactionStatus.Idle)) *>
         flatExpect {

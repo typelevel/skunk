@@ -20,7 +20,7 @@ A *query* is a SQL statement that can return rows.
 
 First let's look at a query that selects a single column and decodes rows as Scala strings.
 
-```scala mdoc
+```scala mdoc:silent
 val a: Query[Void, String] =
   sql"SELECT name FROM country".query(varchar)
 ```
@@ -60,7 +60,7 @@ s.execute(a) // IO[List[String]]
 
 Our next example selects two columns.
 
-```scala mdoc
+```scala mdoc:silent
 val b: Query[Void, String ~ Int] =
   sql"SELECT name, population FROM country".query(varchar ~ int4)
 ```
@@ -71,7 +71,7 @@ Observe that the argument to `query` is a pair of decoders conjoined with the `~
 
 Decoding into a twiddle list (i.e., nested pairs) isn't ideal, so let's define a `Country` data type. We can then call `map` on our query to adapt the row type.
 
-```scala mdoc
+```scala mdoc:silent
 case class Country(name: String, population: Int)
 
 val c: Query[Void, Country] =
@@ -91,7 +91,7 @@ So that is one way to do it.
 
 A more reusable way to do this is to define a `Decoder[Country]` based on the `varchar ~ int4` decoder. We can then decode directly into our `Country` data type.
 
-```scala mdoc
+```scala mdoc:silent
 val country: Decoder[Country] =
   (varchar ~ int4).map { case (n, p) => Country(n, p) }     // (1)
 
@@ -112,14 +112,14 @@ Because decoders are structural (i.e., they rely only on the position of column 
 
 Because `Country` is a simple case class we can generate the mapping code mechanically. To do this, use `gmap` and specify the target data type.
 
-```scala mdoc
+```scala mdoc:silent
 val country2: Decoder[Country] =
   (varchar ~ int4).gmap[Country]
 ```
 
 Even better, instead of constructing a named decoder you can `gmap` the `Query` itself.
 
-```scala mdoc
+```scala mdoc:silent
 val c2: Query[Void, Country] =
   sql"SELECT name, population FROM country"
     .query(varchar ~ int4)
@@ -130,7 +130,7 @@ val c2: Query[Void, Country] =
 
 Now let's add a parameter to the query.
 
-```scala mdoc
+```scala mdoc:silent
 val e: Query[String, Country] =
   sql"""
     SELECT name, population
@@ -199,7 +199,7 @@ This program does the same thing, but perhaps in a more convenient style.
 
 Multiple parameters work analogously to multiple columns.
 
-```scala mdoc
+```scala mdoc:silent
 val f: Query[String ~ Int, Country] =
   sql"""
     SELECT name, population

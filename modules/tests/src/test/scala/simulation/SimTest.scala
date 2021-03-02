@@ -6,16 +6,22 @@ package tests
 package simulation
 
 import cats.effect._
-import ffstest.FTest
-import fs2.concurrent.Signal
-import natchez.Trace.Implicits.noop
+import skunk.net.Protocol
 import skunk.Session
-import skunk.util.{ Namer, Origin }
-import skunk.util.Typer
-import skunk.net.{ BufferedMessageSocket, Protocol, MessageSocket }
-import skunk.data.{ Notification, TransactionStatus }
-import skunk.net.message.{ BackendMessage, BackendKeyData, FrontendMessage }
-
+import skunk.util.Namer
+import skunk.util.Typer.Strategy
+import ffstest.FTest
+import natchez.Trace.Implicits.noop
+import skunk.net.BufferedMessageSocket
+import skunk.net.message.BackendMessage
+import skunk.net.message.FrontendMessage
+import skunk.util.Origin
+import fs2.concurrent.Signal
+import skunk.data.TransactionStatus
+import cats.effect.Deferred
+import skunk.data.Notification
+import skunk.net.message.BackendKeyData
+import skunk.net.MessageSocket
 
 trait SimTest extends FTest with SimMessageSocket.DSL {
 
@@ -37,8 +43,8 @@ trait SimTest extends FTest with SimMessageSocket.DSL {
       bms <- SimMessageSocket(sim).map(new SimulatedBufferedMessageSocket(_))
       nam <- Namer[IO]
       pro <- Protocol.fromMessageSocket(bms, nam)
-      _   <- pro.startup(user, database, password, Session.DefaultConnectionParameters)
-      ses <- Session.fromProtocol(pro, nam, Typer.Strategy.BuiltinsOnly)
+      _   <- pro.startup(user, database, password)
+      ses <- Session.fromProtocol(pro, nam, Strategy.BuiltinsOnly)
     } yield ses
 
   def simTest[A](name: String, sim: Simulator, user: String = "Bob", database: String = "db", password: Option[String] = None)(f: Session[IO] => IO[A]): Unit =

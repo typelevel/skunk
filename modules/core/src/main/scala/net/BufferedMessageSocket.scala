@@ -126,7 +126,6 @@ object BufferedMessageSocket {
     queueSize: Int
   ): F[BufferedMessageSocket[F]] =
     for {
-      term  <- Ref[F].of[Option[Throwable]](None) // terminal error
       queue <- Queue.bounded[F, BackendMessage](queueSize)
       xaSig <- SignallingRef[F, TransactionStatus](TransactionStatus.Idle) // initial state (ok)
       paSig <- SignallingRef[F, Map[String, String]](Map.empty)
@@ -139,23 +138,8 @@ object BufferedMessageSocket {
     } yield
       new AbstractMessageSocket[F] with BufferedMessageSocket[F] {
 
-        // n.b. there is a race condition here, prevented by the protocol semaphore
-        override def receive: F[BackendMessage] =
-          term.get.flatMap {
-            case Some(t) => Concurrent[F].raiseError(t)
-            case None    =>
-              queue.take.flatMap {
-                case e: NetworkError => term.set(Some(e.cause)) *> receive
-                case m               => m.pure[F]
-              }
-          }
-
-        override def send(message: FrontendMessage): F[Unit] =
-          term.get.flatMap {
-            case Some(t) => Concurrent[F].raiseError(t)
-            case None    => ms.send(message)
-          }
-
+        override def receive: F[BackendMessage] = queue.take
+        override def send(message: FrontendMessage): F[Unit] = ms.send(message)
         override def transactionStatus: SignallingRef[F, TransactionStatus] = xaSig
         override def parameters: SignallingRef[F, Map[String, String]] = paSig
         override def backendKeyData: Deferred[F, BackendKeyData] = bkSig
@@ -165,17 +149,14 @@ object BufferedMessageSocket {
 
         override protected def terminate: F[Unit] =
           fib.cancel *>      // stop processing incoming messages
-          send(Terminate) // server will close the socket when it sees this
+          ms.send(Terminate) // server will close the socket when it sees this
 
         override def history(max: Int): F[List[Either[Any, Any]]] =
           ms.history(max)
 
       }
 
-  // A poison pill that we place in the message queue to indicate that we're in a fatal error
-  // condition, message processing has stopped, and any further attempts to send or receive should
-  // result in `cause` being raised.
-  private case class NetworkError(cause: Throwable) extends BackendMessage
+  case class NetworkError(cause: Throwable) extends BackendMessage
 
 }
 

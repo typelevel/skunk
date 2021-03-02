@@ -55,8 +55,6 @@ object MessageSocket {
             val (tag, len) = header.decodeValue(bits).require
             val decoder    = BackendMessage.decoder(tag)
             bvs.read(len - 4).map(decoder.decodeValue(_).require)
-          } .onError {
-            case t => Console[F].println(s" ← ${AnsiColor.RED}${t.getMessage}${AnsiColor.RESET}").whenA(debug)
           }
         }
 
