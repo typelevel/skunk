@@ -31,7 +31,7 @@ object SSLNegotiation {
    * Negotiate SSL with Postgres, given a brand new connected `Socket` and a `TLSContext`. If SSL is
    * unavailable, fall back to the unencrypted socket if `fallbackOk`, otherwise raise an exception.
    */
-  def negotiateSSL[F[_]: Sync: Concurrent: ContextShift](
+  def negotiateSSL[F[_]: Concurrent: ContextShift](
     socket:       Socket[F],
     readTimeout:  FiniteDuration,
     writeTimeout: FiniteDuration,

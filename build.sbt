@@ -1,13 +1,13 @@
 
 
 // Our Scala versions.
-lazy val `scala-2.12`     = "2.12.12"
-lazy val `scala-2.13`     = "2.13.4"
-lazy val `scala-3.0-prev` = "3.0.0-M2"
-lazy val `scala-3.0-curr` = "3.0.0-M3"
+lazy val `scala-2.12`     = "2.12.13"
+lazy val `scala-2.13`     = "2.13.5"
+lazy val `scala-3.0-prev` = "3.0.0-M3"
+lazy val `scala-3.0-curr` = "3.0.0-RC1"
 
 // This is used in a couple places
-lazy val fs2Version = "2.5.0"
+lazy val fs2Version = "2.5.3"
 
 // Global Settings
 lazy val commonSettings = Seq(
@@ -103,19 +103,19 @@ lazy val core = project
     description := "Tagless, non-blocking data access library for Postgres.",
     resolvers   +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     libraryDependencies ++= Seq(
-      "org.typelevel"    %% "cats-core"    % "2.3.1",
-      "org.typelevel"    %% "cats-effect"  % "2.3.1",
+      "org.typelevel"    %% "cats-core"    % "2.4.2",
+      "org.typelevel"    %% "cats-effect"  % "2.3.3",
       "co.fs2"           %% "fs2-core"     % fs2Version,
       "co.fs2"           %% "fs2-io"       % fs2Version,
-      "org.scodec"       %% "scodec-core"  % (if (scalaVersion.value == "3.0.0-M2") "2.0.0-M2" else if (scalaVersion.value == "3.0.0-M3") "2.0.0-M3" else "1.11.7"),
-      "org.scodec"       %% "scodec-cats"  % (if (scalaVersion.value == "3.0.0-M2") "1.1.0-M3" else "1.1.0-M4"),
-      "org.tpolecat"     %% "natchez-core" % "0.0.18",
-      "org.tpolecat"     %% "sourcepos"    % "0.1.0",
+      "org.scodec"       %% "scodec-core"  % (if (isDotty.value) "2.0.0-RC1" else "1.11.7"),
+      "org.scodec"       %% "scodec-cats"  % "1.1.0-RC1",
+      "org.tpolecat"     %% "natchez-core" % "0.0.20",
+      "org.tpolecat"     %% "sourcepos"    % "0.1.1",
       "com.ongres.scram"  % "client"       % "2.1",
     ) ++ Seq(
       "com.beachape"  %% "enumeratum"   % "1.6.1",
     ).map(_.withDottyCompat(scalaVersion.value)) ++ Seq(
-      "org.scala-lang.modules" %% "scala-collection-compat" % (if (scalaVersion.value == "3.0.0-M2") "2.3.1" else "2.3.2"),
+      "org.scala-lang.modules" %% "scala-collection-compat" % "2.4.2",
     )
   )
 
@@ -126,7 +126,7 @@ lazy val refined = project
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "eu.timepit" %% "refined" % "0.9.19",
+      "eu.timepit" %% "refined" % "0.9.21",
     ).map(_.withDottyCompat(scalaVersion.value))
   )
 
@@ -152,11 +152,11 @@ lazy val tests = project
     publish / skip := true,
     scalacOptions  -= "-Xfatal-warnings",
     libraryDependencies ++= Seq(
-      "org.typelevel"     %% "scalacheck-effect-munit" % "0.7.0",
-      "org.typelevel"     %% "munit-cats-effect-2"     % "0.12.0",
-      "org.typelevel"     %% "cats-free"               % "2.3.1",
-      "org.typelevel"     %% "cats-laws"               % "2.3.1",
-      "org.typelevel"     %% "discipline-munit"        % "1.0.5",
+      "org.typelevel"     %% "scalacheck-effect-munit" % "0.7.1",
+      "org.typelevel"     %% "munit-cats-effect-2"     % "0.13.1",
+      "org.typelevel"     %% "cats-free"               % "2.4.2",
+      "org.typelevel"     %% "cats-laws"               % "2.4.2",
+      "org.typelevel"     %% "discipline-munit"        % "1.0.6",
     ) ++ Seq(
       "io.chrisdavenport" %% "cats-time"               % "0.3.4",
     ).filterNot(_ => isDotty.value),
@@ -171,12 +171,12 @@ lazy val example = project
   .settings(
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.18",
-      "org.tpolecat"  %% "natchez-jaeger"      % "0.0.18",
+      "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.20",
+      "org.tpolecat"  %% "natchez-jaeger"      % "0.0.20",
     ) ++ Seq(
-      "org.http4s"    %% "http4s-dsl"          % "0.21.16",
-      "org.http4s"    %% "http4s-blaze-server" % "0.21.16",
-      "org.http4s"    %% "http4s-circe"        % "0.21.16",
+      "org.http4s"    %% "http4s-dsl"          % "0.21.20",
+      "org.http4s"    %% "http4s-blaze-server" % "0.21.20",
+      "org.http4s"    %% "http4s-circe"        % "0.21.20",
       "io.circe"      %% "circe-generic"       % "0.13.0",
     ).filterNot(_ => isDotty.value)
   )
