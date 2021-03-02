@@ -10,9 +10,9 @@ import cats.effect.Resource
 import cats.syntax.all._
 import scala.concurrent.duration._
 import skunk.util.Pool
-import cats.effect.concurrent.Ref
+import cats.effect.Ref
 import skunk.util.Pool.ResourceLeak
-import cats.effect.concurrent.Deferred
+import cats.effect.Deferred
 import scala.util.Random
 import skunk.util.Pool.ShutdownException
 import natchez.Trace.Implicits.noop
@@ -47,42 +47,40 @@ class PoolTest extends FTest {
   test("error in alloc is rethrown to caller (immediate)") {
     val rsrc = Resource.make(IO.raiseError[String](AllocFailure()))(_ => IO.unit)
     val pool = Pool.of(rsrc, 42)(Recycler.success)
-    pool.use(_.use(_ => IO.unit)).assertFailsWith[AllocFailure].void
+    pool.use(_.use(_ => IO.unit)).assertFailsWith[AllocFailure]
   }
 
-  // TODO: fix this! it fails randomly in CI, possibly a bug, possibly a problem with the tests
-  // test("error in alloc is rethrown to caller (deferral completion following errored cleanup)") {
-  //   resourceYielding(IO(1), IO.raiseError(AllocFailure())).flatMap { r =>
-  //     val p = Pool.of(r, 1)(Recycler[IO, Int](_ => IO.raiseError(ResetFailure())))
-  //     p.use { r =>
-  //       for {
-  //         d  <- Deferred[IO, Unit]
-  //         f1 <- r.use(n => assertEqual("n should be 1", n, 1) *> d.get).assertFailsWith[ResetFailure].start
-  //         f2 <- r.use(_ => fail[Int]("should never get here")).assertFailsWith[AllocFailure].start
-  //         _  <- d.complete(())
-  //         _  <- f1.join
-  //         _  <- f2.join
-  //       } yield ()
-  //     }
-  //   }
-  // }
+  test("error in alloc is rethrown to caller (deferral completion following errored cleanup)") {
+    resourceYielding(IO(1), IO.raiseError(AllocFailure())).flatMap { r =>
+      val p = Pool.of(r, 1)(Recycler[IO, Int](_ => IO.raiseError(ResetFailure())))
+      p.use { r =>
+        for {
+          d  <- Deferred[IO, Unit]
+          f1 <- r.use(n => assertEqual("n should be 1", n, 1) *> d.get).assertFailsWith[ResetFailure].start
+          f2 <- r.use(_ => fail[Int]("should never get here")).assertFailsWith[AllocFailure].start
+          _  <- d.complete(())
+          _  <- f1.join
+          _  <- f2.join
+        } yield ()
+      }
+    }
+  }
 
-  // TODO: fix this! it fails randomly in CI, possibly a bug, possibly a problem with the tests
-  // test("error in alloc is rethrown to caller (deferral completion following failed cleanup)") {
-  //   resourceYielding(IO(1), IO.raiseError(AllocFailure())).flatMap { r =>
-  //     val p = Pool.of(r, 1)(Recycler.failure)
-  //     p.use { r =>
-  //       for {
-  //         d  <- Deferred[IO, Unit]
-  //         f1 <- r.use(n => assertEqual("n should be 1", n, 1) *> d.get).start
-  //         f2 <- r.use(_ => fail[Int]("should never get here")).assertFailsWith[AllocFailure].start
-  //         _  <- d.complete(())
-  //         _  <- f1.join
-  //         _  <- f2.join
-  //       } yield ()
-  //     }
-  //   }
-  // }
+  test("error in alloc is rethrown to caller (deferral completion following failed cleanup)") {
+    resourceYielding(IO(1), IO.raiseError(AllocFailure())).flatMap { r =>
+      val p = Pool.of(r, 1)(Recycler.failure)
+      p.use { r =>
+        for {
+          d  <- Deferred[IO, Unit]
+          f1 <- r.use(n => assertEqual("n should be 1", n, 1) *> d.get).start
+          f2 <- r.use(_ => fail[Int]("should never get here")).assertFailsWith[AllocFailure].start
+          _  <- d.complete(())
+          _  <- f1.join
+          _  <- f2.join
+        } yield ()
+      }
+    }
+  }
 
   test("provoke dangling deferral cancellation") {
     ints.flatMap { r =>

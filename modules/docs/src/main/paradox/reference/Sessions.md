@@ -1,8 +1,6 @@
 ```scala mdoc:invisible
 import cats.effect._, skunk._, skunk.net.message.StartupMessage
-implicit def dummyContextTrace: ContextShift[IO] = ???
 implicit def dummyTrace: natchez.Trace[IO] = ???
-implicit def dummyTimer: Timer[IO] = ???
 ```
 
 # Sessions

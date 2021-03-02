@@ -17,10 +17,12 @@ import natchez.jaeger.Jaeger
 import natchez.EntryPoint
 import io.jaegertracing.Configuration.SamplerConfiguration
 import io.jaegertracing.Configuration.ReporterConfiguration
+import fs2.io.net.Network
+import cats.effect.std.Console
 
 object Minimal2 extends IOApp {
 
-  def session[F[_]: Concurrent: ContextShift: Trace]: Resource[F, Session[F]] =
+  def session[F[_]: Async: Trace: Network: Console]: Resource[F, Session[F]] =
     Session.single(
       host     = "localhost",
       port     = 5432,
@@ -40,7 +42,7 @@ object Minimal2 extends IOApp {
     """.query(bpchar(3) ~ varchar ~ int4)
        .gmap[Country]
 
-  def lookup[F[_]: Sync: Trace](pat: String, s: Session[F]): F[Unit] =
+  def lookup[F[_]: Async: Trace](pat: String, s: Session[F]): F[Unit] =
     Trace[F].span("lookup") {
       Trace[F].put("pattern" -> pat) *>
       s.prepare(select).use { pq =>
@@ -51,7 +53,7 @@ object Minimal2 extends IOApp {
       }
     }
 
-  def runF[F[_]: Concurrent: ContextShift: Trace: Parallel]: F[ExitCode] =
+  def runF[F[_]: Async: Trace: Parallel: Console]: F[ExitCode] =
     session.use { s =>
       List("A%", "B%").parTraverse(p => lookup(p, s))
     } as ExitCode.Success

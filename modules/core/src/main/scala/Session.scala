@@ -6,13 +6,13 @@ package skunk
 
 import cats._
 import cats.effect._
+import cats.effect.std.Console
 import cats.syntax.all._
 import fs2.concurrent.Signal
-import fs2.io.tcp.SocketGroup
+import fs2.io.net.{ Network, SocketGroup }
 import fs2.Pipe
 import fs2.Stream
 import natchez.Trace
-import scala.concurrent.duration._
 import skunk.codec.all.bool
 import skunk.data._
 import skunk.net.Protocol
@@ -143,8 +143,7 @@ trait Session[F[_]] {
    * Transform a `Command` into a `Pipe` from inputs to `Completion`s.
    * @group Commands
    */
-  def pipe[A](command: Command[A]): Pipe[F, A, Completion] = fa =>
-    Stream.resource(prepare(command)).flatMap(pc => fa.evalMap(pc.execute)).scope
+  def pipe[A](command: Command[A]): Pipe[F, A, Completion]
 
   /**
    * A named asynchronous channel that can be used for inter-process communication.
@@ -242,12 +241,10 @@ object Session {
    * @param database      Postgres database
    * @param max           Maximum concurrent sessions
    * @param debug
-   * @param readTimeout
-   * @param writeTimeout
    * @param strategy
    * @group Constructors
    */
-  def pooled[F[_]: Concurrent: ContextShift: Trace](
+  def pooled[F[_]: Concurrent: Trace: Network: Console](
     host:         String,
     port:         Int            = 5432,
     user:         String,
@@ -255,23 +252,19 @@ object Session {
     password:     Option[String] = none,
     max:          Int,
     debug:        Boolean        = false,
-    readTimeout:  FiniteDuration = Int.MaxValue.seconds,
-    writeTimeout: FiniteDuration = 5.seconds,
     strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly,
     ssl:          SSL            = SSL.None,
     parameters: Map[String, String] = Session.DefaultConnectionParameters
   ): Resource[F, Resource[F, Session[F]]] = {
 
-    def session(socketGroup:  SocketGroup, sslOp: Option[SSLNegotiation.Options[F]]): Resource[F, Session[F]] =
-      fromSocketGroup[F](socketGroup, host, port, user, database, password, debug, readTimeout, writeTimeout, strategy, sslOp, parameters)
+    def session(socketGroup: SocketGroup[F], sslOp: Option[SSLNegotiation.Options[F]]): Resource[F, Session[F]] =
+      fromSocketGroup[F](socketGroup, host, port, user, database, password, debug, strategy, sslOp, parameters)
 
-    val logger: String => F[Unit] = s => Sync[F].delay(println(s"TLS: $s"))
+    val logger: String => F[Unit] = s => Console[F].println(s"TLS: $s")
 
     for {
-      blocker <- Blocker[F]
-      sockGrp <- SocketGroup[F](blocker)
-      sslOp   <- Resource.liftF(ssl.toSSLNegotiationOptions(blocker, if (debug) logger.some else none))
-      pool    <- Pool.of(session(sockGrp, sslOp), max)(Recyclers.full)
+      sslOp   <- Resource.eval(ssl.toSSLNegotiationOptions(if (debug) logger.some else none))
+      pool    <- Pool.of(session(Network[F], sslOp), max)(Recyclers.full)
     } yield pool
 
   }
@@ -282,15 +275,13 @@ object Session {
    * single-session pool. This method is shorthand for `Session.pooled(..., max = 1, ...).flatten`.
    * @see pooled
    */
-  def single[F[_]: Concurrent: ContextShift: Trace](
+  def single[F[_]: Concurrent: Trace: Network: Console](
     host:         String,
     port:         Int            = 5432,
     user:         String,
     database:     String,
     password:     Option[String] = none,
     debug:        Boolean        = false,
-    readTimeout:  FiniteDuration = Int.MaxValue.seconds,
-    writeTimeout: FiniteDuration = 5.seconds,
     strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly,
     ssl:          SSL            = SSL.None,
     parameters: Map[String, String] = Session.DefaultConnectionParameters
@@ -303,33 +294,28 @@ object Session {
       password     = password,
       max          = 1,
       debug        = debug,
-      readTimeout  = readTimeout,
-      writeTimeout = writeTimeout,
       strategy     = strategy,
       ssl          = ssl,
       parameters = parameters
     ).flatten
 
-
-  def fromSocketGroup[F[_]: Concurrent: ContextShift: Trace](
-    socketGroup:  SocketGroup,
+  def fromSocketGroup[F[_]: Concurrent: Trace: Console](
+    socketGroup:  SocketGroup[F],
     host:         String,
     port:         Int            = 5432,
     user:         String,
     database:     String,
     password:     Option[String] = none,
     debug:        Boolean        = false,
-    readTimeout:  FiniteDuration = Int.MaxValue.seconds,
-    writeTimeout: FiniteDuration = 5.seconds,
     strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly,
     sslOptions:   Option[SSLNegotiation.Options[F]],
     parameters: Map[String, String]
   ): Resource[F, Session[F]] =
     for {
-      namer <- Resource.liftF(Namer[F])
-      proto <- Protocol[F](host, port, debug, namer, readTimeout, writeTimeout, socketGroup, sslOptions)
-      _     <- Resource.liftF(proto.startup(user, database, password, parameters))
-      sess  <- Resource.liftF(fromProtocol(proto, namer, strategy))
+      namer <- Resource.eval(Namer[F])
+      proto <- Protocol[F](host, port, debug, namer, socketGroup, sslOptions)
+      _     <- Resource.eval(proto.startup(user, database, password, parameters))
+      sess  <- Resource.eval(fromProtocol(proto, namer, strategy))
     } yield sess
 
   /**
@@ -337,11 +323,11 @@ object Session {
    * started up.
    * @group Constructors
    */
-  def fromProtocol[F[_]: Sync](
+  def fromProtocol[F[_]](
     proto:    Protocol[F],
     namer:    Namer[F],
     strategy: Typer.Strategy
-  ): F[Session[F]] = {
+  )(implicit ev: MonadCancel[F, Throwable]): F[Session[F]] = {
 
     val ft: F[Typer] =
       strategy match {
@@ -372,18 +358,21 @@ object Session {
         override def execute[A](query: Query[Void, A]): F[List[A]] =
           proto.execute(query, typer)
 
+        override def pipe[A](command: Command[A]): Pipe[F, A, Completion] = fa =>
+          Stream.resource(prepare(command)).flatMap(pc => fa.evalMap(pc.execute)).scope
+
         override def unique[A](query: Query[Void, A]): F[A] =
           execute(query).flatMap {
             case a :: Nil => a.pure[F]
-            case Nil      => Sync[F].raiseError(new RuntimeException("Expected exactly one row, none returned."))
-            case _        => Sync[F].raiseError(new RuntimeException("Expected exactly one row, more returned."))
+            case Nil      => ev.raiseError(new RuntimeException("Expected exactly one row, none returned."))
+            case _        => ev.raiseError(new RuntimeException("Expected exactly one row, more returned."))
           }
 
         override def option[A](query: Query[Void, A]): F[Option[A]] =
           execute(query).flatMap {
             case a :: Nil => a.some.pure[F]
             case Nil      => none[A].pure[F]
-            case _        => Sync[F].raiseError(new RuntimeException("Expected at most one row, more returned."))
+            case _        => ev.raiseError(new RuntimeException("Expected at most one row, more returned."))
           }
 
         override def prepare[A, B](query: Query[A, B]): Resource[F, PreparedQuery[F, A, B]] =
@@ -418,7 +407,9 @@ object Session {
      * Transform this `Session` by a given `FunctionK`.
      * @group Transformations
      */
-    def mapK[G[_]: Applicative: Defer](fk: F ~> G): Session[G] =
+    def mapK[G[_]: MonadCancelThrow](fk: F ~> G)(
+      implicit mcf: MonadCancel[F, _]
+    ): Session[G] =
       new Session[G] {
 
         override val typer: Typer = outer.typer
@@ -428,6 +419,9 @@ object Session {
         override def execute(command: Command[Void]): G[Completion] = fk(outer.execute(command))
 
         override def execute[A](query: Query[Void,A]): G[List[A]] = fk(outer.execute(query))
+
+        override def pipe[A](command: Command[A]): Pipe[G, A, Completion] = fa =>
+          Stream.resource(prepare(command)).flatMap(pc => fa.evalMap(pc.execute)).scope
 
         override def option[A](query: Query[Void,A]): G[Option[A]] = fk(outer.option(query))
 

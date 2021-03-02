@@ -5,16 +5,16 @@
 package skunk.net
 
 import cats.syntax.all._
-import cats.effect.{ Concurrent, ContextShift, Resource }
+import cats.effect.{ Concurrent, Resource }
+import cats.effect.std.Console
 import fs2.concurrent.Signal
 import fs2.Stream
 import skunk.{ Command, Query, Statement, ~, Void }
 import skunk.data._
 import skunk.util.{ Namer, Origin }
-import scala.concurrent.duration.FiniteDuration
 import skunk.util.Typer
 import natchez.Trace
-import fs2.io.tcp.SocketGroup
+import fs2.io.net.SocketGroup
 import skunk.net.protocol.Exchange
 
 /**
@@ -183,19 +183,17 @@ object Protocol {
    * @param host  Postgres server host
    * @param port  Postgres port, default 5432
    */
-  def apply[F[_]: Concurrent: ContextShift: Trace](
+  def apply[F[_]: Concurrent: Trace: Console](
     host:         String,
     port:         Int,
     debug:        Boolean,
     nam:          Namer[F],
-    readTimeout:  FiniteDuration,
-    writeTimeout: FiniteDuration,
-    sg:           SocketGroup,
-    sslOptions:   Option[SSLNegotiation.Options[F]]
+    sg:           SocketGroup[F],
+    sslOptions:   Option[SSLNegotiation.Options[F]],
   ): Resource[F, Protocol[F]] =
     for {
-      bms <- BufferedMessageSocket[F](host, port, 256, debug, readTimeout, writeTimeout, sg, sslOptions) // TODO: should we expose the queue size?
-      p   <- Resource.liftF(fromMessageSocket(bms, nam))
+      bms <- BufferedMessageSocket[F](host, port, 256, debug, sg, sslOptions) // TODO: should we expose the queue size?
+      p   <- Resource.eval(fromMessageSocket(bms, nam))
     } yield p
 
   def fromMessageSocket[F[_]: Concurrent: Trace](

@@ -30,7 +30,7 @@ object Error extends IOApp {
       AND    population  < $int4
     """.query(varchar ~ int4)
 
-  def prog[F[_]: Sync](s: Session[F]): F[ExitCode] =
+  def prog[F[_]](s: Session[F])(implicit ev: MonadCancel[F, Throwable]): F[ExitCode] =
     s.prepare(query).use(_.unique("foo" ~ 1000000)).as(ExitCode.Success)
 
   def run(args: List[String]): IO[ExitCode] =

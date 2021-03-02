@@ -10,7 +10,7 @@ import skunk.codec.all._
 import skunk.implicits._
 import tests.SkunkTest
 import cats.effect._
-import cats.effect.concurrent.Deferred
+import cats.effect.Deferred
 
 // https://github.com/tpolecat/skunk/issues/210
 class Test210 extends SkunkTest {
@@ -73,7 +73,7 @@ class Test210 extends SkunkTest {
       _     <- ready.get // wait for forked fiber to say it's ready
       _     <- check.guarantee {
                  // ensure the fork is cleaned up so our table gets deleted
-                 done.complete(()) *> fib.join
+                 done.complete(()) *> fib.join.void
                }
     } yield "ok"
   }

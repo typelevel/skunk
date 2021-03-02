@@ -94,7 +94,12 @@ There is an alternative way to switch to a non-default isolation level and acces
 Here is a complete program listing that demonstrates our knowledge thus far.
 
 ```scala mdoc:reset
+// Copyright (c) 2018-2020 by Rob Norris
+// This software is licensed under the MIT License (MIT).
+// For more information see LICENSE or https://opensource.org/licenses/MIT
+
 import cats.effect._
+import cats.effect.std.Console
 import cats.implicits._
 import natchez.Trace.Implicits.noop
 import skunk._
@@ -126,29 +131,29 @@ object PetService {
       .gmap[Pet]
 
   // construct a PetService, preparing our statement once on construction
-  def fromSession[F[_]: Sync](s: Session[F]): Resource[F, PetService[F]] =
+  def fromSession(s: Session[IO]): Resource[IO, PetService[IO]] =
     s.prepare(insertOne).map { pc =>
-      new PetService[F] {
+      new PetService[IO] {
 
         // Attempt to insert all pets, in a single transaction, handling each in turn and rolling
         // back to a savepoint if a unique violation is encountered. Note that a bulk insert with an
         // ON CONFLICT clause would be much more efficient, this is just for demonstration.
-        def tryInsertAll(pets: List[Pet]): F[Unit] =
+        def tryInsertAll(pets: List[Pet]): IO[Unit] =
           s.transaction.use { xa =>
             pets.traverse_ { p =>
               for {
-                _  <- Sync[F].delay(println(s"Trying to insert $p"))
+                _  <- IO.println(s"Trying to insert $p")
                 sp <- xa.savepoint
                 _  <- pc.execute(p).recoverWith {
                         case SqlState.UniqueViolation(ex) =>
-                          Sync[F].delay(println(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...")) *>
+                         IO.println(s"Unique violation: ${ex.constraintName.getOrElse("<unknown>")}, rolling back...") *>
                           xa.rollback(sp)
                       }
               } yield ()
             }
           }
 
-        def selectAll: F[List[Pet]] = s.execute(all)
+        def selectAll: IO[List[Pet]] = s.execute(all)
       }
     }
 
@@ -174,11 +179,11 @@ object TransactionExample extends IOApp {
 
   // We can monitor the changing transaction status by tapping into the provided `fs2.Signal`
   def withTransactionStatusLogger[A](ss: Session[IO]): Resource[IO, Unit] = {
-    val alloc: IO[Fiber[IO, Unit]] =
+    val alloc: IO[Fiber[IO, Throwable, Unit]] =
       ss.transactionStatus
         .discrete
         .changes
-        .evalMap(s => IO(println(s"xa status: $s")))
+        .evalMap(s => IO.println(s"xa status: $s"))
         .compile
         .drain
         .start
@@ -208,7 +213,7 @@ object TransactionExample extends IOApp {
       for {
         _   <- ps.tryInsertAll(pets)
         all <- ps.selectAll
-        _   <- all.traverse_(p => IO(println(p)))
+        _   <- all.traverse_(p => IO.println(p))
       } yield ExitCode.Success
     }
 
@@ -219,7 +224,8 @@ Running this program yields the following.
 
 ```scala mdoc:passthrough
 println("```")
-TransactionExample.main(Array.empty)
+import skunk.mdoc._
+TransactionExample.run(Nil).unsafeRunSyncWithRedirect()
 println("```")
 ```
 

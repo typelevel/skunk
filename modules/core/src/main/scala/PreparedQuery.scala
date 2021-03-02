@@ -58,7 +58,7 @@ trait PreparedQuery[F[_], A, B] {
 object PreparedQuery {
 
   def fromProto[F[_], A, B](proto: Protocol.PreparedQuery[F, A, B])(
-    implicit ev: Bracket[F, Throwable]
+    implicit ev: MonadCancel[F, Throwable]
   ): PreparedQuery[F, A, B] =
     new PreparedQuery[F, A, B] {
 
@@ -180,13 +180,17 @@ object PreparedQuery {
       override def rmap[A, B, C](fab: PreparedQuery[F, A, B])(f: B => C): PreparedQuery[F, A, C] = fab.map(f)
     }
 
-  implicit class PreparedQueryOps[F[_], A, B](outer: PreparedQuery[F, A, B]) {
+  implicit class PreparedQueryOps[F[_], A, B](outer: PreparedQuery[F, A, B])(
+    implicit mcf: MonadCancel[F, _]
+  ) {
 
     /**
      * Transform this `PreparedQuery` by a given `FunctionK`.
      * @group Transformations
      */
-    def mapK[G[_]: Applicative: Defer](fk: F ~> G): PreparedQuery[G, A, B] =
+    def mapK[G[_]](fk: F ~> G)(
+       implicit mcg: MonadCancel[G, _]
+    ): PreparedQuery[G, A, B] =
       new PreparedQuery[G, A, B] {
         override def cursor(args: A)(implicit or: Origin): Resource[G,Cursor[G,B]] = outer.cursor(args).mapK(fk).map(_.mapK(fk))
         override def option(args: A)(implicit or: Origin): G[Option[B]] = fk(outer.option(args))

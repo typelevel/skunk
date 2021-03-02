@@ -78,7 +78,7 @@ class SslTest extends ffstest.FTest {
 
   test("SSL.None cannot produce an SSLContext") {
     for {
-      ex <- SSL.None.tlsContext[IO](null.asInstanceOf[Blocker]).assertFailsWith[Exception]
+      ex <- SSL.None.tlsContext[IO].assertFailsWith[Exception]
       _  <- assertEqual("failure message", ex.getMessage, "SSL.None: cannot create a TLSContext.")
     } yield "ok"
   }

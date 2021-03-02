@@ -52,7 +52,7 @@ object Main extends IOApp {
   def clientEncodingChanged(enc: String): IO[Unit] =
     putStrLn(s">>>> CLIENT ENCODING IS NOW: $enc")
 
-  def hmm[F[_]: ConcurrentEffect](ps: PreparedQuery[F, Int ~ String, _]): F[Unit] =
+  def hmm[F[_]: Concurrent: Sync](ps: PreparedQuery[F, Int ~ String, _]): F[Unit] =
     (ps.stream(100000 ~ "%", 4).take(25) either ps.stream(10000 ~ "%", 4))
       .through(anyLinesStdOut)
       .compile

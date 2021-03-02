@@ -6,15 +6,14 @@ package skunk.net
 
 import cats._
 import cats.effect.{ Sync => _, _ }
-import cats.effect.concurrent._
 import cats.effect.implicits._
+import cats.effect.std.{ Console, Queue }
 import cats.syntax.all._
 import fs2.concurrent._
 import fs2.Stream
 import skunk.data._
 import skunk.net.message._
-import scala.concurrent.duration._
-import fs2.io.tcp.SocketGroup
+import fs2.io.net.SocketGroup
 
 /**
  * A `MessageSocket` that buffers incoming messages, removing and handling asynchronous back-end
@@ -75,18 +74,16 @@ trait BufferedMessageSocket[F[_]] extends MessageSocket[F] {
 
 object BufferedMessageSocket {
 
-  def apply[F[_]: Concurrent: ContextShift](
+  def apply[F[_]: Concurrent: Console](
     host:         String,
     port:         Int,
     queueSize:    Int,
     debug:        Boolean,
-    readTimeout:  FiniteDuration,
-    writeTimeout: FiniteDuration,
-    sg:           SocketGroup,
+    sg:           SocketGroup[F],
     sslOptions:   Option[SSLNegotiation.Options[F]],
   ): Resource[F, BufferedMessageSocket[F]] =
     for {
-      ms  <- MessageSocket(host, port, debug, readTimeout, writeTimeout, sg, sslOptions)
+      ms  <- MessageSocket(host, port, debug, sg, sslOptions)
       ams <- Resource.make(BufferedMessageSocket.fromMessageSocket[F](ms, queueSize))(_.terminate)
     } yield ams
 
@@ -112,10 +109,10 @@ object BufferedMessageSocket {
       case m @ ReadyForQuery(s)        => Stream.eval(xaSig.set(s).as(m)) // observe and then emit
 
       // These are handled here and are never seen by the higher-level API.
-      case     ParameterStatus(k, v)   => Stream.eval_(paSig.update(_ + (k -> v)))
-      case     NotificationResponse(n) => Stream.eval_(noTop.publish1(n))
+      case     ParameterStatus(k, v)   => Stream.exec(paSig.update(_ + (k -> v)))
+      case     NotificationResponse(n) => Stream.exec(noTop.publish1(n))
       case     NoticeResponse(_)       => Stream.empty // TODO -- we're throwing these away!
-      case m @ BackendKeyData(_, _)    => Stream.eval_(bkDef.complete(m))
+      case m @ BackendKeyData(_, _)    => Stream.exec(bkDef.complete(m).void)
 
       // Everything else is passed through.
       case m                           => Stream.emit(m)
@@ -134,9 +131,9 @@ object BufferedMessageSocket {
       xaSig <- SignallingRef[F, TransactionStatus](TransactionStatus.Idle) // initial state (ok)
       paSig <- SignallingRef[F, Map[String, String]](Map.empty)
       bkSig <- Deferred[F, BackendKeyData]
-      noTop <- Topic[F, Notification[String]](Notification(-1, Identifier.dummy, "")) // blech
-      fib   <- next(ms, xaSig, paSig, bkSig, noTop).repeat.through(queue.enqueue).compile.drain.attempt.flatMap {
-        case Left(e)  => queue.enqueue1(NetworkError(e)) // publish the failure
+      noTop <- Topic[F, Notification[String]]
+      fib   <- next(ms, xaSig, paSig, bkSig, noTop).repeat.evalMap(queue.offer).compile.drain.attempt.flatMap {
+        case Left(e)  => queue.offer(NetworkError(e)) // publish the failure
         case Right(a) => a.pure[F]
       } .start
     } yield
@@ -147,7 +144,7 @@ object BufferedMessageSocket {
           term.get.flatMap {
             case Some(t) => Concurrent[F].raiseError(t)
             case None    =>
-              queue.dequeue1.flatMap {
+              queue.take.flatMap {
                 case e: NetworkError => term.set(Some(e.cause)) *> receive
                 case m               => m.pure[F]
               }
@@ -164,7 +161,7 @@ object BufferedMessageSocket {
         override def backendKeyData: Deferred[F, BackendKeyData] = bkSig
 
         override def notifications(maxQueued: Int): Stream[F, Notification[String]] =
-          noTop.subscribe(maxQueued).filter(_.pid > 0) // filter out the bogus initial value
+          noTop.subscribe(maxQueued)
 
         override protected def terminate: F[Unit] =
           fib.cancel *>      // stop processing incoming messages

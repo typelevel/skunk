@@ -161,7 +161,7 @@ Here we use the extended query protocol to stream directly to the console using 
 // assume s: Session[IO]
 s.prepare(e).use { ps =>
   ps.stream("U%", 64)
-    .evalMap(c => IO(println(c)))
+    .evalMap(c => IO.println(c))
     .compile
     .drain
 } // IO[Unit]
@@ -177,7 +177,7 @@ val stream: Stream[IO, Unit] =
   for {
     ps <- Stream.resource(s.prepare(e))
     c  <- ps.stream("U%", 64)
-    _  <- Stream.eval(IO(println(c)))
+    _  <- Stream.eval(IO.println(c))
   } yield ()
 
 stream.compile.drain // IO[Unit]
@@ -215,7 +215,7 @@ Observe that we have two parameter encoders `varchar` and `int4` (in that order)
 // assume s: Session[IO]
 s.prepare(f).use { ps =>
   ps.stream("U%" ~ 2000000, 64)
-    .evalMap(c => IO(println(c)))
+    .evalMap(c => IO.println(c))
     .compile
     .drain
 } // IO[Unit]
@@ -287,14 +287,14 @@ object QueryExample extends IOApp {
   def doSimple(s: Session[IO]): IO[Unit] =
     for {
       ts <- s.unique(simple) // we expect exactly one row
-      _  <- IO(println(s"timestamp is $ts"))
+      _  <- IO.println(s"timestamp is $ts")
     } yield ()
 
   // run our extended query
   def doExtended(s: Session[IO]): IO[Unit] =
     s.prepare(extended).use { ps =>
       ps.stream("U%", 32)
-        .evalMap(c => IO(println(c)))
+        .evalMap(c => IO.println(c))
         .compile
         .drain
     }
@@ -315,7 +315,8 @@ Running this program yields the following.
 
 ```scala mdoc:passthrough
 println("```")
-QueryExample.main(Array.empty)
+import skunk.mdoc._
+QueryExample.run(Nil).unsafeRunSyncWithRedirect()
 println("```")
 ```
 
@@ -390,9 +391,9 @@ object QueryExample2 extends IOApp {
     service.use { s =>
       for {
         ts <- s.currentTimestamp
-        _  <- IO(println(s"timestamp is $ts"))
+        _  <- IO.println(s"timestamp is $ts")
         _  <- s.countriesByName("U%")
-               .evalMap(c => IO(println(c)))
+               .evalMap(c => IO.println(c))
                .compile
                .drain
       } yield ExitCode.Success
@@ -405,7 +406,8 @@ Running this program yields the same output as above.
 
 ```scala mdoc:passthrough
 println("```")
-QueryExample2.main(Array.empty)
+import skunk.mdoc._
+QueryExample2.run(Nil).unsafeRunSyncWithRedirect()
 println("```")
 ```
 

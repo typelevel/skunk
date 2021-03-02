@@ -7,7 +7,16 @@ lazy val `scala-3.0-prev` = "3.0.0-M3"
 lazy val `scala-3.0-curr` = "3.0.0-RC1"
 
 // This is used in a couple places
-lazy val fs2Version = "2.5.3"
+lazy val fs2Version = "3.0.0-M9"
+lazy val natchezVersion = "0.1.0-M4"
+
+
+// We do `evictionCheck` in CI
+inThisBuild(Seq(
+  evictionRules ++= Seq(
+    "org.typelevel" % "cats-*" % "semver-spec",
+  )
+))
 
 // Global Settings
 lazy val commonSettings = Seq(
@@ -104,14 +113,14 @@ lazy val core = project
     resolvers   +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     libraryDependencies ++= Seq(
       "org.typelevel"    %% "cats-core"    % "2.4.2",
-      "org.typelevel"    %% "cats-effect"  % "2.3.3",
+      "org.typelevel"    %% "cats-effect"  % "3.0.0-RC2",
       "co.fs2"           %% "fs2-core"     % fs2Version,
       "co.fs2"           %% "fs2-io"       % fs2Version,
       "org.scodec"       %% "scodec-core"  % (if (isDotty.value) "2.0.0-RC1" else "1.11.7"),
       "org.scodec"       %% "scodec-cats"  % "1.1.0-RC1",
-      "org.tpolecat"     %% "natchez-core" % "0.0.20",
-      "org.tpolecat"     %% "sourcepos"    % "0.1.1",
+      "org.tpolecat"     %% "natchez-core" % natchezVersion,
       "com.ongres.scram"  % "client"       % "2.1",
+      "org.tpolecat"     %% "sourcepos"    % "0.1.1",
     ) ++ Seq(
       "com.beachape"  %% "enumeratum"   % "1.6.1",
     ).map(_.withDottyCompat(scalaVersion.value)) ++ Seq(
@@ -153,14 +162,14 @@ lazy val tests = project
     scalacOptions  -= "-Xfatal-warnings",
     libraryDependencies ++= Seq(
       "org.typelevel"     %% "scalacheck-effect-munit" % "0.7.1",
-      "org.typelevel"     %% "munit-cats-effect-2"     % "0.13.1",
+      "org.typelevel"     %% "munit-cats-effect-3"     % "0.13.1",
       "org.typelevel"     %% "cats-free"               % "2.4.2",
       "org.typelevel"     %% "cats-laws"               % "2.4.2",
       "org.typelevel"     %% "discipline-munit"        % "1.0.6",
     ) ++ Seq(
       "io.chrisdavenport" %% "cats-time"               % "0.3.4",
     ).filterNot(_ => isDotty.value),
-    testFrameworks += new TestFramework("munit.Framework")
+    testFrameworks += new TestFramework("munit.Framework"),
   )
 
 lazy val example = project
@@ -171,14 +180,15 @@ lazy val example = project
   .settings(
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.20",
-      "org.tpolecat"  %% "natchez-jaeger"      % "0.0.20",
-    ) ++ Seq(
-      "org.http4s"    %% "http4s-dsl"          % "0.21.20",
-      "org.http4s"    %% "http4s-blaze-server" % "0.21.20",
-      "org.http4s"    %% "http4s-circe"        % "0.21.20",
-      "io.circe"      %% "circe-generic"       % "0.13.0",
-    ).filterNot(_ => isDotty.value)
+      "org.tpolecat"  %% "natchez-honeycomb"   % natchezVersion,
+      "org.tpolecat"  %% "natchez-jaeger"      % natchezVersion,
+    )
+    // ) ++ Seq(
+    //   "org.http4s"    %% "http4s-dsl"          % "0.21.13",
+    //   "org.http4s"    %% "http4s-blaze-server" % "0.21.13",
+    //   "org.http4s"    %% "http4s-circe"        % "0.21.13",
+    //   "io.circe"      %% "circe-generic"       % "0.13.0",
+    // ).filterNot(_ => isDotty.value)
   )
 
 lazy val docs = project
@@ -212,6 +222,6 @@ lazy val docs = project
     makeSite := makeSite.dependsOn(mdoc.toTask("")).value,
     mdocExtraArguments := Seq("--no-link-hygiene"), // paradox handles this
     libraryDependencies ++= Seq(
-      "org.tpolecat"  %% "natchez-jaeger" % "0.0.14-M2",
+      "org.tpolecat"  %% "natchez-jaeger" % natchezVersion,
     )
 )

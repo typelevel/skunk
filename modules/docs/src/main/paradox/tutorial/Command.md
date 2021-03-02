@@ -231,7 +231,9 @@ object PetService {
       .gmap[Pet]
 
   // construct a PetService
-  def fromSession[F[_]: Bracket[*[_], Throwable]](s: Session[F]): PetService[F] =
+  def fromSession[F[_]](s: Session[F])(
+    implicit ev: MonadCancel[F, Throwable]
+  ): PetService[F] =
     new PetService[F] {
       def insert(pet: Pet): F[Unit] = s.prepare(insertOne).use(_.execute(pet)).void
       def insert(ps: List[Pet]): F[Unit] = s.prepare(insertMany(ps)).use(_.execute(ps)).void
@@ -269,7 +271,7 @@ object CommandExample extends IOApp {
         _  <- s.insert(Pet("Bob", 12))
         _  <- s.insert(beagles)
         ps <- s.selectAll
-        _  <- ps.traverse(p => IO(println(p)))
+        _  <- ps.traverse(p => IO.println(p))
       } yield ExitCode.Success
     }
 
@@ -280,7 +282,8 @@ Running this program yields the following.
 
 ```scala mdoc:passthrough
 println("```")
-CommandExample.main(Array.empty)
+import skunk.mdoc._
+CommandExample.run(Nil).unsafeRunSyncWithRedirect()
 println("```")
 ```
 

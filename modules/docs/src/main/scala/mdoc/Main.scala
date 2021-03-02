@@ -69,7 +69,7 @@ case class ReplVariablePrinter(
     height:   Int             = 80,
     indent:   Int             = 2,
     pprinter: PPrinter        = PPrinter.BlackWhite,
-) extends (mdoc.Variable => String) {
+) extends (_root_.mdoc.Variable => String) {
 
   override def apply(binder: Variable): String = {
     if (binder.isUnit) ""

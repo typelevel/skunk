@@ -4,8 +4,8 @@
 
 package skunk.util
 
-import cats.effect.Sync
-import cats.effect.concurrent.Ref
+import cats.Functor
+import cats.effect.Ref
 import cats.syntax.all._
 
 trait Namer[F[_]] {
@@ -14,7 +14,7 @@ trait Namer[F[_]] {
 
 object Namer {
 
-  def apply[F[_]: Sync]: F[Namer[F]] =
+  def apply[F[_]: Functor: Ref.Make]: F[Namer[F]] =
     Ref[F].of(1).map { ctr =>
       new Namer[F] {
         override def nextName(prefix: String): F[String] =
