@@ -182,13 +182,12 @@ lazy val example = project
     libraryDependencies ++= Seq(
       "org.tpolecat"  %% "natchez-honeycomb"   % natchezVersion,
       "org.tpolecat"  %% "natchez-jaeger"      % natchezVersion,
-    )
-    // ) ++ Seq(
-    //   "org.http4s"    %% "http4s-dsl"          % "0.21.13",
-    //   "org.http4s"    %% "http4s-blaze-server" % "0.21.13",
-    //   "org.http4s"    %% "http4s-circe"        % "0.21.13",
-    //   "io.circe"      %% "circe-generic"       % "0.13.0",
-    // ).filterNot(_ => isDotty.value)
+    ) ++ Seq(
+      "org.http4s"    %% "http4s-dsl"          % "1.0.0-M17",
+      "org.http4s"    %% "http4s-blaze-server" % "1.0.0-M17",
+      "org.http4s"    %% "http4s-circe"        % "1.0.0-M17",
+      "io.circe"      %% "circe-generic"       % "0.14.0-M4",
+    ).filterNot(_ => isDotty.value)
   )
 
 lazy val docs = project
