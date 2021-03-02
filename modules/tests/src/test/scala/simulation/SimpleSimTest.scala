@@ -38,7 +38,7 @@ class SimpleSimTest extends SimTest {
 
     // entry point
     flatExpect {
-      case StartupMessage(_, _) => send(AuthenticationOk) *> mainLoop
+      case StartupMessage(_, _, _) => send(AuthenticationOk) *> mainLoop
     }
 
   }

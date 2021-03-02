@@ -44,16 +44,17 @@
 
 //   implicit class EntryPointOps[F[_]](self: EntryPoint[F]) {
 
-//     private def dummySpan(
-//       implicit ev: Monad[F]
-//     ): Span[F] =
-//       new Span[F] {
-//         val kernel: F[Kernel] = Kernel(Map.empty).pure[F]
-//         def put(fields: (String, TraceValue)*): F[Unit] = Monad[F].unit
-//         def span(name: String): Resource[F, Span[F]] = Monad[Resource[F, *]].pure(this)
-//         def traceId: F[Option[String]] = Monad[F].pure(None)
-//         def traceUri: F[Option[URI]] = Monad[F].pure(None)
-//       }
+    // private def dummySpan(
+    //   implicit ev: Monad[F]
+    // ): Span[F] =
+    //   new Span[F] {
+    //     val kernel: F[Kernel] = Kernel(Map.empty).pure[F]
+    //     def put(fields: (String, TraceValue)*): F[Unit] = Monad[F].unit
+    //     def span(name: String): Resource[F, Span[F]] = Monad[Resource[F, *]].pure(this)
+    //     def traceId: F[Option[String]] = Monad[F].pure(None)
+    //     def traceUri: F[Option[URI]] = Monad[F].pure(None)
+    //     def spanId: F[Option[String]] = Monad[F].pure(None)
+    //   }
 
 //     def liftT(routes: HttpRoutes[Kleisli[F, Span[F], *]])(
 //       implicit ev: MonadCancel[F, Throwable]

@@ -29,8 +29,6 @@
 // import skunk.util.Pool
 // import skunk.util.Recycler
 // import scala.concurrent.ExecutionContext.global
-// import fs2.io.Network
-// import cats.effect.std.Console
 
 // /**
 //  * A small but complete web service that serves data from the `world` database and accumulates
@@ -72,7 +70,7 @@
 //     Session.Recyclers.minimal[F].contramap(_.session)
 
 //   /** Given a `Session` we can create a `Countries` resource with pre-prepared statements. */
-//   def countriesFromSession[F[_]: MonadCancel[*[_], Throwable]: Trace](
+//   def countriesFromSession[F[_]: Bracket[*[_], Throwable]: Trace](
 //     sess: Session[F]
 //   ): Resource[F, PooledCountries[F]] = {
 
@@ -103,7 +101,7 @@
 //    * Given a `SocketGroup` we can construct a session resource, and from that construct a
 //    * `Countries` resource.
 //    */
-//   def countriesFromSocketGroup[F[_]: Concurrent: Trace: Network: Console](
+//   def countriesFromSocketGroup[F[_]: Concurrent: ContextShift: Trace](
 //     socketGroup: SocketGroup
 //   ): Resource[F, PooledCountries[F]] =
 //     Session.fromSocketGroup(
@@ -113,18 +111,20 @@
 //       password     = Some("banana"),
 //       socketGroup  = socketGroup,
 //       sslOptions   = None,
+//       parameters   = Session.DefaultConnectionParameters
 //     ).flatMap(countriesFromSession(_))
 
 //   /** Resource yielding a pool of `Countries`, backed by a single `Blocker` and `SocketGroup`. */
-//   def pool[F[_]: Async: Trace: Console]: Resource[F, Resource[F, Countries[F]]] =
+//   def pool[F[_]: Concurrent: ContextShift: Trace]: Resource[F, Resource[F, Countries[F]]] =
 //     for {
-//       sg <- SocketGroup[F]()
+//       b  <- Blocker[F]
+//       sg <- SocketGroup[F](b)
 //       pc  = countriesFromSocketGroup(sg)
 //       r  <- Pool.of(pc, 10)(pooledCountriesRecycler)
 //     } yield r.widen // forget we're a PooledCountries
 
 //   /** Given a pool of `Countries` we can create an `HttpRoutes`. */
-//   def countryRoutes[F[_]: Concurrent: Defer: Trace](
+//   def countryRoutes[F[_]: Concurrent: Trace](
 //     pool: Resource[F, Countries[F]]
 //   ): HttpRoutes[F] = {
 //     object dsl extends Http4sDsl[F]; import dsl._
@@ -149,7 +149,7 @@
 //    * Using `pool` above we can create `HttpRoutes` resource. We also add some standard tracing
 //    * middleware while we're at it.
 //    */
-//   def routes[F[_]: Async: Trace: Console]: Resource[F, HttpRoutes[F]] =
+//   def routes[F[_]: Concurrent: ContextShift: Trace]: Resource[F, HttpRoutes[F]] =
 //     pool.map(p => natchezMiddleware(countryRoutes(p)))
 
 //   /** Our Natchez `EntryPoint` resource. */
