@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 
-set -e
+set -eu
 
 DIR=$1
-EXTRA_FLAGS=$2
 
 print_usage() {
   printf "\nUsage:\n \
@@ -25,4 +24,4 @@ esac
 # Fix postgres ssl key permissions.
 chmod 600 world/server.key
 
-docker-compose $CMD $EXTRA_FLAGS
+docker-compose $CMD

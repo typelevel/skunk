@@ -33,11 +33,6 @@ services:
       POSTGRES_PASSWORD: banana
       POSTGRES_HOST_AUTH_METHOD: scram-sha-256
       POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
-  # for testing redshift connections
-  redshift:
-    image: guildeducation/docker-amazon-redshift
-    ports:
-      - 5439:5439
 
   # Jaeger, for tracing
   jaeger:
