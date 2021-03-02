@@ -1,7 +1,7 @@
 
 
 // Our Scala versions.
-lazy val `scala-2.12`     = "2.12.12"
+lazy val `scala-2.12`     = "2.12.13"
 lazy val `scala-2.13`     = "2.13.5"
 lazy val `scala-3.0-prev` = "3.0.0-M3"
 lazy val `scala-3.0-curr` = "3.0.0-RC1"
@@ -67,8 +67,9 @@ lazy val commonSettings = Seq(
   unmanagedSourceDirectories in Compile ++= {
     val sourceDir = (sourceDirectory in Compile).value
     CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((3, _))  => Seq(sourceDir / "scala-3")
-      case Some((2, _))  => Seq(sourceDir / "scala-2")
+      case Some((3, _))  => Seq(sourceDir / "scala-3", sourceDir / "scala-2.13+")
+      case Some((2, 12)) => Seq(sourceDir / "scala-2")
+      case Some((2, _))  => Seq(sourceDir / "scala-2", sourceDir / "scala-2.13+")
       case _             => Seq()
     }
   },
@@ -122,7 +123,9 @@ lazy val core = project
       "org.tpolecat"     %% "sourcepos"    % "0.1.1",
     ) ++ Seq(
       "com.beachape"  %% "enumeratum"   % "1.6.1",
-    ).map(_.withDottyCompat(scalaVersion.value))
+    ).map(_.withDottyCompat(scalaVersion.value)) ++ Seq(
+      "org.scala-lang.modules" %% "scala-collection-compat" % "2.4.2",
+    )
   )
 
 lazy val refined = project
@@ -161,6 +164,8 @@ lazy val tests = project
       "org.typelevel"     %% "scalacheck-effect-munit" % "0.7.1",
       "org.typelevel"     %% "munit-cats-effect-3"     % "0.13.1",
       "org.typelevel"     %% "cats-free"               % "2.4.2",
+      "org.typelevel"     %% "cats-laws"               % "2.4.2",
+      "org.typelevel"     %% "discipline-munit"        % "1.0.6",
     ) ++ Seq(
       "io.chrisdavenport" %% "cats-time"               % "0.3.4",
     ).filterNot(_ => isDotty.value),

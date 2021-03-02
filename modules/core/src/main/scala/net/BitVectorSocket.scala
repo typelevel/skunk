@@ -11,6 +11,7 @@ import fs2.Chunk
 import scodec.bits.BitVector
 import fs2.io.net.{ Socket, SocketGroup }
 import com.comcast.ip4s._
+import skunk.exception.EofException
 
 /** A higher-level `Socket` interface defined in terms of `BitVector`. */
 trait BitVectorSocket[F[_]] {
@@ -42,7 +43,7 @@ object BitVectorSocket {
       def readBytes(n: Int): F[Array[Byte]] =
         socket.readN(n).flatMap { c =>
           if (c.size == n) c.toArray.pure[F]
-          else ev.raiseError(new Exception(s"Fatal: Read ${c.size} bytes, expected $n."))
+          else ev.raiseError(EofException(n, c.size))
         }
 
       override def read(nBytes: Int): F[BitVector] =

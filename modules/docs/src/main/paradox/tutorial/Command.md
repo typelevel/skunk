@@ -21,7 +21,7 @@ A *command* is a SQL statement that does not return rows.
 
 First let's look at a command that sets the session's random number seed.
 
-```scala mdoc:silent
+```scala mdoc
 val a: Command[Void] =
   sql"SET SEED TO 0.123".command
 ```
@@ -51,7 +51,7 @@ On success a command will yield a @scaladoc[Completion](skunk.data.Completion), 
 
 Now let's add a parameter to the command.
 
-```scala mdoc:silent
+```scala mdoc
 val c: Command[String] =
   sql"DELETE FROM country WHERE name = $varchar".command
 ```
@@ -99,7 +99,7 @@ Stream.resource(s.prepare(c)).flatMap { pc =>
 
 Similar to `map`ping the _output_ of a Query, we can `contramap` the _input_ to a command or query. Here we provide a function that turns an `Info` into a `String ~ String`, yielding a `Command[Info]`.
 
-```scala mdoc:silent
+```scala mdoc
 case class Info(code: String, hos: String)
 
 val update2: Command[Info] =
@@ -113,7 +113,7 @@ val update2: Command[Info] =
 
 However in this case the mapping is entirely mechanical. Similar to `gmap` on query results, we can skip the boilerplate and `gcontramap` directly to an isomosphic case class.
 
-```scala mdoc:silent
+```scala mdoc
 val update3: Command[Info] =
   sql"""
     UPDATE country
