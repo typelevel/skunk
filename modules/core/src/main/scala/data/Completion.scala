@@ -4,6 +4,7 @@
 
 package skunk.data
 import skunk.exception.SkunkException
+import cats.kernel.Eq
 
 sealed abstract class Completion
 object Completion {
@@ -47,5 +48,8 @@ object Completion {
       hint    = Some("Please open an issue, or open a PR adding a case in Completion.scala and a parser in CommandComplete.scala")
     ).printStackTrace(Console.err)
   }
+
+  implicit def eqCompletion: Eq[Completion] =
+    Eq.fromUniversalEquals
 
 }
