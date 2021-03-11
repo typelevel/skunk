@@ -41,6 +41,10 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
   def imap[B](f: A => B)(g: B => A): Codec[B] =
     Codec(b => encode(g(b)), decode(_, _).map(f), types)
 
+  /** Contramap inputs from, and map decoded results to a new type `B` or an error, yielding a `Codec[B]`. */
+  def eimap[B](f: A => Either[String, B])(g: B => A): Codec[B] =
+    Codec(b => encode(g(b)), emap(f).decode(_, _), types)
+
   /** Adapt this `Codec` from twiddle-list type A to isomorphic case-class type `B`. */
   def gimap[B](implicit ev: Twiddler.Aux[B, A]): Codec[B] =
     imap(ev.from)(ev.to)

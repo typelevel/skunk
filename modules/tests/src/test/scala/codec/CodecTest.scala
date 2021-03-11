@@ -89,12 +89,24 @@ class CodecCombinatorsTest extends FTest {
     assertEqual("sql", c.sql.runA(1).value, "$1, $2, $3, $4")
   }
 
-  test("contramapped codec generated corrext sql") {
+  test("contramapped codec generated correct sql") {
     assertEqual("sql", c.contramap[Short ~ (Int ~ Double) ~ String](identity).sql.runA(1).value, "$1, $2, $3, $4")
   }
 
-  test("imapped codec generated corrext sql") {
+  test("imapped codec generated correct sql") {
     assertEqual("sql", c.imap[Short ~ (Int ~ Double) ~ String](identity)(identity).sql.runA(1).value, "$1, $2, $3, $4")
+  }
+
+  test("eimapped codec generated correct sql") {
+    assertEqual("sql", c.eimap[Short ~ (Int ~ Double) ~ String](_.asRight)(identity).sql.runA(1).value, "$1, $2, $3, $4")
+  }
+
+  test("text.eimap (fail)") {
+    text.eimap(value => Either.catchNonFatal(value.toInt).leftMap(_ => "Not an Int"))(String.valueOf)
+      .decode(1, List(Some("foo"))) match {
+      case Left(err) => assertEqual("error", err, Decoder.Error(1, 1, "Not an Int", None))
+      case Right(n) => fail(s"Expected failure, got $n")
+    }
   }
 
   test("invariant semigroupal (coverage)") {
