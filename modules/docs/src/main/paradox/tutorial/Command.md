@@ -266,7 +266,7 @@ object CommandExample extends IOApp {
   def run(args: List[String]): IO[ExitCode] =
     session.flatTap(withPetsTable).map(PetService.fromSession(_)).use { s =>
       for {
-        _  <- s.insert(Pet("Bob", 12))
+        _  <- s.insert(bob)
         _  <- s.insert(beagles)
         ps <- s.selectAll
         _  <- ps.traverse(p => IO(println(p)))
