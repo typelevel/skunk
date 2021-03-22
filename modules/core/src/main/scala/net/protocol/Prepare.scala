@@ -29,7 +29,7 @@ object Prepare {
       override def apply[A](command: skunk.Command[A], ty: Typer): Resource[F, PreparedCommand[F, A]] =
         for {
           id <- Parse[F].apply(command, ty)
-          _  <- Resource.liftF(Describe[F].apply(command, id, ty))
+          _  <- Resource.eval(Describe[F].apply(command, id, ty))
         } yield new PreparedCommand[F, A](id, command) { pc =>
           def bind(args: A, origin: Origin): Resource[F, CommandPortal[F, A]] =
             Bind[F].apply(this, args, origin).map {
@@ -43,7 +43,7 @@ object Prepare {
       override def apply[A, B](query: skunk.Query[A, B], ty: Typer): Resource[F, PreparedQuery[F, A, B]] =
         for {
           id <- Parse[F].apply(query, ty)
-          rd <- Resource.liftF(Describe[F].apply(query, id, ty))
+          rd <- Resource.eval(Describe[F].apply(query, id, ty))
         } yield new PreparedQuery[F, A, B](id, query, rd) { pq =>
           def bind(args: A, origin: Origin): Resource[F, QueryPortal[F, A, B]] =
             Bind[F].apply(this, args, origin).map {
