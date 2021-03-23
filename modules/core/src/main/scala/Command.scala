@@ -47,6 +47,9 @@ final case class Command[A](
   def gcontramap[B](implicit ev: Twiddler.Aux[B, A]): Command[B] =
     contramap(ev.to)
 
+  def cacheKey: Statement.CacheKey =
+    Statement.CacheKey(sql, encoder.types, Nil)
+
 }
 
 /** @group Companions */
