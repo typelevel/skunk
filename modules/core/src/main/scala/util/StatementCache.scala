@@ -31,11 +31,11 @@ sealed trait StatementCache[F[_], V] { outer =>
 object StatementCache {
 
   /** Construct an empty `StatementCache` with the specified capacity. */
-  def empty[F[_]: Sync, V](capacity: Int): F[StatementCache[F, V]] =
+  def empty[F[_]: Sync, V](max: Int): F[StatementCache[F, V]] =
     Sync[F].delay(
       new ju.LinkedHashMap[Statement.CacheKey, V]() {
         override def removeEldestEntry(e: ju.Map.Entry[Statement.CacheKey, V]): Boolean =
-          size > capacity
+          size > max
       }
     ).map { lhm =>
       new StatementCache[F, V] {
