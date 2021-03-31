@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 by Rob Norris
+// Copyright (c) 2018-2021 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
@@ -40,11 +40,12 @@ object Bind {
           exchange("bind") {
             for {
               pn <- nextName("portal").map(PortalId(_))
+              ea  = statement.statement.encoder.encode(args) // encoded args
               _  <- Trace[F].put(
-                      "arguments" -> args.toString,
+                      "arguments" -> ea.map(_.orNull).mkString(","),
                       "portal-id" -> pn.value
                     )
-              _  <- send(BindMessage(pn.value, statement.id.value, statement.statement.encoder.encode(args)))
+              _  <- send(BindMessage(pn.value, statement.id.value, ea))
               _  <- send(Flush)
               _  <- flatExpect {
                       case BindComplete        => ().pure[F]
@@ -58,7 +59,7 @@ object Bind {
                                   sqlOrigin       = Some(statement.statement.origin),
                                   info            = info,
                                   history         = hi,
-                                  arguments       = statement.statement.encoder.types.zip(statement.statement.encoder.encode(args)),
+                                  arguments       = statement.statement.encoder.types.zip(ea),
                                   argumentsOrigin = Some(argsOrigin)
                                 )
                         } yield a
