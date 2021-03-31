@@ -17,7 +17,7 @@ object Execute {
 
   val encoder: Encoder[Execute] =
     (utf8z.asEncoder, int32.asEncoder).contramapN[Execute] { p =>
-      p.portal ~ p.maxRows
+      (p.portal, p.maxRows)
     }
 
 }

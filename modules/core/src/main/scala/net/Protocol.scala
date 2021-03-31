@@ -195,7 +195,7 @@ object Protocol {
   ): Resource[F, Protocol[F]] =
     for {
       bms <- BufferedMessageSocket[F](host, port, 256, debug, readTimeout, writeTimeout, sg, sslOptions) // TODO: should we expose the queue size?
-      p   <- Resource.liftF(fromMessageSocket(bms, nam))
+      p   <- Resource.eval(fromMessageSocket(bms, nam))
     } yield p
 
   def fromMessageSocket[F[_]: Concurrent: Trace](

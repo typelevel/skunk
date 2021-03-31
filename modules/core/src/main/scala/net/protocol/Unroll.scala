@@ -71,7 +71,7 @@ private[protocol] class Unroll[F[_]: MessageSocket: Trace](
     // N.B. we process all waiting messages to ensure the protocol isn't messed up by decoding
     // failures later on.
     def accumulate(accum: List[List[Option[String]]]): F[List[List[Option[String]]] ~ Boolean] =
-      receive.flatMap {
+      flatExpect {
         case rd @ RowData(_)          => accumulate(rd.fields :: accum)
         case      CommandComplete(_)  => (accum.reverse ~ false).pure[F]
         case      PortalSuspended     => (accum.reverse ~ true).pure[F]
