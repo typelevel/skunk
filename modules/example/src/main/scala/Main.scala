@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 by Rob Norris
+// Copyright (c) 2018-2021 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
@@ -24,8 +24,8 @@ object Main extends IOApp {
   def putStrLn(a: Any): IO[Unit] =
     IO(println(a))
 
-  def anyLinesStdOut[F[_]: Sync]: Pipe[F, Any, Unit] =
-    _.map(_.toString).showLinesStdOut
+  def anyLinesStdOut[F[_]: std.Console]: Pipe[F, Any, Unit] =
+    _.map(_.toString).printlns
 
   val fra0 = sql"true"
 
@@ -52,7 +52,7 @@ object Main extends IOApp {
   def clientEncodingChanged(enc: String): IO[Unit] =
     putStrLn(s">>>> CLIENT ENCODING IS NOW: $enc")
 
-  def hmm[F[_]: Concurrent: Sync](ps: PreparedQuery[F, Int ~ String, _]): F[Unit] =
+  def hmm[F[_]: Concurrent: std.Console](ps: PreparedQuery[F, Int ~ String, _]): F[Unit] =
     (ps.stream(100000 ~ "%", 4).take(25) either ps.stream(10000 ~ "%", 4))
       .through(anyLinesStdOut)
       .compile

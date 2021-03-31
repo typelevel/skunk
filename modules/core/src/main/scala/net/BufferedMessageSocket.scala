@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 by Rob Norris
+// Copyright (c) 2018-2021 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
@@ -110,7 +110,7 @@ object BufferedMessageSocket {
 
       // These are handled here and are never seen by the higher-level API.
       case     ParameterStatus(k, v)   => Stream.exec(paSig.update(_ + (k -> v)))
-      case     NotificationResponse(n) => Stream.exec(noTop.publish1(n))
+      case     NotificationResponse(n) => Stream.exec(noTop.publish1(n).void) // TODO -- what if it's closed?
       case     NoticeResponse(_)       => Stream.empty // TODO -- we're throwing these away!
       case m @ BackendKeyData(_, _)    => Stream.exec(bkDef.complete(m).void)
 

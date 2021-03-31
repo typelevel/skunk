@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 by Rob Norris
+// Copyright (c) 2018-2021 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
@@ -40,6 +40,10 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
   /** Contramap inputs from, and map outputs to, a new type `B`, yielding a `Codec[B]`. */
   def imap[B](f: A => B)(g: B => A): Codec[B] =
     Codec(b => encode(g(b)), decode(_, _).map(f), types)
+
+  /** Contramap inputs from, and map decoded results to a new type `B` or an error, yielding a `Codec[B]`. */
+  def eimap[B](f: A => Either[String, B])(g: B => A): Codec[B] =
+    Codec(b => encode(g(b)), emap(f).decode(_, _), types)
 
   /** Adapt this `Codec` from twiddle-list type A to isomorphic case-class type `B`. */
   def gimap[B](implicit ev: Twiddler.Aux[B, A]): Codec[B] =

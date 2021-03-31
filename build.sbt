@@ -3,12 +3,12 @@
 // Our Scala versions.
 lazy val `scala-2.12`     = "2.12.13"
 lazy val `scala-2.13`     = "2.13.5"
-lazy val `scala-3.0-prev` = "3.0.0-M3"
-lazy val `scala-3.0-curr` = "3.0.0-RC1"
+lazy val `scala-3.0-prev` = "3.0.0-RC1"
+lazy val `scala-3.0-curr` = "3.0.0-RC2"
 
 // This is used in a couple places
-lazy val fs2Version = "3.0.0-M9"
-lazy val natchezVersion = "0.1.0-M4"
+lazy val fs2Version = "3.0.1"
+lazy val natchezVersion = "0.1.0"
 
 
 // We do `evictionCheck` in CI
@@ -36,7 +36,7 @@ lazy val commonSettings = Seq(
   // Headers
   headerMappings := headerMappings.value + (HeaderFileType.scala -> HeaderCommentStyle.cppStyleLineComment),
   headerLicense  := Some(HeaderLicense.Custom(
-    """|Copyright (c) 2018-2020 by Rob Norris
+    """|Copyright (c) 2018-2021 by Rob Norris
        |This software is licensed under the MIT License (MIT).
        |For more information see LICENSE or https://opensource.org/licenses/MIT
        |""".stripMargin
@@ -112,19 +112,19 @@ lazy val core = project
     description := "Tagless, non-blocking data access library for Postgres.",
     resolvers   +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     libraryDependencies ++= Seq(
-      "org.typelevel"    %% "cats-core"    % "2.4.2",
-      "org.typelevel"    %% "cats-effect"  % "3.0.0-RC2",
+      "org.typelevel"    %% "cats-core"    % "2.5.0",
+      "org.typelevel"    %% "cats-effect"  % "3.0.1",
       "co.fs2"           %% "fs2-core"     % fs2Version,
       "co.fs2"           %% "fs2-io"       % fs2Version,
-      "org.scodec"       %% "scodec-core"  % (if (isDotty.value) "2.0.0-RC1" else "1.11.7"),
-      "org.scodec"       %% "scodec-cats"  % "1.1.0-RC1",
+      "org.scodec"       %% "scodec-core"  % (if (isDotty.value) "2.0.0-RC2" else "1.11.7"),
+      "org.scodec"       %% "scodec-cats"  % "1.1.0-RC2",
       "org.tpolecat"     %% "natchez-core" % natchezVersion,
       "com.ongres.scram"  % "client"       % "2.1",
-      "org.tpolecat"     %% "sourcepos"    % "0.1.1",
+      "org.tpolecat"     %% "sourcepos"    % "0.1.2",
     ) ++ Seq(
       "com.beachape"  %% "enumeratum"   % "1.6.1",
     ).map(_.withDottyCompat(scalaVersion.value)) ++ Seq(
-      "org.scala-lang.modules" %% "scala-collection-compat" % "2.4.2",
+      "org.scala-lang.modules" %% "scala-collection-compat" % "2.4.3",
     )
   )
 
@@ -135,7 +135,7 @@ lazy val refined = project
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "eu.timepit" %% "refined" % "0.9.21",
+      "eu.timepit" %% "refined" % "0.9.22",
     ).map(_.withDottyCompat(scalaVersion.value))
   )
 
@@ -161,11 +161,11 @@ lazy val tests = project
     publish / skip := true,
     scalacOptions  -= "-Xfatal-warnings",
     libraryDependencies ++= Seq(
-      "org.typelevel"     %% "scalacheck-effect-munit" % "0.7.1",
-      "org.typelevel"     %% "munit-cats-effect-3"     % "0.13.1",
-      "org.typelevel"     %% "cats-free"               % "2.4.2",
-      "org.typelevel"     %% "cats-laws"               % "2.4.2",
-      "org.typelevel"     %% "discipline-munit"        % "1.0.6",
+      "org.typelevel"     %% "scalacheck-effect-munit" % "1.0.0",
+      "org.typelevel"     %% "munit-cats-effect-3"     % "1.0.1",
+      "org.typelevel"     %% "cats-free"               % "2.5.0",
+      "org.typelevel"     %% "cats-laws"               % "2.5.0",
+      "org.typelevel"     %% "discipline-munit"        % "1.0.7",
     ) ++ Seq(
       "io.chrisdavenport" %% "cats-time"               % "0.3.4",
     ).filterNot(_ => isDotty.value),
