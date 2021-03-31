@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 by Rob Norris
+// Copyright (c) 2018-2021 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
@@ -89,7 +89,7 @@ object MessageSocket {
   ): Resource[F, MessageSocket[F]] =
     for {
       bvs <- BitVectorSocket(host, port, readTimeout, writeTimeout, sg, sslOptions)
-      ms  <- Resource.liftF(fromBitVectorSocket(bvs, debug))
+      ms  <- Resource.eval(fromBitVectorSocket(bvs, debug))
     } yield ms
 
 

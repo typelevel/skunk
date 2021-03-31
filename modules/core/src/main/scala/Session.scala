@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 by Rob Norris
+// Copyright (c) 2018-2021 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
@@ -270,7 +270,7 @@ object Session {
     for {
       blocker <- Blocker[F]
       sockGrp <- SocketGroup[F](blocker)
-      sslOp   <- Resource.liftF(ssl.toSSLNegotiationOptions(blocker, if (debug) logger.some else none))
+      sslOp   <- Resource.eval(ssl.toSSLNegotiationOptions(blocker, if (debug) logger.some else none))
       pool    <- Pool.of(session(sockGrp, sslOp), max)(Recyclers.full)
     } yield pool
 
@@ -326,10 +326,10 @@ object Session {
     parameters: Map[String, String]
   ): Resource[F, Session[F]] =
     for {
-      namer <- Resource.liftF(Namer[F])
+      namer <- Resource.eval(Namer[F])
       proto <- Protocol[F](host, port, debug, namer, readTimeout, writeTimeout, socketGroup, sslOptions)
-      _     <- Resource.liftF(proto.startup(user, database, password, parameters))
-      sess  <- Resource.liftF(fromProtocol(proto, namer, strategy))
+      _     <- Resource.eval(proto.startup(user, database, password, parameters))
+      sess  <- Resource.eval(fromProtocol(proto, namer, strategy))
     } yield sess
 
   /**

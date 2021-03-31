@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 by Rob Norris
+// Copyright (c) 2018-2021 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
@@ -17,7 +17,7 @@ object Execute {
 
   val encoder: Encoder[Execute] =
     (utf8z.asEncoder, int32.asEncoder).contramapN[Execute] { p =>
-      p.portal ~ p.maxRows
+      (p.portal, p.maxRows)
     }
 
 }
