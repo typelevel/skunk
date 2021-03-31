@@ -6,7 +6,6 @@ package natchez.http4s
 
 import cats.~>
 import cats.data.{ Kleisli, OptionT }
-import cats.effect.Bracket
 import cats.syntax.all._
 import natchez.{ EntryPoint, Kernel, Span }
 import org.http4s.HttpRoutes
@@ -19,6 +18,7 @@ import cats.Defer
 import natchez.TraceValue
 import cats.Monad
 import java.net.URI
+import cats.effect.MonadCancel
 
 object implicits {
 
@@ -58,7 +58,7 @@ object implicits {
       }
 
     def liftT(routes: HttpRoutes[Kleisli[F, Span[F], *]])(
-      implicit ev: Bracket[F, Throwable]
+      implicit ev: MonadCancel[F, Throwable]
     ): HttpRoutes[F] =
       implicits.liftT(self)(routes)
 
@@ -69,7 +69,7 @@ object implicits {
      * application and it's of little use to keep a span open that long.
      */
     def liftR(routes: Resource[Kleisli[F, Span[F], *], HttpRoutes[Kleisli[F, Span[F], *]]])(
-      implicit ev: Bracket[F, Throwable],
+      implicit ev: MonadCancel[F, Throwable],
                 d: Defer[F]
     ): Resource[F, HttpRoutes[F]] =
       routes.map(liftT).mapK(λ[Kleisli[F, Span[F], *] ~> F] { fa =>
