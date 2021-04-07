@@ -174,9 +174,9 @@ lazy val example = project
       "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.22",
       "org.tpolecat"  %% "natchez-jaeger"      % "0.0.22",
     ) ++ Seq(
-      "org.http4s"    %% "http4s-dsl"          % "0.21.21",
-      "org.http4s"    %% "http4s-blaze-server" % "0.21.21",
-      "org.http4s"    %% "http4s-circe"        % "0.21.21",
+      "org.http4s"    %% "http4s-dsl"          % "0.21.22",
+      "org.http4s"    %% "http4s-blaze-server" % "0.21.22",
+      "org.http4s"    %% "http4s-circe"        % "0.21.22",
       "io.circe"      %% "circe-generic"       % "0.13.0",
     ).filterNot(_ => isDotty.value)
   )
