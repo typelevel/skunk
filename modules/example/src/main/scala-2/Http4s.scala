@@ -29,6 +29,7 @@ import fs2.io.tcp.SocketGroup
 import skunk.util.Pool
 import skunk.util.Recycler
 import scala.concurrent.ExecutionContext.global
+import cats.effect.{ Resource, Temporal }
 
 /**
  * A small but complete web service that serves data from the `world` database and accumulates
@@ -117,7 +118,7 @@ object Http4sExample extends IOApp {
   /** Resource yielding a pool of `Countries`, backed by a single `Blocker` and `SocketGroup`. */
   def pool[F[_]: Concurrent: ContextShift: Trace]: Resource[F, Resource[F, Countries[F]]] =
     for {
-      b  <- Blocker[F]
+      b  <- Resource.unit[F]
       sg <- SocketGroup[F](b)
       pc  = countriesFromSocketGroup(sg)
       r  <- Pool.of(pc, 10)(pooledCountriesRecycler)
@@ -164,7 +165,7 @@ object Http4sExample extends IOApp {
   }
 
   /** Given an `HttpApp` we can create a running `Server` resource. */
-  def server[F[_]: ConcurrentEffect: Timer](
+  def server[F[_]: ConcurrentEffect: Temporal](
     app: HttpApp[F]
   ): Resource[F, Server[F]] =
     BlazeServerBuilder[F](global)
@@ -173,7 +174,7 @@ object Http4sExample extends IOApp {
       .resource
 
   /** Our application as a resource. */
-  def runR[F[_]: ConcurrentEffect: ContextShift: Timer]: Resource[F, Unit] =
+  def runR[F[_]: ConcurrentEffect: ContextShift: Temporal]: Resource[F, Unit] =
     for {
       ep <- entryPoint[F]
       rs <- ep.liftR(routes) // Discharge the `Trace` constraint for `routes`. Type argument here

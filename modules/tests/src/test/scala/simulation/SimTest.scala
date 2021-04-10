@@ -6,7 +6,6 @@ package tests
 package simulation
 
 import cats.effect._
-import cats.effect.concurrent.Deferred
 import ffstest.FTest
 import fs2.concurrent.Signal
 import natchez.Trace.Implicits.noop
@@ -16,6 +15,7 @@ import skunk.util.Typer.Strategy
 import skunk.net.{ BufferedMessageSocket, Protocol, MessageSocket }
 import skunk.data.{ Notification, TransactionStatus }
 import skunk.net.message.{ BackendMessage, BackendKeyData, FrontendMessage }
+import cats.effect.Deferred
 
 trait SimTest extends FTest with SimMessageSocket.DSL {
 

@@ -12,6 +12,7 @@ import skunk.implicits._
 import cats.arrow.FunctionK
 import cats.arrow.Profunctor
 import scala.concurrent.duration._
+import cats.effect.Temporal
 
 class ChannelTest extends SkunkTest {
 
@@ -29,7 +30,7 @@ class ChannelTest extends SkunkTest {
       // `Channel` and thus for `Session`. So for now we're just going to sleep a while. I'm not
       // sure it's a problem in real life but it makes this test hard to write.
       f <- ch.listen(42).map(_.value).takeThrough(_ != data.last).compile.toList.start
-      _ <- Timer[IO].sleep(1.second) // sigh
+      _ <- Temporal[IO].sleep(1.second) // sigh
       _ <- data.traverse_(ch.notify)
       d <- f.join
       _ <- assert(s"channel data $d $data", data.endsWith(d)) // we may miss the first few

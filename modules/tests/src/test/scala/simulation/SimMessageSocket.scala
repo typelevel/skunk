@@ -7,7 +7,6 @@ package simulation
 
 import cats._
 import cats.effect._
-import cats.effect.concurrent.Ref
 import cats.free.Free
 import cats.syntax.all._
 import scala.annotation.tailrec
@@ -18,6 +17,7 @@ import skunk.net.message.FrontendMessage
 import skunk.net.MessageSocket
 import skunk.util.Origin
 import skunk.net.message.ErrorResponse
+import cats.effect.Ref
 
 object SimMessageSocket {
 

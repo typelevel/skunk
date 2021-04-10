@@ -5,11 +5,11 @@
 package skunk
 
 import cats.{ Contravariant, ~> }
-import cats.effect.Bracket
 import skunk.data.Completion
 import skunk.net.Protocol
 import skunk.util.Origin
 import fs2.Pipe
+import cats.effect.MonadCancel
 
 /**
  * A prepared command, valid for the life of its defining `Session`.
@@ -50,7 +50,7 @@ object PreparedCommand {
     }
 
   def fromProto[F[_], A](pc: Protocol.PreparedCommand[F, A])(
-    implicit ev: Bracket[F, Throwable]
+    implicit ev: MonadCancel[F, Throwable]
   ): PreparedCommand[F, A] =
     new PreparedCommand[F, A] {
       override def execute(args: A)(implicit origin: Origin): F[Completion] =
