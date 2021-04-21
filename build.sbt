@@ -126,7 +126,7 @@ lazy val refined = project
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "eu.timepit" %% "refined" % "0.9.23",
+      "eu.timepit" %% "refined" % "0.9.24",
     ).map(_.withDottyCompat(scalaVersion.value))
   )
 
