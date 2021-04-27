@@ -136,10 +136,18 @@ lazy val circe = project
   .settings(commonSettings)
   .settings(
     name := "skunk-circe",
-    libraryDependencies ++= Seq(
-      "io.circe" %% "circe-core"   % "0.13.0",
-      "io.circe" %% "circe-parser" % "0.13.0"
-    ).filterNot(_ => isDotty.value)
+    libraryDependencies ++= {
+      lazy val circeVersion: String =
+        scalaVersion.value match {
+          case `scala-3.0-curr` => "0.14.0-M5"
+          case `scala-3.0-prev` => "0.14.0-M4"
+          case _                => "0.13.0"
+        }
+      Seq(
+        "io.circe" %% "circe-core"   % circeVersion,
+        "io.circe" %% "circe-parser" % circeVersion
+      )
+    }
   )
 
 lazy val tests = project
