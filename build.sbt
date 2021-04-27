@@ -103,20 +103,19 @@ lazy val core = project
     description := "Tagless, non-blocking data access library for Postgres.",
     resolvers   +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     libraryDependencies ++= Seq(
-      "org.typelevel"    %% "cats-core"    % "2.5.0",
-      "org.typelevel"    %% "cats-effect"  % "2.4.1",
-      "co.fs2"           %% "fs2-core"     % fs2Version,
-      "co.fs2"           %% "fs2-io"       % fs2Version,
-      "org.scodec"       %% "scodec-core"  % (if (isDotty.value) "2.0.0-RC2" else "1.11.7"),
-      "org.scodec"       %% "scodec-cats"  % "1.1.0-RC2",
-      "org.tpolecat"     %% "natchez-core" % "0.0.22",
-      "org.tpolecat"     %% "sourcepos"    % "0.1.2",
-      "com.ongres.scram"  % "client"       % "2.1",
+      "org.typelevel"          %% "cats-core"               % "2.5.0",
+      "org.typelevel"          %% "cats-effect"             % "2.4.1",
+      "co.fs2"                 %% "fs2-core"                % fs2Version,
+      "co.fs2"                 %% "fs2-io"                  % fs2Version,
+      "org.scodec"             %% "scodec-core"             % (if (isDotty.value) "2.0.0-RC2" else "1.11.7"),
+      "org.scodec"             %% "scodec-cats"             % "1.1.0-RC2",
+      "org.tpolecat"           %% "natchez-core"            % "0.0.22",
+      "org.tpolecat"           %% "sourcepos"               % "0.1.2",
+      "com.ongres.scram"        % "client"                  % "2.1",
+      "org.scala-lang.modules" %% "scala-collection-compat" % "2.4.3",
     ) ++ Seq(
       "com.beachape"  %% "enumeratum"   % "1.6.1",
-    ).map(_.withDottyCompat(scalaVersion.value)) ++ Seq(
-      "org.scala-lang.modules" %% "scala-collection-compat" % "2.4.3",
-    )
+    ).filterNot(_ => isDotty.value)
   )
 
 lazy val refined = project
@@ -126,8 +125,8 @@ lazy val refined = project
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "eu.timepit" %% "refined" % "0.9.24",
-    ).map(_.withDottyCompat(scalaVersion.value))
+      "eu.timepit" %% "refined" % "0.9.23",
+    )
   )
 
 lazy val circe = project
