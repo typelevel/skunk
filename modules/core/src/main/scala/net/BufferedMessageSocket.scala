@@ -15,6 +15,7 @@ import skunk.data._
 import skunk.net.message._
 import scala.concurrent.duration._
 import fs2.io.tcp.SocketGroup
+import cats.effect.{ Deferred, Ref }
 
 /**
  * A `MessageSocket` that buffers incoming messages, removing and handling asynchronous back-end

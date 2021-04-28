@@ -22,17 +22,17 @@ sealed abstract class SSL(
 
   def withTLSParameters(tlsParameters: TLSParameters): SSL =
     new SSL(tlsParameters, fallbackOk) {
-      def tlsContext[F[_]: Sync: ContextShift](b: Blocker): F[TLSContext] =
+      def tlsContext[F[_]: Sync: ContextShift]: F[TLSContext] =
         outer.tlsContext(b)
     }
 
   def withFallback(fallbackOk: Boolean): SSL =
     new SSL(tlsParameters, fallbackOk) {
-      def tlsContext[F[_]: Sync: ContextShift](b: Blocker): F[TLSContext] =
+      def tlsContext[F[_]: Sync: ContextShift]: F[TLSContext] =
         outer.tlsContext(b)
     }
 
-  def toSSLNegotiationOptions[F[_]: Sync: ContextShift](b: Blocker, logger: Option[String => F[Unit]]): F[Option[SSLNegotiation.Options[F]]] =
+  def toSSLNegotiationOptions[F[_]: Sync: ContextShift](logger: Option[String => F[Unit]]): F[Option[SSLNegotiation.Options[F]]] =
     this match {
       case SSL.None => none.pure[F]
       case _ => tlsContext(b).map(SSLNegotiation.Options(_, tlsParameters, fallbackOk, logger).some)
@@ -44,7 +44,7 @@ object SSL {
 
   /** `SSL` which indicates that SSL is not to be used. */
   object None extends SSL() {
-    def tlsContext[F[_]: Sync: ContextShift](b: Blocker): F[TLSContext] =
+    def tlsContext[F[_]: Sync: ContextShift]: F[TLSContext] =
       Sync[F].raiseError(new Exception("SSL.None: cannot create a TLSContext."))
     override def withFallback(fallbackOk: Boolean): SSL = this
     override def withTLSParameters(tlsParameters: TLSParameters): SSL = this
@@ -52,20 +52,20 @@ object SSL {
 
   /** `SSL` which trusts all certificates. */
   object Trusted extends SSL() {
-    def tlsContext[F[_]: Sync: ContextShift](b: Blocker): F[TLSContext] =
+    def tlsContext[F[_]: Sync: ContextShift]: F[TLSContext] =
       TLSContext.insecure(b)
   }
 
   /** `SSL` from the system default `SSLContext`. */
   object System extends SSL() {
-    def tlsContext[F[_]: Sync: ContextShift](b: Blocker): F[TLSContext] =
+    def tlsContext[F[_]: Sync: ContextShift]: F[TLSContext] =
       TLSContext.system(b)
   }
 
   /** Creates a `SSL` from an `SSLContext`. */
   def fromSSLContext(ctx: SSLContext): SSL =
     new SSL() {
-      def tlsContext[F[_]: Sync: ContextShift](b: Blocker): F[TLSContext] =
+      def tlsContext[F[_]: Sync: ContextShift]: F[TLSContext] =
         TLSContext.fromSSLContext(ctx, b).pure[F]
     }
 
@@ -76,7 +76,7 @@ object SSL {
     keyPassword:   Array[Char],
   ): SSL =
     new SSL() {
-      def tlsContext[F[_]: Sync: ContextShift](b: Blocker): F[TLSContext] =
+      def tlsContext[F[_]: Sync: ContextShift]: F[TLSContext] =
        TLSContext.fromKeyStoreFile(file, storePassword, keyPassword, b)
     }
 
@@ -87,7 +87,7 @@ object SSL {
       keyPassword: Array[Char],
   ): SSL =
     new SSL() {
-      def tlsContext[F[_]: Sync: ContextShift](b: Blocker): F[TLSContext] =
+      def tlsContext[F[_]: Sync: ContextShift]: F[TLSContext] =
        TLSContext.fromKeyStoreResource(resource, storePassword, keyPassword, b)
     }
 
@@ -97,7 +97,7 @@ object SSL {
       keyPassword: Array[Char],
   ): SSL =
     new SSL() {
-      def tlsContext[F[_]: Sync: ContextShift](b: Blocker): F[TLSContext] =
+      def tlsContext[F[_]: Sync: ContextShift]: F[TLSContext] =
        TLSContext.fromKeyStore(keyStore, keyPassword, b)
     }
 

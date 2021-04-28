@@ -10,13 +10,12 @@ import cats.effect.Resource
 import cats.syntax.all._
 import scala.concurrent.duration._
 import skunk.util.Pool
-import cats.effect.concurrent.Ref
 import skunk.util.Pool.ResourceLeak
-import cats.effect.concurrent.Deferred
 import scala.util.Random
 import skunk.util.Pool.ShutdownException
 import natchez.Trace.Implicits.noop
 import skunk.util.Recycler
+import cats.effect.{ Deferred, Ref }
 
 class PoolTest extends FTest {
 

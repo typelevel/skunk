@@ -5,7 +5,7 @@
 package skunk.net
 
 import cats.syntax.all._
-import cats.effect.{ Concurrent, ContextShift, Resource }
+import cats.effect.{ Concurrent, Resource }
 import fs2.concurrent.Signal
 import fs2.Stream
 import skunk.{ Command, Query, Statement, ~, Void }

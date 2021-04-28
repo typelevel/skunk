@@ -21,6 +21,7 @@ import skunk.util.Typer.Strategy.{ BuiltinsOnly, SearchPath }
 import skunk.net.SSLNegotiation
 import skunk.data.TransactionIsolationLevel
 import skunk.data.TransactionAccessMode
+import cats.effect.Resource
 
 /**
  * Represents a live connection to a Postgres database. Operations provided here are safe to use
@@ -268,7 +269,7 @@ object Session {
     val logger: String => F[Unit] = s => Sync[F].delay(println(s"TLS: $s"))
 
     for {
-      blocker <- Blocker[F]
+      blocker <- Resource.unit[F]
       sockGrp <- SocketGroup[F](blocker)
       sslOp   <- Resource.eval(ssl.toSSLNegotiationOptions(blocker, if (debug) logger.some else none))
       pool    <- Pool.of(session(sockGrp, sslOp), max)(Recyclers.full)

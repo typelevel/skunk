@@ -12,6 +12,7 @@ import fs2.{ Chunk, Stream, Pipe }
 import skunk.exception.SkunkException
 import skunk.net.Protocol
 import skunk.util.{ CallSite, Origin }
+import cats.effect.MonadCancel
 
 /**
  * A prepared query, valid for the life of its originating `Session`.
@@ -58,7 +59,7 @@ trait PreparedQuery[F[_], A, B] {
 object PreparedQuery {
 
   def fromProto[F[_], A, B](proto: Protocol.PreparedQuery[F, A, B])(
-    implicit ev: Bracket[F, Throwable]
+    implicit ev: MonadCancel[F, Throwable]
   ): PreparedQuery[F, A, B] =
     new PreparedQuery[F, A, B] {
 
