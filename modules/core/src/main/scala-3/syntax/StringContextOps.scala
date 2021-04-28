@@ -8,7 +8,6 @@ package syntax
 import cats.data.State
 import cats.syntax.all._
 import scala.language.implicitConversions
-import scala.reflect.macros.whitebox
 import scala.quoted._
 import skunk.data.Identifier
 import skunk.util.Origin
