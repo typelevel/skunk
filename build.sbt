@@ -1,13 +1,12 @@
 
 
 // Our Scala versions.
-lazy val `scala-2.12`     = "2.12.13"
-lazy val `scala-2.13`     = "2.13.5"
-lazy val `scala-3.0-prev` = "3.0.0-RC2"
-lazy val `scala-3.0-curr` = "3.0.0-RC3"
+lazy val `scala-2.12` = "2.12.13"
+lazy val `scala-2.13` = "2.13.5"
+lazy val `scala-3.0`  = "3.0.0"
 
 // This is used in a couple places
-lazy val fs2Version = "2.5.5"
+lazy val fs2Version = "2.5.6"
 
 // Global Settings
 lazy val commonSettings = Seq(
@@ -36,7 +35,7 @@ lazy val commonSettings = Seq(
 
   // Compilation
   scalaVersion       := `scala-2.13`,
-  crossScalaVersions := Seq(`scala-2.12`, `scala-2.13`, `scala-3.0-prev`, `scala-3.0-curr`),
+  crossScalaVersions := Seq(`scala-2.12`, `scala-2.13`, `scala-3.0`),
   scalacOptions -= "-language:experimental.macros", // doesn't work cross-version
   Compile / doc / scalacOptions --= Seq("-Xfatal-warnings"),
   Compile / doc / scalacOptions ++= Seq(
@@ -58,22 +57,13 @@ lazy val commonSettings = Seq(
   Compile / unmanagedSourceDirectories ++= {
     val sourceDir = (Compile / sourceDirectory).value
     CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((3, _))  => Seq(sourceDir / "scala-3", sourceDir / "scala-2.13+")
-      case Some((2, 12)) => Seq(sourceDir / "scala-2")
-      case Some((2, _))  => Seq(sourceDir / "scala-2", sourceDir / "scala-2.13+")
+      case Some((3, _))  => Seq(sourceDir / "scala-2.13+")
+      case Some((2, 12)) => Seq()
+      case Some((2, _))  => Seq(sourceDir / "scala-2.13+")
       case _             => Seq()
     }
   },
 
-  // Also for test
-  Test / unmanagedSourceDirectories ++= {
-    val sourceDir = (Test / sourceDirectory).value
-    CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((3, _))  => Seq(sourceDir / "scala-3")
-      case Some((2, _))  => Seq(sourceDir / "scala-2")
-      case _             => Seq()
-    }
-  },
 
   // dottydoc really doesn't work at all right now
   Compile / doc / sources := {
@@ -103,16 +93,16 @@ lazy val core = project
     description := "Tagless, non-blocking data access library for Postgres.",
     resolvers   +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     libraryDependencies ++= Seq(
-      "org.typelevel"          %% "cats-core"               % "2.6.0",
-      "org.typelevel"          %% "cats-effect"             % "2.5.0",
+      "org.typelevel"          %% "cats-core"               % "2.6.1",
+      "org.typelevel"          %% "cats-effect"             % "2.5.1",
       "co.fs2"                 %% "fs2-core"                % fs2Version,
       "co.fs2"                 %% "fs2-io"                  % fs2Version,
-      "org.scodec"             %% "scodec-core"             % (if (scalaVersion.value.startsWith("3.")) "2.0.0-RC3" else "1.11.7"),
-      "org.scodec"             %% "scodec-cats"             % "1.1.0-RC3",
-      "org.tpolecat"           %% "natchez-core"            % "0.0.24",
-      "org.tpolecat"           %% "sourcepos"               % "0.1.3",
+      "org.scodec"             %% "scodec-core"             % (if (scalaVersion.value.startsWith("3.")) "2.0.0" else "1.11.7"),
+      "org.scodec"             %% "scodec-cats"             % "1.1.0",
+      "org.tpolecat"           %% "natchez-core"            % "0.0.25",
+      "org.tpolecat"           %% "sourcepos"               % "1.0.0",
       "com.ongres.scram"        % "client"                  % "2.1",
-      "org.scala-lang.modules" %% "scala-collection-compat" % "2.4.3",
+      "org.scala-lang.modules" %% "scala-collection-compat" % "2.4.4",
     ) ++ Seq(
       "com.beachape"  %% "enumeratum"   % "1.6.1",
     ).filterNot(_ => scalaVersion.value.startsWith("3."))
@@ -125,7 +115,7 @@ lazy val refined = project
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "eu.timepit" %% "refined" % "0.9.24",
+      "eu.timepit" %% "refined" % "0.9.25",
     )
   )
 
@@ -139,9 +129,8 @@ lazy val circe = project
     libraryDependencies ++= {
       lazy val circeVersion: String =
         scalaVersion.value match {
-          case `scala-3.0-curr` => "0.14.0-M6"
-          case `scala-3.0-prev` => "0.14.0-M5"
-          case _                => "0.13.0"
+          case `scala-3.0` => "0.14.0-M7"
+          case _           => "0.13.0"
         }
       Seq(
         "io.circe" %% "circe-core"   % circeVersion,
@@ -159,11 +148,11 @@ lazy val tests = project
     publish / skip := true,
     scalacOptions  -= "-Xfatal-warnings",
     libraryDependencies ++= Seq(
-      "org.typelevel"     %% "scalacheck-effect-munit" % "1.0.1",
-      "org.typelevel"     %% "munit-cats-effect-2"     % "1.0.2",
-      "org.typelevel"     %% "cats-free"               % "2.6.0",
-      "org.typelevel"     %% "cats-laws"               % "2.6.0",
-      "org.typelevel"     %% "discipline-munit"        % "1.0.8",
+      "org.typelevel"     %% "scalacheck-effect-munit" % "1.0.2",
+      "org.typelevel"     %% "munit-cats-effect-2"     % "1.0.3",
+      "org.typelevel"     %% "cats-free"               % "2.6.1",
+      "org.typelevel"     %% "cats-laws"               % "2.6.1",
+      "org.typelevel"     %% "discipline-munit"        % "1.0.9",
     ) ++ Seq(
       "io.chrisdavenport" %% "cats-time"               % "0.3.4",
     ).filterNot(_ => scalaVersion.value.startsWith("3.")),
@@ -178,8 +167,8 @@ lazy val example = project
   .settings(
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.24",
-      "org.tpolecat"  %% "natchez-jaeger"      % "0.0.24",
+      "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.25",
+      "org.tpolecat"  %% "natchez-jaeger"      % "0.0.25",
     ) ++ Seq(
       "org.http4s"    %% "http4s-dsl"          % "0.21.23",
       "org.http4s"    %% "http4s-blaze-server" % "0.21.23",
