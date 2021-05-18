@@ -6,7 +6,7 @@ lazy val `scala-2.13` = "2.13.5"
 lazy val `scala-3.0`  = "3.0.0"
 
 // This is used in a couple places
-lazy val fs2Version = "2.5.6"
+lazy val fs2Version = "3.0.3"
 
 // Global Settings
 lazy val commonSettings = Seq(
