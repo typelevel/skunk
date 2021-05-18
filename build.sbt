@@ -97,7 +97,7 @@ lazy val core = project
       "org.typelevel"          %% "cats-effect"             % "2.5.1",
       "co.fs2"                 %% "fs2-core"                % fs2Version,
       "co.fs2"                 %% "fs2-io"                  % fs2Version,
-      "org.scodec"             %% "scodec-core"             % (if (scalaVersion.value.startsWith("3.")) "2.0.0" else "1.11.7"),
+      "org.scodec"             %% "scodec-core"             % (if (scalaVersion.value.startsWith("3.")) "2.0.0" else "1.11.8"),
       "org.scodec"             %% "scodec-cats"             % "1.1.0",
       "org.tpolecat"           %% "natchez-core"            % "0.0.25",
       "org.tpolecat"           %% "sourcepos"               % "1.0.0",
