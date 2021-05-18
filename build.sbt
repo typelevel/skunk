@@ -99,7 +99,7 @@ lazy val core = project
       "co.fs2"                 %% "fs2-io"                  % fs2Version,
       "org.scodec"             %% "scodec-core"             % (if (scalaVersion.value.startsWith("3.")) "2.0.0" else "1.11.7"),
       "org.scodec"             %% "scodec-cats"             % "1.1.0",
-      "org.tpolecat"           %% "natchez-core"            % "0.0.25",
+      "org.tpolecat"           %% "natchez-core"            % "0.1.4",
       "org.tpolecat"           %% "sourcepos"               % "1.0.0",
       "com.ongres.scram"        % "client"                  % "2.1",
       "org.scala-lang.modules" %% "scala-collection-compat" % "2.4.4",
@@ -167,8 +167,8 @@ lazy val example = project
   .settings(
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.25",
-      "org.tpolecat"  %% "natchez-jaeger"      % "0.0.25",
+      "org.tpolecat"  %% "natchez-honeycomb"   % "0.1.4",
+      "org.tpolecat"  %% "natchez-jaeger"      % "0.1.4",
     ) ++ Seq(
       "org.http4s"    %% "http4s-dsl"          % "0.21.23",
       "org.http4s"    %% "http4s-blaze-server" % "0.21.23",
