@@ -6,8 +6,8 @@ package skunk.net.protocol
 
 import cats.syntax.all._
 import cats.effect.implicits._
-import cats.effect.concurrent.Semaphore
 import cats.effect.Concurrent
+import cats.effect.std.Semaphore
 
 trait Exchange[F[_]] {
   def apply[A](fa: F[A]): F[A]

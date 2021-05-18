@@ -10,7 +10,7 @@ import skunk.codec.all._
 import skunk.implicits._
 import tests.SkunkTest
 import cats.effect._
-import cats.effect.concurrent.Deferred
+import cats.effect.Deferred
 
 // https://github.com/tpolecat/skunk/issues/210
 class Test210 extends SkunkTest {

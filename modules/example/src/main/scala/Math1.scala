@@ -4,11 +4,12 @@
 
 package example
 
-import cats.effect.{ Bracket, ExitCode, IO, IOApp, Resource }
+import cats.effect.{ ExitCode, IO, IOApp, Resource }
 import skunk.Session
 import skunk.implicits._
 import skunk.codec.numeric.{ int4, float8 }
 import natchez.Trace.Implicits.noop
+import cats.effect.MonadCancel
 
 object Math1 extends IOApp {
 
@@ -36,7 +37,7 @@ object Math1 extends IOApp {
 
     // `Math` implementation that delegates its work to Postgres.
     def fromSession[F[_]](sess: Session[F])(
-      implicit ev: Bracket[F, Throwable]
+      implicit ev: MonadCancel[F, Throwable]
     ): Math[F] =
       new Math[F] {
         def add(a: Int, b: Int) = sess.prepare(Statements.add).use(_.unique(a ~ b))

@@ -5,13 +5,12 @@
 package skunk.util
 
 import cats.effect.Concurrent
-import cats.effect.concurrent.Deferred
-import cats.effect.concurrent.Ref
 import cats.effect.implicits._
 import cats.effect.Resource
 import cats.syntax.all._
 import skunk.exception.SkunkException
 import natchez.Trace
+import cats.effect.{ Deferred, Ref }
 
 object Pool {
 
