@@ -173,7 +173,7 @@ lazy val example = project
       "org.http4s"    %% "http4s-dsl"          % "0.21.23",
       "org.http4s"    %% "http4s-blaze-server" % "0.21.23",
       "org.http4s"    %% "http4s-circe"        % "0.21.23",
-      "io.circe"      %% "circe-generic"       % "0.13.0",
+      "io.circe"      %% "circe-generic"       % "0.14.0",
     ).filterNot(_ => scalaVersion.value.startsWith("3."))
   )
 
