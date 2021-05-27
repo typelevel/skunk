@@ -170,9 +170,9 @@ lazy val example = project
       "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.26",
       "org.tpolecat"  %% "natchez-jaeger"      % "0.0.26",
     ) ++ Seq(
-      "org.http4s"    %% "http4s-dsl"          % "0.21.23",
-      "org.http4s"    %% "http4s-blaze-server" % "0.21.23",
-      "org.http4s"    %% "http4s-circe"        % "0.21.23",
+      "org.http4s"    %% "http4s-dsl"          % "0.21.24",
+      "org.http4s"    %% "http4s-blaze-server" % "0.21.24",
+      "org.http4s"    %% "http4s-circe"        % "0.21.24",
       "io.circe"      %% "circe-generic"       % "0.13.0",
     ).filterNot(_ => scalaVersion.value.startsWith("3."))
   )
