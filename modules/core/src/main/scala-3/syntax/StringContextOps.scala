@@ -49,7 +49,7 @@ object StringContextOps {
 
   def yell(s: String) = println(s"${Console.RED}$s${Console.RESET}")
 
-  def sqlImpl(sc: Expr[StringContext], argsExpr: Expr[Seq[Any]])(using qc:Quotes): Expr[Any] = {
+  def sqlImpl(sc: Expr[StringContext], argsExpr: Expr[Seq[Any]])(using qc:Quotes): Expr[Fragment[?]] = {
     import qc.reflect.report
 
     // Ok we want to construct an Origin here
@@ -154,7 +154,7 @@ object StringContextOps {
 
 trait ToStringContextOps {
 
-  extension (inline sc: StringContext) transparent inline def sql(inline args: Any*): Any =
+  extension (inline sc: StringContext) transparent inline def sql(inline args: Any*): Fragment[?] =
     ${ StringContextOps.sqlImpl('sc, 'args) }
 
   extension (inline sc: StringContext) inline def id(): Identifier =
