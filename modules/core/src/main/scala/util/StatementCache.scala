@@ -47,9 +47,11 @@ object StatementCache {
 
         def empty[V](max: Int): F[StatementCache[F, V]] =
           Sync[F].delay(
-            new ju.LinkedHashMap[Statement.CacheKey, V]() {
-              override def removeEldestEntry(e: ju.Map.Entry[Statement.CacheKey, V]): Boolean =
-                size > max
+            ju.Collections.synchronizedMap {
+              new ju.LinkedHashMap[Statement.CacheKey, V]() {
+                override def removeEldestEntry(e: ju.Map.Entry[Statement.CacheKey, V]): Boolean =
+                  size > max
+              }
             }
           ).map { lhm =>
             new StatementCache[F, V] {
