@@ -30,20 +30,38 @@ sealed trait StatementCache[F[_], V] { outer =>
 
 object StatementCache {
 
-  /** Construct an empty `StatementCache` with the specified capacity. */
-  def empty[F[_]: Sync, V](max: Int): F[StatementCache[F, V]] =
-    Sync[F].delay(
-      new ju.LinkedHashMap[Statement.CacheKey, V]() {
-        override def removeEldestEntry(e: ju.Map.Entry[Statement.CacheKey, V]): Boolean =
-          size > max
+  /** Capability trait for constructing a `StatementCache`. */
+  trait Make[F[_]] {
+
+    /** Construct an empty `StatementCache` with the specified capacity. */
+    def empty[V](max: Int): F[StatementCache[F, V]]
+
+  }
+
+  object Make {
+
+    def apply[F[_]](implicit ev: Make[F]): ev.type = ev
+
+    implicit def syncMake[F[_]: Sync]: Make[F] =
+      new Make[F] {
+
+        def empty[V](max: Int): F[StatementCache[F, V]] =
+          Sync[F].delay(
+            new ju.LinkedHashMap[Statement.CacheKey, V]() {
+              override def removeEldestEntry(e: ju.Map.Entry[Statement.CacheKey, V]): Boolean =
+                size > max
+            }
+          ).map { lhm =>
+            new StatementCache[F, V] {
+              def get(k: Statement[_]): F[Option[V]] = Sync[F].delay(Option(lhm.get(k.cacheKey)))
+              def put(k: Statement[_], v: V): F[Unit] = Sync[F].delay(lhm.put(k.cacheKey, v)).void
+              def containsKey(k: Statement[_]): F[Boolean] = Sync[F].delay(lhm.containsKey(k.cacheKey))
+              val clear: F[Unit] = Sync[F].delay(lhm.clear())
+            }
+          }
+
       }
-    ).map { lhm =>
-      new StatementCache[F, V] {
-        def get(k: Statement[_]): F[Option[V]] = Sync[F].delay(Option(lhm.get(k.cacheKey)))
-        def put(k: Statement[_], v: V): F[Unit] = Sync[F].delay(lhm.put(k.cacheKey, v)).void
-        def containsKey(k: Statement[_]): F[Boolean] = Sync[F].delay(lhm.containsKey(k.cacheKey))
-        val clear: F[Unit] = Sync[F].delay(lhm.clear())
-      }
+
     }
 
 }

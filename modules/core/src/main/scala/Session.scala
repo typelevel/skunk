@@ -259,7 +259,7 @@ object Session {
    * @param queryCache    Size of the cache for query checking
    * @group Constructors
    */
-  def pooled[F[_]: Concurrent: Trace: Network: Console](
+  def pooled[F[_]: Concurrent: Trace: Network: Console: StatementCache.Make](
     host:         String,
     port:         Int            = 5432,
     user:         String,
@@ -274,13 +274,13 @@ object Session {
     queryCache:   Int = 1024,
   ): Resource[F, Resource[F, Session[F]]] = {
 
-    def session(socketGroup:  SocketGroup, sslOp: Option[SSLNegotiation.Options[F]], cache: Describe.Cache[F]): Resource[F, Session[F]] =
+    def session(socketGroup:  SocketGroup[F], sslOp: Option[SSLNegotiation.Options[F]], cache: Describe.Cache[F]): Resource[F, Session[F]] =
       fromSocketGroup[F](socketGroup, host, port, user, database, password, debug, strategy, sslOp, parameters, cache)
 
     val logger: String => F[Unit] = s => Console[F].println(s"TLS: $s")
 
     for {
-      dc      <- Resource.liftF(Describe.Cache.empty[F](commandCache, queryCache))
+      dc      <- Resource.eval(Describe.Cache.empty[F](commandCache, queryCache))
       sslOp   <- Resource.eval(ssl.toSSLNegotiationOptions(if (debug) logger.some else none))
       pool    <- Pool.of(session(Network[F], sslOp, dc), max)(Recyclers.full)
     } yield pool
@@ -293,7 +293,7 @@ object Session {
    * single-session pool. This method is shorthand for `Session.pooled(..., max = 1, ...).flatten`.
    * @see pooled
    */
-  def single[F[_]: Concurrent: Trace: Network: Console](
+  def single[F[_]: Concurrent: Trace: Network: Console: StatementCache.Make](
     host:         String,
     port:         Int            = 5432,
     user:         String,

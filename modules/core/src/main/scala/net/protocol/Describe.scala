@@ -4,7 +4,7 @@
 
 package skunk.net.protocol
 
-import cats.{ MonadError, ~> }
+import cats._
 import cats.syntax.all._
 import skunk.exception.{ UnexpectedRowsException, ColumnAlignmentException, NoDataException }
 import skunk.net.MessageSocket
@@ -90,12 +90,12 @@ object Describe {
   }
 
   object Cache {
-    def empty[F[_]: cats.effect.Sync](
+    def empty[F[_]: Functor: Semigroupal: StatementCache.Make](
       commandCapacity: Int,
       queryCapacity:   Int,
     ): F[Cache[F]] = (
-      StatementCache.empty[F, Unit](commandCapacity),
-      StatementCache.empty[F, TypedRowDescription](queryCapacity)
+      StatementCache.Make[F].empty[Unit](commandCapacity),
+      StatementCache.Make[F].empty[TypedRowDescription](queryCapacity)
     ).mapN(Describe.Cache(_, _))
   }
 
