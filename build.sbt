@@ -52,7 +52,7 @@ lazy val commonSettings = Seq(
     "-doc-source-url", "https://github.com/tpolecat/skunk/blob/v" + version.value + "€{FILE_PATH}.scala",
   ),
   libraryDependencies ++= Seq(
-    compilerPlugin("org.typelevel" %% "kind-projector" % "0.11.3" cross CrossVersion.full),
+    compilerPlugin("org.typelevel" %% "kind-projector" % "0.13.0" cross CrossVersion.full),
   ).filterNot(_ => scalaVersion.value.startsWith("3.")),
 
   // Coverage Exclusions
