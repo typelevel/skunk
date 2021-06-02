@@ -22,7 +22,7 @@ class SkunkException protected[skunk](
   val sqlOrigin:       Option[Origin]               = None,
   val argumentsOrigin: Option[Origin]               = None,
   val callSite:        Option[CallSite]             = None
-) extends Exception(message) with Fields with scala.util.control.NoStackTrace {
+) extends Exception(message) with Fields {
 
   override def fields: Map[String, TraceValue] = {
 
@@ -118,7 +118,7 @@ class SkunkException protected[skunk](
   protected def sections: List[String] =
     List(header, statement, args) //, exchanges)
 
-  final override def toString =
+  final override def getMessage =
     sections
       .combineAll
       .linesIterator

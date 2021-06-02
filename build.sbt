@@ -6,8 +6,8 @@ lazy val `scala-2.13` = "2.13.5"
 lazy val `scala-3.0`  = "3.0.0"
 
 // This is used in a couple places
-lazy val fs2Version = "3.0.3"
-lazy val natchezVersion = "0.1.4"
+lazy val fs2Version = "3.0.4"
+lazy val natchezVersion = "0.1.5"
 
 // We do `evictionCheck` in CI
 inThisBuild(Seq(
@@ -105,7 +105,7 @@ lazy val core = project
       "org.typelevel"          %% "cats-effect"             % "3.1.1",
       "co.fs2"                 %% "fs2-core"                % fs2Version,
       "co.fs2"                 %% "fs2-io"                  % fs2Version,
-      "org.scodec"             %% "scodec-core"             % (if (scalaVersion.value.startsWith("3.")) "2.0.0" else "1.11.7"),
+      "org.scodec"             %% "scodec-core"             % (if (scalaVersion.value.startsWith("3.")) "2.0.0" else "1.11.8"),
       "org.scodec"             %% "scodec-cats"             % "1.1.0",
       "org.tpolecat"           %% "natchez-core"            % natchezVersion,
       "org.tpolecat"           %% "sourcepos"               % "1.0.0",
@@ -123,7 +123,7 @@ lazy val refined = project
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "eu.timepit" %% "refined" % "0.9.25",
+      "eu.timepit" %% "refined" % "0.9.26",
     )
   )
 
