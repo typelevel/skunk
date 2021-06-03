@@ -17,7 +17,7 @@ sealed abstract case class SemispaceCache[K, V](gen0: Map[K, V], gen1: Map[K, V]
   assert(gen1.size <= max)
 
   def insert(k: K, v: V): SemispaceCache[K, V] =
-         if (max == 0)        this // special case, can't insert!
+    if (max == 0)             this                                       // special case, can't insert!
     else if (gen0.size < max) SemispaceCache(gen0 + (k -> v), gen1, max) // room in gen0, done!
     else                      SemispaceCache(Map(k -> v), gen0, max)     // no room in gen0, slide it down
 
