@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 by Rob Norris
+// Copyright (c) 2018-2021 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
@@ -33,11 +33,11 @@ object Query {
       def finishCopyOut: F[Unit] =
         receive.iterateUntil {
           case CommandComplete(_) => true
-          case _        => false
+          case _                  => false
         } .void
 
       def finishUp(stmt: Statement[_], multipleStatements: Boolean = false): F[Unit] =
-        receive.flatMap {
+        flatExpect {
 
           case ReadyForQuery(_) =>
             new SkunkException(
@@ -64,7 +64,7 @@ object Query {
       // If there is an error we just want to receive and discard everything until we have seen
       // CommandComplete followed by ReadyForQuery.
       def discard(stmt: Statement[_]): F[Unit] =
-        receive.flatMap {
+        flatExpect {
           case RowData(_)         => discard(stmt)
           case CommandComplete(_) => finishUp(stmt)
         }

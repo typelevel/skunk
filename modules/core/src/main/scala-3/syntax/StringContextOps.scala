@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 by Rob Norris
+// Copyright (c) 2018-2021 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
@@ -8,7 +8,6 @@ package syntax
 import cats.data.State
 import cats.syntax.all._
 import scala.language.implicitConversions
-import scala.reflect.macros.whitebox
 import scala.quoted._
 import skunk.data.Identifier
 import skunk.util.Origin
@@ -50,7 +49,7 @@ object StringContextOps {
 
   def yell(s: String) = println(s"${Console.RED}$s${Console.RESET}")
 
-  def sqlImpl(sc: Expr[StringContext], argsExpr: Expr[Seq[Any]])(using qc:Quotes): Expr[Any] = {
+  def sqlImpl(sc: Expr[StringContext], argsExpr: Expr[Seq[Any]])(using qc:Quotes): Expr[Fragment[?]] = {
     import qc.reflect.report
 
     // Ok we want to construct an Origin here
@@ -155,7 +154,7 @@ object StringContextOps {
 
 trait ToStringContextOps {
 
-  extension (inline sc: StringContext) transparent inline def sql(inline args: Any*): Any =
+  extension (inline sc: StringContext) transparent inline def sql(inline args: Any*): Fragment[?] =
     ${ StringContextOps.sqlImpl('sc, 'args) }
 
   extension (inline sc: StringContext) inline def id(): Identifier =

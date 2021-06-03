@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 by Rob Norris
+// Copyright (c) 2018-2021 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
@@ -14,7 +14,7 @@ import skunk.util.Origin
 
 class StringContextOps private[skunk](sc: StringContext) {
 
-  def sql(argSeq: Any*): Any =
+  def sql(argSeq: Any*): Fragment[_] =
     macro StringContextOps.StringOpsMacros.sql_impl
 
   def id(): Identifier =

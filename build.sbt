@@ -1,13 +1,12 @@
 
 
 // Our Scala versions.
-lazy val `scala-2.12`     = "2.12.13"
-lazy val `scala-2.13`     = "2.13.5"
-lazy val `scala-3.0-prev` = "3.0.0-M3"
-lazy val `scala-3.0-curr` = "3.0.0-RC1"
+lazy val `scala-2.12` = "2.12.13"
+lazy val `scala-2.13` = "2.13.5"
+lazy val `scala-3.0`  = "3.0.0"
 
 // This is used in a couple places
-lazy val fs2Version = "2.5.3"
+lazy val fs2Version = "2.5.6"
 
 // Global Settings
 lazy val commonSettings = Seq(
@@ -27,7 +26,7 @@ lazy val commonSettings = Seq(
   // Headers
   headerMappings := headerMappings.value + (HeaderFileType.scala -> HeaderCommentStyle.cppStyleLineComment),
   headerLicense  := Some(HeaderLicense.Custom(
-    """|Copyright (c) 2018-2020 by Rob Norris
+    """|Copyright (c) 2018-2021 by Rob Norris
        |This software is licensed under the MIT License (MIT).
        |For more information see LICENSE or https://opensource.org/licenses/MIT
        |""".stripMargin
@@ -36,49 +35,40 @@ lazy val commonSettings = Seq(
 
   // Compilation
   scalaVersion       := `scala-2.13`,
-  crossScalaVersions := Seq(`scala-2.12`, `scala-2.13`, `scala-3.0-prev`, `scala-3.0-curr`),
+  crossScalaVersions := Seq(`scala-2.12`, `scala-2.13`, `scala-3.0`),
   scalacOptions -= "-language:experimental.macros", // doesn't work cross-version
-  Compile / doc     / scalacOptions --= Seq("-Xfatal-warnings"),
-  Compile / doc     / scalacOptions ++= Seq(
+  Compile / doc / scalacOptions --= Seq("-Xfatal-warnings"),
+  Compile / doc / scalacOptions ++= Seq(
     "-groups",
-    "-sourcepath", (baseDirectory in LocalRootProject).value.getAbsolutePath,
+    "-sourcepath", (LocalRootProject / baseDirectory).value.getAbsolutePath,
     "-doc-source-url", "https://github.com/tpolecat/skunk/blob/v" + version.value + "€{FILE_PATH}.scala",
   ),
   libraryDependencies ++= Seq(
     compilerPlugin("org.typelevel" %% "kind-projector" % "0.11.3" cross CrossVersion.full),
-  ).filterNot(_ => isDotty.value),
+  ).filterNot(_ => scalaVersion.value.startsWith("3.")),
 
   // Coverage Exclusions
   coverageExcludedPackages := "ffstest.*;tests.*;example.*;natchez.http4s.*",
 
   // uncomment in case of emergency
-  // scalacOptions ++= { if (isDotty.value) Seq("-source:3.0-migration") else Nil },
+  // scalacOptions ++= { if (scalaVersion.value.startsWith("3.")) Seq("-source:3.0-migration") else Nil },
 
   // Add some more source directories
-  unmanagedSourceDirectories in Compile ++= {
-    val sourceDir = (sourceDirectory in Compile).value
+  Compile / unmanagedSourceDirectories ++= {
+    val sourceDir = (Compile / sourceDirectory).value
     CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((3, _))  => Seq(sourceDir / "scala-3", sourceDir / "scala-2.13+")
-      case Some((2, 12)) => Seq(sourceDir / "scala-2")
-      case Some((2, _))  => Seq(sourceDir / "scala-2", sourceDir / "scala-2.13+")
+      case Some((3, _))  => Seq(sourceDir / "scala-2.13+")
+      case Some((2, 12)) => Seq()
+      case Some((2, _))  => Seq(sourceDir / "scala-2.13+")
       case _             => Seq()
     }
   },
 
-  // Also for test
-  unmanagedSourceDirectories in Test ++= {
-    val sourceDir = (sourceDirectory in Test).value
-    CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((3, _))  => Seq(sourceDir / "scala-3")
-      case Some((2, _))  => Seq(sourceDir / "scala-2")
-      case _             => Seq()
-    }
-  },
 
   // dottydoc really doesn't work at all right now
   Compile / doc / sources := {
     val old = (Compile / doc / sources).value
-    if (isDotty.value)
+    if (scalaVersion.value.startsWith("3."))
       Seq()
     else
       old
@@ -103,20 +93,19 @@ lazy val core = project
     description := "Tagless, non-blocking data access library for Postgres.",
     resolvers   +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     libraryDependencies ++= Seq(
-      "org.typelevel"    %% "cats-core"    % "2.4.2",
-      "org.typelevel"    %% "cats-effect"  % "2.3.3",
-      "co.fs2"           %% "fs2-core"     % fs2Version,
-      "co.fs2"           %% "fs2-io"       % fs2Version,
-      "org.scodec"       %% "scodec-core"  % (if (isDotty.value) "2.0.0-RC1" else "1.11.7"),
-      "org.scodec"       %% "scodec-cats"  % "1.1.0-RC1",
-      "org.tpolecat"     %% "natchez-core" % "0.0.20",
-      "org.tpolecat"     %% "sourcepos"    % "0.1.1",
-      "com.ongres.scram"  % "client"       % "2.1",
+      "org.typelevel"          %% "cats-core"               % "2.6.1",
+      "org.typelevel"          %% "cats-effect"             % "2.5.1",
+      "co.fs2"                 %% "fs2-core"                % fs2Version,
+      "co.fs2"                 %% "fs2-io"                  % fs2Version,
+      "org.scodec"             %% "scodec-core"             % (if (scalaVersion.value.startsWith("3.")) "2.0.0" else "1.11.8"),
+      "org.scodec"             %% "scodec-cats"             % "1.1.0",
+      "org.tpolecat"           %% "natchez-core"            % "0.0.26",
+      "org.tpolecat"           %% "sourcepos"               % "1.0.0",
+      "com.ongres.scram"        % "client"                  % "2.1",
+      "org.scala-lang.modules" %% "scala-collection-compat" % "2.4.4",
     ) ++ Seq(
       "com.beachape"  %% "enumeratum"   % "1.6.1",
-    ).map(_.withDottyCompat(scalaVersion.value)) ++ Seq(
-      "org.scala-lang.modules" %% "scala-collection-compat" % "2.4.2",
-    )
+    ).filterNot(_ => scalaVersion.value.startsWith("3."))
   )
 
 lazy val refined = project
@@ -126,8 +115,8 @@ lazy val refined = project
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "eu.timepit" %% "refined" % "0.9.21",
-    ).map(_.withDottyCompat(scalaVersion.value))
+      "eu.timepit" %% "refined" % "0.9.26",
+    )
   )
 
 lazy val circe = project
@@ -137,10 +126,17 @@ lazy val circe = project
   .settings(commonSettings)
   .settings(
     name := "skunk-circe",
-    libraryDependencies ++= Seq(
-      "io.circe" %% "circe-core"   % "0.13.0",
-      "io.circe" %% "circe-parser" % "0.13.0"
-    ).filterNot(_ => isDotty.value)
+    libraryDependencies ++= {
+      lazy val circeVersion: String =
+        scalaVersion.value match {
+          case `scala-3.0` => "0.14.0-M7"
+          case _           => "0.13.0"
+        }
+      Seq(
+        "io.circe" %% "circe-core"   % circeVersion,
+        "io.circe" %% "circe-parser" % circeVersion
+      )
+    }
   )
 
 lazy val tests = project
@@ -152,14 +148,14 @@ lazy val tests = project
     publish / skip := true,
     scalacOptions  -= "-Xfatal-warnings",
     libraryDependencies ++= Seq(
-      "org.typelevel"     %% "scalacheck-effect-munit" % "0.7.1",
-      "org.typelevel"     %% "munit-cats-effect-2"     % "0.13.1",
-      "org.typelevel"     %% "cats-free"               % "2.4.2",
-      "org.typelevel"     %% "cats-laws"               % "2.4.2",
-      "org.typelevel"     %% "discipline-munit"        % "1.0.6",
+      "org.typelevel"     %% "scalacheck-effect-munit" % "1.0.2",
+      "org.typelevel"     %% "munit-cats-effect-2"     % "1.0.3",
+      "org.typelevel"     %% "cats-free"               % "2.6.1",
+      "org.typelevel"     %% "cats-laws"               % "2.6.1",
+      "org.typelevel"     %% "discipline-munit"        % "1.0.9",
     ) ++ Seq(
       "io.chrisdavenport" %% "cats-time"               % "0.3.4",
-    ).filterNot(_ => isDotty.value),
+    ).filterNot(_ => scalaVersion.value.startsWith("3.")),
     testFrameworks += new TestFramework("munit.Framework")
   )
 
@@ -171,14 +167,14 @@ lazy val example = project
   .settings(
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.20",
-      "org.tpolecat"  %% "natchez-jaeger"      % "0.0.20",
+      "org.tpolecat"  %% "natchez-honeycomb"   % "0.0.26",
+      "org.tpolecat"  %% "natchez-jaeger"      % "0.0.26",
     ) ++ Seq(
-      "org.http4s"    %% "http4s-dsl"          % "0.21.20",
-      "org.http4s"    %% "http4s-blaze-server" % "0.21.20",
-      "org.http4s"    %% "http4s-circe"        % "0.21.20",
+      "org.http4s"    %% "http4s-dsl"          % "0.21.24",
+      "org.http4s"    %% "http4s-blaze-server" % "0.21.24",
+      "org.http4s"    %% "http4s-circe"        % "0.21.24",
       "io.circe"      %% "circe-generic"       % "0.13.0",
-    ).filterNot(_ => isDotty.value)
+    ).filterNot(_ => scalaVersion.value.startsWith("3."))
   )
 
 lazy val docs = project
@@ -198,7 +194,7 @@ lazy val docs = project
     paradoxTheme       := Some(builtinParadoxTheme("generic")),
     version            := version.value.takeWhile(_ != '+'), // strip off the +3-f22dca22+20191110-1520-SNAPSHOT business
     paradoxProperties ++= Map(
-      "scala-versions"          -> (crossScalaVersions in core).value.map(CrossVersion.partialVersion).flatten.map(_._2).mkString("2.", "/", ""),
+      "scala-versions"          -> (core / crossScalaVersions).value.map(CrossVersion.partialVersion).flatten.map(_._2).mkString("2.", "/", ""),
       "org"                     -> organization.value,
       "scala.binary.version"    -> s"2.${CrossVersion.partialVersion(scalaVersion.value).get._2}",
       "core-dep"                -> s"${(core / name).value}_2.${CrossVersion.partialVersion(scalaVersion.value).get._2}",
