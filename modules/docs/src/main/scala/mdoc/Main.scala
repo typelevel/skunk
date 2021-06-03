@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 by Rob Norris
+// Copyright (c) 2018-2021 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
@@ -64,11 +64,11 @@ object Main {
 
 // copy-pasted from mdoc source, adding `pprinter` as an arg
 case class ReplVariablePrinter(
-    leadingNewline: Boolean   = true,
-    width:    Int             = 80,
-    height:   Int             = 80,
-    indent:   Int             = 2,
-    pprinter: PPrinter        = PPrinter.BlackWhite,
+  leadingNewline: Boolean = true,
+  width: Int         = 80,
+  height: Int        = 80,
+  indent: Int        = 2,
+  pprinter: PPrinter = PPrinter.BlackWhite,
 ) extends (_root_.mdoc.Variable => String) {
 
   override def apply(binder: Variable): String = {
@@ -85,7 +85,7 @@ case class ReplVariablePrinter(
         .append(binder.staticType)
         .append(" = ")
       if (binder.isToString) {
-        Renderer.appendMultiline(sb, binder.runtimeValue.toString)
+        appendMultiline(sb, binder.runtimeValue.toString)
       } else {
         val heightOverride = binder.mods.heightOverride
         val widthOverride = binder.mods.widthOverride
@@ -99,11 +99,29 @@ case class ReplVariablePrinter(
         )
         lines.foreach { lineStr =>
           val line = lineStr.plainText
-          Renderer.appendMultiline(sb, line)
+          appendMultiline(sb, line)
         }
       }
       baos.toString()
     }
   }
 
+  def appendMultiline(sb: PrintStream, string: String): Unit = {
+    appendMultiline(sb, string, string.length)
+  }
+
+  def appendMultiline(sb: PrintStream, string: String, N: Int): Unit = {
+    var i = 0
+    while (i < N) {
+      string.charAt(i) match {
+        case '\n' =>
+          sb.append("\n// ")
+        case ch =>
+          sb.append(ch)
+      }
+      i += 1
+    }
+  }
 }
+
+
