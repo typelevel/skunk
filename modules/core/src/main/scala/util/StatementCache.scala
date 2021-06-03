@@ -4,11 +4,11 @@
 
 package skunk.util
 
-import cats.~>
-import cats.effect.Sync
-import cats.implicits._
+import cats.{ Functor, ~> }
+import cats.syntax.all._
 import skunk.Statement
-import java.{ util => ju }
+import cats.effect.kernel.Ref
+import skunk.data.SemispaceCache
 
 /** An LRU (by access) cache, keyed by statement `CacheKey`. */
 sealed trait StatementCache[F[_], V] { outer =>
@@ -30,40 +30,28 @@ sealed trait StatementCache[F[_], V] { outer =>
 
 object StatementCache {
 
-  /** Capability trait for constructing a `StatementCache`. */
-  trait Make[F[_]] {
+  def empty[F[_]: Functor: Ref.Make, V](max: Int): F[StatementCache[F, V]] =
+    Ref[F].of(SemispaceCache.empty[Statement.CacheKey, V](max)).map { ref =>
+      new StatementCache[F, V] {
 
-    /** Construct an empty `StatementCache` with the specified capacity. */
-    def empty[V](max: Int): F[StatementCache[F, V]]
-
-  }
-
-  object Make {
-
-    def apply[F[_]](implicit ev: Make[F]): ev.type = ev
-
-    implicit def syncMake[F[_]: Sync]: Make[F] =
-      new Make[F] {
-
-        def empty[V](max: Int): F[StatementCache[F, V]] =
-          Sync[F].delay(
-            ju.Collections.synchronizedMap {
-              new ju.LinkedHashMap[Statement.CacheKey, V]() {
-                override def removeEldestEntry(e: ju.Map.Entry[Statement.CacheKey, V]): Boolean =
-                  size > max
-              }
-            }
-          ).map { lhm =>
-            new StatementCache[F, V] {
-              def get(k: Statement[_]): F[Option[V]] = Sync[F].delay(Option(lhm.get(k.cacheKey)))
-              def put(k: Statement[_], v: V): F[Unit] = Sync[F].delay(lhm.put(k.cacheKey, v)).void
-              def containsKey(k: Statement[_]): F[Boolean] = Sync[F].delay(lhm.containsKey(k.cacheKey))
-              val clear: F[Unit] = Sync[F].delay(lhm.clear())
+        def get(k: Statement[_]): F[Option[V]] =
+          ref.modify { c =>
+            c.lookup(k.cacheKey) match {
+              case Some((cʹ, v)) => (cʹ, Some(v))
+              case None          => (c, None)
             }
           }
 
-      }
+        private[skunk] def put(k: Statement[_], v: V): F[Unit] =
+          ref.update(_.insert(k.cacheKey, v))
 
+        def containsKey(k: Statement[_]): F[Boolean] =
+          ref.get.map(_.containsKey(k.cacheKey))
+
+        def clear: F[Unit] =
+          ref.set(SemispaceCache.empty[Statement.CacheKey, V](max))
+
+      }
     }
 
 }
