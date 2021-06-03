@@ -56,8 +56,8 @@ object Describe {
         }
 
       override def apply[A](query: skunk.Query[_, A], id: StatementId, ty: Typer): F[TypedRowDescription] =
-        exchange("describe") {
-          OptionT(cache.queryCache.get(query)).getOrElseF {
+        OptionT(cache.queryCache.get(query)).getOrElseF {
+          exchange("describe") {
             for {
               _  <- Trace[F].put("statement-id" -> id.value)
               _  <- send(DescribeMessage.statement(id.value))
