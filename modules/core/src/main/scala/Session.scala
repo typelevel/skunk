@@ -21,6 +21,7 @@ import skunk.util.Typer.Strategy.{ BuiltinsOnly, SearchPath }
 import skunk.net.SSLNegotiation
 import skunk.data.TransactionIsolationLevel
 import skunk.data.TransactionAccessMode
+import skunk.net.protocol.Describe
 
 /**
  * Represents a live connection to a Postgres database. Operations provided here are safe to use
@@ -179,6 +180,13 @@ trait Session[F[_]] {
 
   def typer: Typer
 
+  /**
+   * Each session has access to the pool-wide cache of all statements that have been checked via the
+   * `Describe` protocol, which allows us to skip subsequent checks. Users can inspect and clear
+   * the cache through this accessor.
+   */
+  def describeCache: Describe.Cache[F]
+
 }
 
 
@@ -232,6 +240,11 @@ object Session {
    * will `use` this resource once on application startup and pass the resulting
    * `Resource[F, Session[F]]` to the rest of your program.
    *
+   * The pool maintains a cache of queries and commands that have been checked against the schema,
+   * eliminating the need to check them more than once. If your program is changing the schema on
+   * the fly than you probably don't want this behavior; you can disable it by setting the
+   * `commandCache` and `queryCache` parameters to zero.
+   *
    * Note that calling `.flatten` on the nested `Resource` returned by this method may seem
    * reasonable, but it will result in a resource that allocates a new pool for each session, which
    * is probably not what you want.
@@ -242,6 +255,8 @@ object Session {
    * @param max           Maximum concurrent sessions
    * @param debug
    * @param strategy
+   * @param commandCache  Size of the cache for command checking
+   * @param queryCache    Size of the cache for query checking
    * @group Constructors
    */
   def pooled[F[_]: Concurrent: Trace: Network: Console](
@@ -254,17 +269,20 @@ object Session {
     debug:        Boolean        = false,
     strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly,
     ssl:          SSL            = SSL.None,
-    parameters: Map[String, String] = Session.DefaultConnectionParameters
+    parameters:   Map[String, String] = Session.DefaultConnectionParameters,
+    commandCache: Int = 1024,
+    queryCache:   Int = 1024,
   ): Resource[F, Resource[F, Session[F]]] = {
 
-    def session(socketGroup: SocketGroup[F], sslOp: Option[SSLNegotiation.Options[F]]): Resource[F, Session[F]] =
-      fromSocketGroup[F](socketGroup, host, port, user, database, password, debug, strategy, sslOp, parameters)
+    def session(socketGroup:  SocketGroup[F], sslOp: Option[SSLNegotiation.Options[F]], cache: Describe.Cache[F]): Resource[F, Session[F]] =
+      fromSocketGroup[F](socketGroup, host, port, user, database, password, debug, strategy, sslOp, parameters, cache)
 
     val logger: String => F[Unit] = s => Console[F].println(s"TLS: $s")
 
     for {
+      dc      <- Resource.eval(Describe.Cache.empty[F](commandCache, queryCache))
       sslOp   <- Resource.eval(ssl.toSSLNegotiationOptions(if (debug) logger.some else none))
-      pool    <- Pool.of(session(Network[F], sslOp), max)(Recyclers.full)
+      pool    <- Pool.of(session(Network[F], sslOp, dc), max)(Recyclers.full)
     } yield pool
 
   }
@@ -284,7 +302,9 @@ object Session {
     debug:        Boolean        = false,
     strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly,
     ssl:          SSL            = SSL.None,
-    parameters: Map[String, String] = Session.DefaultConnectionParameters
+    parameters:   Map[String, String] = Session.DefaultConnectionParameters,
+    commandCache: Int = 1024,
+    queryCache:   Int = 1024,
   ): Resource[F, Session[F]] =
     pooled(
       host         = host,
@@ -296,7 +316,9 @@ object Session {
       debug        = debug,
       strategy     = strategy,
       ssl          = ssl,
-      parameters = parameters
+      parameters   = parameters,
+      commandCache = commandCache,
+      queryCache   = queryCache,
     ).flatten
 
   def fromSocketGroup[F[_]: Concurrent: Trace: Console](
@@ -309,11 +331,12 @@ object Session {
     debug:        Boolean        = false,
     strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly,
     sslOptions:   Option[SSLNegotiation.Options[F]],
-    parameters: Map[String, String]
+    parameters:   Map[String, String],
+    describeCache: Describe.Cache[F],
   ): Resource[F, Session[F]] =
     for {
       namer <- Resource.eval(Namer[F])
-      proto <- Protocol[F](host, port, debug, namer, socketGroup, sslOptions)
+      proto <- Protocol[F](host, port, debug, namer, socketGroup, sslOptions, describeCache)
       _     <- Resource.eval(proto.startup(user, database, password, parameters))
       sess  <- Resource.eval(fromProtocol(proto, namer, strategy))
     } yield sess
@@ -387,6 +410,9 @@ object Session {
         override def transaction[A](isolationLevel: TransactionIsolationLevel, accessMode: TransactionAccessMode): Resource[F, Transaction[F]] =
           Transaction.fromSession(this, namer, isolationLevel.some, accessMode.some)
 
+        override def describeCache: Describe.Cache[F] =
+          proto.describeCache
+
       }
     }
   }
@@ -441,6 +467,8 @@ object Session {
         override def transactionStatus: Signal[G,TransactionStatus] = outer.transactionStatus.mapK(fk)
 
         override def unique[A](query: Query[Void,A]): G[A] = fk(outer.unique(query))
+
+        override def describeCache: Describe.Cache[G] = outer.describeCache.mapK(fk)
 
       }
   }

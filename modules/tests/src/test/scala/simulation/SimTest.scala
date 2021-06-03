@@ -20,6 +20,7 @@ import skunk.net.message.FrontendMessage
 import skunk.util.Namer
 import skunk.util.Origin
 import skunk.util.Typer
+import skunk.net.protocol.Describe
 
 trait SimTest extends FTest with SimMessageSocket.DSL {
 
@@ -40,7 +41,8 @@ trait SimTest extends FTest with SimMessageSocket.DSL {
     for {
       bms <- SimMessageSocket(sim).map(new SimulatedBufferedMessageSocket(_))
       nam <- Namer[IO]
-      pro <- Protocol.fromMessageSocket(bms, nam)
+      dc  <- Describe.Cache.empty[IO](1024, 1024)
+      pro <- Protocol.fromMessageSocket(bms, nam, dc)
       _   <- pro.startup(user, database, password, Session.DefaultConnectionParameters)
       ses <- Session.fromProtocol(pro, nam, Typer.Strategy.BuiltinsOnly)
     } yield ses

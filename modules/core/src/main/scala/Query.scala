@@ -68,6 +68,9 @@ final case class Query[A, B](
   def gmap[D](implicit ev: Twiddler.Aux[D, B]): Query[A, D] =
     map(ev.from)
 
+  def cacheKey: Statement.CacheKey =
+    Statement.CacheKey(sql, encoder.types, decoder.types)
+
 }
 
 /** @group Companions */
