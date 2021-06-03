@@ -2,7 +2,7 @@
 
 // Our Scala versions.
 lazy val `scala-2.12` = "2.12.13"
-lazy val `scala-2.13` = "2.13.5"
+lazy val `scala-2.13` = "2.13.6"
 lazy val `scala-3.0`  = "3.0.0"
 
 // This is used in a couple places
@@ -52,7 +52,7 @@ lazy val commonSettings = Seq(
     "-doc-source-url", "https://github.com/tpolecat/skunk/blob/v" + version.value + "€{FILE_PATH}.scala",
   ),
   libraryDependencies ++= Seq(
-    compilerPlugin("org.typelevel" %% "kind-projector" % "0.11.3" cross CrossVersion.full),
+    compilerPlugin("org.typelevel" %% "kind-projector" % "0.13.0" cross CrossVersion.full),
   ).filterNot(_ => scalaVersion.value.startsWith("3.")),
 
   // Coverage Exclusions
@@ -134,17 +134,10 @@ lazy val circe = project
   .settings(commonSettings)
   .settings(
     name := "skunk-circe",
-    libraryDependencies ++= {
-      lazy val circeVersion: String =
-        scalaVersion.value match {
-          case `scala-3.0` => "0.14.0-M7"
-          case _           => "0.13.0"
-        }
-      Seq(
-        "io.circe" %% "circe-core"   % circeVersion,
-        "io.circe" %% "circe-parser" % circeVersion
-      )
-    }
+    libraryDependencies ++= Seq(
+      "io.circe" %% "circe-core"   % "0.14.1",
+      "io.circe" %% "circe-parser" % "0.14.1"
+    )
   )
 
 lazy val tests = project
