@@ -11,6 +11,8 @@ import natchez.Trace.Implicits.noop
 
 class RedshiftTest extends ffstest.FTest {
 
+  override def munitIgnore: Boolean = true
+
   test("redshift - successfully connect") {
     Session.single[IO](
       host = "localhost",

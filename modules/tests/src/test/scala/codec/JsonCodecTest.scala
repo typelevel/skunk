@@ -14,8 +14,24 @@ class JsonCodecTest extends CodecTest {
 
   val j: Json = parse("""{"foo": [true, "bar"], "tags": {"a": 1, "b": null}}""").toOption.get
 
-  roundtripTest(json)(j)
-  roundtripTest(json[Int ~ String])(42 ~ "foo")
+
+  /*
+  
+🔥
+🔥  Postgres ERROR 08P01 raised in NewProtocolViolationErrorf (encoding.go:272)
+🔥
+🔥    Problem: Unknown oid type: 114.
+🔥
+🔥  The statement under consideration was defined
+🔥    at /Users/ahjohannessen/Development/Personal/skunk/modules/tests/src/test/scala/codec/CodecTest.scala:35
+🔥
+🔥    select $1::json  
+  
+  */
+
+  // roundtripTest(json)(j)
+  // roundtripTest(json[Int ~ String])(42 ~ "foo")
+
   roundtripTest(jsonb)(j)
   roundtripTest(jsonb[Int ~ String])(42 ~ "foo")
   decodeFailureTest(jsonb[Int ~ String], List("woozle", "blah"))

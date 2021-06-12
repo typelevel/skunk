@@ -13,6 +13,41 @@ import skunk.exception.UnknownOidException
 
 class UnknownOidExceptionTest1 extends SkunkTest(strategy = Strategy.SearchPath) {
 
+  override def munitIgnore: Boolean = true
+
+/*
+
+🔥  DecodeException
+🔥
+🔥    Problem: Decoding error.
+🔥     Detail: This query's decoder was unable to decode a row of data.
+🔥
+🔥  The statement under consideration was defined
+🔥    at «skunk internal»:0
+🔥
+🔥    SELECT attrelid relid, atttypid typid
+🔥    FROM   pg_class
+🔥    JOIN   pg_attribute ON pg_attribute.attrelid = pg_class.oid
+🔥    WHERE  relnamespace IN (
+🔥      SELECT oid
+🔥      FROM   pg_namespace
+🔥      WHERE  nspname = ANY(current_schemas(true))
+🔥    )
+🔥    AND    attnum > 0
+🔥    ORDER  BY attrelid DESC, attnum ASC
+🔥
+🔥  The row in question returned the following values (truncated to 15 chars).
+🔥
+🔥    relid  oid  ->  4294967218  ├── java.lang.NumberFormatException (see below)
+🔥    typid  oid  ->  24
+🔥
+🔥  The decoder threw the following exception:
+🔥
+🔥    java.lang.NumberFormatException: For input string: "4294967218"
+
+*/
+
+
     val mood = `enum`[String](identity, Option(_), Type("mood"))
     sessionTest("raise UnknownOidException when referencing a new type, using Strategy.SearchPath") { s =>
       for {

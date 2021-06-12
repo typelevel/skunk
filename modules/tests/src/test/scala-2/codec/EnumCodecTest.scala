@@ -14,6 +14,8 @@ import enumeratum.EnumEntry.Lowercase
 
 class EnumCodecTest extends CodecTest(strategy = Strategy.SearchPath) {
 
+  override def munitIgnore: Boolean = true
+
   // Case 1: enum defined normally
   sealed abstract class Case1(val label: String)
   object Case1 {

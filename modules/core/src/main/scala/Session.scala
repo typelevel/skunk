@@ -272,17 +272,19 @@ object Session {
     parameters:   Map[String, String] = Session.DefaultConnectionParameters,
     commandCache: Int = 1024,
     queryCache:   Int = 1024,
+    fullRescycler: Boolean = true
   ): Resource[F, Resource[F, Session[F]]] = {
 
     def session(socketGroup:  SocketGroup[F], sslOp: Option[SSLNegotiation.Options[F]], cache: Describe.Cache[F]): Resource[F, Session[F]] =
       fromSocketGroup[F](socketGroup, host, port, user, database, password, debug, strategy, sslOp, parameters, cache)
 
     val logger: String => F[Unit] = s => Console[F].println(s"TLS: $s")
+    val resycler = if(fullRescycler) Recyclers.full[F] else Recyclers.minimal[F]
 
     for {
       dc      <- Resource.eval(Describe.Cache.empty[F](commandCache, queryCache))
       sslOp   <- Resource.eval(ssl.toSSLNegotiationOptions(if (debug) logger.some else none))
-      pool    <- Pool.of(session(Network[F], sslOp, dc), max)(Recyclers.full)
+      pool    <- Pool.of(session(Network[F], sslOp, dc), max)(resycler)
     } yield pool
 
   }
@@ -305,6 +307,7 @@ object Session {
     parameters:   Map[String, String] = Session.DefaultConnectionParameters,
     commandCache: Int = 1024,
     queryCache:   Int = 1024,
+    fullRescycler: Boolean = true    
   ): Resource[F, Session[F]] =
     pooled(
       host         = host,
@@ -319,6 +322,7 @@ object Session {
       parameters   = parameters,
       commandCache = commandCache,
       queryCache   = queryCache,
+      fullRescycler = fullRescycler
     ).flatten
 
   def fromSocketGroup[F[_]: Concurrent: Trace: Console](

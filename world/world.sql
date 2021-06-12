@@ -8,11 +8,11 @@
 CREATE TYPE myenum AS ENUM ('foo', 'bar');
 
 CREATE TABLE IF NOT EXISTS city (
-    id integer NOT NULL,
+    id int4 NOT NULL,
     name varchar NOT NULL,
     countrycode character(3) NOT NULL,
     district varchar NOT NULL,
-    population integer NOT NULL
+    population int4 NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS country (
@@ -22,14 +22,14 @@ CREATE TABLE IF NOT EXISTS country (
     region varchar NOT NULL,
     surfacearea real NOT NULL,
     indepyear smallint,
-    population integer NOT NULL,
+    population int4 NOT NULL,
     lifeexpectancy real,
     gnp numeric(10,2),
     gnpold numeric(10,2),
     localname varchar NOT NULL,
     governmentform varchar NOT NULL,
     headofstate varchar,
-    capital integer,
+    capital int4,
     code2 character(2) NOT NULL --,
     -- TODO: we can do this with CREATE DOMAIN
     -- CONSTRAINT country_continent_check CHECK ((((((((continent = 'Asia'::text) OR (continent = 'Europe'::text)) OR (continent = 'North America'::text)) OR (continent = 'Africa'::text)) OR (continent = 'Oceania'::text)) OR (continent = 'Antarctica'::text)) OR (continent = 'South America'::text)));
@@ -5372,13 +5372,13 @@ ALTER TABLE countrylanguage
     ADD CONSTRAINT countrylanguage_countrycode_fkey FOREIGN KEY (countrycode) REFERENCES country(code);
 
 
-CREATE OR REPLACE FUNCTION getCountries(n integer, OUT c refcursor) AS '
-BEGIN
-    OPEN c FOR SELECT name FROM country LIMIT n;
-END;
-' LANGUAGE plpgsql;
+-- CREATE OR REPLACE FUNCTION getCountries(n integer, OUT c refcursor) AS '
+-- BEGIN
+--     OPEN c FOR SELECT name FROM country LIMIT n;
+-- END;
+-- ' LANGUAGE plpgsql;
 
-COMMIT;
+-- COMMIT;
 
-ANALYZE;
+-- ANALYZE;
 

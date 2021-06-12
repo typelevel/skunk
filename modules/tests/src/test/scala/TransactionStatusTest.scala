@@ -16,6 +16,8 @@ import skunk.exception.PostgresErrorException
  */
 class TransactionStatusTest extends SkunkTest {
 
+override def munitIgnore: Boolean = true
+
   sessionTest("simple, non-transactional") { s =>
     for {
       _ <- s.assertTransactionStatus("initial state", Idle)

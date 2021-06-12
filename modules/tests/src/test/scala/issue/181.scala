@@ -12,6 +12,8 @@ import skunk.exception.PostgresErrorException
 // https://github.com/tpolecat/skunk/issues/181
 class Test181 extends SkunkTest {
 
+  override def munitIgnore: Boolean = true
+
   def func(level: String): Command[Void] =
     sql"""
       CREATE OR REPLACE FUNCTION test181_#$level() RETURNS real AS $$$$

@@ -16,6 +16,8 @@ import cats.effect.kernel.Outcome.Succeeded
 
 class ChannelTest extends SkunkTest {
 
+  override def munitIgnore: Boolean = true // Not currently supported by CRDB
+
   sessionTest("channel (coverage)") { s =>
     val data = List("foo", "bar", "baz")
     val ch0 = s.channel(id"channel_test")

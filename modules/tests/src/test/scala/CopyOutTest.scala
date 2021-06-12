@@ -11,6 +11,8 @@ import skunk.exception.CopyNotSupportedException
 import skunk.exception.NoDataException
 
 class CopyOutTest extends SkunkTest {
+  
+  override def munitIgnore: Boolean = true  
 
   sessionTest("copy out (simple query)") { s =>
     s.execute(sql"COPY country TO STDOUT".query(int4))

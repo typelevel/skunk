@@ -22,11 +22,13 @@ class DescribeCacheTest extends SkunkTest {
   def poolResource: Resource[IO, Resource[IO, Session[IO]]] =
     Session.pooled(
       host     = "localhost",
-      port     = 5432,
-      user     = "jimmy",
+      port     = 26257,
+      user     = "root",
       database = "world",
-      password = Some("banana"),
+      password = Some(""),
       max      = 3,
+      parameters = Session.DefaultConnectionParameters - "IntervalStyle",
+      fullRescycler = false
     )
 
   test("describe cache should be shared across sessions from the same pool") {
@@ -95,7 +97,7 @@ class DescribeCacheTest extends SkunkTest {
   // Queries
 
   sessionTest("query should not be cached before `prepare.use`") { s =>
-    val qry = sql"select 1".query(int4)
+    val qry = sql"select 1::int4".query(int4)
     for {
       c <- s.describeCache.queryCache.containsKey(qry)
       _ <- assertEqual("should not be in cache", c, false)
@@ -112,7 +114,7 @@ class DescribeCacheTest extends SkunkTest {
   }
 
   sessionTest("query should be cached after `prepare.use`" ) { s =>
-    val qry = sql"select 1".query(int4)
+    val qry = sql"select 1::int4".query(int4)
     for {
       _ <- s.prepare(qry).use(_ => IO.unit)
       c <- s.describeCache.queryCache.containsKey(qry)
@@ -121,7 +123,7 @@ class DescribeCacheTest extends SkunkTest {
   }
 
   sessionTest("query should not be cached after cache is cleared") { s =>
-    val qry = sql"select 1".query(int4)
+    val qry = sql"select 1::int4".query(int4)
     for {
       _ <- s.prepare(qry).use(_ => IO.unit)
       c <- s.describeCache.queryCache.containsKey(qry)

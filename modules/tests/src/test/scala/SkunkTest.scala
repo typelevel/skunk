@@ -18,13 +18,15 @@ abstract class SkunkTest(debug: Boolean = false, strategy: Typer.Strategy = Type
 
   def session: Resource[IO, Session[IO]] =
     Session.single(
-      host     = "localhost",
-      port     = 5432,
-      user     = "jimmy",
-      database = "world",
-      password = Some("banana"),
+      host     = sys.env.getOrElse("POSTGRES_HOST", "localhost"),
+      port     = 26257,
+      user     = sys.env.getOrElse("POSTGRES_USER", "root"),
+      database = sys.env.getOrElse("POSTGRES_DB", "world"),
+      password = Some(sys.env.get("POSTGRES_PASSWORD").getOrElse("")),
       strategy = strategy,
-      debug    = debug
+      debug    = debug,
+      parameters = Session.DefaultConnectionParameters - "IntervalStyle",
+      fullRescycler = false
     )
 
   def sessionTest[A](name: String)(fa: Session[IO] => IO[A])(implicit loc: Location): Unit =

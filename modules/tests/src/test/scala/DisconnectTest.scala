@@ -14,6 +14,8 @@ import ffstest.FTest
 
 class DisconnectTest extends FTest {
 
+  override def munitIgnore: Boolean = true
+
   val pool: Resource[IO, Resource[IO, Session[IO]]] =
     Session.pooled(
       host     = "localhost",

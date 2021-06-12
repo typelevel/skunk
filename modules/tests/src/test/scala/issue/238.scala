@@ -10,6 +10,8 @@ import natchez.Trace.Implicits.noop
 
 class Test238 extends ffstest.FTest {
 
+  override def munitIgnore: Boolean = true
+
   test("see (https://github.com/functional-streams-for-scala/fs2/pull/1989)") {
     Session.single[IO](
       host     = "localhost",

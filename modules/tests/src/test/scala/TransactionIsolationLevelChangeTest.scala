@@ -10,6 +10,8 @@ import skunk.implicits._
 
 class TransactionIsolationLevelChangeTest extends SkunkTest {
 
+  override def munitIgnore: Boolean = true
+
   sessionTest("default") { s =>
     s.transaction.use { _ =>
       for {

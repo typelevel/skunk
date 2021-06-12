@@ -12,7 +12,7 @@ import skunk.exception.TooManyParametersException
 
 class TooManyParametersExceptionTest extends SkunkTest {
 
-    def stmt(n: Int) = sql"select 1 where 1 in (${int4.list(n)})".query(int4)
+    def stmt(n: Int) = sql"select 1 where 1 in (${int8.list(n)})".query(int8)
 
     sessionTest(s"ok with ${Short.MaxValue} parameters.") { s =>
       s.prepare(stmt(Short.MaxValue)).use { _ => IO("ok") }
