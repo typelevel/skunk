@@ -2,7 +2,11 @@
 
 // Our Scala versions.
 lazy val `scala-2.13` = "2.13.6"
+<<<<<<< HEAD
 lazy val `scala-3`    = "3.0.2"
+=======
+lazy val `scala-3`    = "3.0.0"
+>>>>>>> ab79a3a (checkpoint)
 
 // This is used in a couple places
 lazy val fs2Version = "3.1.1"
