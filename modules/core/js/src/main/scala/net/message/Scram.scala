@@ -29,11 +29,7 @@ private[skunk] object Scram {
   private val normalize = js.Dynamic.global.require("saslprep").asInstanceOf[String => String]
 
   def clientFirstBareWithRandomNonce: ByteVector = {
-    val nonce = {
-      val arr = new Array[Byte](32)
-      java.security.SecureRandom.getInstanceStrong().nextBytes(arr)
-      ByteVector.view(arr).toBase64
-    }
+    val nonce = bufferToByteVector(crypto.randomBytes(32)).toBase64
     clientFirstBareWithNonce(nonce)
   }
 
@@ -90,7 +86,11 @@ private[skunk] object Scram {
     bufferToByteVector(mac.digest())
   }
 
-  private def H(input: ByteVector): ByteVector = input.digest("SHA-256")
+  private def H(input: ByteVector): ByteVector = {
+    val hash = crypto.createHash("sha256")
+    hash.update(input.toByteBuffer.arrayBuffer())
+    bufferToByteVector(hash.digest())
+  }
 
   private def Hi(str: String, salt: ByteVector, iterations: Int): ByteVector = {
     // TODO It is unfortunate that we have to use a sync API here when an async is available

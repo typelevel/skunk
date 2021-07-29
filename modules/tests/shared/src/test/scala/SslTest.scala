@@ -33,7 +33,7 @@ class SslTest extends ffstest.FTest with SslTestPlatform {
       database = "world",
       password = Some("banana"),
       ssl      = SSL.System,
-    ).use(_ => IO.unit).assertFailsWith[javax.net.ssl.SSLHandshakeException].as("sigh") // TODO! Better failure!
+    ).use(_ => IO.unit).assertFailsWith[SSLHandshakeException].as("sigh") // TODO! Better failure!
   }
 
   test("successful login with SSL.None (ssl not available)") {

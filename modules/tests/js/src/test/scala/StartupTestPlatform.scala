@@ -4,8 +4,9 @@
 
 package tests
 
-trait SslTestPlatform { self: SslTest => 
-
-  type SSLHandshakeException = scala.scalajs.js.JavaScriptException
+trait StartupTestPlatform {
+  
+  type ConnectException = scala.scalajs.js.JavaScriptException
+  type UnknownHostException = scala.scalajs.js.JavaScriptException
 
 }

@@ -9,9 +9,8 @@ import skunk._
 import natchez.Trace.Implicits.noop
 import skunk.exception.SkunkException
 import skunk.exception.StartupException
-import java.net.ConnectException
 
-class StartupTest extends ffstest.FTest {
+class StartupTest extends ffstest.FTest with StartupTestPlatform {
 
   // Different ports for different authentication schemes.
   object Port {
@@ -193,6 +192,6 @@ class StartupTest extends ffstest.FTest {
       host     = "blergh",
       user     = "bob",
       database = "nobody cares",
-    ).use(_ => IO.unit).assertFailsWith[java.net.UnknownHostException]
+    ).use(_ => IO.unit).assertFailsWith[UnknownHostException]
   }
 }
