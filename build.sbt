@@ -159,6 +159,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform)
   .in(file("modules/tests"))
   .dependsOn(core, circe)
   .enablePlugins(AutomateHeaderPlugin)
+  .jsEnablePlugins(ScalaJSBundlerPlugin)
   .jsConfigure(_.disablePlugins(ScoverageSbtPlugin))
   .settings(commonSettings)
   .settings(
