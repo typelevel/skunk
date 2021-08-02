@@ -176,7 +176,10 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform)
     ).filterNot(_ => scalaVersion.value.startsWith("3.")),
     testFrameworks += new TestFramework("munit.Framework")
   )
-  .jsSettings(Test / scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.CommonJSModule)))
+  .jsSettings(
+    Test / scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.CommonJSModule)),
+    useYarn := true
+  )
 
 lazy val example = project
   .in(file("modules/example"))
