@@ -16,7 +16,7 @@ private[message] trait PasswordMessagePlatform {
   def md5(user: String, password: String, salt: Array[Byte]): PasswordMessage = {
 
     // Hash with this thing
-    val md = crypto.createHash("md5")
+    var md = crypto.createHash("md5")
 
     // First round
     md.update(password)
@@ -26,6 +26,7 @@ private[message] trait PasswordMessagePlatform {
       hex = "0" + hex
 
     // Second round
+    md = crypto.createHash("md5")
     md.update(hex)
     md.update(salt.toTypedArray)
     hex = BigInt(1, new Int8Array(md.digest().asInstanceOf[ArrayBuffer]).toArray).toString(16)
