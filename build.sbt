@@ -13,6 +13,7 @@ lazy val natchezVersion = "0.1.5"
 inThisBuild(Seq(
   evictionRules ++= Seq(
     "org.typelevel" % "cats-*" % "semver-spec",
+    "org.scala-js" % "scalajs-*" % "semver-spec",
   )
 ))
 
