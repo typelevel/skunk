@@ -26,7 +26,7 @@ private[skunk] object Scram {
     def bytesUtf8: ByteVector = ByteVector.view(value.getBytes(java.nio.charset.StandardCharsets.UTF_8))
   }
 
-  private val normalize = js.Dynamic.global.require("saslprep").asInstanceOf[String => String]
+  private val normalize = js.Dynamic.global.require("saslprep").asInstanceOf[js.Function1[String, String]]
 
   def clientFirstBareWithRandomNonce: ByteVector = {
     val nonce = bufferToByteVector(crypto.randomBytes(32)).toBase64
