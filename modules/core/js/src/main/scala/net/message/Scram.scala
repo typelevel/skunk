@@ -80,22 +80,33 @@ private[skunk] object Scram {
       buffer.byteLength.asInstanceOf[Int]
     ))
 
+  private def byteVectorToBuffer(vector: ByteVector): js.typedarray.ArrayBuffer = {
+    val bb = vector.toByteBuffer
+    if (bb.hasArrayBuffer())
+      bb.arrayBuffer()
+    else {
+      val ab = new js.typedarray.ArrayBuffer(bb.remaining())
+      TypedArrayBuffer.wrap(ab).put(bb)
+      ab
+    }
+  }
+
   private def HMAC(key: ByteVector, str: ByteVector): ByteVector = {
-    val mac = crypto.createHmac("sha256", key.toByteBuffer.arrayBuffer())
-    mac.update(str.toByteBuffer.arrayBuffer())
+    val mac = crypto.createHmac("sha256", byteVectorToBuffer(key))
+    mac.update(byteVectorToBuffer(str))
     bufferToByteVector(mac.digest())
   }
 
   private def H(input: ByteVector): ByteVector = {
     val hash = crypto.createHash("sha256")
-    hash.update(input.toByteBuffer.arrayBuffer())
+    hash.update(byteVectorToBuffer(input))
     bufferToByteVector(hash.digest())
   }
 
   private def Hi(str: String, salt: ByteVector, iterations: Int): ByteVector = {
     // TODO It is unfortunate that we have to use a sync API here when an async is available
     // To make the change here will require running an F[_]: Async up the hiearchy    
-    val salted = crypto.pbkdf2Sync(str, salt.toByteBuffer.arrayBuffer(), iterations, 8 * 32, "sha256")
+    val salted = crypto.pbkdf2Sync(str, byteVectorToBuffer(salt), iterations, 8 * 32, "sha256")
     bufferToByteVector(salted)
   }
 
