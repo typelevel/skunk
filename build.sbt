@@ -1,4 +1,4 @@
-Test / parallelExecution := false
+
 
 // Our Scala versions.
 lazy val `scala-2.12` = "2.12.13"
@@ -183,6 +183,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform)
     useYarn := true
   )
   .settings(
+    Test / parallelExecution := false,
     testGrouping := {
       (Test / definedTests).map { tests =>
       tests.map { test =>
