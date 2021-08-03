@@ -14,7 +14,7 @@ import cats.arrow.Profunctor
 import scala.concurrent.duration._
 import cats.effect.kernel.Outcome.Succeeded
 
-class ChannelTest extends SkunkTest {
+abstract class ChannelTest extends SkunkTest {
 
   sessionTest("channel (coverage)") { s =>
     val data = List("foo", "bar", "baz")

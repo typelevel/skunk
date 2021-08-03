@@ -13,7 +13,7 @@ import cats.effect.Resource
 import skunk.Session
 import natchez.Trace.Implicits.noop
 
-class DescribeCacheTest extends SkunkTest {
+abstract class DescribeCacheTest extends SkunkTest {
 
   // N.B. this checks that statements are cached, but it _doesn't_ check that the cache is observed
   // by the `Describe` protocol implementation. There's not an easy way to do this without exposing
