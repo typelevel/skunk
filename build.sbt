@@ -177,7 +177,6 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform)
     ) ++ Seq(
       "io.chrisdavenport" %%% "cats-time"               % "0.3.4",
     ).filterNot(_ => scalaVersion.value.startsWith("3.")),
-    testFrameworks += new TestFramework("munit.Framework")
   )
   .jsSettings(
     Test / scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.CommonJSModule)),
