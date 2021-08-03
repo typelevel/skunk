@@ -122,6 +122,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
       "com.ongres.scram"        % "client"                  % "2.1"
     )
   ).jsSettings(
+    libraryDependencies += "edu.gemini" %%% "gemini-locales" % "0.6.0",
     Compile / npmDependencies += "saslprep" -> "1.0.3",
     useYarn := true
   )
