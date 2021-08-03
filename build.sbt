@@ -1,4 +1,4 @@
-
+parallelExecution := false
 
 // Our Scala versions.
 lazy val `scala-2.12` = "2.12.13"
