@@ -8,7 +8,7 @@ import cats.effect._
 import skunk._
 import natchez.Trace.Implicits.noop
 
-abstract class SslTest extends ffstest.FTest with SslTestPlatform {
+class SslTest extends ffstest.FTest with SslTestPlatform {
 
   object Port {
     val Invalid = 5431
