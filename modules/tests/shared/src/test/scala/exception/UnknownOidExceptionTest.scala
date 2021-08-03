@@ -11,7 +11,7 @@ import tests.SkunkTest
 import skunk.data.Type
 import skunk.exception.UnknownOidException
 
-abstract class UnknownOidExceptionTest1 extends SkunkTest(strategy = Strategy.SearchPath) {
+class UnknownOidExceptionTest1 extends SkunkTest(strategy = Strategy.SearchPath) {
 
     val mood = `enum`[String](identity, Option(_), Type("mood"))
     sessionTest("raise UnknownOidException when referencing a new type, using Strategy.SearchPath") { s =>

@@ -12,7 +12,7 @@ import skunk._
 import skunk.codec.all._
 import cats.effect.IO
 
-abstract class DecoderTest extends SkunkTest {
+class DecoderTest extends SkunkTest {
 
   testDecoder(int4.asDecoder ~ varchar.asDecoder)
   testDecoder(Apply[Decoder].tuple2(int4.asDecoder, varchar.asDecoder)) // same, via Apply instance

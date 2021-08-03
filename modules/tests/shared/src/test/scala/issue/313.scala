@@ -16,7 +16,7 @@ import cats.kernel.Eq
 // is unnecessary strictly speaking but is here for reference.
 
 // https://github.com/tpolecat/skunk/issues/313
-abstract class Test313 extends SkunkTest {
+class Test313 extends SkunkTest {
 
   val instantCodec: Codec[Instant] =
     timestamptz.imap(_.toInstant)(_.atOffset(ZoneOffset.UTC))

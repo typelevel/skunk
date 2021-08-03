@@ -10,7 +10,7 @@ import skunk._
 import skunk.circe.codec.all._
 import skunk.implicits._
 
-abstract class JsonCodecTest extends CodecTest {
+class JsonCodecTest extends CodecTest {
 
   val j: Json = parse("""{"foo": [true, "bar"], "tags": {"a": 1, "b": null}}""").toOption.get
 

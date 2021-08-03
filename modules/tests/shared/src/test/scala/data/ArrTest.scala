@@ -16,7 +16,7 @@ import cats.laws.discipline.TraverseTests
 import cats.kernel.laws.discipline.EqTests
 import scala.collection.compat._
 
-abstract class ArrTest extends DisciplineSuite {
+class ArrTest extends DisciplineSuite {
 
   val MaxDims  = 4
   val MaxElems = 3

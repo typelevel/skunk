@@ -13,7 +13,7 @@ import cats.effect._
 import cats.effect.Deferred
 
 // https://github.com/tpolecat/skunk/issues/210
-abstract class Test210 extends SkunkTest {
+class Test210 extends SkunkTest {
 
   // a resource that creates and drops a table
   def withPetsTable(s: Session[IO]): Resource[IO, Unit] = {

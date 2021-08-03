@@ -8,7 +8,7 @@ import skunk.codec.all._
 import skunk.implicits._
 import skunk.data.Arr
 
-abstract class TextCodecTest extends CodecTest {
+class TextCodecTest extends CodecTest {
 
   // varchar
   roundtripTest(varchar)("", "a", "ab", "foo", "föf", "🔥 and 🌈", "مرحبا", "שלום", "你好", "';--'")

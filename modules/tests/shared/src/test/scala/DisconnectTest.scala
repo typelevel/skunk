@@ -12,7 +12,7 @@ import natchez.Trace.Implicits.noop
 import skunk.exception.EofException
 import ffstest.FTest
 
-abstract class DisconnectTest extends FTest {
+class DisconnectTest extends FTest {
 
   val pool: Resource[IO, Resource[IO, Session[IO]]] =
     Session.pooled(
