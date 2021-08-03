@@ -8,7 +8,7 @@ import skunk._
 import skunk.exception.PostgresErrorException
 import cats.effect.IO
 
-class SqlStateTest extends ffstest.FTest {
+abstract class SqlStateTest extends ffstest.FTest {
   import SqlState._
 
   def err(ss: SqlState): Throwable =

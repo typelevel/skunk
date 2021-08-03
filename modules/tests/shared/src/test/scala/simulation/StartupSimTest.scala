@@ -11,7 +11,7 @@ import skunk.exception.UnsupportedAuthenticationSchemeException
 import skunk.exception.UnsupportedSASLMechanismsException
 import skunk.net.message._
 
-class StartupSimTest extends SimTest {
+abstract class StartupSimTest extends SimTest {
 
   test("immediate server error") {
     val sim = flatExpect { case StartupMessage(_, _, _) => error("Nope") *> halt }

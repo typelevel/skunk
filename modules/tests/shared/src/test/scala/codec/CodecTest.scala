@@ -81,7 +81,7 @@ abstract class CodecTest(
 
 }
 
-class CodecCombinatorsTest extends FTest {
+abstract class CodecCombinatorsTest extends FTest {
 
   val c = int2 ~ (int4 ~ float8) ~ varchar
 

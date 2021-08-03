@@ -13,7 +13,7 @@ import skunk.implicits._
  * There are a bunch of places where an `ErrorResponse` might occur, and we need to ensure that we
  * handle all of them and return to an healthy state.
  */
-class ErrorResponseTest extends SkunkTest {
+abstract class ErrorResponseTest extends SkunkTest {
 
   sessionTest("simple command, syntax error") { s =>
     for {

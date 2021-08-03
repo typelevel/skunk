@@ -10,7 +10,7 @@ import tests.SkunkTest
 import skunk.exception.PostgresErrorException
 
 // https://github.com/tpolecat/skunk/issues/181
-class Test181 extends SkunkTest {
+abstract class Test181 extends SkunkTest {
 
   def func(level: String): Command[Void] =
     sql"""
