@@ -6,7 +6,7 @@ package tests
 package codec
 import skunk.codec.all._
 
-class BooleanCodecTest extends CodecTest {
+abstract class BooleanCodecTest extends CodecTest {
   roundtripTest(bool)(true, false)
   decodeFailureTest(bool, List("xx"))
 }

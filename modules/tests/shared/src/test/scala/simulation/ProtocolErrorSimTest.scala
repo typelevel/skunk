@@ -15,7 +15,7 @@ import skunk.net.message._
 import skunk.data.TransactionStatus
 import skunk.exception.ProtocolError
 
-class ProtocolErrorSimTest extends SimTest {
+abstract class ProtocolErrorSimTest extends SimTest {
 
   val sim: Simulator =
     flatExpect {
