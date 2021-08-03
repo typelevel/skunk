@@ -14,6 +14,7 @@ inThisBuild(Seq(
   evictionRules ++= Seq(
     "org.typelevel" % "cats-*" % "semver-spec",
     "org.scala-js" % "scalajs-*" % "semver-spec",
+    "io.github.cquiroz" % "scala-java-time_*" % "semver-spec",
   )
 ))
 
