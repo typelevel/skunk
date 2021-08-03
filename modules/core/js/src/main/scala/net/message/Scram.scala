@@ -108,7 +108,7 @@ private[skunk] object Scram {
     // TODO It is unfortunate that we have to use a sync API here when an async is available
     // To make the change here will require running an F[_]: Async up the hiearchy    
     val salted = crypto.pbkdf2Sync(str, byteVectorToUint8Array(salt), iterations, 8 * 32, "sha256")
-    bufferToByteVector(salted)
+    bufferToByteVector(salted).take(32)
   }
 
   private def makeClientProofAndServerSignature(password: String, salt: ByteVector, iterations: Int, clientFirstMessageBare: ByteVector, serverFirstMessage: ByteVector, clientFinalMessageWithoutProof: ByteVector): (ClientProof, Verifier) = {
