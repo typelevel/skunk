@@ -10,7 +10,7 @@ import natchez.Trace.Implicits.noop
 import skunk.exception.SkunkException
 import skunk.exception.StartupException
 
-abstract class StartupTest extends ffstest.FTest with StartupTestPlatform {
+class StartupTest extends ffstest.FTest with StartupTestPlatform {
 
   // Different ports for different authentication schemes.
   object Port {

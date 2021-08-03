@@ -8,7 +8,7 @@ import munit.ScalaCheckSuite
 import org.scalacheck.Gen
 import org.scalacheck.Prop._
 
-abstract class SemispaceCacheTest extends ScalaCheckSuite {
+class SemispaceCacheTest extends ScalaCheckSuite {
 
   val genEmpty: Gen[SemispaceCache[Int, String]] =
     Gen.choose(-1, 10).map(SemispaceCache.empty)

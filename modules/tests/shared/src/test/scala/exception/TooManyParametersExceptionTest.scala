@@ -10,7 +10,7 @@ import tests.SkunkTest
 import cats.effect.IO
 import skunk.exception.TooManyParametersException
 
-abstract class TooManyParametersExceptionTest extends SkunkTest {
+class TooManyParametersExceptionTest extends SkunkTest {
 
     def stmt(n: Int) = sql"select 1 where 1 in (${int4.list(n)})".query(int4)
 

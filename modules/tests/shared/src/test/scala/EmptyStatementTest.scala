@@ -10,7 +10,7 @@ import skunk.codec.all._
 import skunk.exception.EmptyStatementException
 import skunk.exception.NoDataException
 
-abstract class EmptyStatementTest extends SkunkTest {
+class EmptyStatementTest extends SkunkTest {
 
   sessionTest("comment-only query") { s =>
     s.execute(sql"-- only a comment!".query(int4))

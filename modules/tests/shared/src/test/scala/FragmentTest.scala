@@ -9,7 +9,7 @@ import skunk._
 import skunk.codec.all._
 import skunk.implicits._
 
-abstract class FragmentTest extends SkunkTest {
+class FragmentTest extends SkunkTest {
 
   sessionTest("contramap") { s =>
     val f = sql"select $int4".contramap[String](_.toInt)

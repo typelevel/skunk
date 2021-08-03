@@ -8,7 +8,7 @@ import skunk.codec.all._
 import skunk.data.{TransactionAccessMode, TransactionIsolationLevel}
 import skunk.implicits._
 
-abstract class TransactionAccessModeChangeTest extends SkunkTest {
+class TransactionAccessModeChangeTest extends SkunkTest {
 
   sessionTest("default") { s =>
     s.transaction.use { _ =>

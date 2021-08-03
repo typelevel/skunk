@@ -9,7 +9,7 @@ import skunk.implicits._
 import tests.SkunkTest
 import cats.Eq
 
-abstract class QueryTest extends SkunkTest{
+class QueryTest extends SkunkTest{
 
     case class Number(value: Int)
     implicit val numberEq: Eq[Number] = Eq.by(_.value)

@@ -1,4 +1,4 @@
-parallelExecution := false
+
 
 // Our Scala versions.
 lazy val `scala-2.12` = "2.12.13"
@@ -168,8 +168,6 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform)
     publish / skip := true,
     scalacOptions  -= "-Xfatal-warnings",
     libraryDependencies ++= Seq(
-      "org.scalameta"     %%% "munit"                   % "0.7.27",
-      "org.scalameta"     % "junit-interface"         % "0.7.27",
       "org.typelevel"     %%% "scalacheck-effect-munit" % "1.0.2",
       "org.typelevel"     %%% "munit-cats-effect-3"     % "1.0.5",
       "org.typelevel"     %%% "cats-free"               % "2.6.1",
@@ -178,6 +176,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform)
     ) ++ Seq(
       "io.chrisdavenport" %%% "cats-time"               % "0.3.4",
     ).filterNot(_ => scalaVersion.value.startsWith("3.")),
+    testFrameworks += new TestFramework("munit.Framework")
   )
   .jsSettings(
     Test / scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.CommonJSModule)),
