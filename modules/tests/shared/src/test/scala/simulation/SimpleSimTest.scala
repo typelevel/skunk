@@ -14,7 +14,7 @@ import skunk.implicits._
 import skunk.net.message._
 import skunk.util.Typer
 
-class SimpleSimTest extends SimTest {
+abstract class SimpleSimTest extends SimTest {
 
   // Simulated Postgres server.
   val sim: Simulator = {

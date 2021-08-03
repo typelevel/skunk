@@ -13,7 +13,7 @@ import cats.Contravariant
 import fs2._
 import skunk.exception.UnexpectedRowsException
 
-class CommandTest extends SkunkTest {
+abstract class CommandTest extends SkunkTest {
 
   case class City(id: Int, name: String, code: String, district: String, pop: Int)
 

@@ -10,7 +10,7 @@ import skunk.implicits._
 import cats.syntax.all._
 import cats.effect.IO
 
-class IdentifierTest extends ffstest.FTest {
+abstract class IdentifierTest extends ffstest.FTest {
 
   test("valid") {
     Identifier.fromString("Identifier") match {

@@ -8,7 +8,7 @@ import skunk.codec.all._
 import skunk.data.Arr
 
 /** Test that we can round=trip values via codecs. */
-class NumericCodecTest extends CodecTest {
+abstract class NumericCodecTest extends CodecTest {
 
   // Integral
   roundtripTest(int2)(Short.MinValue, -1, 0, 1, Short.MaxValue)

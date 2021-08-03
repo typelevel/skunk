@@ -13,7 +13,7 @@ import skunk.implicits._
 import cats.effect.Resource
 import skunk.data.Type
 
-class ExtendedQueryErrorTest extends SkunkTest {
+abstract class ExtendedQueryErrorTest extends SkunkTest {
 
   sessionTest("syntax error") { s =>
     for {

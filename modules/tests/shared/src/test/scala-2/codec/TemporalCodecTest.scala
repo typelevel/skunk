@@ -13,7 +13,7 @@ import skunk.codec.temporal._
 import cats.effect.{IO, Resource}
 import skunk._, skunk.implicits._
 
-class TemporalCodecTest extends CodecTest {
+abstract class TemporalCodecTest extends CodecTest {
 
   // For these tests consider `OffsetDateTime`s equal if they refer to the same instant in time,
   // rather than distinguishing the same point in time as specified in different timezones, which
