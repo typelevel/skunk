@@ -26,15 +26,15 @@ class SslTest extends ffstest.FTest with SslTestPlatform {
   //   ).use(_ => IO.unit)
   // }
 
-  test("failed login with SSL.System (ssl available)") {
-    Session.single[IO](
-      host     = "localhost",
-      user     = "jimmy",
-      database = "world",
-      password = Some("banana"),
-      ssl      = SSL.System,
-    ).use(_ => IO.unit).assertFailsWith[SSLHandshakeException].as("sigh") // TODO! Better failure!
-  }
+  // test("failed login with SSL.System (ssl available)") {
+  //   Session.single[IO](
+  //     host     = "localhost",
+  //     user     = "jimmy",
+  //     database = "world",
+  //     password = Some("banana"),
+  //     ssl      = SSL.System,
+  //   ).use(_ => IO.unit).assertFailsWith[SSLHandshakeException].as("sigh") // TODO! Better failure!
+  // }
 
   // test("successful login with SSL.None (ssl not available)") {
   //   Session.single[IO](
