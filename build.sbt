@@ -1,4 +1,4 @@
-
+parallelExecution := false
 
 // Our Scala versions.
 lazy val `scala-2.12` = "2.12.13"
@@ -181,20 +181,6 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform)
   .jsSettings(
     Test / scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.CommonJSModule)),
     useYarn := true
-  )
-  .settings(
-    Test / parallelExecution := false,
-    testGrouping := {
-      (Test / definedTests).map { tests =>
-      tests.map { test =>
-      import Tests._
-      new Group(
-        name = test.name,
-        tests = Seq(test),
-        runPolicy = InProcess)
-      }.sortBy(_.name)
-    }.value
-    }
   )
 
 lazy val example = project
