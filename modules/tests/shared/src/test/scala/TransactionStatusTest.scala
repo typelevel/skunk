@@ -14,7 +14,7 @@ import skunk.exception.PostgresErrorException
  * transaction status (idle, active, errored). We need to ensure that our `Signal` reflects reality,
  * and that we recover our grip on reality after an `ErrorResponse` puts us in a weird state.
  */
-abstract class TransactionStatusTest extends SkunkTest {
+class TransactionStatusTest extends SkunkTest {
 
   sessionTest("simple, non-transactional") { s =>
     for {
