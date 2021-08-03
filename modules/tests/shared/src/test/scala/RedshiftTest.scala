@@ -9,7 +9,7 @@ import skunk._
 import skunk.exception.StartupException
 import natchez.Trace.Implicits.noop
 
-class RedshiftTest extends ffstest.FTest {
+abstract class RedshiftTest extends ffstest.FTest {
 
   test("redshift - successfully connect") {
     Session.single[IO](
