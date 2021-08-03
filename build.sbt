@@ -123,7 +123,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
       "com.ongres.scram"        % "client"                  % "2.1"
     )
   ).jsSettings(
-    libraryDependencies += "edu.gemini" %%% "gemini-locales" % "0.6.0",
+    libraryDependencies += ("edu.gemini" %%% "gemini-locales" % "0.6.0").cross(CrossVersion.for3Use2_13),
     Compile / npmDependencies += "saslprep" -> "1.0.3",
     useYarn := true
   )
@@ -168,6 +168,8 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform)
     publish / skip := true,
     scalacOptions  -= "-Xfatal-warnings",
     libraryDependencies ++= Seq(
+      "org.scalameta"     %%% "munit"                   % "0.7.27",
+      "org.scalameta"     % "junit-interface"           % "0.7.27",
       "org.typelevel"     %%% "scalacheck-effect-munit" % "1.0.2",
       "org.typelevel"     %%% "munit-cats-effect-3"     % "1.0.5",
       "org.typelevel"     %%% "cats-free"               % "2.6.1",
