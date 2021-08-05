@@ -14,7 +14,7 @@ inThisBuild(Seq(
   evictionRules ++= Seq(
     "org.typelevel" % "cats-*" % "semver-spec",
     "org.scala-js" % "scalajs-*" % "semver-spec",
-    "io.github.cquiroz" % "scala-java-time_*" % "semver-spec",
+    "org.portable-scala" % "portable-scala-reflect_*" % "semver-spec",
   )
 ))
 
@@ -123,9 +123,10 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
       "com.ongres.scram"        % "client"                  % "2.1"
     )
   ).jsSettings(
-    libraryDependencies += ("edu.gemini" %%% "gemini-locales" % "0.6.0").cross(CrossVersion.for3Use2_13),
+    libraryDependencies += "io.github.cquiroz"      %%% "locales-minimal-en_us-db" % "1.2.1",
     Compile / npmDependencies += "saslprep" -> "1.0.3",
-    useYarn := true
+    useYarn := true,
+    yarnExtraArgs += "--frozen-lockfile",
   )
 
 lazy val refined = crossProject(JVMPlatform, JSPlatform)
