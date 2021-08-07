@@ -39,7 +39,7 @@ class SslTest extends ffstest.FTest with SslTestPlatform {
     ).use(_ => IO.unit)
       .adaptError {
         case ex @ CompositeFailure(head, tail) =>
-          tail.prepend(head).collectFirst({ ex: SSLException => ex }).getOrElse(ex)
+          tail.prepend(head).collectFirst({ case ex: SSLException => ex }).getOrElse(ex)
         }
       .assertFailsWith[SSLException].as("sigh") // TODO! Better failure!
   }

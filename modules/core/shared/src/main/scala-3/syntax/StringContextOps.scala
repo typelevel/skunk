@@ -54,8 +54,10 @@ object StringContextOps {
 
     // Ok we want to construct an Origin here
     val origin = '{
-      val sp = ${org.tpolecat.sourcepos.SourcePosPlatform.sourcePos_impl(using qc)}
-      Origin(sp.file, sp.line)
+      // TODO
+      // val sp = ${org.tpolecat.sourcepos.SourcePosPlatform.sourcePos_impl(using qc)}
+      // Origin(sp.file, sp.line)
+      Origin.unknown
     }
 
     // Our prefix looks like this, and the stringy parts of the interpolation will be a non-empty
