@@ -5,12 +5,14 @@
 package tests
 
 import cats.effect._
-import skunk._
+import fs2.io.net.ConnectException
+import fs2.io.net.UnknownHostException
 import natchez.Trace.Implicits.noop
+import skunk._
 import skunk.exception.SkunkException
 import skunk.exception.StartupException
 
-class StartupTest extends ffstest.FTest with StartupTestPlatform {
+class StartupTest extends ffstest.FTest {
 
   // Different ports for different authentication schemes.
   object Port {

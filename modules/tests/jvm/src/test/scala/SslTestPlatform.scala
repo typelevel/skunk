@@ -10,8 +10,6 @@ import natchez.Trace.Implicits.noop
 
 trait SslTestPlatform { self: SslTest =>
 
-  type SSLHandshakeException = javax.net.ssl.SSLHandshakeException
-
   test("successful login with SSL.Trusted (ssl available)") {
     Session.single[IO](
       host     = "localhost",

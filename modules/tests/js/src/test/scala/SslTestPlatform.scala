@@ -4,8 +4,4 @@
 
 package tests
 
-trait SslTestPlatform { self: SslTest => 
-
-  type SSLHandshakeException = scala.scalajs.js.JavaScriptException
-
-}
+trait SslTestPlatform {}

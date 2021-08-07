@@ -5,8 +5,9 @@
 package tests
 
 import cats.effect._
-import skunk._
+import fs2.io.net.tls.SSLException
 import natchez.Trace.Implicits.noop
+import skunk._
 
 class SslTest extends ffstest.FTest with SslTestPlatform {
 
@@ -33,7 +34,7 @@ class SslTest extends ffstest.FTest with SslTestPlatform {
       database = "world",
       password = Some("banana"),
       ssl      = SSL.System,
-    ).use(_ => IO.unit).assertFailsWith[SSLHandshakeException].as("sigh") // TODO! Better failure!
+    ).use(_ => IO.unit).assertFailsWith[SSLException].as("sigh") // TODO! Better failure!
   }
 
   test("successful login with SSL.None (ssl not available)") {
