@@ -123,7 +123,10 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
       "com.ongres.scram"        % "client"                  % "2.1"
     )
   ).jsSettings(
-    libraryDependencies += "io.github.cquiroz"      %%% "locales-minimal-en_us-db" % "1.2.1",
+    libraryDependencies ++= Seq(
+      "io.github.cquiroz" %%% "scala-java-time" % "2.3.0",
+      "io.github.cquiroz" %%% "locales-minimal-en_us-db" % "1.2.1"
+    ),
     Compile / npmDependencies += "saslprep" -> "1.0.3",
     useYarn := true,
     yarnExtraArgs += "--frozen-lockfile",
