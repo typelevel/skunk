@@ -15,6 +15,7 @@ inThisBuild(Seq(
     "org.typelevel" % "cats-*" % "semver-spec",
     "org.scala-js" % "scalajs-*" % "semver-spec",
     "org.portable-scala" % "portable-scala-reflect_*" % "semver-spec",
+    "io.github.cquiroz" % "scala-java-time_*" % "semver-spec",
   )
 ))
 
