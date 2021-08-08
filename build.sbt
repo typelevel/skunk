@@ -89,8 +89,8 @@ lazy val skunk = project
   .enablePlugins(AutomateHeaderPlugin)
   .settings(commonSettings)
   .settings(publish / skip := true)
-  .dependsOn(core, tests, circe, refined, example)
-  .aggregate(core, tests, circe, refined, example)
+  .dependsOn(core, tests, circe, ziojson, refined, example)
+  .aggregate(core, tests, circe, ziojson, refined, example)
 
 lazy val core = project
   .in(file("modules/core"))
@@ -138,6 +138,16 @@ lazy val circe = project
       "io.circe" %% "circe-core"   % "0.14.1",
       "io.circe" %% "circe-parser" % "0.14.1"
     )
+  )
+
+lazy val ziojson = project
+  .in(file("modules/ziojson"))
+  .dependsOn(core)
+  .enablePlugins(AutomateHeaderPlugin)
+  .settings(commonSettings)
+  .settings(
+    name := "skunk-ziojson",
+    libraryDependencies += "dev.zio" %% "zio-json" % "0.2.0-M1"
   )
 
 lazy val tests = project
