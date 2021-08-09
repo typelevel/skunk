@@ -13,6 +13,7 @@ import fs2.io.net.{ Network, SocketGroup }
 import fs2.Pipe
 import fs2.Stream
 import natchez.Trace
+import org.tpolecat.poolparty.PooledResourceBuilder
 import skunk.codec.all.bool
 import skunk.data._
 import skunk.net.Protocol
@@ -259,7 +260,7 @@ object Session {
    * @param queryCache    Size of the cache for query checking
    * @group Constructors
    */
-  def pooled[F[_]: Concurrent: Trace: Network: Console](
+  def pooled[F[_]: Temporal: Trace: Network: Console](
     host:         String,
     port:         Int            = 5432,
     user:         String,
@@ -282,7 +283,7 @@ object Session {
     for {
       dc      <- Resource.eval(Describe.Cache.empty[F](commandCache, queryCache))
       sslOp   <- Resource.eval(ssl.toSSLNegotiationOptions(if (debug) logger.some else none))
-      pool    <- Pool.of(session(Network[F], sslOp, dc), max)(Recyclers.full)
+      pool    <- PooledResourceBuilder.of(session(Network[F], sslOp, dc), max).withHealthCheck(Recyclers.full[F].run).withReporter(e => Console[F].println(s"pool> $e")).build
     } yield pool
 
   }
@@ -293,7 +294,7 @@ object Session {
    * single-session pool. This method is shorthand for `Session.pooled(..., max = 1, ...).flatten`.
    * @see pooled
    */
-  def single[F[_]: Concurrent: Trace: Network: Console](
+  def single[F[_]: Temporal: Trace: Network: Console](
     host:         String,
     port:         Int            = 5432,
     user:         String,
