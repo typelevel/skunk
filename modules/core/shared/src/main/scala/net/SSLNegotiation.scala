@@ -11,6 +11,7 @@ import fs2.Chunk
 import fs2.io.net.Socket
 import fs2.io.net.tls.TLSContext
 import fs2.io.net.tls.TLSParameters
+import fs2.io.net.tls.TLSLogger
 
 object SSLNegotiation {
 
@@ -49,8 +50,8 @@ object SSLNegotiation {
 
     Resource.eval(initiate).flatMap {
       case 'S' => 
-        sslOptions.tlsContext.clientBuilder(socket).withParameters(sslOptions.tlsParameters).withLogging(
-          sslOptions.logger.fold[(=> String) => F[Unit]](_ => ev.unit)(logger => x => logger(x))
+        sslOptions.tlsContext.clientBuilder(socket).withParameters(sslOptions.tlsParameters).withLogger(
+          sslOptions.logger.fold[TLSLogger[F]](TLSLogger.Disabled)(logger => TLSLogger.Enabled(x => logger(x)))
         ).build
       case 'N' => if (sslOptions.fallbackOk) socket.pure[Resource[F, *]] else Resource.eval(fail(s"SSL not available."))
       case  c  => Resource.eval(fail(s"SSL negotiation returned '$c', expected 'S' or 'N'."))
