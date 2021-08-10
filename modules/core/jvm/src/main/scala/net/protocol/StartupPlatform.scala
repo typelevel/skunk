@@ -18,7 +18,7 @@ import skunk.exception.{
   UnsupportedSASLMechanismsException
 }
 
-private[protocol] trait StartupCompanionPlatform { self: Startup.type =>
+private[protocol] trait StartupCompanionPlatform { this: Startup.type =>
   
   private[protocol] def authenticationSASL[F[_]: MessageSocket: Trace](
     sm:         StartupMessage,

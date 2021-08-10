@@ -4,6 +4,4 @@
 
 package skunk
 
-private[skunk] trait SSLCompanionPlatform {
-  
-}
+private[skunk] trait SSLCompanionPlatform

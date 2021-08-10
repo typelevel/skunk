@@ -43,7 +43,7 @@ abstract class SSL private[skunk] (
 object SSL extends SSLCompanionPlatform {
 
   /** `SSL` which indicates that SSL is not to be used. */
-  object None extends SSL() {
+  object None extends SSL {
     def tlsContext[F[_]: Network](implicit ev: ApplicativeError[F, Throwable]): F[TLSContext[F]] =
       ev.raiseError(new Exception("SSL.None: cannot create a TLSContext."))
     override def withFallback(fallbackOk: Boolean): SSL = this
@@ -51,7 +51,7 @@ object SSL extends SSLCompanionPlatform {
   }
 
   /** `SSL` from the system default `SSLContext`. */
-  object System extends SSL() {
+  object System extends SSL {
     def tlsContext[F[_]: Network](implicit ev: ApplicativeError[F, Throwable]): F[TLSContext[F]] =
       Network[F].tlsContext.system
   }

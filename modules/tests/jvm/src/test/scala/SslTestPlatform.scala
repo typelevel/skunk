@@ -8,7 +8,7 @@ import cats.effect._
 import skunk._
 import natchez.Trace.Implicits.noop
 
-trait SslTestPlatform { self: SslTest =>
+trait SslTestPlatform { this: SslTest =>
 
   test("successful login with SSL.Trusted (ssl available)") {
     Session.single[IO](

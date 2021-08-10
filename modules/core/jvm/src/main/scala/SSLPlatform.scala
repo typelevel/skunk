@@ -12,17 +12,17 @@ import javax.net.ssl.SSLContext
 import fs2.io.net.Network
 import fs2.io.net.tls.TLSContext
 
-private[skunk] trait SSLCompanionPlatform { self: SSL.type =>
+private[skunk] trait SSLCompanionPlatform { this: SSL.type =>
   
   /** `SSL` which trusts all certificates. */
-  object Trusted extends SSL() {
+  object Trusted extends SSL {
     def tlsContext[F[_]: Network](implicit ev: ApplicativeError[F, Throwable]): F[TLSContext[F]] =
       Network[F].tlsContext.insecure
   }
 
   /** Creates a `SSL` from an `SSLContext`. */
   def fromSSLContext(ctx: SSLContext): SSL =
-    new SSL() {
+    new SSL {
       def tlsContext[F[_]: Network](implicit ev: ApplicativeError[F, Throwable]): F[TLSContext[F]] =
         Network[F].tlsContext.fromSSLContext(ctx).pure[F]
     }
@@ -33,7 +33,7 @@ private[skunk] trait SSLCompanionPlatform { self: SSL.type =>
     storePassword: Array[Char],
     keyPassword:   Array[Char],
   ): SSL =
-    new SSL() {
+    new SSL {
       def tlsContext[F[_]: Network](implicit ev: ApplicativeError[F, Throwable]): F[TLSContext[F]] =
        Network[F].tlsContext.fromKeyStoreFile(file, storePassword, keyPassword)
     }
@@ -44,7 +44,7 @@ private[skunk] trait SSLCompanionPlatform { self: SSL.type =>
       storePassword: Array[Char],
       keyPassword: Array[Char],
   ): SSL =
-    new SSL() {
+    new SSL {
       def tlsContext[F[_]: Network](implicit ev: ApplicativeError[F, Throwable]): F[TLSContext[F]] =
        Network[F].tlsContext.fromKeyStoreResource(resource, storePassword, keyPassword)
     }
@@ -54,7 +54,7 @@ private[skunk] trait SSLCompanionPlatform { self: SSL.type =>
       keyStore: KeyStore,
       keyPassword: Array[Char],
   ): SSL =
-    new SSL() {
+    new SSL {
       def tlsContext[F[_]: Network](implicit ev: ApplicativeError[F, Throwable]): F[TLSContext[F]] =
        Network[F].tlsContext.fromKeyStore(keyStore, keyPassword)
     }
