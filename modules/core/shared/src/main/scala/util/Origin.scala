@@ -4,7 +4,7 @@
 
 package skunk.util
 
-// import org.tpolecat.sourcepos.SourcePos
+import org.tpolecat.sourcepos.SourcePos
 
 final case class Origin(file: String, line: Int) {
 
@@ -20,9 +20,8 @@ object Origin {
 
   val unknown = Origin("«skunk internal»", 0)
 
-  // TODO
-  implicit def instance/*(implicit sp: SourcePos)*/: Origin =
-    unknown // Origin(sp.file, sp.line)
+  implicit def instance(implicit sp: SourcePos): Origin =
+    Origin(sp.file, sp.line)
 
 }
 

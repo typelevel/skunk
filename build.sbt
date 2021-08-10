@@ -114,15 +114,13 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
       "org.scodec"             %%% "scodec-core"             % (if (scalaVersion.value.startsWith("3.")) "2.0.0" else "1.11.8"),
       "org.scodec"             %%% "scodec-cats"             % "1.1.0",
       "org.tpolecat"           %%% "natchez-core"            % natchezVersion,
+      "org.tpolecat"           %%% "sourcepos"               % "1.0.1",
       "org.scala-lang.modules" %%% "scala-collection-compat" % "2.4.4",
     ) ++ Seq(
       "com.beachape"  %%% "enumeratum"   % "1.6.1",
     ).filterNot(_ => scalaVersion.value.startsWith("3."))
   ).jvmSettings(
-    libraryDependencies ++= Seq(
-      "org.tpolecat"           %%% "sourcepos"               % "1.0.0",
-      "com.ongres.scram"        % "client"                  % "2.1"
-    )
+    libraryDependencies += "com.ongres.scram" % "client" % "2.1",
   ).jsSettings(
     libraryDependencies ++= Seq(
       "io.github.cquiroz" %%% "scala-java-time" % "2.3.0",
