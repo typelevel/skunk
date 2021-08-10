@@ -289,6 +289,6 @@ println("```")
 
 ## Experiment
 
-- Change `insertMany` to pass an `Int` to `.list` and then pass a size other than the length of `beatles` and observe the error.
+- Change `insertMany` to pass an `Int` to `.list` and then pass a size other than the length of `beagles` and observe the error.
 - Add a unique constraint on `name` in the DDL and then violate it by inserting two pets with the same name. Follow the hint in the error message to add an handler that recovers gracefully.
 - Change the service constructor to prepare the statements once on construction, rather than each time `insert` is called.

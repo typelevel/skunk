@@ -3,16 +3,19 @@
 // Our Scala versions.
 lazy val `scala-2.12` = "2.12.13"
 lazy val `scala-2.13` = "2.13.6"
-lazy val `scala-3.0`  = "3.0.0"
+lazy val `scala-3.0`  = "3.0.1"
 
 // This is used in a couple places
-lazy val fs2Version = "3.0.4"
+lazy val fs2Version = "3.1.0"
 lazy val natchezVersion = "0.1.5"
 
 // We do `evictionCheck` in CI
 inThisBuild(Seq(
   evictionRules ++= Seq(
     "org.typelevel" % "cats-*" % "semver-spec",
+    "org.scala-js" % "scalajs-*" % "semver-spec",
+    "org.portable-scala" % "portable-scala-reflect_*" % "semver-spec",
+    "io.github.cquiroz" % "scala-java-time_*" % "semver-spec",
   )
 ))
 
@@ -65,9 +68,9 @@ lazy val commonSettings = Seq(
   Compile / unmanagedSourceDirectories ++= {
     val sourceDir = (Compile / sourceDirectory).value
     CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((3, _))  => Seq(sourceDir / "scala-2.13+")
+      case Some((3, _))  => Seq(sourceDir / "scala-2.13+", file(sourceDir.getPath.replaceFirst("jvm", "shared").replaceFirst("js", "shared")) / "scala-2.13+")
       case Some((2, 12)) => Seq()
-      case Some((2, _))  => Seq(sourceDir / "scala-2.13+")
+      case Some((2, _))  => Seq(sourceDir / "scala-2.13+", file(sourceDir.getPath.replaceFirst("jvm", "shared").replaceFirst("js", "shared")) / "scala-2.13+")
       case _             => Seq()
     }
   },
@@ -89,99 +92,124 @@ lazy val skunk = project
   .enablePlugins(AutomateHeaderPlugin)
   .settings(commonSettings)
   .settings(publish / skip := true)
-  .dependsOn(core, tests, circe, refined, example)
-  .aggregate(core, tests, circe, refined, example)
+  .dependsOn(core.jvm, core.js, tests.jvm, tests.js, circe.jvm, circe.js, refined.jvm, refined.js, example)
+  .aggregate(core.jvm, core.js, tests.jvm, tests.js, circe.jvm, circe.js, refined.jvm, refined.js, example)
 
-lazy val core = project
+lazy val core = crossProject(JVMPlatform, JSPlatform)
+  .crossType(CrossType.Full)
   .in(file("modules/core"))
   .enablePlugins(AutomateHeaderPlugin)
+  .jsEnablePlugins(ScalaJSBundlerPlugin)
+  .jsConfigure(_.disablePlugins(ScoverageSbtPlugin))
   .settings(commonSettings)
   .settings(
     name := "skunk-core",
     description := "Tagless, non-blocking data access library for Postgres.",
     resolvers   +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     libraryDependencies ++= Seq(
-      "org.typelevel"          %% "cats-core"               % "2.6.1",
-      "org.typelevel"          %% "cats-effect"             % "3.1.1",
-      "co.fs2"                 %% "fs2-core"                % fs2Version,
-      "co.fs2"                 %% "fs2-io"                  % fs2Version,
-      "org.scodec"             %% "scodec-core"             % (if (scalaVersion.value.startsWith("3.")) "2.0.0" else "1.11.8"),
-      "org.scodec"             %% "scodec-cats"             % "1.1.0",
-      "org.tpolecat"           %% "natchez-core"            % natchezVersion,
-      "org.tpolecat"           %% "sourcepos"               % "1.0.0",
-      "com.ongres.scram"        % "client"                  % "2.1",
-      "org.scala-lang.modules" %% "scala-collection-compat" % "2.4.4",
+      "org.typelevel"          %%% "cats-core"               % "2.6.1",
+      "org.typelevel"          %%% "cats-effect"             % "3.1.1",
+      "co.fs2"                 %%% "fs2-core"                % fs2Version,
+      "co.fs2"                 %%% "fs2-io"                  % fs2Version,
+      "org.scodec"             %%% "scodec-core"             % (if (scalaVersion.value.startsWith("3.")) "2.0.0" else "1.11.8"),
+      "org.scodec"             %%% "scodec-cats"             % "1.1.0",
+      "org.tpolecat"           %%% "natchez-core"            % natchezVersion,
+      "org.tpolecat"           %%% "sourcepos"               % "1.0.1",
+      "org.scala-lang.modules" %%% "scala-collection-compat" % "2.4.4",
     ) ++ Seq(
-      "com.beachape"  %% "enumeratum"   % "1.7.0",
+      "com.beachape"  %%% "enumeratum"   % "1.6.1",
     ).filterNot(_ => scalaVersion.value.startsWith("3."))
+  ).jvmSettings(
+    libraryDependencies += "com.ongres.scram" % "client" % "2.1",
+  ).jsSettings(
+    libraryDependencies ++= Seq(
+      "io.github.cquiroz" %%% "scala-java-time" % "2.3.0",
+      "io.github.cquiroz" %%% "locales-minimal-en_us-db" % "1.2.1"
+    ),
+    Compile / npmDependencies += "saslprep" -> "1.0.3",
+    useYarn := true,
+    yarnExtraArgs += "--frozen-lockfile",
   )
 
-lazy val refined = project
+lazy val refined = crossProject(JVMPlatform, JSPlatform)
+  .crossType(CrossType.Pure)
   .in(file("modules/refined"))
   .dependsOn(core)
   .enablePlugins(AutomateHeaderPlugin)
+  .jsConfigure(_.disablePlugins(ScoverageSbtPlugin))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "eu.timepit" %% "refined" % "0.9.26",
+      "eu.timepit" %%% "refined" % "0.9.27",
     )
   )
 
-lazy val circe = project
+lazy val circe = crossProject(JVMPlatform, JSPlatform)
+  .crossType(CrossType.Pure)
   .in(file("modules/circe"))
   .dependsOn(core)
   .enablePlugins(AutomateHeaderPlugin)
+  .jsConfigure(_.disablePlugins(ScoverageSbtPlugin))
   .settings(commonSettings)
   .settings(
     name := "skunk-circe",
     libraryDependencies ++= Seq(
-      "io.circe" %% "circe-core"   % "0.14.1",
-      "io.circe" %% "circe-parser" % "0.14.1"
+      "io.circe" %%% "circe-core"   % "0.14.1",
+      "io.circe" %%% "circe-parser" % "0.14.1"
     )
   )
 
-lazy val tests = project
+lazy val tests = crossProject(JVMPlatform, JSPlatform)
+  .crossType(CrossType.Full)
   .in(file("modules/tests"))
   .dependsOn(core, circe)
   .enablePlugins(AutomateHeaderPlugin)
+  .jsEnablePlugins(ScalaJSBundlerPlugin)
+  .jsConfigure(_.disablePlugins(ScoverageSbtPlugin))
   .settings(commonSettings)
   .settings(
     publish / skip := true,
     scalacOptions  -= "-Xfatal-warnings",
     libraryDependencies ++= Seq(
-      "org.typelevel"     %% "scalacheck-effect-munit" % "1.0.2",
-      "org.typelevel"     %% "munit-cats-effect-3"     % "1.0.5",
-      "org.typelevel"     %% "cats-free"               % "2.6.1",
-      "org.typelevel"     %% "cats-laws"               % "2.6.1",
-      "org.typelevel"     %% "discipline-munit"        % "1.0.9",
+      "org.scalameta"     %%% "munit"                   % "0.7.27",
+      "org.scalameta"     % "junit-interface"           % "0.7.27",
+      "org.typelevel"     %%% "scalacheck-effect-munit" % "1.0.2",
+      "org.typelevel"     %%% "munit-cats-effect-3"     % "1.0.5",
+      "org.typelevel"     %%% "cats-free"               % "2.6.1",
+      "org.typelevel"     %%% "cats-laws"               % "2.6.1",
+      "org.typelevel"     %%% "discipline-munit"        % "1.0.9",
     ) ++ Seq(
-      "io.chrisdavenport" %% "cats-time"               % "0.3.4",
+      "io.chrisdavenport" %%% "cats-time"               % "0.3.4",
     ).filterNot(_ => scalaVersion.value.startsWith("3.")),
     testFrameworks += new TestFramework("munit.Framework")
+  )
+  .jsSettings(
+    Test / scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.CommonJSModule)),
+    useYarn := true
   )
 
 lazy val example = project
   .in(file("modules/example"))
-  .dependsOn(core)
+  .dependsOn(core.jvm)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(commonSettings)
   .settings(
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "org.tpolecat"  %% "natchez-honeycomb"   % natchezVersion,
-      "org.tpolecat"  %% "natchez-jaeger"      % natchezVersion,
+      "org.tpolecat"  %%% "natchez-honeycomb"   % natchezVersion,
+      "org.tpolecat"  %%% "natchez-jaeger"      % natchezVersion,
     )
     // ) ++ Seq(
-    //   "org.http4s"    %% "http4s-dsl"          % "0.21.22",
-    //   "org.http4s"    %% "http4s-blaze-server" % "0.21.22",
-    //   "org.http4s"    %% "http4s-circe"        % "0.21.22",
-    //   "io.circe"      %% "circe-generic"       % "0.13.0",
+    //   "org.http4s"    %%% "http4s-dsl"          % "0.21.22",
+    //   "org.http4s"    %%% "http4s-blaze-server" % "0.21.22",
+    //   "org.http4s"    %%% "http4s-circe"        % "0.21.22",
+    //   "io.circe"      %%% "circe-generic"       % "0.13.0",
     // ).filterNot(_ => scalaVersion.value.startsWith("3."))
   )
 
 lazy val docs = project
   .in(file("modules/docs"))
-  .dependsOn(core)
+  .dependsOn(core.jvm)
   .enablePlugins(AutomateHeaderPlugin)
   .enablePlugins(ParadoxPlugin)
   .enablePlugins(ParadoxSitePlugin)
@@ -196,11 +224,11 @@ lazy val docs = project
     paradoxTheme       := Some(builtinParadoxTheme("generic")),
     version            := version.value.takeWhile(_ != '+'), // strip off the +3-f22dca22+20191110-1520-SNAPSHOT business
     paradoxProperties ++= Map(
-      "scala-versions"          -> (core / crossScalaVersions).value.map(CrossVersion.partialVersion).flatten.map(_._2).mkString("2.", "/", ""),
+      "scala-versions"          -> (core.jvm / crossScalaVersions).value.map(CrossVersion.partialVersion).flatten.map(_._2).mkString("2.", "/", ""),
       "org"                     -> organization.value,
       "scala.binary.version"    -> s"2.${CrossVersion.partialVersion(scalaVersion.value).get._2}",
-      "core-dep"                -> s"${(core / name).value}_2.${CrossVersion.partialVersion(scalaVersion.value).get._2}",
-      "circe-dep"               -> s"${(circe / name).value}_2.${CrossVersion.partialVersion(scalaVersion.value).get._2}",
+      "core-dep"                -> s"${(core.jvm / name).value}_2.${CrossVersion.partialVersion(scalaVersion.value).get._2}",
+      "circe-dep"               -> s"${(circe.jvm / name).value}_2.${CrossVersion.partialVersion(scalaVersion.value).get._2}",
       "version"                 -> version.value,
       "scaladoc.skunk.base_url" -> s"https://static.javadoc.io/org.tpolecat/skunk-core_2.12/${version.value}",
       "scaladoc.fs2.io.base_url"-> s"https://static.javadoc.io/co.fs2/fs2-io_2.12/${fs2Version}",
@@ -210,6 +238,6 @@ lazy val docs = project
     makeSite := makeSite.dependsOn(mdoc.toTask("")).value,
     mdocExtraArguments := Seq("--no-link-hygiene"), // paradox handles this
     libraryDependencies ++= Seq(
-      "org.tpolecat"  %% "natchez-jaeger" % natchezVersion,
+      "org.tpolecat"  %%% "natchez-jaeger" % natchezVersion,
     )
 )
