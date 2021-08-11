@@ -34,6 +34,7 @@ object Completion {
   case object CreateFunction     extends Completion
   case class  Copy(count: Int)   extends Completion
   case object Show               extends Completion
+  case object Do                 extends Completion
   // more ...
 
   /**
