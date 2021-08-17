@@ -107,6 +107,17 @@ class CommandTest extends SkunkTest {
       DROP INDEX id_index
       """.command
 
+  val createView: Command[Void] =
+    sql"""
+      CREATE OR REPLACE VIEW city_view AS
+      SELECT * FROM city
+      """.command
+
+  val dropView: Command[Void] =
+    sql"""
+      DROP VIEW city_view
+      """.command
+
   val doCommand : Command[Void] =
     sql"""
       DO $$$$ begin
@@ -139,6 +150,16 @@ class CommandTest extends SkunkTest {
       _ <- assert("completion",  c == Completion.CreateSchema)
       c <- s.execute(dropSchema)
       _ <- assert("completion",  c == Completion.DropSchema)
+      _ <- s.assertHealthy
+    } yield "ok"
+  }
+
+  sessionTest("create view, drop view"){ s=>
+    for{
+      c <- s.execute(createView)
+      _ <- assert("completion", c == Completion.CreateView)
+      c <- s.execute(dropView)
+      _ <- assert("completion", c == Completion.DropView)
       _ <- s.assertHealthy
     } yield "ok"
   }

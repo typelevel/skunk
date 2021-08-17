@@ -68,6 +68,8 @@ object CommandComplete {
     case "CREATE FUNCTION"  => apply(Completion.CreateFunction)
     case "SHOW"             => apply(Completion.Show)
     case "DO"               => apply(Completion.Do)
+    case "CREATE VIEW"      => apply(Completion.CreateView)
+    case "DROP VIEW"        => apply(Completion.DropView)
     case Patterns.Select(s) => apply(Completion.Select(s.toInt))
     case Patterns.Delete(s) => apply(Completion.Delete(s.toInt))
     case Patterns.Update(s) => apply(Completion.Update(s.toInt))
