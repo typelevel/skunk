@@ -107,6 +107,16 @@ class CommandTest extends SkunkTest {
       DROP INDEX id_index
       """.command
 
+  val doCommand : Command[Void] =
+    sql"""
+      DO $$$$ begin
+        CREATE DOMAIN population as int4 check (value >= 0);
+        CREATE DOMAIN population as int4 check (value >= 0);
+      EXCEPTION
+      WHEN duplicate_object THEN null;
+      END $$$$;
+    """.command
+
   sessionTest("create table, create index, drop index, alter table and drop table") { s =>
     for {
       c <- s.execute(createTable)
@@ -129,6 +139,14 @@ class CommandTest extends SkunkTest {
       _ <- assert("completion",  c == Completion.CreateSchema)
       c <- s.execute(dropSchema)
       _ <- assert("completion",  c == Completion.DropSchema)
+      _ <- s.assertHealthy
+    } yield "ok"
+  }
+
+  sessionTest("do command"){ s=>
+    for{
+      c <- s.execute(doCommand)
+      _ <- assert("completion", c == Completion.Do)
       _ <- s.assertHealthy
     } yield "ok"
   }
