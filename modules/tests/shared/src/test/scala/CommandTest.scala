@@ -128,6 +128,16 @@ class CommandTest extends SkunkTest {
       END $$$$;
     """.command
 
+  val createDomain : Command[Void] =
+    sql"""
+        CREATE DOMAIN population as int4 check (value >= 0)
+       """.command
+
+  val dropDomain : Command[Void] =
+    sql"""
+        DROP DOMAIN IF EXISTS population
+       """.command
+
   sessionTest("create table, create index, drop index, alter table and drop table") { s =>
     for {
       c <- s.execute(createTable)
@@ -160,6 +170,18 @@ class CommandTest extends SkunkTest {
       _ <- assert("completion", c == Completion.CreateView)
       c <- s.execute(dropView)
       _ <- assert("completion", c == Completion.DropView)
+      _ <- s.assertHealthy
+    } yield "ok"
+  }
+
+  sessionTest("create domain, drop domain"){ s=>
+    for{
+      c <- s.execute(dropDomain)
+      _ <- assert("completion", c == Completion.DropDomain)
+      c <- s.execute(createDomain)
+      _ <- assert("completion", c == Completion.CreateDomain)
+      c <- s.execute(dropDomain)
+      _ <- assert("completion", c == Completion.DropDomain)
       _ <- s.assertHealthy
     } yield "ok"
   }

@@ -70,6 +70,8 @@ object CommandComplete {
     case "DO"               => apply(Completion.Do)
     case "CREATE VIEW"      => apply(Completion.CreateView)
     case "DROP VIEW"        => apply(Completion.DropView)
+    case "CREATE DOMAIN"    => apply(Completion.CreateDomain)
+    case "DROP DOMAIN"      => apply(Completion.DropDomain)
     case Patterns.Select(s) => apply(Completion.Select(s.toInt))
     case Patterns.Delete(s) => apply(Completion.Delete(s.toInt))
     case Patterns.Update(s) => apply(Completion.Update(s.toInt))
