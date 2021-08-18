@@ -9,7 +9,7 @@ import cats.effect._
 import cats.syntax.all._
 import fs2.Chunk
 import scodec.bits.BitVector
-import fs2.io.net.{ Socket, SocketGroup }
+import fs2.io.net.{Socket, SocketGroup, SocketOption}
 import com.comcast.ip4s._
 import skunk.exception.EofException
 
@@ -67,7 +67,7 @@ object BitVectorSocket {
     sslOptions:   Option[SSLNegotiation.Options[F]],
   )(implicit ev: MonadError[F, Throwable]): Resource[F, BitVectorSocket[F]] =
     for {
-      sock  <- sg.client(SocketAddress(Hostname.fromString(host).get, Port.fromInt(port).get)) // TODO
+      sock  <- sg.client(SocketAddress(Hostname.fromString(host).get, Port.fromInt(port).get), List(SocketOption.noDelay(true))) // TODO
       sockʹ <- sslOptions.fold(sock.pure[Resource[F, *]])(SSLNegotiation.negotiateSSL(sock, _))
     } yield fromSocket(sockʹ)
 
