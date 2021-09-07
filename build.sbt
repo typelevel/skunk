@@ -108,7 +108,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
     resolvers   +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     libraryDependencies ++= Seq(
       "org.typelevel"          %%% "cats-core"               % "2.6.1",
-      "org.typelevel"          %%% "cats-effect"             % "3.1.1",
+      "org.typelevel"          %%% "cats-effect"             % "3.2.8",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
       "org.scodec"             %%% "scodec-core"             % (if (scalaVersion.value.startsWith("3.")) "2.0.0" else "1.11.8"),
