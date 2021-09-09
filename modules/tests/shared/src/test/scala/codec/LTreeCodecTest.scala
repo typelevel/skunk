@@ -11,8 +11,9 @@ import skunk.util.Typer
 class LTreeCodecTest extends CodecTest(strategy = Typer.Strategy.SearchPath) {
 
   roundtripTest(ltree)(LTree.Empty)
-  roundtripTest(ltree)(LTree.unsafe("abc", "def"))
-  roundtripTest(ltree)(LTree.unsafe("abcdefghijklmnopqrstuvwxyz".toList.map(_.toString()) :_*))
+  roundtripTest(ltree)(LTree.fromLabels("abc", "def").toOption.get)
+  roundtripTest(ltree)(LTree.fromLabels("abcdefghijklmnopqrstuvwxyz0123456789".toList.map(_.toString()) :_*).toOption.get)
+  roundtripTest(ltree)(LTree.fromString("foo.βar.baz").toOption.get)
 
 }
 

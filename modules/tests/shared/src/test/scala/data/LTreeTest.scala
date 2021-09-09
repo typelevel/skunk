@@ -9,11 +9,17 @@ import skunk.data.LTree
 
 class LTreeTest extends munit.FunSuite {
 
+  val foo = LTree.fromLabels("foo").toOption.get
+  val foobar = LTree.fromLabels("foo", "bar").toOption.get
+  
   test("LTree parsing") {
     assertEquals(LTree.fromString("").getOrElse(fail("Failed to parse empty LTree")), LTree.Empty)
 
     assert(LTree.fromString("abc.d!f").isLeft, "regex failed")
     assert(LTree.fromString("abc.d_f").isRight, "regex failed")
+    assert(LTree.fromString("abc1.d_f2").isRight, "regex failed")
+    assert(LTree.fromString("foo.βar.baz").isRight, "regex failed")
+    assert(LTree.fromString("foo.βar.❤").isLeft, "regex failed")
 
     assert(LTree.fromString(List.fill(LTree.MaxTreeLength)("a").mkString(".")).isRight, "max tree len failed")
     assert(LTree.fromString(List.fill(LTree.MaxTreeLength + 1)("a").mkString(".")).isLeft, "max tree len failed")
@@ -23,16 +29,17 @@ class LTreeTest extends munit.FunSuite {
   }
 
   test("LTree.isAncestorOf") {
-    assert(LTree.Empty.isAncestorOf(LTree.unsafe("foo")))
-    assert(LTree.unsafe("foo").isAncestorOf(LTree.unsafe("foo")))
-    assert(LTree.unsafe("foo").isAncestorOf(LTree.unsafe("foo", "bar")))
+    assert(LTree.Empty.isAncestorOf(foo))
+    assert(foo.isAncestorOf(foo))
+    assert(foo.isAncestorOf(foobar))
 
-    assert(!LTree.unsafe("foo").isAncestorOf(LTree.Empty))
-    assert(!LTree.unsafe("foo", "bar").isAncestorOf(LTree.unsafe("foo")))
+    assert(!foo.isAncestorOf(LTree.Empty))
+    assert(!foobar.isAncestorOf(foo))
   }
 
   test("LTree.isDescendantOf") {
-    assert(LTree.unsafe("foo").isDescendantOf(LTree.Empty))
-    assert(LTree.unsafe("foo", "bar").isDescendantOf(LTree.unsafe("foo")))
+    assert(foo.isDescendantOf(LTree.Empty))
+    assert(foobar.isDescendantOf(foo))
   }
+
 }

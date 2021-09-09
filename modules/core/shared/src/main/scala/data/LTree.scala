@@ -6,12 +6,10 @@ package skunk.data
 
 import cats.Eq
 
-final case class LTree private (labels: List[String]) {
+sealed abstract case class LTree (labels: List[String]) {
 
-  def isAncestorOf(other: LTree): Boolean = {
-    labels.isEmpty ||                 // Empty LTree is parent to all
-    other.labels.startsWith(labels)   // Other labels starts with this labels
-  }
+  def isAncestorOf(other: LTree): Boolean =
+    other.labels.startsWith(labels)
 
   def isDescendantOf(other: LTree): Boolean = other.isAncestorOf(this)
   
@@ -19,14 +17,15 @@ final case class LTree private (labels: List[String]) {
 }
 
 object LTree {
-  val Empty = LTree(Nil)
-
-  def unsafe(labels: String*): LTree = LTree(labels.toList)
-
+  val Empty = new LTree(Nil) {}
+  
+  def fromLabels(s: String*): Either[String, LTree] =
+    fromString(s.toList.mkString(Separator.toString()))
+    
   def fromString(s: String): Either[String, LTree] = {
 
     if(s.isEmpty()) {
-      Right(LTree.Empty)
+      Right(new LTree(Nil){})
     } else {
       // We have a failure sentinal and a helper to set it.
       var failure: String = null
@@ -46,7 +45,7 @@ object LTree {
       if(failure != null)
         Left(failure)
       else
-        Right(LTree(labels))
+        Right(new LTree(labels){})
     }
   }
 
@@ -54,7 +53,7 @@ object LTree {
   val MaxTreeLength = 65535
   
   private val Separator = '.'
-  private val ValidLabelRegex = s"""^[A-Za-z0-9_]{1,$MaxLabelLength}$$""".r
+  private val ValidLabelRegex = s"""^[\\p{L}0-9_]{1,$MaxLabelLength}$$""".r
   
   implicit val ltreeEq: Eq[LTree] = Eq.fromUniversalEquals[LTree]
 }
