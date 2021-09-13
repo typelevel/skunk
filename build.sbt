@@ -64,6 +64,8 @@ lazy val commonSettings = Seq(
   // uncomment in case of emergency
   // scalacOptions ++= { if (scalaVersion.value.startsWith("3.")) Seq("-source:3.0-migration") else Nil },
 
+  scalaJSLinkerConfig ~= { _.withESFeatures(_.withESVersion(org.scalajs.linker.interface.ESVersion.ES2018)) },
+
   // Add some more source directories
   Compile / unmanagedSourceDirectories ++= {
     val sourceDir = (Compile / sourceDirectory).value

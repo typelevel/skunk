@@ -18,7 +18,7 @@ class LTreeTest extends munit.FunSuite {
     assert(LTree.fromString("abc.d!f").isLeft, "regex failed")
     assert(LTree.fromString("abc.d_f").isRight, "regex failed")
     assert(LTree.fromString("abc1.d_f2").isRight, "regex failed")
-    assert(LTree.fromString("foo.βar.baz").isRight, "regex failed")
+    assert(LTree.fromString("foo.βar.baΣΩ").isRight, "regex failed")
     assert(LTree.fromString("foo.βar.❤").isLeft, "regex failed")
 
     assert(LTree.fromString(List.fill(LTree.MaxTreeLength)("a").mkString(".")).isRight, "max tree len failed")
