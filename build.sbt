@@ -179,7 +179,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform)
       "org.typelevel"     %%% "cats-laws"               % "2.6.1",
       "org.typelevel"     %%% "discipline-munit"        % "1.0.9",
     ) ++ Seq(
-      "io.chrisdavenport" %%% "cats-time"               % "0.3.4",
+      "io.chrisdavenport" %%% "cats-time"               % "0.4.0",
     ).filterNot(_ => scalaVersion.value.startsWith("3.")),
     testFrameworks += new TestFramework("munit.Framework")
   )
