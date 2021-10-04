@@ -64,10 +64,11 @@ object BitVectorSocket {
     host:         String,
     port:         Int,
     sg:           SocketGroup[F],
+    socketOptions: List[SocketOption],
     sslOptions:   Option[SSLNegotiation.Options[F]],
   )(implicit ev: MonadError[F, Throwable]): Resource[F, BitVectorSocket[F]] =
     for {
-      sock  <- sg.client(SocketAddress(Hostname.fromString(host).get, Port.fromInt(port).get), List(SocketOption.noDelay(true))) // TODO
+      sock  <- sg.client(SocketAddress(Hostname.fromString(host).get, Port.fromInt(port).get), socketOptions) // TODO
       sockʹ <- sslOptions.fold(sock.pure[Resource[F, *]])(SSLNegotiation.negotiateSSL(sock, _))
     } yield fromSocket(sockʹ)
 

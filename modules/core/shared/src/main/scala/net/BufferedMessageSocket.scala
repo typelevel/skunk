@@ -5,15 +5,15 @@
 package skunk.net
 
 import cats._
-import cats.effect.{ Sync => _, _ }
+import cats.effect.{Sync => _, _}
 import cats.effect.implicits._
-import cats.effect.std.{ Console, Queue }
+import cats.effect.std.{Console, Queue}
 import cats.syntax.all._
 import fs2.concurrent._
 import fs2.Stream
 import skunk.data._
 import skunk.net.message._
-import fs2.io.net.SocketGroup
+import fs2.io.net.{SocketGroup, SocketOption}
 
 /**
  * A `MessageSocket` that buffers incoming messages, removing and handling asynchronous back-end
@@ -80,10 +80,11 @@ object BufferedMessageSocket {
     queueSize:    Int,
     debug:        Boolean,
     sg:           SocketGroup[F],
+    socketOptions: List[SocketOption],
     sslOptions:   Option[SSLNegotiation.Options[F]],
   ): Resource[F, BufferedMessageSocket[F]] =
     for {
-      ms  <- MessageSocket(host, port, debug, sg, sslOptions)
+      ms  <- MessageSocket(host, port, debug, sg, socketOptions, sslOptions)
       ams <- Resource.make(BufferedMessageSocket.fromMessageSocket[F](ms, queueSize))(_.terminate)
     } yield ams
 
