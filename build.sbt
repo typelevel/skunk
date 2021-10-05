@@ -2,11 +2,7 @@
 
 // Our Scala versions.
 lazy val `scala-2.13` = "2.13.6"
-<<<<<<< HEAD
 lazy val `scala-3`    = "3.0.2"
-=======
-lazy val `scala-3`    = "3.0.0"
->>>>>>> ab79a3a (checkpoint)
 
 // This is used in a couple places
 lazy val fs2Version = "3.1.1"
@@ -110,17 +106,16 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
     description := "Tagless, non-blocking data access library for Postgres.",
     resolvers   +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     libraryDependencies ++= Seq(
-      "org.typelevel"          %% "cats-core"               % "2.6.1",
-      "org.typelevel"          %% "cats-effect"             % "3.1.1",
-      "co.fs2"                 %% "fs2-core"                % fs2Version,
-      "co.fs2"                 %% "fs2-io"                  % fs2Version,
-      "org.scodec"             %% "scodec-core"             % (if (scalaVersion.value.startsWith("3.")) "2.0.0" else "1.11.8"),
-      "org.scodec"             %% "scodec-cats"             % "1.1.0",
-      "org.tpolecat"           %% "natchez-core"            % natchezVersion,
-      "org.tpolecat"           %% "sourcepos"               % "1.0.1",
-      "org.tpolecat"           %% "pool-party"              % "0.0.3+0-ccfdf461+20210708-1136-SNAPSHOT",
-      "com.ongres.scram"        % "client"                  % "2.1",
-      "org.scala-lang.modules" %% "scala-collection-compat" % "2.4.4",
+      "org.typelevel"          %%% "cats-core"               % "2.6.1",
+      "org.typelevel"          %%% "cats-effect"             % "3.1.1",
+      "co.fs2"                 %%% "fs2-core"                % fs2Version,
+      "co.fs2"                 %%% "fs2-io"                  % fs2Version,
+      "org.scodec"             %%% "scodec-core"             % (if (scalaVersion.value.startsWith("3.")) "2.0.0" else "1.11.8"),
+      "org.scodec"             %%% "scodec-cats"             % "1.1.0",
+      "org.tpolecat"           %%% "natchez-core"            % natchezVersion,
+      "org.tpolecat"           %%% "sourcepos"               % "1.0.1",
+      "org.tpolecat"           %%% "pool-party"              % "0.0.4",
+      "org.scala-lang.modules" %%% "scala-collection-compat" % "2.4.4",
     ) ++ Seq(
       "com.beachape"  %%% "enumeratum"   % "1.6.1",
     ).filterNot(_ => scalaVersion.value.startsWith("3."))

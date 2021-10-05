@@ -283,7 +283,10 @@ object Session {
     for {
       dc      <- Resource.eval(Describe.Cache.empty[F](commandCache, queryCache))
       sslOp   <- Resource.eval(ssl.toSSLNegotiationOptions(if (debug) logger.some else none))
-      pool    <- PooledResourceBuilder.of(session(Network[F], sslOp, dc), max).withHealthCheck(Recyclers.full[F].run).withReporter(e => Console[F].println(s"pool> $e")).build
+      pool    <- PooledResourceBuilder.of(session(Network[F], sslOp, dc), max)
+                   .withHealthCheck(Recyclers.full[F].run)
+                   // .withReporter(e => Console[F].println(s"pool> $e"))*/
+                   .build
     } yield pool
 
   }
