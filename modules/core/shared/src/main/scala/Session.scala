@@ -23,6 +23,9 @@ import skunk.net.SSLNegotiation
 import skunk.data.TransactionIsolationLevel
 import skunk.data.TransactionAccessMode
 import skunk.net.protocol.Describe
+import org.tpolecat.poolparty.PoolEvent
+import org.tpolecat.poolparty.PoolEvent.FinalizerFailure
+import org.tpolecat.poolparty.PoolEvent.HealthCheckFailure
 
 /**
  * Represents a live connection to a Postgres database. Operations provided here are safe to use
@@ -236,6 +239,26 @@ object Session {
 
   }
 
+  object PoolReporters {
+
+    /**
+     * A very minimal pool event reporter, which dumps all pool events when `debug` is true
+     * and dumps stack traces if a health check or finalizer fails with an exception (otherwise
+     * these exceptions are lost since they're serviced by a worker thread). We should make this
+     * more configurable.
+     * @param debug if true, log all events
+     */
+    def default[F[_]: Console: Applicative](debug: Boolean): PoolEvent[Session[F]] => F[Unit] = e =>
+      Console[F].println(s"Pool: $e").whenA(debug) *> {
+        e match {
+          case FinalizerFailure(_, _, _, ex)   => Console[F].printStackTrace(ex)
+          case HealthCheckFailure(_, _, _, ex) => Console[F].printStackTrace(ex)
+          case _                               => Applicative[F].unit
+        }
+      }
+
+  }
+
   /**
    * Resource yielding a `SessionPool` managing up to `max` concurrent `Session`s. Typically you
    * will `use` this resource once on application startup and pass the resulting
@@ -285,7 +308,7 @@ object Session {
       sslOp   <- Resource.eval(ssl.toSSLNegotiationOptions(if (debug) logger.some else none))
       pool    <- PooledResourceBuilder.of(session(Network[F], sslOp, dc), max)
                    .withHealthCheck(Recyclers.full[F].run)
-                   // .withReporter(e => Console[F].println(s"pool> $e"))*/
+                   .withReporter(PoolReporters.default[F](debug))
                    .build
     } yield pool
 
