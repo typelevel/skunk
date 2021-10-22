@@ -111,7 +111,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
       "org.typelevel"          %%% "cats-effect"             % "3.1.1",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
-      "org.scodec"             %%% "scodec-core"             % (if (scalaVersion.value.startsWith("3.")) "2.0.0" else "1.11.9"),
+      "org.scodec"             %%% "scodec-core"             % (if (scalaVersion.value.startsWith("3.")) "2.1.0" else "1.11.9"),
       "org.scodec"             %%% "scodec-cats"             % "1.1.0",
       "org.tpolecat"           %%% "natchez-core"            % natchezVersion,
       "org.tpolecat"           %%% "sourcepos"               % "1.0.1",
