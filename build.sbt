@@ -107,7 +107,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
     description := "Tagless, non-blocking data access library for Postgres.",
     resolvers   +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     libraryDependencies ++= Seq(
-      "org.typelevel"          %%% "cats-core"               % "2.6.1",
+      "org.typelevel"          %%% "cats-core"               % "2.7.0",
       "org.typelevel"          %%% "cats-effect"             % "3.1.1",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
@@ -175,8 +175,8 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform)
       "org.scalameta"     % "junit-interface"           % "0.7.29",
       "org.typelevel"     %%% "scalacheck-effect-munit" % "1.0.3",
       "org.typelevel"     %%% "munit-cats-effect-3"     % "1.0.6",
-      "org.typelevel"     %%% "cats-free"               % "2.6.1",
-      "org.typelevel"     %%% "cats-laws"               % "2.6.1",
+      "org.typelevel"     %%% "cats-free"               % "2.7.0",
+      "org.typelevel"     %%% "cats-laws"               % "2.7.0",
       "org.typelevel"     %%% "discipline-munit"        % "1.0.9",
     ) ++ Seq(
       "io.chrisdavenport" %%% "cats-time"               % "0.3.4",
