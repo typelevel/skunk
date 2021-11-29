@@ -162,7 +162,7 @@ lazy val circe = crossProject(JVMPlatform, JSPlatform)
 lazy val tests = crossProject(JVMPlatform, JSPlatform)
   .crossType(CrossType.Full)
   .in(file("modules/tests"))
-  .dependsOn(core, circe)
+  .dependsOn(core, circe, refined)
   .enablePlugins(AutomateHeaderPlugin)
   .jsEnablePlugins(ScalaJSBundlerPlugin)
   .jsConfigure(_.disablePlugins(ScoverageSbtPlugin))
@@ -178,6 +178,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform)
       "org.typelevel"     %%% "cats-free"               % "2.6.1",
       "org.typelevel"     %%% "cats-laws"               % "2.6.1",
       "org.typelevel"     %%% "discipline-munit"        % "1.0.9",
+      "eu.timepit"        %%% "refined-cats"            % "0.9.27",
     ) ++ Seq(
       "io.chrisdavenport" %%% "cats-time"               % "0.3.4",
     ).filterNot(_ => scalaVersion.value.startsWith("3.")),
