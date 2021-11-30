@@ -139,8 +139,9 @@ lazy val refined = crossProject(JVMPlatform, JSPlatform)
   .jsConfigure(_.disablePlugins(ScoverageSbtPlugin))
   .settings(commonSettings)
   .settings(
+    name := "skunk-refined",
     libraryDependencies ++= Seq(
-      "eu.timepit" %%% "refined" % "0.9.27",
+      "eu.timepit" %%% "refined" % "0.9.28",
     )
   )
 
@@ -178,7 +179,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform)
       "org.typelevel"     %%% "cats-free"               % "2.6.1",
       "org.typelevel"     %%% "cats-laws"               % "2.6.1",
       "org.typelevel"     %%% "discipline-munit"        % "1.0.9",
-      "eu.timepit"        %%% "refined-cats"            % "0.9.27",
+      "eu.timepit"        %%% "refined-cats"            % "0.9.28",
     ) ++ Seq(
       "io.chrisdavenport" %%% "cats-time"               % "0.3.4",
     ).filterNot(_ => scalaVersion.value.startsWith("3.")),
