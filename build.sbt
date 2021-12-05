@@ -174,9 +174,9 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform)
       "org.scalameta"     %%% "munit"                   % "0.7.29",
       "org.scalameta"     % "junit-interface"           % "0.7.29",
       "org.typelevel"     %%% "scalacheck-effect-munit" % "1.0.3",
-      "org.typelevel"     %%% "munit-cats-effect-3"     % "1.0.6",
-      "org.typelevel"     %%% "cats-free"               % "2.7.0",
-      "org.typelevel"     %%% "cats-laws"               % "2.7.0",
+      "org.typelevel"     %%% "munit-cats-effect-3"     % "1.0.7",
+      "org.typelevel"     %%% "cats-free"               % "2.6.1",
+      "org.typelevel"     %%% "cats-laws"               % "2.6.1",
       "org.typelevel"     %%% "discipline-munit"        % "1.0.9",
     ) ++ Seq(
       "io.chrisdavenport" %%% "cats-time"               % "0.3.4",
