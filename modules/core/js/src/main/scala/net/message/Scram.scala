@@ -4,9 +4,9 @@
 
 package skunk.net.message
 
+import com.armanbilge.SaslPrep
 import scodec.bits.ByteVector
 import scodec.codecs.utf8
-import skunk.util.SaslPrep
 
 import scala.scalajs.js
 import scala.scalajs.js.typedarray.TypedArrayBuffer
