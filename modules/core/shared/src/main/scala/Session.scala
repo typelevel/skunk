@@ -13,6 +13,7 @@ import fs2.io.net.{ Network, SocketGroup }
 import fs2.Pipe
 import fs2.Stream
 import natchez.Trace
+import org.tpolecat.poolparty.PooledResourceBuilder
 import skunk.codec.all.bool
 import skunk.data._
 import skunk.net.Protocol
@@ -22,6 +23,9 @@ import skunk.net.SSLNegotiation
 import skunk.data.TransactionIsolationLevel
 import skunk.data.TransactionAccessMode
 import skunk.net.protocol.Describe
+import org.tpolecat.poolparty.PoolEvent
+import org.tpolecat.poolparty.PoolEvent.FinalizerFailure
+import org.tpolecat.poolparty.PoolEvent.HealthCheckFailure
 
 /**
  * Represents a live connection to a Postgres database. Operations provided here are safe to use
@@ -235,6 +239,26 @@ object Session {
 
   }
 
+  object PoolReporters {
+
+    /**
+     * A very minimal pool event reporter, which dumps all pool events when `debug` is true
+     * and dumps stack traces if a health check or finalizer fails with an exception (otherwise
+     * these exceptions are lost since they're serviced by a worker thread). We should make this
+     * more configurable.
+     * @param debug if true, log all events
+     */
+    def default[F[_]: Console: Applicative](debug: Boolean): PoolEvent[Session[F]] => F[Unit] = e =>
+      Console[F].println(s"Pool: $e").whenA(debug) *> {
+        e match {
+          case FinalizerFailure(_, _, _, ex)   => Console[F].printStackTrace(ex)
+          case HealthCheckFailure(_, _, _, ex) => Console[F].printStackTrace(ex)
+          case _                               => Applicative[F].unit
+        }
+      }
+
+  }
+
   /**
    * Resource yielding a `SessionPool` managing up to `max` concurrent `Session`s. Typically you
    * will `use` this resource once on application startup and pass the resulting
@@ -259,7 +283,7 @@ object Session {
    * @param queryCache    Size of the cache for query checking
    * @group Constructors
    */
-  def pooled[F[_]: Concurrent: Trace: Network: Console](
+  def pooled[F[_]: Temporal: Trace: Network: Console](
     host:         String,
     port:         Int            = 5432,
     user:         String,
@@ -282,7 +306,10 @@ object Session {
     for {
       dc      <- Resource.eval(Describe.Cache.empty[F](commandCache, queryCache))
       sslOp   <- Resource.eval(ssl.toSSLNegotiationOptions(if (debug) logger.some else none))
-      pool    <- Pool.of(session(Network[F], sslOp, dc), max)(Recyclers.full)
+      pool    <- PooledResourceBuilder.of(session(Network[F], sslOp, dc), max)
+                   .withHealthCheck(Recyclers.full[F].run)
+                   .withReporter(PoolReporters.default[F](debug))
+                   .build
     } yield pool
 
   }
@@ -293,7 +320,7 @@ object Session {
    * single-session pool. This method is shorthand for `Session.pooled(..., max = 1, ...).flatten`.
    * @see pooled
    */
-  def single[F[_]: Concurrent: Trace: Network: Console](
+  def single[F[_]: Temporal: Trace: Network: Console](
     host:         String,
     port:         Int            = 5432,
     user:         String,
