@@ -99,7 +99,6 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
   .crossType(CrossType.Full)
   .in(file("modules/core"))
   .enablePlugins(AutomateHeaderPlugin)
-  .jsEnablePlugins(ScalaJSBundlerPlugin)
   .jsConfigure(_.disablePlugins(ScoverageSbtPlugin))
   .settings(commonSettings)
   .settings(
@@ -123,12 +122,10 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
     libraryDependencies += "com.ongres.scram" % "client" % "2.1",
   ).jsSettings(
     libraryDependencies ++= Seq(
+      "com.armanbilge" %%% "saslprep" % "0.1.0",
       "io.github.cquiroz" %%% "scala-java-time" % "2.3.0",
       "io.github.cquiroz" %%% "locales-minimal-en_us-db" % "1.2.1"
     ),
-    Compile / npmDependencies += "saslprep" -> "1.0.3",
-    useYarn := true,
-    yarnExtraArgs += "--frozen-lockfile",
   )
 
 lazy val refined = crossProject(JVMPlatform, JSPlatform)
@@ -164,7 +161,6 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform)
   .in(file("modules/tests"))
   .dependsOn(core, circe)
   .enablePlugins(AutomateHeaderPlugin)
-  .jsEnablePlugins(ScalaJSBundlerPlugin)
   .jsConfigure(_.disablePlugins(ScoverageSbtPlugin))
   .settings(commonSettings)
   .settings(
@@ -185,7 +181,6 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform)
   )
   .jsSettings(
     Test / scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.CommonJSModule)),
-    useYarn := true
   )
 
 lazy val example = project
