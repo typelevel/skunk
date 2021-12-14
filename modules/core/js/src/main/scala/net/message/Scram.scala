@@ -4,6 +4,7 @@
 
 package skunk.net.message
 
+import com.armanbilge.SaslPrep
 import scodec.bits.ByteVector
 import scodec.codecs.utf8
 
@@ -24,8 +25,6 @@ private[skunk] object Scram {
   private implicit class StringOps(val value: String) extends AnyVal {
     def bytesUtf8: ByteVector = ByteVector.view(value.getBytes(java.nio.charset.StandardCharsets.UTF_8))
   }
-
-  private val normalize = js.Dynamic.global.require("saslprep").asInstanceOf[js.Function1[String, String]]
 
   def clientFirstBareWithRandomNonce: ByteVector = {
     val nonce = ByteVector.view(crypto.randomBytes(32).asInstanceOf[Uint8Array]).toBase64
@@ -92,7 +91,7 @@ private[skunk] object Scram {
   }
 
   private def makeClientProofAndServerSignature(password: String, salt: ByteVector, iterations: Int, clientFirstMessageBare: ByteVector, serverFirstMessage: ByteVector, clientFinalMessageWithoutProof: ByteVector): (ClientProof, Verifier) = {
-    val saltedPassword = Hi(normalize(password), salt, iterations)
+    val saltedPassword = Hi(SaslPrep.saslPrepStored(password), salt, iterations)
     val clientKey = HMAC(saltedPassword, "Client Key".bytesUtf8)
     val storedKey = H(clientKey)
     val comma = ",".bytesUtf8

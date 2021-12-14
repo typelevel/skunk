@@ -5,8 +5,8 @@
 package tests
 
 import cats.effect._
+import com.comcast.ip4s.UnknownHostException
 import fs2.io.net.ConnectException
-import fs2.io.net.UnknownHostException
 import natchez.Trace.Implicits.noop
 import skunk._
 import skunk.exception.SkunkException

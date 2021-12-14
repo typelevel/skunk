@@ -138,6 +138,24 @@ class CommandTest extends SkunkTest {
         DROP DOMAIN IF EXISTS population
        """.command
 
+  val createSequence: Command[Void] =
+    sql"""
+        CREATE SEQUENCE IF NOT EXISTS counter_seq
+       """.command
+
+  val alterSequence: Command[Void] =
+    sql"""
+        ALTER SEQUENCE IF EXISTS counter_seq INCREMENT BY 2
+       """.command
+
+  val dropSequence: Command[Void] =
+    sql"""
+        DROP SEQUENCE IF EXISTS counter_seq
+       """.command
+
+
+
+
   sessionTest("create table, create index, drop index, alter table and drop table") { s =>
     for {
       c <- s.execute(createTable)
@@ -185,6 +203,18 @@ class CommandTest extends SkunkTest {
       _ <- s.assertHealthy
     } yield "ok"
   }
+
+  sessionTest("create sequence, alter sequence,  drop sequence"){ s=>
+    for{
+      c <- s.execute(createSequence)
+      _ <- assert("completion", c == Completion.CreateSequence)
+      c <- s.execute(alterSequence)
+      _ <- assert("completion", c == Completion.AlterSequence)
+      c <- s.execute(dropSequence)
+      _ <- assert("completion", c == Completion.DropSequence)
+    } yield "ok"
+  }
+
 
   sessionTest("do command"){ s=>
     for{
