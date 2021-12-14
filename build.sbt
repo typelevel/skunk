@@ -2,11 +2,11 @@
 
 // Our Scala versions.
 lazy val `scala-2.12` = "2.12.13"
-lazy val `scala-2.13` = "2.13.6"
-lazy val `scala-3.0`  = "3.0.2"
+lazy val `scala-2.13` = "2.13.7"
+lazy val `scala-3.0`  = "3.1.0"
 
 // This is used in a couple places
-lazy val fs2Version = "3.1.1"
+lazy val fs2Version = "3.2.3"
 lazy val natchezVersion = "0.1.5"
 
 // We do `evictionCheck` in CI
@@ -106,15 +106,15 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
     description := "Tagless, non-blocking data access library for Postgres.",
     resolvers   +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     libraryDependencies ++= Seq(
-      "org.typelevel"          %%% "cats-core"               % "2.6.1",
-      "org.typelevel"          %%% "cats-effect"             % "3.1.1",
+      "org.typelevel"          %%% "cats-core"               % "2.7.0",
+      "org.typelevel"          %%% "cats-effect"             % "3.3.0",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
       "org.scodec"             %%% "scodec-core"             % (if (scalaVersion.value.startsWith("3.")) "2.0.0" else "1.11.9"),
       "org.scodec"             %%% "scodec-cats"             % "1.1.0",
       "org.tpolecat"           %%% "natchez-core"            % natchezVersion,
       "org.tpolecat"           %%% "sourcepos"               % "1.0.1",
-      "org.scala-lang.modules" %%% "scala-collection-compat" % "2.4.4",
+      "org.scala-lang.modules" %%% "scala-collection-compat" % "2.6.0",
     ) ++ Seq(
       "com.beachape"  %%% "enumeratum"   % "1.6.1",
     ).filterNot(_ => scalaVersion.value.startsWith("3."))
@@ -137,7 +137,7 @@ lazy val refined = crossProject(JVMPlatform, JSPlatform)
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "eu.timepit" %%% "refined" % "0.9.27",
+      "eu.timepit" %%% "refined" % "0.9.28",
     )
   )
 
@@ -171,8 +171,8 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform)
       "org.scalameta"     % "junit-interface"           % "0.7.29",
       "org.typelevel"     %%% "scalacheck-effect-munit" % "1.0.3",
       "org.typelevel"     %%% "munit-cats-effect-3"     % "1.0.7",
-      "org.typelevel"     %%% "cats-free"               % "2.6.1",
-      "org.typelevel"     %%% "cats-laws"               % "2.6.1",
+      "org.typelevel"     %%% "cats-free"               % "2.7.0",
+      "org.typelevel"     %%% "cats-laws"               % "2.7.0",
       "org.typelevel"     %%% "discipline-munit"        % "1.0.9",
     ) ++ Seq(
       "io.chrisdavenport" %%% "cats-time"               % "0.3.4",
