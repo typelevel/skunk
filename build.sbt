@@ -7,7 +7,7 @@ lazy val `scala-3.0`  = "3.1.0"
 
 // This is used in a couple places
 lazy val fs2Version = "3.2.3"
-lazy val natchezVersion = "0.1.5"
+lazy val natchezVersion = "0.1.6"
 
 // We do `evictionCheck` in CI
 inThisBuild(Seq(
