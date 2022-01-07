@@ -163,8 +163,8 @@ object Typer {
         case Oid.timestamp   => if (typeMod == -1) Some(Type("timestamp"))   else Some(Type(s"timestamp($typeMod)"))
         case Oid.timestamptz => if (typeMod == -1) Some(Type("timestamptz")) else Some(Type(s"timestamptz($typeMod)"))
         case Oid.varchar     => if (typeMod == -1) Some(Type("varchar"))     else Some(Type(s"varchar(${typeMod - 4})"))
-
-        // // varbit
+        case Oid.varbit      => if (typeMod == -1) Some(Type("varbit"))      else Some(Type(s"varbit(${typeMod})"))
+        case Oid.bit         => if (typeMod == -1) Some(Type("bit"))         else Some(Type(s"bit(${typeMod})"))
 
         // Ok we need to handle arrays of those types as well
         case n => staticByOid.get(n)
