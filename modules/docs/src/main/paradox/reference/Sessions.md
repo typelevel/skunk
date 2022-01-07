@@ -13,7 +13,7 @@ TBD - talk about pooling, session lifecycle, cleanup, etc.
 
 ## Authentication
 
-Skunk currently supports the **trust** (no password necessary) and **password** (`md5` and `scram-sha-256` only) authentication methods.
+Skunk currently supports the `trust` (no password necessary), `password`, `md5` and `scram-sha-256` authentication methods.
 
 See [§20.3](https://www.postgresql.org/docs/current/auth-methods.html) in the Postgres documentation for more information on authentication methods.
 

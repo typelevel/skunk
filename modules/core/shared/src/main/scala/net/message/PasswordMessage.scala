@@ -16,4 +16,7 @@ object PasswordMessage extends PasswordMessagePlatform {
   val encoder: Encoder[PasswordMessage] =
     utf8z.contramap[PasswordMessage](_.password)
 
+  def cleartext(password: String): PasswordMessage =
+    new PasswordMessage(password) {}
+
 }

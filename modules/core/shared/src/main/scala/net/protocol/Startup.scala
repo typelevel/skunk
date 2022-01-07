@@ -40,10 +40,10 @@ object Startup extends StartupCompanionPlatform {
             _ <- send(sm)
             _ <- flatExpectStartup(sm) {
                     case AuthenticationOk                => ().pure[F]
+                    case AuthenticationCleartextPassword => authenticationCleartextPassword[F](sm, password)
                     case AuthenticationMD5Password(salt) => authenticationMD5Password[F](sm, password, salt)
                     case AuthenticationSASL(mechanisms)  => authenticationSASL[F](sm, password, mechanisms)
                     case m @ (
-                      AuthenticationCleartextPassword |
                       AuthenticationGSS |
                       AuthenticationKerberosV5 |
                       AuthenticationSASL(_) |
@@ -58,6 +58,21 @@ object Startup extends StartupCompanionPlatform {
     }
 
   // already inside an exchange
+  private def authenticationCleartextPassword[F[_]: MessageSocket: Trace](
+    sm:       StartupMessage,
+    password: Option[String]
+  )(
+    implicit ev: MonadError[F, Throwable]
+  ): F[Unit] =
+    Trace[F].span("authenticationCleartextPassword") {
+      requirePassword[F](sm, password).flatMap { pw =>
+        for {
+          _ <- send(PasswordMessage.cleartext(pw))
+          _ <- flatExpectStartup(sm) { case AuthenticationOk => ().pure[F] }
+        } yield ()
+      }
+    }
+
   private def authenticationMD5Password[F[_]: MessageSocket: Trace](
     sm:       StartupMessage,
     password: Option[String],
