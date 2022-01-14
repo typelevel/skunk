@@ -4,12 +4,12 @@
 
 package skunk.net.message
 
+import com.armanbilge.SaslPrep
 import scodec.bits.ByteVector
 import scodec.codecs.utf8
 
 import scala.scalajs.js
-import scala.scalajs.js.typedarray.TypedArrayBuffer
-import scala.scalajs.js.typedarray.TypedArrayBufferOps._
+import scala.scalajs.js.typedarray.Uint8Array
 
 /**
   * Partial implementation of [RFC5802](https://tools.ietf.org/html/rfc5802), as needed by PostgreSQL.
@@ -26,10 +26,8 @@ private[skunk] object Scram {
     def bytesUtf8: ByteVector = ByteVector.view(value.getBytes(java.nio.charset.StandardCharsets.UTF_8))
   }
 
-  private val normalize = js.Dynamic.global.require("saslprep").asInstanceOf[js.Function1[String, String]]
-
   def clientFirstBareWithRandomNonce: ByteVector = {
-    val nonce = bufferToByteVector(crypto.randomBytes(32)).toBase64
+    val nonce = ByteVector.view(crypto.randomBytes(32).asInstanceOf[Uint8Array]).toBase64
     clientFirstBareWithNonce(nonce)
   }
 
@@ -73,46 +71,27 @@ private[skunk] object Scram {
 
   private val crypto = js.Dynamic.global.require("crypto")
 
-  private def bufferToByteVector(buffer: js.Dynamic): ByteVector =
-    ByteVector.view(TypedArrayBuffer.wrap(
-      buffer.asInstanceOf[js.typedarray.ArrayBuffer],
-      buffer.byteOffset.asInstanceOf[Int],
-      buffer.byteLength.asInstanceOf[Int]
-    ))
-
-  private def byteVectorToUint8Array(vector: ByteVector): js.typedarray.Uint8Array = {
-    val bb = vector.toByteBuffer
-    val ab = if (bb.hasArrayBuffer())
-      bb.arrayBuffer()
-    else {
-      val ab = new js.typedarray.ArrayBuffer(bb.remaining())
-      TypedArrayBuffer.wrap(ab).put(bb)
-      ab
-    }
-    new js.typedarray.Uint8Array(ab)
-  }
-
   private def HMAC(key: ByteVector, str: ByteVector): ByteVector = {
-    val mac = crypto.createHmac("sha256", byteVectorToUint8Array(key))
-    mac.update(byteVectorToUint8Array(str))
-    bufferToByteVector(mac.digest())
+    val mac = crypto.createHmac("sha256", key.toUint8Array)
+    mac.update(str.toUint8Array)
+    ByteVector.view(mac.digest().asInstanceOf[Uint8Array])
   }
 
   private def H(input: ByteVector): ByteVector = {
     val hash = crypto.createHash("sha256")
-    hash.update(byteVectorToUint8Array(input))
-    bufferToByteVector(hash.digest())
+    hash.update(input.toUint8Array)
+    ByteVector.view(hash.digest().asInstanceOf[Uint8Array])
   }
 
   private def Hi(str: String, salt: ByteVector, iterations: Int): ByteVector = {
     // TODO It is unfortunate that we have to use a sync API here when an async is available
     // To make the change here will require running an F[_]: Async up the hiearchy    
-    val salted = crypto.pbkdf2Sync(str, byteVectorToUint8Array(salt), iterations, 8 * 32, "sha256")
-    bufferToByteVector(salted).take(32)
+    val salted = crypto.pbkdf2Sync(str, salt.toUint8Array, iterations, 8 * 32, "sha256")
+    ByteVector.view(salted.asInstanceOf[Uint8Array]).take(32)
   }
 
   private def makeClientProofAndServerSignature(password: String, salt: ByteVector, iterations: Int, clientFirstMessageBare: ByteVector, serverFirstMessage: ByteVector, clientFinalMessageWithoutProof: ByteVector): (ClientProof, Verifier) = {
-    val saltedPassword = Hi(normalize(password), salt, iterations)
+    val saltedPassword = Hi(SaslPrep.saslPrepStored(password), salt, iterations)
     val clientKey = HMAC(saltedPassword, "Client Key".bytesUtf8)
     val storedKey = H(clientKey)
     val comma = ",".bytesUtf8
