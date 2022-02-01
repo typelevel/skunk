@@ -42,6 +42,8 @@ object Completion {
   case object CreateSequence     extends Completion
   case object AlterSequence      extends Completion
   case object DropSequence       extends Completion
+  case object CreateDatabase     extends Completion
+  case object DropDatabase       extends Completion
   // more ...
 
   /**

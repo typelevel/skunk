@@ -75,6 +75,8 @@ object CommandComplete {
     case "CREATE SEQUENCE"  => apply(Completion.CreateSequence)
     case "ALTER SEQUENCE"   => apply(Completion.AlterSequence)
     case "DROP SEQUENCE"    => apply(Completion.DropSequence)
+    case "CREATE DATABASE"  => apply(Completion.CreateDatabase)
+    case "DROP DATABASE"    => apply(Completion.DropDatabase)
     case Patterns.Select(s) => apply(Completion.Select(s.toInt))
     case Patterns.Delete(s) => apply(Completion.Delete(s.toInt))
     case Patterns.Update(s) => apply(Completion.Update(s.toInt))
