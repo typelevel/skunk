@@ -26,7 +26,7 @@ Create a new project with Skunk as a dependency.
 
 For metals, no additional steps are needed.
 
-For IntelliJ, add the [skunk-intellij plugin](https://github.com/trobert/skunk-intellij) to have correct code highlighting support for queries
+For IntelliJ, add the [skunk-intellij plugin](https://github.com/trobert/skunk-intellij) to have correct code highlighting support for statements.
 
 ## Verify Your Setup
 
