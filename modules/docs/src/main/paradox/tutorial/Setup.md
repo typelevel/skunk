@@ -22,6 +22,12 @@ Create a new project with Skunk as a dependency.
   version="$version$"
 }
 
+## IDE Setup
+
+For metals, no additional steps are needed.
+
+For IntelliJ, add the [skunk-intellij plugin](https://github.com/trobert/skunk-intellij) to have correct code highlighting support for queries
+
 ## Verify Your Setup
 
 Try out this minimal [IOApp](https://typelevel.org/cats-effect/datatypes/ioapp.html) that connects to the database and selects the current date.
