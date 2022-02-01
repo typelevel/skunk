@@ -153,8 +153,15 @@ class CommandTest extends SkunkTest {
         DROP SEQUENCE IF EXISTS counter_seq
        """.command
 
+  val createDatabase: Command[Void] =
+    sql"""
+        CREATE DATABASE skunk_database
+       """.command
 
-
+  val dropDatabase: Command[Void] =
+    sql"""
+        DROP DATABASE IF EXISTS skunk_database
+       """.command
 
   sessionTest("create table, create index, drop index, alter table and drop table") { s =>
     for {
@@ -215,6 +222,14 @@ class CommandTest extends SkunkTest {
     } yield "ok"
   }
 
+  sessionTest("create database, drop database"){ s=>
+    for{
+      c <- s.execute(createDatabase)
+      _ <- assert("completion", c == Completion.CreateDatabase)
+      c <- s.execute(dropDatabase)
+      _ <- assert("completion", c == Completion.DropDatabase)
+    } yield "ok"
+  }
 
   sessionTest("do command"){ s=>
     for{
