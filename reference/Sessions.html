@@ -32,7 +32,7 @@
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.2.0
+0.2.3
 </div>
 </div>
 <div class="nav-toc">
@@ -87,7 +87,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.2.0
+0.2.3
 </div>
 </div>
 <div class="nav-toc">
@@ -141,7 +141,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <h2><a href="#obtaining-a-session" name="obtaining-a-session" class="anchor"><span class="anchor-link"></span></a>Obtaining a Session</h2>
 <p>TBD - talk about pooling, session lifecycle, cleanup, etc.</p>
 <h2><a href="#authentication" name="authentication" class="anchor"><span class="anchor-link"></span></a>Authentication</h2>
-<p>Skunk currently supports the <strong>trust</strong> (no password necessary) and <strong>password</strong> (<code>md5</code> and <code>scram-sha-256</code> only) authentication methods.</p>
+<p>Skunk currently supports the <code>trust</code> (no password necessary), <code>password</code>, <code>md5</code> and <code>scram-sha-256</code> authentication methods.</p>
 <p>See <a href="https://www.postgresql.org/docs/current/auth-methods.html">§20.3</a> in the Postgres documentation for more information on authentication methods.</p>
 <h2><a href="#encryption-with-ssl" name="encryption-with-ssl" class="anchor"><span class="anchor-link"></span></a>Encryption with SSL</h2>
 <p>To connect with SSL (disabled by default) provide the <code>ssl</code> named argument when constructing a <code>Session</code> resource.</p>
@@ -211,7 +211,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
     <tr>
       <td><code>.withTLSParameters(…)</code> </td>
       <td><code>TLSParameters.Default</code> </td>
-      <td>Allows for custom <a href="https://static.javadoc.io/co.fs2/fs2-io_2.12/3.0.4/fs2/io/tls/TLSParameters.html" title="fs2.io.tls.TLSParameters"><code>TLSParameters</code></a>.</td>
+      <td>Allows for custom <a href="https://static.javadoc.io/co.fs2/fs2-io_2.12/3.2.4/fs2/io/tls/TLSParameters.html" title="fs2.io.tls.TLSParameters"><code>TLSParameters</code></a>.</td>
     </tr>
   </tbody>
 </table>
@@ -285,10 +285,10 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <script type="text/javascript" src="../js/link_fix.js"></script>
 
 <div class="source-github">
-The source code for this page can be found <a id="source-link" href="https://github.com/tpolecat/skunk/tree/v0.2.0/modules/docs/target/mdoc/reference/Sessions.md">here</a>.
+The source code for this page can be found <a id="source-link" href="https://github.com/tpolecat/skunk/tree/master/modules/docs/target/mdoc/reference/Sessions.md">here</a>.
 </div>
 
-<script type="text/javascript">jQuery(function(){sourceUrlFix('https://github.com/tpolecat/skunk/tree/v0.2.0/modules/docs/target/mdoc/reference/Sessions.md')});</script>
+<script type="text/javascript">jQuery(function(){sourceUrlFix('https://github.com/tpolecat/skunk/tree/master/modules/docs/target/mdoc/reference/Sessions.md')});</script>
 
 <div class="nav-next">
 <p><strong>Next:</strong> <a href="../reference/TwiddleLists.html">Twiddle Lists</a></p>
@@ -349,7 +349,7 @@ The source code for this page can be found <a id="source-link" href="https://git
 
 <!--
 <div class="copyright">
-<span class="text">&copy; 2021</span>
+<span class="text">&copy; 2022</span>
 <a href="https://www.example.com" class="logo">logo</a>
 </div>
 -->
@@ -374,7 +374,7 @@ The source code for this page can be found <a id="source-link" href="https://git
 <script type="text/javascript" src="../lib/prettify/prettify.js"></script>
 <script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
 <script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
-<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.2.0', 'https://github.com/tpolecat/skunk')});</script>
+<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.2.3', 'https://github.com/tpolecat/skunk')});</script>
 
 
 </html>

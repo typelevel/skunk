@@ -32,7 +32,7 @@
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.2.0
+0.2.3
 </div>
 </div>
 <div class="nav-toc">
@@ -87,7 +87,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.2.0
+0.2.3
 </div>
 </div>
 <div class="nav-toc">
@@ -306,29 +306,55 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
   <li>This codec is importable from <code>skunk.codec.boolean._</code> or <code>skunk.codec.all._</code>.</li>
   <li>See <a href="https://www.postgresql.org/docs/9.1/datatype-boolean.html">§8.6</a> in the Postgres documentation for more information on the boolean data type.</li>
 </ul>
-<h2><a href="#binary-type" name="binary-type" class="anchor"><span class="anchor-link"></span></a>Binary Type</h2>
+<h2><a href="#binary-types" name="binary-types" class="anchor"><span class="anchor-link"></span></a>Binary Types</h2>
 <table>
   <thead>
     <tr>
       <th>ANSI SQL Type </th>
-      <th>Size </th>
       <th>Postgres Type </th>
       <th>Scala Type </th>
+      <th>Notes </th>
     </tr>
   </thead>
   <tbody>
     <tr>
       <td><code>blob</code> </td>
-      <td>1 or 4 bytes plus the actual binary string </td>
       <td><code>bytea</code> </td>
       <td><code>Array[Byte]</code> </td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>n/a </td>
+      <td><code>bit</code> </td>
+      <td><code>scodec.bits.BitVector</code> </td>
+      <td>Equivalent to <code>bit(1)</code>. </td>
+    </tr>
+    <tr>
+      <td>n/a </td>
+      <td><code>bit(n)</code> </td>
+      <td><code>scodec.bits.BitVector</code> </td>
+      <td>Exactly <code>n</code> bits. </td>
+    </tr>
+    <tr>
+      <td>n/a </td>
+      <td><code>varbit(n)</code> </td>
+      <td><code>scodec.bits.BitVector</code> </td>
+      <td>At most <code>n</code> bits. </td>
+    </tr>
+    <tr>
+      <td>n/a </td>
+      <td><code>varbit</code> </td>
+      <td><code>scodec.bits.BitVector</code> </td>
+      <td>Any size. </td>
     </tr>
   </tbody>
 </table>
 <h4><a href="#notes" name="notes" class="anchor"><span class="anchor-link"></span></a>Notes</h4>
 <ul>
-  <li>This codec uses <a href="https://www.postgresql.org/docs/11/datatype-binary.html#id-1.5.7.12.9">Hex Format</a>. Bytea octets in PostgreSQL are output in hex format by default.</li>
-  <li>See <a href="https://www.postgresql.org/docs/11/datatype-binary.html">§8.4</a> in the Postgres documentation for more information on binary data types.</li>
+  <li>Prefer <code>boolean</code> over <code>bit</code>/<code>bit(1)</code>.</li>
+  <li>The <code>bytea</code> codec uses <a href="https://www.postgresql.org/docs/11/datatype-binary.html#id-1.5.7.12.9">Hex Format</a>. Bytea octets in PostgreSQL are output in hex format by default.</li>
+  <li>See <a href="https://www.postgresql.org/docs/11/datatype-binary.html">§8.4</a> in the Postgres documentation for more information on the <code>bytea</code> data type.</li>
+  <li>See <a href="https://www.postgresql.org/docs/11/datatype-bit.html">§8.10</a> in the Postgres documentation for more information on the <code>bit</code> and <code>varbit</code> data types.</li>
 </ul>
 <h2><a href="#enumerated-types" name="enumerated-types" class="anchor"><span class="anchor-link"></span></a>Enumerated Types</h2>
 <p>Enumerated types are user-defined and are mapped via the <code>enum</code> codec constructor, which declares the schema type and defines a mapping to and from string labels. Given the enum declaration:</p>
@@ -418,14 +444,14 @@ val myenum = enum(MyEnum, Type(&quot;myenum&quot;))
     </tr>
   </tbody>
 </table>
-<p>JSON support is provided by the <code>skunk-circe</code> module which must be added as a dependency.</p><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">libraryDependencies += "org.tpolecat" %% "skunk-circe" % "0.2.0"</code></pre></dd><dt>Maven</dt><dd><pre class="prettyprint"><code class="language-xml">&lt;dependencies&gt
+<p>JSON support is provided by the <code>skunk-circe</code> module which must be added as a dependency.</p><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">libraryDependencies += "org.tpolecat" %% "skunk-circe" % "0.2.3"</code></pre></dd><dt>Maven</dt><dd><pre class="prettyprint"><code class="language-xml">&lt;dependencies&gt
   &lt;dependency&gt;
     &lt;groupId&gt;org.tpolecat&lt;/groupId&gt;
     &lt;artifactId&gt;skunk-circe_2.13&lt;/artifactId&gt;
-    &lt;version&gt;0.2.0&lt;/version&gt;
+    &lt;version&gt;0.2.3&lt;/version&gt;
   &lt;/dependency&gt
 &lt;/dependencies&gt;</code></pre></dd><dt>Gradle</dt><dd><pre class="prettyprint"><code class="language-gradle">dependencies {
-  implementation "org.tpolecat:skunk-circe_2.13:0.2.0"
+  implementation "org.tpolecat:skunk-circe_2.13:0.2.3"
 }</code></pre></dd></dl>
 <p>The <code>json</code> and <code>jsonb</code> codecs map to the <code>io.circe.Json</code> data type, but you can map to any data type with <code>io.circe.Encoder</code> and <code>io.circe.Decoder</code> instances by passing a type argument to <code>json</code> or <code>jsonb</code>.</p>
 <pre class="prettyprint"><code class="language-scala">// Codec for Int ~ Json as (int4, jsonb)
@@ -517,10 +543,10 @@ val codec2: Codec[Int ~ MyType] = int4 ~ jsonb[MyType]
 <script type="text/javascript" src="../js/link_fix.js"></script>
 
 <div class="source-github">
-The source code for this page can be found <a id="source-link" href="https://github.com/tpolecat/skunk/tree/v0.2.0/modules/docs/target/mdoc/reference/SchemaTypes.md">here</a>.
+The source code for this page can be found <a id="source-link" href="https://github.com/tpolecat/skunk/tree/master/modules/docs/target/mdoc/reference/SchemaTypes.md">here</a>.
 </div>
 
-<script type="text/javascript">jQuery(function(){sourceUrlFix('https://github.com/tpolecat/skunk/tree/v0.2.0/modules/docs/target/mdoc/reference/SchemaTypes.md')});</script>
+<script type="text/javascript">jQuery(function(){sourceUrlFix('https://github.com/tpolecat/skunk/tree/master/modules/docs/target/mdoc/reference/SchemaTypes.md')});</script>
 
 </div>
 <div class="large-3 show-for-large column" data-sticky-container>
@@ -535,7 +561,7 @@ The source code for this page can be found <a id="source-link" href="https://git
     <li><a href="../reference/SchemaTypes.html#character-types" class="header">Character Types</a></li>
     <li><a href="../reference/SchemaTypes.html#date-time-types" class="header">Date/Time Types</a></li>
     <li><a href="../reference/SchemaTypes.html#boolean-type" class="header">Boolean Type</a></li>
-    <li><a href="../reference/SchemaTypes.html#binary-type" class="header">Binary Type</a></li>
+    <li><a href="../reference/SchemaTypes.html#binary-types" class="header">Binary Types</a></li>
     <li><a href="../reference/SchemaTypes.html#enumerated-types" class="header">Enumerated Types</a></li>
     <li><a href="../reference/SchemaTypes.html#uuid-type" class="header">UUID Type</a></li>
     <li><a href="../reference/SchemaTypes.html#json-types" class="header">JSON Types</a></li>
@@ -582,7 +608,7 @@ The source code for this page can be found <a id="source-link" href="https://git
 
 <!--
 <div class="copyright">
-<span class="text">&copy; 2021</span>
+<span class="text">&copy; 2022</span>
 <a href="https://www.example.com" class="logo">logo</a>
 </div>
 -->
@@ -607,7 +633,7 @@ The source code for this page can be found <a id="source-link" href="https://git
 <script type="text/javascript" src="../lib/prettify/prettify.js"></script>
 <script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
 <script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
-<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.2.0', 'https://github.com/tpolecat/skunk')});</script>
+<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.2.3', 'https://github.com/tpolecat/skunk')});</script>
 
 
 </html>
