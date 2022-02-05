@@ -65,11 +65,25 @@ object BitVectorSocket {
     port:         Int,
     sg:           SocketGroup[F],
     sslOptions:   Option[SSLNegotiation.Options[F]],
-  )(implicit ev: MonadError[F, Throwable]): Resource[F, BitVectorSocket[F]] =
+  )(implicit ev: MonadError[F, Throwable]): Resource[F, BitVectorSocket[F]] = {
+
+    def fail[A](msg: String): Resource[F, A] =
+      Resource.eval(ev.raiseError(new Exception(msg)))
+
+    def sock: Resource[F, Socket[F]] = {
+      (Hostname.fromString(host), Port.fromInt(port)) match {
+        case (Some(validHost), Some(validPort)) => sg.client(SocketAddress(validHost, validPort), List(SocketOption.noDelay(true)))
+        case (None, Some(_)) => fail(s"""Hostname: "$host" is invalid.""")
+        case (Some(_), None) => fail(s"Port: $port is invalid.")
+        case (None, None) => fail(s"""Hostname: "$host" and port: $port are invalid.""")
+      }
+    }
+
     for {
-      sock  <- sg.client(SocketAddress(Hostname.fromString(host).get, Port.fromInt(port).get), List(SocketOption.noDelay(true))) // TODO
+      sock <- sock
       sockʹ <- sslOptions.fold(sock.pure[Resource[F, *]])(SSLNegotiation.negotiateSSL(sock, _))
     } yield fromSocket(sockʹ)
 
+  }
 }
 
