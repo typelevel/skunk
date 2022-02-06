@@ -7,6 +7,7 @@ package tests
 import cats.effect._
 import com.comcast.ip4s.{Host, IpAddress, Port, SocketAddress}
 import fs2.io.net.{Socket, SocketGroup, SocketOption}
+import skunk.exception.SkunkException
 import skunk.net.BitVectorSocket
 
 class BitVectorSocketTest extends ffstest.FTest {
@@ -20,16 +21,12 @@ class BitVectorSocketTest extends ffstest.FTest {
   }
 
   test("Invalid host") {
-    BitVectorSocket("", 1, dummySg, None).use(_ => IO.unit).assertFailsWith[Exception]
-      .flatMap(e => assertEqual("message", e.getMessage, """Hostname: "" is invalid."""))
+    BitVectorSocket("", 1, dummySg, None).use(_ => IO.unit).assertFailsWith[SkunkException]
+      .flatMap(e => assertEqual("message", e.message, """Hostname: "" is not syntactically valid."""))
   }
   test("Invalid port") {
-    BitVectorSocket("localhost", -1, dummySg, None).use(_ => IO.unit).assertFailsWith[Exception]
-      .flatMap(e => assertEqual("message", e.getMessage, "Port: -1 is invalid."))
-  }
-  test("Invalid host and port") {
-    BitVectorSocket("", -1, dummySg, None).use(_ => IO.unit).assertFailsWith[Exception]
-      .flatMap(e => assertEqual("message", e.getMessage, """Hostname: "" and port: -1 are invalid."""))
+    BitVectorSocket("localhost", -1, dummySg, None).use(_ => IO.unit).assertFailsWith[SkunkException]
+      .flatMap(e => assertEqual("message", e.message, "Port: -1 falls out of the allowed range."))
   }
 
 }
