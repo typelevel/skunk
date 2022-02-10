@@ -68,13 +68,16 @@ private[protocol] class Unroll[F[_]: MessageSocket: Trace](
         ).raiseError[F, List[List[Option[String]]] ~ Boolean]
       }
 
+    def sync: F[Unit] =
+      (send(Sync) >> expect { case ReadyForQuery(_) => }).whenA(extended)
+
     // N.B. we process all waiting messages to ensure the protocol isn't messed up by decoding
     // failures later on.
     def accumulate(accum: List[List[Option[String]]]): F[List[List[Option[String]]] ~ Boolean] =
       flatExpect {
         case rd @ RowData(_)          => accumulate(rd.fields :: accum)
-        case      CommandComplete(_)  => (accum.reverse ~ false).pure[F]
-        case      PortalSuspended     => (accum.reverse ~ true).pure[F]
+        case      CommandComplete(_)  => sync.as((accum.reverse ~ false))
+        case      PortalSuspended     => sync.as((accum.reverse ~ true))
         case      ErrorResponse(info) => syncAndFail(info)
       }
 
