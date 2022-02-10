@@ -3,7 +3,7 @@
 // Our Scala versions.
 lazy val `scala-2.12` = "2.12.13"
 lazy val `scala-2.13` = "2.13.8"
-lazy val `scala-3.0`  = "3.1.0"
+lazy val `scala-3.0`  = "3.1.1"
 
 // This is used in a couple places
 lazy val fs2Version = "3.2.4"
@@ -107,7 +107,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
     resolvers   +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     libraryDependencies ++= Seq(
       "org.typelevel"          %%% "cats-core"               % "2.7.0",
-      "org.typelevel"          %%% "cats-effect"             % "3.3.4",
+      "org.typelevel"          %%% "cats-effect"             % "3.3.5",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
       "org.scodec"             %%% "scodec-bits"             % "1.1.30",
@@ -125,7 +125,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
     libraryDependencies ++= Seq(
       "com.armanbilge" %%% "saslprep" % "0.1.0",
       "io.github.cquiroz" %%% "scala-java-time" % "2.3.0",
-      "io.github.cquiroz" %%% "locales-minimal-en_us-db" % "1.2.1"
+      "io.github.cquiroz" %%% "locales-minimal-en_us-db" % "1.3.0"
     ),
   )
 
@@ -222,7 +222,7 @@ lazy val docs = project
     paradoxTheme       := Some(builtinParadoxTheme("generic")),
     version            := version.value.takeWhile(_ != '+'), // strip off the +3-f22dca22+20191110-1520-SNAPSHOT business
     paradoxProperties ++= Map(
-      "scala-versions"          -> (core.jvm / crossScalaVersions).value.map(CrossVersion.partialVersion).flatten.map(_._2).mkString("2.", "/", ""),
+      "scala-versions"          -> (core.jvm / crossScalaVersions).value.map(CrossVersion.partialVersion).flatten.map { case (a, b) => s"$a.$b" } .mkString("/"),
       "org"                     -> organization.value,
       "scala.binary.version"    -> s"2.${CrossVersion.partialVersion(scalaVersion.value).get._2}",
       "core-dep"                -> s"${(core.jvm / name).value}_2.${CrossVersion.partialVersion(scalaVersion.value).get._2}",

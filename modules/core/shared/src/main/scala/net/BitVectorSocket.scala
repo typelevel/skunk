@@ -11,7 +11,7 @@ import fs2.Chunk
 import scodec.bits.BitVector
 import fs2.io.net.{Socket, SocketGroup, SocketOption}
 import com.comcast.ip4s._
-import skunk.exception.EofException
+import skunk.exception.{EofException, SkunkException}
 
 /** A higher-level `Socket` interface defined in terms of `BitVector`. */
 trait BitVectorSocket[F[_]] {
@@ -65,11 +65,24 @@ object BitVectorSocket {
     port:         Int,
     sg:           SocketGroup[F],
     sslOptions:   Option[SSLNegotiation.Options[F]],
-  )(implicit ev: MonadError[F, Throwable]): Resource[F, BitVectorSocket[F]] =
+  )(implicit ev: MonadError[F, Throwable]): Resource[F, BitVectorSocket[F]] = {
+
+    def fail[A](msg: String): Resource[F, A] =
+      Resource.eval(ev.raiseError(new SkunkException(message = msg, sql = None)))
+
+    def sock: Resource[F, Socket[F]] = {
+      (Hostname.fromString(host), Port.fromInt(port)) match {
+        case (Some(validHost), Some(validPort)) => sg.client(SocketAddress(validHost, validPort), List(SocketOption.noDelay(true)))
+        case (None, _) =>  fail(s"""Hostname: "$host" is not syntactically valid.""")
+        case (_, None) =>  fail(s"Port: $port falls out of the allowed range.")
+      }
+    }
+
     for {
-      sock  <- sg.client(SocketAddress(Hostname.fromString(host).get, Port.fromInt(port).get), List(SocketOption.noDelay(true))) // TODO
+      sock <- sock
       sockʹ <- sslOptions.fold(sock.pure[Resource[F, *]])(SSLNegotiation.negotiateSSL(sock, _))
     } yield fromSocket(sockʹ)
 
+  }
 }
 
