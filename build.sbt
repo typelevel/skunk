@@ -10,7 +10,7 @@ ThisBuild / crossScalaVersions :=
   Seq(`scala-2.12`, `scala-2.13`, `scala-3.0`)
 
 ThisBuild / organization := "org.tpolecat"
-ThisBuild / licenses    ++= Seq(("MIT", url("http://opensource.org/licenses/MIT")))
+ThisBuild / licenses     := Seq(License.MIT)
 ThisBuild / developers   := List(
   Developer("tpolecat", "Rob Norris", "rob_norris@mac.com", url("http://www.tpolecat.org"))
 )
