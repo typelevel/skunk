@@ -19,8 +19,6 @@ ThisBuild / tlCiReleaseBranches := Seq("main") // publish snapshits on `main`
 ThisBuild / tlSonatypeUseLegacyHost := false
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("8"))
 
-Global / concurrentRestrictions += Tags.limit(ScalaJSTags.Link, 1)
-
 lazy val setupCertAndDocker = Seq(
   WorkflowStep.Run(
     commands = List("chmod 600 world/server.key", "sudo chown 999 world/server.key"),
@@ -222,11 +220,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform)
     testFrameworks += new TestFramework("munit.Framework")
   )
   .jsSettings(
-    Test / scalaJSLinkerConfig := { 
-      (Test / scalaJSLinkerConfig).value
-        .withModuleKind(ModuleKind.CommonJSModule)
-        .withBatchMode(githubIsWorkflowBuild.value)
-    },
+    Test / scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.CommonJSModule)),
   )
 
 lazy val example = project
