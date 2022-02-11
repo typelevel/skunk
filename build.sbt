@@ -142,7 +142,6 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
   .crossType(CrossType.Full)
   .in(file("modules/core"))
   .enablePlugins(AutomateHeaderPlugin)
-  .jsConfigure(_.disablePlugins(ScoverageSbtPlugin))
   .settings(commonSettings)
   .settings(
     name := "skunk-core",
@@ -177,7 +176,6 @@ lazy val refined = crossProject(JVMPlatform, JSPlatform)
   .in(file("modules/refined"))
   .dependsOn(core)
   .enablePlugins(AutomateHeaderPlugin)
-  .jsConfigure(_.disablePlugins(ScoverageSbtPlugin))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
@@ -190,7 +188,6 @@ lazy val circe = crossProject(JVMPlatform, JSPlatform)
   .in(file("modules/circe"))
   .dependsOn(core)
   .enablePlugins(AutomateHeaderPlugin)
-  .jsConfigure(_.disablePlugins(ScoverageSbtPlugin))
   .settings(commonSettings)
   .settings(
     name := "skunk-circe",
@@ -205,7 +202,6 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform)
   .in(file("modules/tests"))
   .dependsOn(core, circe)
   .enablePlugins(AutomateHeaderPlugin, NoPublishPlugin)
-  .jsConfigure(_.disablePlugins(ScoverageSbtPlugin))
   .settings(commonSettings)
   .settings(
     scalacOptions  -= "-Xfatal-warnings",
