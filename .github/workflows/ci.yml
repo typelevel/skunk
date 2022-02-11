@@ -223,8 +223,10 @@ jobs:
         java: [temurin@11]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout current branch (fast)
+      - name: Checkout current branch (full)
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
       - name: Setup Java (temurin@8)
         if: matrix.java == 'temurin@8'

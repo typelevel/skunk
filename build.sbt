@@ -49,7 +49,7 @@ ThisBuild / githubWorkflowAddedJobs +=
     id = "coverage",
     name = s"Generate coverage report (${`scala-2.13`} JVM only)",
     scalas = List(`scala-2.13`),
-    steps = List(WorkflowStep.Checkout) ++
+    steps = List(WorkflowStep.CheckoutFull) ++
       WorkflowStep.SetupJava(githubWorkflowJavaVersions.value.toList) ++
       githubWorkflowGeneratedCacheSteps.value ++ 
       setupCertAndDocker ++
