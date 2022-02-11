@@ -54,7 +54,7 @@ ThisBuild / githubWorkflowAddedJobs +=
       githubWorkflowGeneratedCacheSteps.value ++ 
       setupCertAndDocker ++
       List(
-        WorkflowStep.Sbt(List("coverage", "test", "coverageReport")),
+        WorkflowStep.Sbt(List("coverage", "rootJVM/test", "coverageReport")),
         WorkflowStep.Run(
           List("bash <(curl -s https://codecov.io/bash)"),
           name = Some("Upload code coverage data")

@@ -253,7 +253,7 @@ jobs:
       - name: Start up Postgres
         run: docker-compose up -d
 
-      - run: sbt '++${{ matrix.scala }}' coverage test coverageReport
+      - run: sbt '++${{ matrix.scala }}' coverage rootJVM/test coverageReport
 
       - name: Upload code coverage data
         run: 'bash <(curl -s https://codecov.io/bash)'
