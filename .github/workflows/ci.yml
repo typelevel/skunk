@@ -87,7 +87,7 @@ jobs:
         run: sbt 'project ${{ matrix.project }}' '++${{ matrix.scala }}' doc
 
       - name: Check Doc Site (2.13.8 JVM only)
-        if: matrix.scala == '2.13.8' && matrix.project == rootJVM
+        if: matrix.scala == '2.13.8' && matrix.project == 'rootJVM'
         run: sbt 'project ${{ matrix.project }}' '++${{ matrix.scala }}' docs/makeSite
 
       - name: Make target directories

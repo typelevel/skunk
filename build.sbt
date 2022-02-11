@@ -41,7 +41,7 @@ ThisBuild / githubWorkflowBuildPostamble ++= Seq(
   WorkflowStep.Sbt(
     commands = List("docs/makeSite"),
     name = Some(s"Check Doc Site (${`scala-2.13`} JVM only)"),
-    cond = Some(s"matrix.scala == '${`scala-2.13`}' && matrix.project == rootJVM"),
+    cond = Some(s"matrix.scala == '${`scala-2.13`}' && matrix.project == 'rootJVM'"),
   )
 )
 ThisBuild / githubWorkflowAddedJobs +=
