@@ -137,6 +137,7 @@ lazy val commonSettings = Seq(
 lazy val skunk = tlCrossRootProject
   .settings(name := "skunk")
   .aggregate(core, tests, circe, refined, example)
+  .settings(commonSettings)
 
 lazy val core = crossProject(JVMPlatform, JSPlatform)
   .crossType(CrossType.Full)
