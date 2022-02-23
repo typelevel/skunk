@@ -77,7 +77,7 @@ private[protocol] class Unroll[F[_]: MessageSocket: Trace](
       flatExpect {
         case rd @ RowData(_)          => accumulate(rd.fields :: accum)
         case      CommandComplete(_)  => sync.as((accum.reverse ~ false))
-        case      PortalSuspended     => sync.as((accum.reverse ~ true))
+        case      PortalSuspended     => (accum.reverse ~ true).pure[F]
         case      ErrorResponse(info) => syncAndFail(info)
       }
 
