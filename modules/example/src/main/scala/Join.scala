@@ -20,7 +20,7 @@ object Join extends IOApp with StreamOps {
       user     = "jimmy",
       database = "world",
       password = Some("banana"),
-    ).apply(natchez.Trace[IO])
+    )
 
   // A data model
   case class City(name: String, population: Int)

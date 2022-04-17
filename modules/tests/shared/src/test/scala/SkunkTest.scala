@@ -17,7 +17,7 @@ import munit.Location
 abstract class SkunkTest(debug: Boolean = false, strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly) extends ffstest.FTest {
 
   def session: Resource[IO, Session[IO]] =
-    Session.single[IO](
+    Session.single(
       host     = "localhost",
       port     = 5432,
       user     = "jimmy",
@@ -25,7 +25,7 @@ abstract class SkunkTest(debug: Boolean = false, strategy: Typer.Strategy = Type
       password = Some("banana"),
       strategy = strategy,
       debug    = debug
-    ).apply(noop)
+    )
 
   def sessionTest[A](name: String)(fa: Session[IO] => IO[A])(implicit loc: Location): Unit =
     test(name)(session.use(fa))

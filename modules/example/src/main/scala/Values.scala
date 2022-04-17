@@ -15,12 +15,12 @@ import natchez.Trace.Implicits.noop
 object Values extends IOApp {
 
   val session: Resource[IO, Session[IO]] =
-    Session.single[IO](
+    Session.single(
       host     = "localhost",
       user     = "jimmy",
       database = "world",
       password = Some("banana"),
-    ).apply(natchez.Trace[IO])
+    )
 
   case class Data(n: Int, s: String, b: Boolean)
 

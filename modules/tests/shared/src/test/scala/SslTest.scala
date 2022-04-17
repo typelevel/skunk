@@ -26,7 +26,7 @@ class SslTest extends ffstest.FTest with SslTestPlatform {
       database = "world",
       password = Some("banana"),
       ssl      = SSL.None,
-    ).apply(noop).use(_ => IO.unit)
+    ).use(_ => IO.unit)
   }
 
   test("failed login with SSL.System (ssl available)") {
@@ -36,7 +36,7 @@ class SslTest extends ffstest.FTest with SslTestPlatform {
       database = "world",
       password = Some("banana"),
       ssl      = SSL.System,
-    ).apply(noop).use(_ => IO.unit)
+    ).use(_ => IO.unit)
       .adaptError {
         case ex @ CompositeFailure(head, tail) =>
           tail.prepend(head).collectFirst({ case ex: SSLException => ex }).getOrElse(ex)
@@ -51,7 +51,7 @@ class SslTest extends ffstest.FTest with SslTestPlatform {
       database = "world",
       ssl      = SSL.None,
       port     = Port.Trust
-    ).apply(noop).use(_ => IO.unit)
+    ).use(_ => IO.unit)
   }
 
   test("SSL.None cannot produce an SSLContext") {

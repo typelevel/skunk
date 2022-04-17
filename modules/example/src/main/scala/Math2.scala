@@ -13,14 +13,14 @@ import natchez.Trace.Implicits.noop
 object Math2 extends IOApp {
 
   val session: Resource[IO, Session[IO]] =
-    Session.single[IO](
+    Session.single(
       host     = "localhost",
       port     = 5432,
       user     = "jimmy",
       database = "world",
       password = Some("banana"),
       debug    = true
-    ).apply(natchez.Trace[IO])
+    )
 
   // An algebra for doing math.
   trait Math[F[_]] {

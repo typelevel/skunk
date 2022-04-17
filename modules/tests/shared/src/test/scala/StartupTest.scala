@@ -30,7 +30,7 @@ class StartupTest extends ffstest.FTest {
       database = "world",
       password = Some("banana"),
       port     = Port.MD5,
-    ).apply(noop).use(_ => IO.unit)
+    ).use(_ => IO.unit)
   }
 
   test("md5 - non-existent database") {
@@ -40,7 +40,7 @@ class StartupTest extends ffstest.FTest {
       database = "blah",
       password = Some("banana"),
       port     = Port.MD5,
-    ).apply(noop).use(_ => IO.unit)
+    ).use(_ => IO.unit)
      .assertFailsWith[StartupException]
      .flatMap(e => assertEqual("code", e.code, "3D000"))
   }
@@ -52,7 +52,7 @@ class StartupTest extends ffstest.FTest {
       database = "blah",
       password = None,
       port     = Port.MD5,
-    ).apply(noop).use(_ => IO.unit)
+    ).use(_ => IO.unit)
      .assertFailsWith[SkunkException]
      .flatMap(e => assertEqual("message", e.message, "Password required."))
   }
@@ -64,7 +64,7 @@ class StartupTest extends ffstest.FTest {
       database = "world",
       password = Some("banana"),
       port     = Port.MD5,
-    ).apply(noop).use(_ => IO.unit)
+    ).use(_ => IO.unit)
      .assertFailsWith[StartupException]
      .flatMap(e => assertEqual("code", e.code, "28P01"))
   }
@@ -76,7 +76,7 @@ class StartupTest extends ffstest.FTest {
       database = "world",
       password = Some("apple"),
       port     = Port.MD5,
-    ).apply(noop).use(_ => IO.unit)
+    ).use(_ => IO.unit)
      .assertFailsWith[StartupException]
      .flatMap(e => assertEqual("code", e.code, "28P01"))
   }
@@ -87,7 +87,7 @@ class StartupTest extends ffstest.FTest {
       user     = "postgres",
       database = "world",
       port     = Port.Trust,
-    ).apply(noop).use(_ => IO.unit)
+    ).use(_ => IO.unit)
   }
 
   // TODO: should this be an error?
@@ -98,7 +98,7 @@ class StartupTest extends ffstest.FTest {
       database = "world",
       password = Some("ignored"),
       port     = Port.Trust,
-    ).apply(noop).use(_ => IO.unit)
+    ).use(_ => IO.unit)
   }
 
   test("trust - non-existent database") {
@@ -107,7 +107,7 @@ class StartupTest extends ffstest.FTest {
       user     = "postgres",
       database = "bogus",
       port     = Port.Trust,
-    ).apply(noop).use(_ => IO.unit)
+    ).use(_ => IO.unit)
      .assertFailsWith[StartupException]
      .flatMap(e => assertEqual("code", e.code, "3D000"))
   }
@@ -118,7 +118,7 @@ class StartupTest extends ffstest.FTest {
       user     = "bogus",
       database = "world",
       port     = Port.Trust,
-    ).apply(noop).use(_ => IO.unit)
+    ).use(_ => IO.unit)
      .assertFailsWith[StartupException]
      .flatMap(e => assertEqual("code", e.code, "28000"))
   }
@@ -130,7 +130,7 @@ class StartupTest extends ffstest.FTest {
       database = "world",
       password = Some("banana"),
       port     = Port.Scram
-    ).apply(noop).use(_ => IO.unit)
+    ).use(_ => IO.unit)
   }
 
   test("scram - non-existent database") {
@@ -140,7 +140,7 @@ class StartupTest extends ffstest.FTest {
       database = "blah",
       password = Some("banana"),
       port     = Port.Scram,
-    ).apply(noop).use(_ => IO.unit)
+    ).use(_ => IO.unit)
      .assertFailsWith[StartupException]
      .flatMap(e => assertEqual("code", e.code, "3D000"))
   }
@@ -152,7 +152,7 @@ class StartupTest extends ffstest.FTest {
       database = "blah",
       password = None,
       port     = Port.Scram,
-    ).apply(noop).use(_ => IO.unit)
+    ).use(_ => IO.unit)
      .assertFailsWith[SkunkException]
      .flatMap(e => assertEqual("message", e.message, "Password required."))
   }
@@ -164,7 +164,7 @@ class StartupTest extends ffstest.FTest {
       database = "world",
       password = Some("banana"),
       port     = Port.Scram,
-    ).apply(noop).use(_ => IO.unit)
+    ).use(_ => IO.unit)
      .assertFailsWith[StartupException]
      .flatMap(e => assertEqual("code", e.code, "28P01"))
   }
@@ -176,7 +176,7 @@ class StartupTest extends ffstest.FTest {
       database = "world",
       password = Some("apple"),
       port     = Port.Scram,
-    ).apply(noop).use(_ => IO.unit)
+    ).use(_ => IO.unit)
      .assertFailsWith[StartupException]
      .flatMap(e => assertEqual("code", e.code, "28P01"))
   }
@@ -188,7 +188,7 @@ class StartupTest extends ffstest.FTest {
       database = "world",
       password = Some("banana"),
       port     = Port.Password
-    ).apply(noop).use(_ => IO.unit)
+    ).use(_ => IO.unit)
   }
 
   test("password - non-existent database") {
@@ -198,7 +198,7 @@ class StartupTest extends ffstest.FTest {
       database = "blah",
       password = Some("banana"),
       port     = Port.Password,
-    ).apply(noop).use(_ => IO.unit)
+    ).use(_ => IO.unit)
      .assertFailsWith[StartupException]
      .flatMap(e => assertEqual("code", e.code, "3D000"))
   }
@@ -210,7 +210,7 @@ class StartupTest extends ffstest.FTest {
       database = "blah",
       password = None,
       port     = Port.Password,
-    ).apply(noop).use(_ => IO.unit)
+    ).use(_ => IO.unit)
      .assertFailsWith[SkunkException]
      .flatMap(e => assertEqual("message", e.message, "Password required."))
   }
@@ -222,7 +222,7 @@ class StartupTest extends ffstest.FTest {
       database = "world",
       password = Some("banana"),
       port     = Port.Password,
-    ).apply(noop).use(_ => IO.unit)
+    ).use(_ => IO.unit)
      .assertFailsWith[StartupException]
      .flatMap(e => assertEqual("code", e.code, "28P01"))
   }
@@ -234,7 +234,7 @@ class StartupTest extends ffstest.FTest {
       database = "world",
       password = Some("apple"),
       port     = Port.Password,
-    ).apply(noop).use(_ => IO.unit)
+    ).use(_ => IO.unit)
      .assertFailsWith[StartupException]
      .flatMap(e => assertEqual("code", e.code, "28P01"))
   }
@@ -245,7 +245,7 @@ class StartupTest extends ffstest.FTest {
       user     = "bob",
       database = "nobody cares",
       port     = Port.Invalid
-    ).apply(noop).use(_ => IO.unit).assertFailsWith[ConnectException]
+    ).use(_ => IO.unit).assertFailsWith[ConnectException]
   }
 
   test("invalid host") {
@@ -253,6 +253,6 @@ class StartupTest extends ffstest.FTest {
       host     = "blergh",
       user     = "bob",
       database = "nobody cares",
-    ).apply(noop).use(_ => IO.unit).assertFailsWith[UnknownHostException]
+    ).use(_ => IO.unit).assertFailsWith[UnknownHostException]
   }
 }

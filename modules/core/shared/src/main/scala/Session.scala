@@ -259,7 +259,25 @@ object Session {
    * @param queryCache    Size of the cache for query checking
    * @group Constructors
    */
-  def pooled[F[_]: Concurrent: Network: Console](
+  def pooled[F[_]: Concurrent: Network: Trace: Console](
+    host:         String,
+    port:         Int            = 5432,
+    user:         String,
+    database:     String,
+    password:     Option[String] = none,
+    max:          Int,
+    debug:        Boolean        = false,
+    strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly,
+    ssl:          SSL            = SSL.None,
+    parameters:   Map[String, String] = Session.DefaultConnectionParameters,
+    commandCache: Int = 1024,
+    queryCache:   Int = 1024,
+  ): Resource[F, Resource[F, Session[F]]] = {
+    pooledF[F](host, port, user, database, password, max, debug, strategy, ssl, parameters, commandCache, queryCache).map(_.apply(Trace[F]))
+  }
+
+
+  def pooledF[F[_]: Concurrent: Network: Console](
     host:         String,
     port:         Int            = 5432,
     user:         String,
@@ -293,7 +311,22 @@ object Session {
    * single-session pool. This method is shorthand for `Session.pooled(..., max = 1, ...).flatten`.
    * @see pooled
    */
-  def single[F[_]: Concurrent: Network: Console](
+  def single[F[_]: Concurrent: Network: Trace : Console](
+    host:         String,
+    port:         Int            = 5432,
+    user:         String,
+    database:     String,
+    password:     Option[String] = none,
+    debug:        Boolean        = false,
+    strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly,
+    ssl:          SSL            = SSL.None,
+    parameters:   Map[String, String] = Session.DefaultConnectionParameters,
+    commandCache: Int = 1024,
+    queryCache:   Int = 1024,
+  ): Resource[F, Session[F]] = 
+    singleF[F](host, port, user, database, password, debug, strategy, ssl, parameters, commandCache, queryCache).apply(Trace[F])
+
+  def singleF[F[_]: Concurrent: Network: Console](
     host:         String,
     port:         Int            = 5432,
     user:         String,
@@ -306,7 +339,7 @@ object Session {
     commandCache: Int = 1024,
     queryCache:   Int = 1024,
   ): Trace[F] => Resource[F, Session[F]] =
-    cats.data.Kleisli{(_: Trace[F]) => pooled(
+    cats.data.Kleisli{(_: Trace[F]) => pooledF(
       host         = host,
       port         = port,
       user         = user,

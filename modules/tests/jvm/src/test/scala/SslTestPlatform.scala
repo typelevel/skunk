@@ -17,7 +17,7 @@ trait SslTestPlatform { this: SslTest =>
       database = "world",
       password = Some("banana"),
       ssl      = SSL.Trusted,
-    ).apply(natchez.Trace[IO]).use(_ => IO.unit)
+    ).use(_ => IO.unit)
   }
 
   test("failed login with SSL.Trusted (ssl not available)") {
@@ -27,7 +27,7 @@ trait SslTestPlatform { this: SslTest =>
       database = "world",
       ssl      = SSL.Trusted,
       port     = Port.Trust
-    ).apply(natchez.Trace[IO]).use(_ => IO.unit).assertFailsWith[Exception].as("ok") // TODO! Better failure!
+    ).use(_ => IO.unit).assertFailsWith[Exception].as("ok") // TODO! Better failure!
   }
 
   test("successful login with SSL.Trusted.withFallback(true) (ssl not available)") {
@@ -37,7 +37,7 @@ trait SslTestPlatform { this: SslTest =>
       database = "world",
       ssl      = SSL.Trusted.withFallback(true),
       port     = Port.Trust
-    ).apply(natchez.Trace[IO]).use(_ => IO.unit)
+    ).use(_ => IO.unit)
   }
 
 }

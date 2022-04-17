@@ -12,13 +12,13 @@ import natchez.Trace.Implicits.noop
 object Channel extends IOApp {
 
   val session: Resource[IO, Session[IO]] = {
-    Session.single[IO](
+    Session.single(
       host     = "localhost",
       port     = 5432,
       user     = "jimmy",
       database = "world",
       password = Some("banana")
-    ).apply(natchez.Trace[IO])
+    )
   }
 
   def run(args: List[String]): IO[ExitCode] =

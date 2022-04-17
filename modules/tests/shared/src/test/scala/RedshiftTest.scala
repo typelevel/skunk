@@ -19,7 +19,7 @@ class RedshiftTest extends ffstest.FTest {
       password = None,
       port = 5439, // redshift port
       parameters = Session.DefaultConnectionParameters - "IntervalStyle"
-    ).apply(noop).use(_ => IO.unit)
+    ).use(_ => IO.unit)
   }
 
   test("redshift - cannot connect with default params") {
@@ -29,7 +29,7 @@ class RedshiftTest extends ffstest.FTest {
       database = "postgres",
       password = None,
       port = 5439, // redshift port
-    ).apply(noop).use(_ => IO.unit)
+    ).use(_ => IO.unit)
     .assertFailsWith[StartupException]
   }
 }

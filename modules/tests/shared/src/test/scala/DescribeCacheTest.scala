@@ -27,7 +27,7 @@ class DescribeCacheTest extends SkunkTest {
       database = "world",
       password = Some("banana"),
       max      = 3,
-    ).map(_.apply(natchez.Trace[IO]))
+    )
 
   test("describe cache should be shared across sessions from the same pool") {
     poolResource.use { p =>

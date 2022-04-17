@@ -14,12 +14,12 @@ import natchez.Trace.Implicits.noop
 object AppliedFragments extends IOApp {
 
   val session: Resource[IO, Session[IO]] = {
-    Session.single[IO](
+    Session.single(
       host     = "localhost",
       user     = "jimmy",
       database = "world",
       password = Some("banana"),
-    ).apply(natchez.Trace[IO])
+    )
   }
 
   def countryQuery(name: Option[String], pop: Option[Int], capital: Option[Option[String]]): AppliedFragment = {

@@ -141,7 +141,7 @@ package object skunk {
     def unapply[A, B](t: A ~ B): Some[A ~ B] = Some(t)
   }
 
-  type SessionPool[F[_]] = Resource[F, natchez.Trace[F] => Resource[F, Session[F]]]
+  type SessionPool[F[_]] = Resource[F, Resource[F, Session[F]]]
 
   type Strategy = skunk.util.Typer.Strategy
   val  Strategy = skunk.util.Typer.Strategy
