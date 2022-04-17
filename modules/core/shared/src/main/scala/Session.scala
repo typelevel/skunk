@@ -259,7 +259,7 @@ object Session {
    * @param queryCache    Size of the cache for query checking
    * @group Constructors
    */
-  def pooled[F[_]: Concurrent: Network: Trace: Console](
+  def pooled[F[_]: Concurrent: Trace: Network: Console](
     host:         String,
     port:         Int            = 5432,
     user:         String,
@@ -311,7 +311,7 @@ object Session {
    * single-session pool. This method is shorthand for `Session.pooled(..., max = 1, ...).flatten`.
    * @see pooled
    */
-  def single[F[_]: Concurrent: Network: Trace : Console](
+  def single[F[_]: Concurrent: Trace: Network: Console](
     host:         String,
     port:         Int            = 5432,
     user:         String,
