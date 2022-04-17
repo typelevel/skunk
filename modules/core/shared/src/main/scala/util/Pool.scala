@@ -49,11 +49,11 @@ object Pool {
    * @param recycler a cleanup/health-check to be done before elements are returned to the pool;
    *   yielding false here means the element should be freed and removed from the pool.
    */
-  def of[F[_]: Concurrent: Trace, A](
-    rsrc:  Resource[F, A],
+  def of[F[_]: Concurrent, A](
+    rsrc:  Trace[F] => Resource[F, A],
     size:  Int)(
     recycler: Recycler[F, A]
-  ): Resource[F, Resource[F, A]] = {
+  ): Resource[F, Trace[F] => Resource[F, A]] = {
 
     // Just in case.
     assert(size > 0, s"Pool size must be positive (you passed $size).")
@@ -69,7 +69,7 @@ object Pool {
     )
 
     // We can construct a pool given a Ref containing our initial state.
-    def poolImpl(ref: Ref[F, State]): Resource[F, A] = {
+    def poolImpl(ref: Ref[F, State])(implicit T: Trace[F]): Resource[F, A] = {
 
       // To give out an alloc we create a deferral first, which we will need if there are no slots
       // available. If there is a filled slot, remove it and yield its alloc. If there is an empty
@@ -90,7 +90,7 @@ object Pool {
             // all (defer and wait).
             ref.modify {
               case (Some(a) :: os, ds) => ((os, ds), a.pure[F])
-              case (None    :: os, ds) => ((os, ds), Concurrent[F].onError(rsrc.allocated)(restore))
+              case (None    :: os, ds) => ((os, ds), Concurrent[F].onError(rsrc(Trace[F]).allocated)(restore))
               case (Nil,           ds) => ((Nil, ds :+ d), d.get.flatMap(_.liftTo[F].onError(restore)))
             } .flatten
 
@@ -128,7 +128,7 @@ object Pool {
         Trace[F].span("dispose") {
           ref.modify {
             case (os, Nil) =>  ((os :+ None, Nil), ().pure[F]) // new empty slot
-            case (os, d :: ds) =>  ((os, ds), Concurrent[F].attempt(rsrc.allocated).flatMap(d.complete).void) // alloc now!
+            case (os, d :: ds) =>  ((os, ds), Concurrent[F].attempt(rsrc(Trace[F]).allocated).flatMap(d.complete).void) // alloc now!
           } .guarantee(a._2).flatten
         }
 
@@ -161,7 +161,7 @@ object Pool {
 
       }
 
-    Resource.make(alloc)(free).map(poolImpl)
+    Resource.make(alloc)(free).map(a => {implicit T: Trace[F] => poolImpl(a)})
 
   }
 

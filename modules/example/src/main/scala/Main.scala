@@ -70,7 +70,7 @@ object Main extends IOApp {
 
   def run(args: List[String]): IO[ExitCode] =
     pool.use { p =>
-      p.use { s =>
+      p.apply(natchez.Trace[IO]).use { s =>
         for {
           f1  <- s.parameter("client_encoding").evalMap(clientEncodingChanged).compile.drain.start
           st  <- s.transactionStatus.get
@@ -93,7 +93,7 @@ object Main extends IOApp {
         } yield ExitCode.Success
       } *>
       putStrLn("------------------------- STARTING SECOND SESSION --------") *>
-      p.use { s =>
+      p.apply(natchez.Trace[IO]).use { s =>
         for {
           _   <- s.execute(sql"set seed = 0.123".command)
           _   <- s.execute(sql"set client_encoding = ISO8859_1".command)

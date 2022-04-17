@@ -15,13 +15,13 @@ import natchez.Trace.Implicits.noop
 object Minimal3 extends IOApp {
 
   val session: Resource[IO, Session[IO]] =
-    Session.single(
+    Session.single[IO](
       host     = "localhost",
       port     = 5432,
       user     = "jimmy",
       database = "world",
       password = Some("banana")
-    )
+    ).apply(natchez.Trace[IO])
 
   case class Country(code: String, name: String, pop: Int)
 

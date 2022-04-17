@@ -15,7 +15,7 @@ import ffstest.FTest
 class DisconnectTest extends FTest {
 
   val pool: Resource[IO, Resource[IO, Session[IO]]] =
-    Session.pooled(
+    Session.pooled[IO](
       host     = "localhost",
       port     = 5432,
       user     = "jimmy",
@@ -23,7 +23,7 @@ class DisconnectTest extends FTest {
       password = Some("banana"),
       max      = 1, // ensure that the session is reused if possible
       // debug = true,
-    )
+    ).map(_.apply(natchez.Trace[IO]))
 
   test("disconnect/reconnect") {
     pool.use { p =>

@@ -20,14 +20,14 @@ class DescribeCacheTest extends SkunkTest {
   // a bunch of internals.
 
   def poolResource: Resource[IO, Resource[IO, Session[IO]]] =
-    Session.pooled(
+    Session.pooled[IO](
       host     = "localhost",
       port     = 5432,
       user     = "jimmy",
       database = "world",
       password = Some("banana"),
       max      = 3,
-    )
+    ).map(_.apply(natchez.Trace[IO]))
 
   test("describe cache should be shared across sessions from the same pool") {
     poolResource.use { p =>

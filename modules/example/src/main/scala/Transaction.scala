@@ -19,7 +19,7 @@ object Transaction extends IOApp {
       user     = "jimmy",
       database = "world",
       password = Some("banana"),
-    )
+    ).apply(natchez.Trace[F])
 
   def runS[F[_]: Async: Console]: F[Int] =
     session[F].use { s =>

@@ -19,7 +19,7 @@ class Test238 extends ffstest.FTest {
       strategy = Strategy.SearchPath,
       ssl      = SSL.Trusted.withFallback(true),
       // debug    = true
-    ).use(_ => IO.unit)
+    ).apply(natchez.Trace[IO]).use(_ => IO.unit)
   }
 
 }

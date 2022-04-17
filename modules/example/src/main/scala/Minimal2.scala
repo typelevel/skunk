@@ -30,7 +30,7 @@ object Minimal2 extends IOApp {
       database = "world",
       password = Some("banana"),
       // debug    = true
-    )
+    ).apply(natchez.Trace[F])
 
   case class Country(code: String, name: String, pop: Int)
 

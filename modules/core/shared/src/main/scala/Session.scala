@@ -259,7 +259,7 @@ object Session {
    * @param queryCache    Size of the cache for query checking
    * @group Constructors
    */
-  def pooled[F[_]: Concurrent: Trace: Network: Console](
+  def pooled[F[_]: Concurrent: Network: Console](
     host:         String,
     port:         Int            = 5432,
     user:         String,
@@ -272,9 +272,9 @@ object Session {
     parameters:   Map[String, String] = Session.DefaultConnectionParameters,
     commandCache: Int = 1024,
     queryCache:   Int = 1024,
-  ): Resource[F, Resource[F, Session[F]]] = {
+  ): Resource[F, Trace[F] => Resource[F, Session[F]]] = {
 
-    def session(socketGroup:  SocketGroup[F], sslOp: Option[SSLNegotiation.Options[F]], cache: Describe.Cache[F]): Resource[F, Session[F]] =
+    def session(socketGroup:  SocketGroup[F], sslOp: Option[SSLNegotiation.Options[F]], cache: Describe.Cache[F])(implicit T: Trace[F]): Resource[F, Session[F]] =
       fromSocketGroup[F](socketGroup, host, port, user, database, password, debug, strategy, sslOp, parameters, cache)
 
     val logger: String => F[Unit] = s => Console[F].println(s"TLS: $s")
@@ -282,7 +282,7 @@ object Session {
     for {
       dc      <- Resource.eval(Describe.Cache.empty[F](commandCache, queryCache))
       sslOp   <- Resource.eval(ssl.toSSLNegotiationOptions(if (debug) logger.some else none))
-      pool    <- Pool.of(session(Network[F], sslOp, dc), max)(Recyclers.full)
+      pool    <- Pool.of({implicit T: Trace[F] => session(Network[F], sslOp, dc)}, max)(Recyclers.full)
     } yield pool
 
   }
@@ -293,7 +293,7 @@ object Session {
    * single-session pool. This method is shorthand for `Session.pooled(..., max = 1, ...).flatten`.
    * @see pooled
    */
-  def single[F[_]: Concurrent: Trace: Network: Console](
+  def single[F[_]: Concurrent: Network: Console](
     host:         String,
     port:         Int            = 5432,
     user:         String,
@@ -305,8 +305,8 @@ object Session {
     parameters:   Map[String, String] = Session.DefaultConnectionParameters,
     commandCache: Int = 1024,
     queryCache:   Int = 1024,
-  ): Resource[F, Session[F]] =
-    pooled(
+  ): Trace[F] => Resource[F, Session[F]] =
+    cats.data.Kleisli{(_: Trace[F]) => pooled(
       host         = host,
       port         = port,
       user         = user,
@@ -319,7 +319,9 @@ object Session {
       parameters   = parameters,
       commandCache = commandCache,
       queryCache   = queryCache,
-    ).flatten
+    )}.flatMap(f => 
+      cats.data.Kleisli{implicit T: Trace[F] => f(T)}
+    ).run
 
   def fromSocketGroup[F[_]: Concurrent: Trace: Console](
     socketGroup:  SocketGroup[F],

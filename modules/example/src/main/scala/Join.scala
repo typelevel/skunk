@@ -15,12 +15,12 @@ import natchez.Trace.Implicits.noop
 object Join extends IOApp with StreamOps {
 
   val session: Resource[IO, Session[IO]] =
-    Session.single(
+    Session.single[IO](
       host     = "localhost",
       user     = "jimmy",
       database = "world",
       password = Some("banana"),
-    )
+    ).apply(natchez.Trace[IO])
 
   // A data model
   case class City(name: String, population: Int)

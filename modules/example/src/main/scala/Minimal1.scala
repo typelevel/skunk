@@ -13,12 +13,12 @@ import natchez.Trace.Implicits.noop
 object Minimal1 extends IOApp {
 
   val session: Resource[IO, Session[IO]] =
-    Session.single(
+    Session.single[IO](
       host     = "localhost",
       user     = "jimmy",
       database = "world",
       password = Some("banana"),
-    )
+    ).apply(natchez.Trace[IO])
 
   def run(args: List[String]): IO[ExitCode] =
     session.use { s =>
