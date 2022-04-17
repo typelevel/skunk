@@ -11,7 +11,7 @@ import natchez.Trace.Implicits.noop
 
 object Channel extends IOApp {
 
-  val session: Resource[IO, Session[IO]] = {
+  val session: Resource[IO, Session[IO]] =
     Session.single(
       host     = "localhost",
       port     = 5432,
@@ -19,7 +19,6 @@ object Channel extends IOApp {
       database = "world",
       password = Some("banana")
     )
-  }
 
   def run(args: List[String]): IO[ExitCode] =
     session.use { s =>

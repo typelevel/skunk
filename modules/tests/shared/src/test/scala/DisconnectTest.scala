@@ -15,7 +15,7 @@ import ffstest.FTest
 class DisconnectTest extends FTest {
 
   val pool: Resource[IO, Resource[IO, Session[IO]]] =
-    Session.pooled[IO](
+    Session.pooled(
       host     = "localhost",
       port     = 5432,
       user     = "jimmy",

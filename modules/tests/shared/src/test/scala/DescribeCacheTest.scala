@@ -20,7 +20,7 @@ class DescribeCacheTest extends SkunkTest {
   // a bunch of internals.
 
   def poolResource: Resource[IO, Resource[IO, Session[IO]]] =
-    Session.pooled[IO](
+    Session.pooled(
       host     = "localhost",
       port     = 5432,
       user     = "jimmy",

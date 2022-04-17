@@ -15,7 +15,7 @@ import natchez.Trace.Implicits.noop
 object Join extends IOApp with StreamOps {
 
   val session: Resource[IO, Session[IO]] =
-    Session.single[IO](
+    Session.single(
       host     = "localhost",
       user     = "jimmy",
       database = "world",
