@@ -277,6 +277,27 @@ object Session {
   }
 
 
+  /**
+   * Resource yielding a function from Trace to `SessionPool` managing up to `max` concurrent `Session`s. Typically you
+   * will `use` this resource once on application startup and pass the resulting
+   * `Resource[F, Session[F]]` to the rest of your program.
+   *
+   * The pool maintains a cache of queries and commands that have been checked against the schema,
+   * eliminating the need to check them more than once. If your program is changing the schema on
+   * the fly than you probably don't want this behavior; you can disable it by setting the
+   * `commandCache` and `queryCache` parameters to zero.
+   *
+   * @param host          Postgres server host
+   * @param port          Postgres port, default 5432
+   * @param user          Postgres user
+   * @param database      Postgres database
+   * @param max           Maximum concurrent sessions
+   * @param debug
+   * @param strategy
+   * @param commandCache  Size of the cache for command checking
+   * @param queryCache    Size of the cache for query checking
+   * @group Constructors
+   */
   def pooledF[F[_]: Concurrent: Network: Console](
     host:         String,
     port:         Int            = 5432,
@@ -326,6 +347,12 @@ object Session {
   ): Resource[F, Session[F]] = 
     singleF[F](host, port, user, database, password, debug, strategy, ssl, parameters, commandCache, queryCache).apply(Trace[F])
 
+  /**
+   * Resource yielding logically unpooled sessions given a Trace. This can be convenient for demonstrations and
+   * programs that only need a single session. In reality each session is managed by its own
+   * single-session pool.
+   * @see pooledF
+   */
   def singleF[F[_]: Concurrent: Network: Console](
     host:         String,
     port:         Int            = 5432,
