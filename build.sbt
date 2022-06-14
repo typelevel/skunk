@@ -198,23 +198,24 @@ lazy val circe = crossProject(JVMPlatform, JSPlatform)
     )
   )
 
-lazy val `scala-xml` = crossProject(JVMPlatform, JSPlatform)
-  .crossType(CrossType.Pure)
+lazy val `scala-xml` = project
   .in(file("modules/scalaxml"))
-  .dependsOn(core)
+  .dependsOn(core.jvm)
+  .settings(tlVersionIntroduced := Seq(`scala-2.12`, `scala-2.13`, `scala-3.0`).map(_ -> "0.3.2").toMap)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(commonSettings)
   .settings(
     name := "skunk-scala-xml",
     libraryDependencies ++= Seq(
-      "org.scala-lang.modules" %%% "scala-xml" % "2.1.0"
+      "org.scala-lang.modules" %% "scala-xml" % "2.1.0"
     )
   )
 
 lazy val tests = crossProject(JVMPlatform, JSPlatform)
   .crossType(CrossType.Full)
   .in(file("modules/tests"))
-  .dependsOn(core, circe, `scala-xml`)
+  .dependsOn(core, circe)
+  .jvmConfigure(_.dependsOn(`scala-xml`))
   .enablePlugins(AutomateHeaderPlugin, NoPublishPlugin)
   .settings(commonSettings)
   .settings(
