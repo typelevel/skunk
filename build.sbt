@@ -201,7 +201,9 @@ lazy val circe = crossProject(JVMPlatform, JSPlatform)
 lazy val `scala-xml` = project
   .in(file("modules/scalaxml"))
   .dependsOn(core.jvm)
-  .settings(tlVersionIntroduced := Seq(`scala-2.12`, `scala-2.13`, `scala-3.0`).map(_ -> "0.3.2").toMap)
+  .settings(
+    tlVersionIntroduced := List("2.12", "2.13", "3").map(_ -> "0.3.2").toMap
+  )
   .enablePlugins(AutomateHeaderPlugin)
   .settings(commonSettings)
   .settings(
