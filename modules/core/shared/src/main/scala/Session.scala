@@ -22,6 +22,7 @@ import skunk.net.SSLNegotiation
 import skunk.data.TransactionIsolationLevel
 import skunk.data.TransactionAccessMode
 import skunk.net.protocol.Describe
+import scala.concurrent.duration.Duration
 
 /**
  * Represents a live connection to a Postgres database. Operations provided here are safe to use
@@ -262,7 +263,7 @@ object Session {
    * @param queryCache    Size of the cache for query checking
    * @group Constructors
    */
-  def pooled[F[_]: Concurrent: Trace: Network: Console](
+  def pooled[F[_]: Temporal: Trace: Network: Console](
     host:         String,
     port:         Int            = 5432,
     user:         String,
@@ -276,10 +277,11 @@ object Session {
     socketOptions:   List[SocketOption] = Session.DefaultSocketOptions,
     commandCache: Int = 1024,
     queryCache:   Int = 1024,
+    readTimeout:  Duration = Duration.Inf,
   ): Resource[F, Resource[F, Session[F]]] = {
 
     def session(socketGroup: SocketGroup[F], sslOp: Option[SSLNegotiation.Options[F]], cache: Describe.Cache[F]): Resource[F, Session[F]] =
-      fromSocketGroup[F](socketGroup, host, port, user, database, password, debug, strategy, socketOptions, sslOp, parameters, cache)
+      fromSocketGroup[F](socketGroup, host, port, user, database, password, debug, strategy, socketOptions, sslOp, parameters, cache, readTimeout)
 
     val logger: String => F[Unit] = s => Console[F].println(s"TLS: $s")
 
@@ -297,7 +299,7 @@ object Session {
    * single-session pool. This method is shorthand for `Session.pooled(..., max = 1, ...).flatten`.
    * @see pooled
    */
-  def single[F[_]: Concurrent: Trace: Network: Console](
+  def single[F[_]: Temporal: Trace: Network: Console](
     host:         String,
     port:         Int            = 5432,
     user:         String,
@@ -325,7 +327,7 @@ object Session {
       queryCache   = queryCache,
     ).flatten
 
-  def fromSocketGroup[F[_]: Concurrent: Trace: Console](
+  def fromSocketGroup[F[_]: Temporal: Trace: Console](
     socketGroup:  SocketGroup[F],
     host:         String,
     port:         Int            = 5432,
@@ -338,10 +340,11 @@ object Session {
     sslOptions:   Option[SSLNegotiation.Options[F]],
     parameters:   Map[String, String],
     describeCache: Describe.Cache[F],
+    readTimeout:  Duration = Duration.Inf,
   ): Resource[F, Session[F]] =
     for {
       namer <- Resource.eval(Namer[F])
-      proto <- Protocol[F](host, port, debug, namer, socketGroup, socketOptions, sslOptions, describeCache)
+      proto <- Protocol[F](host, port, debug, namer, socketGroup, socketOptions, sslOptions, describeCache, readTimeout)
       _     <- Resource.eval(proto.startup(user, database, password, parameters))
       sess  <- Resource.eval(fromProtocol(proto, namer, strategy))
     } yield sess

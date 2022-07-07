@@ -15,6 +15,7 @@ import scodec.interop.cats._
 import skunk.net.message.{ Sync => _, _ }
 import skunk.util.Origin
 import fs2.io.net.{ SocketGroup, SocketOption }
+import scala.concurrent.duration.Duration
 
 /** A higher-level `BitVectorSocket` that speaks in terms of `Message`. */
 trait MessageSocket[F[_]] {
@@ -86,16 +87,17 @@ object MessageSocket {
       }
     }
 
-  def apply[F[_]: Concurrent: Console](
+  def apply[F[_]: Console: Temporal](
     host:         String,
     port:         Int,
     debug:        Boolean,
     sg:           SocketGroup[F],
     socketOptions: List[SocketOption],
     sslOptions:   Option[SSLNegotiation.Options[F]],
+    readTimeout:  Duration
   ): Resource[F, MessageSocket[F]] =
     for {
-      bvs <- BitVectorSocket(host, port, sg, socketOptions, sslOptions)
+      bvs <- BitVectorSocket(host, port, sg, socketOptions, sslOptions, readTimeout)
       ms  <- Resource.eval(fromBitVectorSocket(bvs, debug))
     } yield ms
 

@@ -4,14 +4,16 @@
 
 package skunk.net
 
-import cats._
-import cats.effect._
 import cats.syntax.all._
+import cats.effect._
+import cats.effect.syntax.temporal._
 import fs2.Chunk
 import scodec.bits.BitVector
 import fs2.io.net.{Socket, SocketGroup, SocketOption}
 import com.comcast.ip4s._
 import skunk.exception.{EofException, SkunkException}
+import scala.concurrent.duration.Duration
+import scala.concurrent.duration.FiniteDuration
 
 /** A higher-level `Socket` interface defined in terms of `BitVector`. */
 trait BitVectorSocket[F[_]] {
@@ -34,14 +36,20 @@ object BitVectorSocket {
    * @group Constructors
    */
   def fromSocket[F[_]](
-    socket:       Socket[F]
+    socket:       Socket[F],
+    readTimeout:  Duration
   )(
-    implicit ev: MonadError[F, Throwable]
+    implicit ev: Temporal[F]
   ): BitVectorSocket[F] =
     new BitVectorSocket[F] {
 
+      val withTimeout: F[Chunk[Byte]] => F[Chunk[Byte]] = readTimeout match {
+        case _: Duration.Infinite   => identity
+        case finite: FiniteDuration => _.timeout(finite)
+      }
+
       def readBytes(n: Int): F[Array[Byte]] =
-        socket.readN(n).flatMap { c =>
+        withTimeout(socket.readN(n)).flatMap { c =>
           if (c.size == n) c.toArray.pure[F]
           else ev.raiseError(EofException(n, c.size))
         }
@@ -66,7 +74,8 @@ object BitVectorSocket {
     sg:            SocketGroup[F],
     socketOptions: List[SocketOption],
     sslOptions:    Option[SSLNegotiation.Options[F]],
-  )(implicit ev: MonadError[F, Throwable]): Resource[F, BitVectorSocket[F]] = {
+    readTimeout:  Duration
+  )(implicit ev: Temporal[F]): Resource[F, BitVectorSocket[F]] = {
 
     def fail[A](msg: String): Resource[F, A] =
       Resource.eval(ev.raiseError(new SkunkException(message = msg, sql = None)))
@@ -82,7 +91,7 @@ object BitVectorSocket {
     for {
       sock <- sock
       sockʹ <- sslOptions.fold(sock.pure[Resource[F, *]])(SSLNegotiation.negotiateSSL(sock, _))
-    } yield fromSocket(sockʹ)
+    } yield fromSocket(sockʹ, readTimeout)
 
   }
 }

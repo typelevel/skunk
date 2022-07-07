@@ -14,6 +14,7 @@ import fs2.Stream
 import skunk.data._
 import skunk.net.message._
 import fs2.io.net.{SocketGroup, SocketOption}
+import scala.concurrent.duration.Duration
 
 /**
  * A `MessageSocket` that buffers incoming messages, removing and handling asynchronous back-end
@@ -74,7 +75,7 @@ trait BufferedMessageSocket[F[_]] extends MessageSocket[F] {
 
 object BufferedMessageSocket {
 
-  def apply[F[_]: Concurrent: Console](
+  def apply[F[_]: Temporal: Console](
     host:         String,
     port:         Int,
     queueSize:    Int,
@@ -82,9 +83,10 @@ object BufferedMessageSocket {
     sg:           SocketGroup[F],
     socketOptions: List[SocketOption],
     sslOptions:   Option[SSLNegotiation.Options[F]],
+    readTimeout:  Duration
   ): Resource[F, BufferedMessageSocket[F]] =
     for {
-      ms  <- MessageSocket(host, port, debug, sg, socketOptions, sslOptions)
+      ms  <- MessageSocket(host, port, debug, sg, socketOptions, sslOptions, readTimeout)
       ams <- Resource.make(BufferedMessageSocket.fromMessageSocket[F](ms, queueSize))(_.terminate)
     } yield ams
 
