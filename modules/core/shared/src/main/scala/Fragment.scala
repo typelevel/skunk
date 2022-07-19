@@ -30,6 +30,12 @@ final case class Fragment[A](
   def query[B](decoder: Decoder[B]): Query[A, B] =
     Query(sql, origin, encoder, decoder)
 
+  def queryDynamic: Query[A, List[Option[String]]] =
+    Query(sql, origin, encoder, new Decoder[List[Option[String]]]{
+        def decode(offset: Int, ss: List[Option[String]]): Either[skunk.Decoder.Error,List[Option[String]]] = Right(ss)
+        def types: List[skunk.data.Type] = Nil
+    })
+
   def command: Command[A] =
     Command(sql, origin, encoder)
 
