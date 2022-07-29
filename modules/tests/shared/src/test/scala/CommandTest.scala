@@ -163,6 +163,28 @@ class CommandTest extends SkunkTest {
         DROP DATABASE IF EXISTS skunk_database
        """.command
 
+  val createMaterializedView: Command[Void] =
+    sql"""
+        CREATE MATERIALIZED VIEW IF NOT EXISTS  my_foo_mv
+        AS
+        SELECT now()
+       """.command
+
+  val createUniqueIndexForMaterializedView: Command[Void] =
+    sql"""
+        CREATE UNIQUE INDEX IF NOT exists my_foo_mv_unique ON my_foo_mv(now)
+        """.command
+
+  val refreshMaterializedView: Command[Void] =
+    sql"""
+        REFRESH MATERIALIZED VIEW my_foo_mv
+       """.command
+
+ val refreshMaterializedViewConcurrently: Command[Void] =
+    sql"""
+        REFRESH MATERIALIZED VIEW CONCURRENTLY my_foo_mv
+       """.command
+
   sessionTest("create table, create index, drop index, alter table and drop table") { s =>
     for {
       c <- s.execute(createTable)
@@ -228,6 +250,19 @@ class CommandTest extends SkunkTest {
       _ <- assert("completion", c == Completion.CreateDatabase)
       c <- s.execute(dropDatabase)
       _ <- assert("completion", c == Completion.DropDatabase)
+    } yield "ok"
+  }
+
+  sessionTest("refresh materialized view, refresh materialized view concurrently"){ s=>
+    for{
+      c <- s.execute(createMaterializedView)
+      _ <- assert("completion", c == Completion.CreateMaterializedView)
+      c <- s.execute(refreshMaterializedView)
+      _ <- assert("completion", c == Completion.RefreshMaterializedView)
+      c <- s.execute(createUniqueIndexForMaterializedView)
+      _ <- assert("completion",  c == Completion.CreateIndex)
+      c <- s.execute(refreshMaterializedViewConcurrently)
+      _ <- assert("completion", c == Completion.RefreshMaterializedView)
     } yield "ok"
   }
 
