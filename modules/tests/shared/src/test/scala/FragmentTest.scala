@@ -60,5 +60,18 @@ class FragmentTest extends SkunkTest {
       } yield "ok"
     }
   }
-}
 
+  pureTest("stripMargin") {
+    val f = sql"""select
+    |$int4
+    |""".stripMargin
+    f.sql.trim == sql"select $int4".sql
+  }
+
+  pureTest("stripMargin with char") {
+    val f = sql"""select
+    ^$int4
+    ^""".stripMargin('^')
+    f.sql.trim == sql"select $int4".sql
+  }
+}
