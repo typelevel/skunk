@@ -13,12 +13,6 @@ import fs2.io.net.Network
 import fs2.io.net.tls.TLSContext
 
 private[skunk] trait SSLCompanionPlatform { this: SSL.type =>
-  
-  /** `SSL` which trusts all certificates. */
-  object Trusted extends SSL {
-    def tlsContext[F[_]: Network](implicit ev: ApplicativeError[F, Throwable]): F[TLSContext[F]] =
-      Network[F].tlsContext.insecure
-  }
 
   /** Creates a `SSL` from an `SSLContext`. */
   def fromSSLContext(ctx: SSLContext): SSL =

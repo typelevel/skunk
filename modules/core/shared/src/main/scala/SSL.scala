@@ -50,6 +50,12 @@ object SSL extends SSLCompanionPlatform {
     override def withTLSParameters(tlsParameters: TLSParameters): SSL = this
   }
 
+  /** `SSL` which trusts all certificates. */
+  object Trusted extends SSL {
+    def tlsContext[F[_]: Network](implicit ev: ApplicativeError[F, Throwable]): F[TLSContext[F]] =
+      Network[F].tlsContext.insecure
+  }
+
   /** `SSL` from the system default `SSLContext`. */
   object System extends SSL {
     def tlsContext[F[_]: Network](implicit ev: ApplicativeError[F, Throwable]): F[TLSContext[F]] =
