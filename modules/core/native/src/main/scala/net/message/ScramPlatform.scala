@@ -27,7 +27,7 @@ private[message] trait ScramPlatform { this: Scram.type =>
       throw new RuntimeException("EVP_get_digestbyname")
     val md = stackalloc[Byte](EVP_MAX_MD_SIZE)
     val mdLen = stackalloc[CUnsignedInt]()
-    if (openssl.HMAC(evpMd, key.toPtr, key.size.toInt, str.toPtr, str.size.toULong, md, mdLen) != 1)
+    if (openssl.HMAC(evpMd, key.toPtr, key.size.toInt, str.toPtr, str.size.toULong, md, mdLen) == null)
       throw new RuntimeException("HMAC")
     ByteVector.fromPtr(md.asInstanceOf[Ptr[Byte]], (!mdLen).toLong)
   }
