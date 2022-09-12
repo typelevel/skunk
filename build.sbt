@@ -78,7 +78,7 @@ ThisBuild / githubWorkflowAddedJobs +=
 ThisBuild / resolvers ++= Resolver.sonatypeOssRepos("snapshots")
 
 // This is used in a couple places
-lazy val fs2Version = "3.2.14-75-7902cbf"
+lazy val fs2Version = "3.2.14-76-9e561b4-SNAPSHOT"
 lazy val natchezVersion = "0.1.6-SNAPSHOT"
 
 // We do `evictionCheck` in CI
