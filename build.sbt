@@ -225,13 +225,12 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.scalameta"     %%% "munit"                   % "1.0.0-M6",
       "org.scalameta"     % "junit-interface"           % "1.0.0-M6",
       "org.typelevel"     %%% "scalacheck-effect-munit" % "2.0-9366e44",
-      "org.typelevel"     %%% "munit-cats-effect"     % "2.0-5e03bfc",
+      "org.typelevel"     %%% "munit-cats-effect"       % "2.0-5e03bfc",
       "org.typelevel"     %%% "cats-free"               % "2.8.0",
       "org.typelevel"     %%% "cats-laws"               % "2.8.0",
       "org.typelevel"     %%% "discipline-munit"        % "2.0.0-M3",
-    ) ++ Seq(
-      "org.typelevel" %%% "cats-time"               % "0.5.0-116-9b15b89-SNAPSHOT",
-    ).filterNot(_ => scalaVersion.value.startsWith("3.")),
+      "org.typelevel"     %%% "cats-time"               % "0.5.0-116-9b15b89-SNAPSHOT",
+    ),
     testFrameworks += new TestFramework("munit.Framework")
   )
   .jsSettings(
