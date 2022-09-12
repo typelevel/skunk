@@ -1,4 +1,4 @@
-ThisBuild / tlBaseVersion := "0.3"
+ThisBuild / tlBaseVersion := "0.4"
 
 // Our Scala versions.
 lazy val `scala-2.12` = "2.12.13"
