@@ -301,7 +301,7 @@ lazy val docs = project
     makeSite := makeSite.dependsOn(mdoc.toTask("")).value,
     mdocExtraArguments := Seq("--no-link-hygiene"), // paradox handles this
     libraryDependencies ++= Seq(
-      "org.tpolecat"  %%% "natchez-jaeger" % natchezVersion,
+      "org.tpolecat"  %%% "natchez-jaeger" % "0.1.6",
     )
 )
 
