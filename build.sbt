@@ -165,7 +165,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     resolvers   +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     libraryDependencies ++= Seq(
       "org.typelevel"          %%% "cats-core"               % "2.8.0",
-      "org.typelevel"          %%% "cats-effect"             % "3.3.14-1-5d11fe9",
+      "org.typelevel"          %%% "cats-effect"             % "3.3.14-2-0972521",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
       "org.scodec"             %%% "scodec-bits"             % "1.1.34",
@@ -238,7 +238,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     Test / scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.CommonJSModule)),
   )
   .nativeSettings(
-    libraryDependencies += "com.armanbilge" %%% "epollcat" % "0.0-3c7bdac",
+    libraryDependencies += "com.armanbilge" %%% "epollcat" % "0.0-e7dd9a7",
     nativeConfig ~= { c =>
       if (isLinux) { // brew-installed s2n
         c.withLinkingOptions(c.linkingOptions :+ "-L/home/linuxbrew/.linuxbrew/lib")
