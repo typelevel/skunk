@@ -63,7 +63,7 @@ ThisBuild / githubWorkflowAddedJobs +=
   )
 
 // This is used in a couple places
-lazy val fs2Version = "3.2.4"
+lazy val fs2Version = "3.2.14"
 lazy val natchezVersion = "0.1.6"
 
 // We do `evictionCheck` in CI
@@ -150,15 +150,15 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
     resolvers   +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     libraryDependencies ++= Seq(
       "org.typelevel"          %%% "cats-core"               % "2.8.0",
-      "org.typelevel"          %%% "cats-effect"             % "3.3.5",
+      "org.typelevel"          %%% "cats-effect"             % "3.3.14",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
-      "org.scodec"             %%% "scodec-bits"             % "1.1.30",
-      "org.scodec"             %%% "scodec-core"             % (if (tlIsScala3.value) "2.0.0" else "1.11.9"),
-      "org.scodec"             %%% "scodec-cats"             % "1.1.0",
+      "org.scodec"             %%% "scodec-bits"             % "1.1.34",
+      "org.scodec"             %%% "scodec-core"             % (if (tlIsScala3.value) "2.0.0" else "1.11.10"),
+      "org.scodec"             %%% "scodec-cats"             % "1.2.0",
       "org.tpolecat"           %%% "natchez-core"            % natchezVersion,
       "org.tpolecat"           %%% "sourcepos"               % "1.0.1",
-      "org.scala-lang.modules" %%% "scala-collection-compat" % "2.6.0",
+      "org.scala-lang.modules" %%% "scala-collection-compat" % "2.8.1",
     ) ++ Seq(
       "com.beachape"  %%% "enumeratum"   % "1.6.1",
     ).filterNot(_ => tlIsScala3.value)
@@ -166,9 +166,9 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
     libraryDependencies += "com.ongres.scram" % "client" % "2.1",
   ).jsSettings(
     libraryDependencies ++= Seq(
-      "com.armanbilge" %%% "saslprep" % "0.1.0",
+      "com.armanbilge" %%% "saslprep" % "0.1.1",
       "io.github.cquiroz" %%% "scala-java-time" % "2.3.0",
-      "io.github.cquiroz" %%% "locales-minimal-en_us-db" % "1.3.0"
+      "io.github.cquiroz" %%% "locales-minimal-en_us-db" % "1.4.1"
     ),
   )
 
@@ -180,7 +180,7 @@ lazy val refined = crossProject(JVMPlatform, JSPlatform)
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "eu.timepit" %%% "refined" % "0.9.28",
+      "eu.timepit" %%% "refined" % "0.9.29",
     )
   )
 
@@ -193,8 +193,8 @@ lazy val circe = crossProject(JVMPlatform, JSPlatform)
   .settings(
     name := "skunk-circe",
     libraryDependencies ++= Seq(
-      "io.circe" %%% "circe-core"   % "0.14.1",
-      "io.circe" %%% "circe-parser" % "0.14.1"
+      "io.circe" %%% "circe-core"   % "0.14.2",
+      "io.circe" %%% "circe-parser" % "0.14.2"
     )
   )
 
@@ -209,7 +209,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform)
     libraryDependencies ++= Seq(
       "org.scalameta"     %%% "munit"                   % "0.7.29",
       "org.scalameta"     % "junit-interface"           % "0.7.29",
-      "org.typelevel"     %%% "scalacheck-effect-munit" % "1.0.3",
+      "org.typelevel"     %%% "scalacheck-effect-munit" % "1.0.4",
       "org.typelevel"     %%% "munit-cats-effect-3"     % "1.0.7",
       "org.typelevel"     %%% "cats-free"               % "2.8.0",
       "org.typelevel"     %%% "cats-laws"               % "2.8.0",
