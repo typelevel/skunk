@@ -63,7 +63,7 @@ ThisBuild / githubWorkflowAddedJobs +=
   )
 
 // This is used in a couple places
-lazy val fs2Version = "3.2.4"
+lazy val fs2Version = "3.2.14"
 lazy val natchezVersion = "0.1.6"
 
 // We do `evictionCheck` in CI
