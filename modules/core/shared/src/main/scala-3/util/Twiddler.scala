@@ -21,13 +21,13 @@ trait Twiddler[A] {
 
 object Twiddler {
 
-  def apply[H](implicit ev: Twiddler[H]): ev.type = ev
+  def apply[H](using ev: Twiddler[H]): ev.type = ev
 
   type Aux[A, O] = Twiddler[A] { type Out = O }
 
   implicit def product1[P <: Product, A](
-    implicit m: Mirror.ProductOf[P],
-             i: m.MirroredElemTypes =:= A *: EmptyTuple
+    using m: Mirror.ProductOf[P],
+          i: m.MirroredElemTypes =:= A *: EmptyTuple
     ): Twiddler[P] { type Out = A  } =
       new Twiddler[P] {
         type Out = A
@@ -36,8 +36,8 @@ object Twiddler {
       }
 
   implicit def product2[P <: Product, A, B](
-    implicit m: Mirror.ProductOf[P],
-             i: m.MirroredElemTypes =:= (A, B)
+    using m: Mirror.ProductOf[P],
+          i: m.MirroredElemTypes =:= (A, B)
     ): Twiddler[P] { type Out = A ~ B  } =
       new Twiddler[P] {
         type Out = A ~ B
@@ -46,8 +46,8 @@ object Twiddler {
       }
 
   implicit def product3[P <: Product, A, B, C](
-    implicit m: Mirror.ProductOf[P],
-             i: m.MirroredElemTypes =:= (A, B, C)
+    using m: Mirror.ProductOf[P],
+          i: m.MirroredElemTypes =:= (A, B, C)
     ): Twiddler[P] { type Out = A ~ B ~ C } =
       new Twiddler[P] {
         type Out = A ~ B ~ C
@@ -56,8 +56,8 @@ object Twiddler {
       }
 
   implicit def product4[P <: Product, A, B, C, D](
-    implicit m: Mirror.ProductOf[P],
-             i: m.MirroredElemTypes =:= (A, B, C, D)
+    using m: Mirror.ProductOf[P],
+          i: m.MirroredElemTypes =:= (A, B, C, D)
     ): Twiddler[P] { type Out = A ~ B ~ C ~ D } =
       new Twiddler[P] {
         type Out = A ~ B ~ C ~ D
@@ -66,8 +66,8 @@ object Twiddler {
       }
 
   implicit def product5[P <: Product, A, B, C, D, E](
-    implicit m: Mirror.ProductOf[P],
-             i: m.MirroredElemTypes =:= (A, B, C, D, E)
+    using m: Mirror.ProductOf[P],
+          i: m.MirroredElemTypes =:= (A, B, C, D, E)
     ): Twiddler[P] { type Out = A ~ B ~ C ~ D ~ E } =
       new Twiddler[P] {
         type Out = A ~ B ~ C ~ D ~ E
@@ -76,8 +76,8 @@ object Twiddler {
       }
 
   implicit def product6[P <: Product, A, B, C, D, E, F](
-    implicit m: Mirror.ProductOf[P],
-             i: m.MirroredElemTypes =:= (A, B, C, D, E, F)
+    using m: Mirror.ProductOf[P],
+          i: m.MirroredElemTypes =:= (A, B, C, D, E, F)
     ): Twiddler[P] { type Out = A ~ B ~ C ~ D ~ E ~ F } =
       new Twiddler[P] {
         type Out = A ~ B ~ C ~ D ~ E ~ F
@@ -86,12 +86,11 @@ object Twiddler {
       }
 
   implicit def product7[P <: Product, A, B, C, D, E, F, G](
-    implicit m: Mirror.ProductOf[P],
-             i: m.MirroredElemTypes =:= (A, B, C, D, E, F, G)
+    using m: Mirror.ProductOf[P] { type MirroredElemTypes = (A, B, C, D, E, F, G) }
     ): Twiddler[P] { type Out = A ~ B ~ C ~ D ~ E ~ F ~ G} =
       new Twiddler[P] {
         type Out = A ~ B ~ C ~ D ~ E ~ F ~ G
-        def to(p: P): Out = i(Tuple.fromProductTyped(p)) match {
+        def to(p: P): Out = Tuple.fromProductTyped(p) match {
           case (a, b, c, d, e, f, g) => a ~ b ~ c ~ d ~ e ~ f ~ g
           }
         def from(o: Out): P = o match {
@@ -100,12 +99,11 @@ object Twiddler {
       }
 
   implicit def product8[P <: Product, A, B, C, D, E, F, G, H](
-    implicit m: Mirror.ProductOf[P],
-             i: m.MirroredElemTypes =:= (A, B, C, D, E, F, G, H)
+    using m: Mirror.ProductOf[P] { type MirroredElemTypes = (A, B, C, D, E, F, G, H) }
     ): Twiddler[P] { type Out = A ~ B ~ C ~ D ~ E ~ F ~ G ~ H} =
       new Twiddler[P] {
         type Out = A ~ B ~ C ~ D ~ E ~ F ~ G ~ H
-        def to(p: P): Out = i(Tuple.fromProductTyped(p)) match {
+        def to(p: P): Out = Tuple.fromProductTyped(p) match {
           case (a, b, c, d, e, f, g, h) => a ~ b ~ c ~ d ~ e ~ f ~ g ~ h
         }
         def from(o: Out): P = o match {
@@ -114,12 +112,11 @@ object Twiddler {
       }
 
   implicit def product9[P <: Product, A, B, C, D, E, F, G, H, I](
-    implicit m: Mirror.ProductOf[P],
-             i: m.MirroredElemTypes =:= (A, B, C, D, E, F, G, H, I)
+    using m: Mirror.ProductOf[P] { type MirroredElemTypes = (A, B, C, D, E, F, G, H, I) }
     ): Twiddler[P] { type Out = A ~ B ~ C ~ D ~ E ~ F ~ G ~ H ~ I} =
       new Twiddler[P] {
         type Out = A ~ B ~ C ~ D ~ E ~ F ~ G ~ H ~ I
-        def to(p: P): Out = i(Tuple.fromProductTyped(p)) match {
+        def to(p: P): Out = Tuple.fromProductTyped(p) match {
           case (a, b, c, d, e, f, g, h, i) => a ~ b ~ c ~ d ~ e ~ f ~ g ~ h ~ i
         }
         def from(o: Out): P = o match {
@@ -128,12 +125,11 @@ object Twiddler {
       }
 
   implicit def product10[P <: Product, A, B, C, D, E, F, G, H, I, J](
-    implicit m: Mirror.ProductOf[P],
-             i: m.MirroredElemTypes =:= (A, B, C, D, E, F, G, H, I, J)
+    using m: Mirror.ProductOf[P] { type MirroredElemTypes = (A, B, C, D, E, F, G, H, I, J) }
     ): Twiddler[P] { type Out = A ~ B ~ C ~ D ~ E ~ F ~ G ~ H ~ I ~ J} =
       new Twiddler[P] {
         type Out = A ~ B ~ C ~ D ~ E ~ F ~ G ~ H ~ I ~ J
-        def to(p: P): Out = i(Tuple.fromProductTyped(p)) match {
+        def to(p: P): Out = Tuple.fromProductTyped(p) match {
           case (a, b, c, d, e, f, g, h, i, j) => a ~ b ~ c ~ d ~ e ~ f ~ g ~ h ~ i ~ j
         }
         def from(o: Out): P = o match {
@@ -142,12 +138,11 @@ object Twiddler {
       }
 
   implicit def product11[P <: Product, A, B, C, D, E, F, G, H, I, J, K](
-    implicit m: Mirror.ProductOf[P],
-             i: m.MirroredElemTypes =:= (A, B, C, D, E, F, G, H, I, J, K)
+    using m: Mirror.ProductOf[P] { type MirroredElemTypes = (A, B, C, D, E, F, G, H, I, J, K) }
     ): Twiddler[P] { type Out = A ~ B ~ C ~ D ~ E ~ F ~ G ~ H ~ I ~ J ~ K} =
       new Twiddler[P] {
         type Out = A ~ B ~ C ~ D ~ E ~ F ~ G ~ H ~ I ~ J ~ K
-        def to(p: P): Out = i(Tuple.fromProductTyped(p)) match {
+        def to(p: P): Out = Tuple.fromProductTyped(p) match {
           case (a, b, c, d, e, f, g, h, i, j, k) => a ~ b ~ c ~ d ~ e ~ f ~ g ~ h ~ i ~ j ~ k
         }
         def from(o: Out): P = o match {
@@ -156,12 +151,11 @@ object Twiddler {
       }
 
   implicit def product12[P <: Product, A, B, C, D, E, F, G, H, I, J, K, L](
-    implicit m: Mirror.ProductOf[P],
-             i: m.MirroredElemTypes =:= (A, B, C, D, E, F, G, H, I, J, K, L)
+    using m: Mirror.ProductOf[P] { type MirroredElemTypes = (A, B, C, D, E, F, G, H, I, J, K, L) }
     ): Twiddler[P] { type Out = A ~ B ~ C ~ D ~ E ~ F ~ G ~ H ~ I ~ J ~ K ~ L} =
       new Twiddler[P] {
         type Out = A ~ B ~ C ~ D ~ E ~ F ~ G ~ H ~ I ~ J ~ K ~ L
-        def to(p: P): Out = i(Tuple.fromProductTyped(p)) match {
+        def to(p: P): Out = Tuple.fromProductTyped(p) match {
           case (a, b, c, d, e, f, g, h, i, j, k, l) => a ~ b ~ c ~ d ~ e ~ f ~ g ~ h ~ i ~ j ~ k ~ l
         }
         def from(o: Out): P = o match {
@@ -171,12 +165,11 @@ object Twiddler {
 
   //type names M and P are in use so we skip over to Q
   implicit def product13[P <: Product, A, B, C, D, E, F, G, H, I, J, K, L, Q](
-    implicit m: Mirror.ProductOf[P],
-             i: m.MirroredElemTypes =:= (A, B, C, D, E, F, G, H, I, J, K, L, Q)
+    using m: Mirror.ProductOf[P] { type MirroredElemTypes = (A, B, C, D, E, F, G, H, I, J, K, L, Q) }
     ): Twiddler[P] { type Out = A ~ B ~ C ~ D ~ E ~ F ~ G ~ H ~ I ~ J ~ K ~ L ~ Q} =
       new Twiddler[P] {
         type Out = A ~ B ~ C ~ D ~ E ~ F ~ G ~ H ~ I ~ J ~ K ~ L ~ Q
-        def to(p: P): Out = i(Tuple.fromProductTyped(p)) match {
+        def to(p: P): Out = Tuple.fromProductTyped(p) match {
           case (a, b, c, d, e, f, g, h, i, j, k, l, q) => a ~ b ~ c ~ d ~ e ~ f ~ g ~ h ~ i ~ j ~ k ~ l ~ q
         }
         def from(o: Out): P = o match {
@@ -186,12 +179,11 @@ object Twiddler {
       }
 
   implicit def product14[P <: Product, A, B, C, D, E, F, G, H, I, J, K, L, Q, R](
-    implicit m: Mirror.ProductOf[P],
-             i: m.MirroredElemTypes =:= (A, B, C, D, E, F, G, H, I, J, K, L, Q, R)
+    using m: Mirror.ProductOf[P] { type MirroredElemTypes = (A, B, C, D, E, F, G, H, I, J, K, L, Q, R) }
     ): Twiddler[P] { type Out = A ~ B ~ C ~ D ~ E ~ F ~ G ~ H ~ I ~ J ~ K ~ L ~ Q ~ R} =
       new Twiddler[P] {
         type Out = A ~ B ~ C ~ D ~ E ~ F ~ G ~ H ~ I ~ J ~ K ~ L ~ Q ~ R
-        def to(p: P): Out = i(Tuple.fromProductTyped(p)) match {
+        def to(p: P): Out = Tuple.fromProductTyped(p) match {
           case (a, b, c, d, e, f, g, h, i, j, k, l, q, r) => a ~ b ~ c ~ d ~ e ~ f ~ g ~ h ~ i ~ j ~ k ~ l ~ q ~ r
         }
         def from(o: Out): P = o match {
@@ -201,12 +193,11 @@ object Twiddler {
       }
 
   implicit def product15[P <: Product, A, B, C, D, E, F, G, H, I, J, K, L, Q, R, S](
-    implicit m: Mirror.ProductOf[P],
-             i: m.MirroredElemTypes =:= (A, B, C, D, E, F, G, H, I, J, K, L, Q, R, S)
+    using m: Mirror.ProductOf[P] { type MirroredElemTypes = (A, B, C, D, E, F, G, H, I, J, K, L, Q, R, S) }
     ): Twiddler[P] { type Out = A ~ B ~ C ~ D ~ E ~ F ~ G ~ H ~ I ~ J ~ K ~ L ~ Q ~ R ~ S} =
       new Twiddler[P] {
         type Out = A ~ B ~ C ~ D ~ E ~ F ~ G ~ H ~ I ~ J ~ K ~ L ~ Q ~ R ~ S
-        def to(p: P): Out = i(Tuple.fromProductTyped(p)) match {
+        def to(p: P): Out = Tuple.fromProductTyped(p) match {
           case (a, b, c, d, e, f, g, h, i, j, k, l, q, r, s) =>
             a ~ b ~ c ~ d ~ e ~ f ~ g ~ h ~ i ~ j ~ k ~ l ~ q ~ r ~ s
         }
@@ -217,12 +208,11 @@ object Twiddler {
       }
 
   implicit def product16[P <: Product, A, B, C, D, E, F, G, H, I, J, K, L, Q, R, S, T](
-    implicit m: Mirror.ProductOf[P],
-             i: m.MirroredElemTypes =:= (A, B, C, D, E, F, G, H, I, J, K, L, Q, R, S, T)
+    using m: Mirror.ProductOf[P] { type MirroredElemTypes = (A, B, C, D, E, F, G, H, I, J, K, L, Q, R, S, T) }
     ): Twiddler[P] { type Out = A ~ B ~ C ~ D ~ E ~ F ~ G ~ H ~ I ~ J ~ K ~ L ~ Q ~ R ~ S ~ T} =
       new Twiddler[P] {
         type Out = A ~ B ~ C ~ D ~ E ~ F ~ G ~ H ~ I ~ J ~ K ~ L ~ Q ~ R ~ S ~ T
-        def to(p: P): Out = i(Tuple.fromProductTyped(p)) match {
+        def to(p: P): Out = Tuple.fromProductTyped(p) match {
           case (a, b, c, d, e, f, g, h, i, j, k, l, q, r, s, t) =>
             a ~ b ~ c ~ d ~ e ~ f ~ g ~ h ~ i ~ j ~ k ~ l ~ q ~ r ~ s ~ t
         }
