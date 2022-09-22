@@ -138,7 +138,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
   .settings(
     name := "skunk-core",
     description := "Tagless, non-blocking data access library for Postgres.",
-    resolvers   +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
+    scalacOptions ~= (_.filterNot(_ == "-source:3.0-migration")),
     libraryDependencies ++= Seq(
       "org.typelevel"          %%% "cats-core"               % "2.8.0",
       "org.typelevel"          %%% "cats-effect"             % "3.3.14",
