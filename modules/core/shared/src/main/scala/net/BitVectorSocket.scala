@@ -61,10 +61,11 @@ object BitVectorSocket {
    * @group Constructors
    */
   def apply[F[_]](
-    host:         String,
-    port:         Int,
-    sg:           SocketGroup[F],
-    sslOptions:   Option[SSLNegotiation.Options[F]],
+    host:          String,
+    port:          Int,
+    sg:            SocketGroup[F],
+    socketOptions: List[SocketOption],
+    sslOptions:    Option[SSLNegotiation.Options[F]],
   )(implicit ev: MonadError[F, Throwable]): Resource[F, BitVectorSocket[F]] = {
 
     def fail[A](msg: String): Resource[F, A] =
@@ -72,7 +73,7 @@ object BitVectorSocket {
 
     def sock: Resource[F, Socket[F]] = {
       (Hostname.fromString(host), Port.fromInt(port)) match {
-        case (Some(validHost), Some(validPort)) => sg.client(SocketAddress(validHost, validPort), List(SocketOption.noDelay(true)))
+        case (Some(validHost), Some(validPort)) => sg.client(SocketAddress(validHost, validPort), socketOptions)
         case (None, _) =>  fail(s"""Hostname: "$host" is not syntactically valid.""")
         case (_, None) =>  fail(s"Port: $port falls out of the allowed range.")
       }

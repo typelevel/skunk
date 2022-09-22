@@ -14,7 +14,7 @@ import skunk.data._
 import skunk.util.{ Namer, Origin }
 import skunk.util.Typer
 import natchez.Trace
-import fs2.io.net.SocketGroup
+import fs2.io.net.{ SocketGroup, SocketOption }
 import skunk.net.protocol.Exchange
 import skunk.net.protocol.Describe
 
@@ -193,11 +193,12 @@ object Protocol {
     debug:        Boolean,
     nam:          Namer[F],
     sg:           SocketGroup[F],
+    socketOptions: List[SocketOption],
     sslOptions:   Option[SSLNegotiation.Options[F]],
     describeCache: Describe.Cache[F],
   ): Resource[F, Protocol[F]] =
     for {
-      bms <- BufferedMessageSocket[F](host, port, 256, debug, sg, sslOptions) // TODO: should we expose the queue size?
+      bms <- BufferedMessageSocket[F](host, port, 256, debug, sg, socketOptions, sslOptions) // TODO: should we expose the queue size?
       p   <- Resource.eval(fromMessageSocket(bms, nam, describeCache))
     } yield p
 

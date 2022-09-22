@@ -9,7 +9,7 @@ import cats.effect._
 import cats.effect.std.Console
 import cats.syntax.all._
 import fs2.concurrent.Signal
-import fs2.io.net.{ Network, SocketGroup }
+import fs2.io.net.{ Network, SocketGroup, SocketOption }
 import fs2.Pipe
 import fs2.Stream
 import natchez.Trace
@@ -201,6 +201,9 @@ object Session {
       "client_encoding"     -> "UTF8",
     )
 
+  val DefaultSocketOptions: List[SocketOption] =
+    List(SocketOption.noDelay(true))
+
   object Recyclers {
 
     /**
@@ -270,12 +273,13 @@ object Session {
     strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly,
     ssl:          SSL            = SSL.None,
     parameters:   Map[String, String] = Session.DefaultConnectionParameters,
+    socketOptions:   List[SocketOption] = Session.DefaultSocketOptions,
     commandCache: Int = 1024,
     queryCache:   Int = 1024,
   ): Resource[F, Resource[F, Session[F]]] = {
 
-    def session(socketGroup:  SocketGroup[F], sslOp: Option[SSLNegotiation.Options[F]], cache: Describe.Cache[F]): Resource[F, Session[F]] =
-      fromSocketGroup[F](socketGroup, host, port, user, database, password, debug, strategy, sslOp, parameters, cache)
+    def session(socketGroup: SocketGroup[F], sslOp: Option[SSLNegotiation.Options[F]], cache: Describe.Cache[F]): Resource[F, Session[F]] =
+      fromSocketGroup[F](socketGroup, host, port, user, database, password, debug, strategy, socketOptions, sslOp, parameters, cache)
 
     val logger: String => F[Unit] = s => Console[F].println(s"TLS: $s")
 
@@ -330,13 +334,14 @@ object Session {
     password:     Option[String] = none,
     debug:        Boolean        = false,
     strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly,
+    socketOptions: List[SocketOption],
     sslOptions:   Option[SSLNegotiation.Options[F]],
     parameters:   Map[String, String],
     describeCache: Describe.Cache[F],
   ): Resource[F, Session[F]] =
     for {
       namer <- Resource.eval(Namer[F])
-      proto <- Protocol[F](host, port, debug, namer, socketGroup, sslOptions, describeCache)
+      proto <- Protocol[F](host, port, debug, namer, socketGroup, socketOptions, sslOptions, describeCache)
       _     <- Resource.eval(proto.startup(user, database, password, parameters))
       sess  <- Resource.eval(fromProtocol(proto, namer, strategy))
     } yield sess
