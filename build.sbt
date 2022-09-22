@@ -17,7 +17,8 @@ ThisBuild / developers   := List(
 
 ThisBuild / tlCiReleaseBranches := Seq("main") // publish snapshits on `main`
 ThisBuild / tlSonatypeUseLegacyHost := false
-ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("8"))
+ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("11"))
+ThisBuild / tlJdkRelease := Some(8)
 
 lazy val setupCertAndDocker = Seq(
   WorkflowStep.Run(
