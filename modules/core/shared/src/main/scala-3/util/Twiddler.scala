@@ -26,62 +26,56 @@ object Twiddler {
   type Aux[A, O] = Twiddler[A] { type Out = O }
 
   given product1[P <: Product, A](
-    using m: Mirror.ProductOf[P],
-          i: m.MirroredElemTypes =:= A *: EmptyTuple
-    ): (Twiddler[P] { type Out = A  }) =
+    using m: Mirror.ProductOf[P] { type MirroredElemTypes = A *: EmptyTuple }
+    ): (Twiddler[P] { type Out = A }) =
       new Twiddler[P] {
         type Out = A
-        def to(p: P): Out = i(Tuple.fromProductTyped(p)) match { case a *: EmptyTuple => a }
+        def to(p: P): Out = Tuple.fromProductTyped(p) match { case a *: EmptyTuple => a }
         def from(o: Out): P = o match { case a => m.fromProduct(a *: EmptyTuple) }
       }
 
   given product2[P <: Product, A, B](
-    using m: Mirror.ProductOf[P],
-          i: m.MirroredElemTypes =:= (A, B)
-    ): (Twiddler[P] { type Out = A ~ B  }) =
+    using m: Mirror.ProductOf[P] { type MirroredElemTypes = (A, B) }
+    ): (Twiddler[P] { type Out = A ~ B }) =
       new Twiddler[P] {
         type Out = A ~ B
-        def to(p: P): Out = i(Tuple.fromProductTyped(p)) match { case (a, b) => a ~ b }
+        def to(p: P): Out = Tuple.fromProductTyped(p) match { case (a, b) => a ~ b }
         def from(o: Out): P = o match { case a ~ b => m.fromProduct((a, b)) }
       }
 
   given product3[P <: Product, A, B, C](
-    using m: Mirror.ProductOf[P],
-          i: m.MirroredElemTypes =:= (A, B, C)
+    using m: Mirror.ProductOf[P] { type MirroredElemTypes = (A, B, C) }
     ): (Twiddler[P] { type Out = A ~ B ~ C }) =
       new Twiddler[P] {
         type Out = A ~ B ~ C
-        def to(p: P): Out = i(Tuple.fromProductTyped(p)) match { case (a, b, c) => a ~ b ~ c }
+        def to(p: P): Out = Tuple.fromProductTyped(p) match { case (a, b, c) => a ~ b ~ c }
         def from(o: Out): P = o match { case a ~ b ~ c => m.fromProduct((a, b, c)) }
       }
 
   given product4[P <: Product, A, B, C, D](
-    using m: Mirror.ProductOf[P],
-          i: m.MirroredElemTypes =:= (A, B, C, D)
+    using m: Mirror.ProductOf[P] { type MirroredElemTypes = (A, B, C, D) }
     ): (Twiddler[P] { type Out = A ~ B ~ C ~ D }) =
       new Twiddler[P] {
         type Out = A ~ B ~ C ~ D
-        def to(p: P): Out = i(Tuple.fromProductTyped(p)) match { case (a, b, c, d) => a ~ b ~ c ~ d }
+        def to(p: P): Out = Tuple.fromProductTyped(p) match { case (a, b, c, d) => a ~ b ~ c ~ d }
         def from(o: Out): P = o match { case a ~ b ~ c ~ d => m.fromProduct((a, b, c, d)) }
       }
 
   given product5[P <: Product, A, B, C, D, E](
-    using m: Mirror.ProductOf[P],
-          i: m.MirroredElemTypes =:= (A, B, C, D, E)
+    using m: Mirror.ProductOf[P] { type MirroredElemTypes = (A, B, C, D, E) }
     ): (Twiddler[P] { type Out = A ~ B ~ C ~ D ~ E }) =
       new Twiddler[P] {
         type Out = A ~ B ~ C ~ D ~ E
-        def to(p: P): Out = i(Tuple.fromProductTyped(p)) match { case (a, b, c, d, e) => a ~ b ~ c ~ d ~ e }
+        def to(p: P): Out = Tuple.fromProductTyped(p) match { case (a, b, c, d, e) => a ~ b ~ c ~ d ~ e }
         def from(o: Out): P = o match { case a ~ b ~ c ~ d ~ e => m.fromProduct((a, b, c, d, e)) }
       }
 
   given product6[P <: Product, A, B, C, D, E, F](
-    using m: Mirror.ProductOf[P],
-          i: m.MirroredElemTypes =:= (A, B, C, D, E, F)
+    using m: Mirror.ProductOf[P] { type MirroredElemTypes = (A, B, C, D, E, F) }
     ): (Twiddler[P] { type Out = A ~ B ~ C ~ D ~ E ~ F }) =
       new Twiddler[P] {
         type Out = A ~ B ~ C ~ D ~ E ~ F
-        def to(p: P): Out = i(Tuple.fromProductTyped(p)) match { case (a, b, c, d, e, f) => a ~ b ~ c ~ d ~ e ~ f }
+        def to(p: P): Out = Tuple.fromProductTyped(p) match { case (a, b, c, d, e, f) => a ~ b ~ c ~ d ~ e ~ f }
         def from(o: Out): P = o match { case a ~ b ~ c ~ d ~ e ~ f => m.fromProduct((a, b, c, d, e, f)) }
       }
 
@@ -221,5 +215,42 @@ object Twiddler {
             m.fromProduct((a, b, c, d, e, f, g, h, i, j, k, l, q, r, s, t))
         }
       }
+
+  // For binary compatibility with Skunk 0.3.1 and prior
+  private[skunk] def product1[P <: Product, A](
+    using m: Mirror.ProductOf[P],
+          i: m.MirroredElemTypes =:= A *: EmptyTuple
+    ): (Twiddler[P] { type Out = A }) =
+      product1(using m.asInstanceOf)
+
+  private[skunk] def product2[P <: Product, A, B](
+    using m: Mirror.ProductOf[P],
+          i: m.MirroredElemTypes =:= (A, B)
+    ): (Twiddler[P] { type Out = A ~ B  }) =
+      product2(using m.asInstanceOf)
+
+  private[skunk] def product3[P <: Product, A, B, C](
+    using m: Mirror.ProductOf[P],
+          i: m.MirroredElemTypes =:= (A, B, C)
+    ): (Twiddler[P] { type Out = A ~ B ~ C }) =
+      product3(using m.asInstanceOf)
+
+  private[skunk] def product4[P <: Product, A, B, C, D](
+    using m: Mirror.ProductOf[P],
+          i: m.MirroredElemTypes =:= (A, B, C, D)
+    ): (Twiddler[P] { type Out = A ~ B ~ C ~ D }) =
+      product4(using m.asInstanceOf)
+
+  private[skunk] def product5[P <: Product, A, B, C, D, E](
+    using m: Mirror.ProductOf[P],
+          i: m.MirroredElemTypes =:= (A, B, C, D, E)
+    ): (Twiddler[P] { type Out = A ~ B ~ C ~ D ~ E }) =
+      product5(using m.asInstanceOf)
+
+  private[skunk] def product6[P <: Product, A, B, C, D, E, F](
+    using m: Mirror.ProductOf[P],
+          i: m.MirroredElemTypes =:= (A, B, C, D, E, F)
+    ): (Twiddler[P] { type Out = A ~ B ~ C ~ D ~ E ~ F }) =
+      product6(using m.asInstanceOf)
 }
 
