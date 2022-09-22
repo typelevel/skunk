@@ -17,7 +17,8 @@ ThisBuild / developers   := List(
 
 ThisBuild / tlCiReleaseBranches := Seq("main") // publish snapshits on `main`
 ThisBuild / tlSonatypeUseLegacyHost := false
-ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("8"))
+ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("11"))
+ThisBuild / tlJdkRelease := Some(8)
 
 lazy val setupCertAndDocker = Seq(
   WorkflowStep.Run(
@@ -66,22 +67,12 @@ ThisBuild / githubWorkflowAddedJobs +=
 lazy val fs2Version = "3.2.14"
 lazy val natchezVersion = "0.1.6"
 
-// We do `evictionCheck` in CI
-inThisBuild(Seq(
-  evictionRules ++= Seq(
-    "org.typelevel" % "cats-*" % "semver-spec",
-    "org.scala-js" % "scalajs-*" % "semver-spec",
-    "org.portable-scala" % "portable-scala-reflect_*" % "semver-spec",
-    "io.github.cquiroz" % "scala-java-time_*" % "semver-spec",
-  )
-))
-
 // Global Settings
 lazy val commonSettings = Seq(
 
   // Resolvers
-  resolvers += Resolver.sonatypeRepo("public"),
-  resolvers += Resolver.sonatypeRepo("snapshots"),
+  resolvers ++= Resolver.sonatypeOssRepos("public"),
+  resolvers ++= Resolver.sonatypeOssRepos("snapshots"),
 
   // Headers
   headerMappings := headerMappings.value + (HeaderFileType.scala -> HeaderCommentStyle.cppStyleLineComment),
@@ -147,7 +138,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
   .settings(
     name := "skunk-core",
     description := "Tagless, non-blocking data access library for Postgres.",
-    resolvers   +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
+    scalacOptions ~= (_.filterNot(_ == "-source:3.0-migration")),
     libraryDependencies ++= Seq(
       "org.typelevel"          %%% "cats-core"               % "2.8.0",
       "org.typelevel"          %%% "cats-effect"             % "3.3.14",
