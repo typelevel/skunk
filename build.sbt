@@ -63,6 +63,11 @@ ThisBuild / githubWorkflowAddedJobs +=
       )
   )
 
+// https://github.com/sbt/sbt/issues/6997
+ThisBuild / libraryDependencySchemes ++= Seq(
+  "org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always
+)
+
 // This is used in a couple places
 lazy val fs2Version = "3.2.14"
 lazy val natchezVersion = "0.1.6"
