@@ -138,6 +138,31 @@ class CommandTest extends SkunkTest {
         DROP DOMAIN IF EXISTS population
        """.command
 
+  val createSequence: Command[Void] =
+    sql"""
+        CREATE SEQUENCE IF NOT EXISTS counter_seq
+       """.command
+
+  val alterSequence: Command[Void] =
+    sql"""
+        ALTER SEQUENCE IF EXISTS counter_seq INCREMENT BY 2
+       """.command
+
+  val dropSequence: Command[Void] =
+    sql"""
+        DROP SEQUENCE IF EXISTS counter_seq
+       """.command
+
+  val createDatabase: Command[Void] =
+    sql"""
+        CREATE DATABASE skunk_database
+       """.command
+
+  val dropDatabase: Command[Void] =
+    sql"""
+        DROP DATABASE IF EXISTS skunk_database
+       """.command
+
   sessionTest("create table, create index, drop index, alter table and drop table") { s =>
     for {
       c <- s.execute(createTable)
@@ -183,6 +208,26 @@ class CommandTest extends SkunkTest {
       c <- s.execute(dropDomain)
       _ <- assert("completion", c == Completion.DropDomain)
       _ <- s.assertHealthy
+    } yield "ok"
+  }
+
+  sessionTest("create sequence, alter sequence,  drop sequence"){ s=>
+    for{
+      c <- s.execute(createSequence)
+      _ <- assert("completion", c == Completion.CreateSequence)
+      c <- s.execute(alterSequence)
+      _ <- assert("completion", c == Completion.AlterSequence)
+      c <- s.execute(dropSequence)
+      _ <- assert("completion", c == Completion.DropSequence)
+    } yield "ok"
+  }
+
+  sessionTest("create database, drop database"){ s=>
+    for{
+      c <- s.execute(createDatabase)
+      _ <- assert("completion", c == Completion.CreateDatabase)
+      c <- s.execute(dropDatabase)
+      _ <- assert("completion", c == Completion.DropDatabase)
     } yield "ok"
   }
 

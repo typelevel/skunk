@@ -39,6 +39,11 @@ object Completion {
   case object DropView           extends Completion
   case object CreateDomain       extends Completion
   case object DropDomain         extends Completion
+  case object CreateSequence     extends Completion
+  case object AlterSequence      extends Completion
+  case object DropSequence       extends Completion
+  case object CreateDatabase     extends Completion
+  case object DropDatabase       extends Completion
   // more ...
 
   /**

@@ -22,7 +22,6 @@ class StartupSimTest extends SimTest {
   }
 
   List(
-    AuthenticationCleartextPassword,
     AuthenticationGSS,
     AuthenticationKerberosV5,
     AuthenticationSCMCredential,

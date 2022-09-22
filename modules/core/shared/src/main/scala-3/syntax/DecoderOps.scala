@@ -14,10 +14,16 @@ class DecoderOps[A <: Tuple](self: Decoder[A]) {
     (other, self).mapN(_ *: _)
 
   def pmap[P <: Product](
+    using m: Mirror.ProductOf[P] { type MirroredElemTypes = A }
+  ): Decoder[P] =
+    self.map(m.fromProduct)
+
+  // For binary compatibility with Skunk 0.3.1 and prior
+  private[skunk] def pmap[P <: Product](
     using m: Mirror.ProductOf[P],
           i: m.MirroredElemTypes =:= A
   ): Decoder[P] =
-    self.map(m.fromProduct)
+    pmap(using m.asInstanceOf)
 
 }
 

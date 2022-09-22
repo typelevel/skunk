@@ -1,38 +1,83 @@
-
+ThisBuild / tlBaseVersion := "0.4"
 
 // Our Scala versions.
-lazy val `scala-2.12` = "2.12.13"
-lazy val `scala-2.13` = "2.13.6"
-lazy val `scala-3.0`  = "3.0.2"
+lazy val `scala-2.12` = "2.12.16"
+lazy val `scala-2.13` = "2.13.8"
+lazy val `scala-3.0`  = "3.1.3"
+
+ThisBuild / scalaVersion       := `scala-2.13`
+ThisBuild / crossScalaVersions :=
+  Seq(`scala-2.12`, `scala-2.13`, `scala-3.0`)
+
+ThisBuild / organization := "org.tpolecat"
+ThisBuild / licenses     := Seq(License.MIT)
+ThisBuild / developers   := List(
+  Developer("tpolecat", "Rob Norris", "rob_norris@mac.com", url("http://www.tpolecat.org"))
+)
+
+ThisBuild / tlCiReleaseBranches := Seq("main") // publish snapshits on `main`
+ThisBuild / tlSonatypeUseLegacyHost := false
+ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("11"))
+ThisBuild / tlJdkRelease := Some(8)
+
+lazy val setupCertAndDocker = Seq(
+  WorkflowStep.Run(
+    commands = List("chmod 600 world/server.key", "sudo chown 999 world/server.key"),
+    name = Some("Set up cert permissions"),
+  ),
+  WorkflowStep.Run(
+    commands = List("docker-compose up -d"),
+    name = Some("Start up Postgres"),
+  )
+)
+
+ThisBuild / githubWorkflowBuildPreamble ++= setupCertAndDocker
+ThisBuild / githubWorkflowBuild ~= { steps =>
+  WorkflowStep.Sbt(
+    commands = List("headerCheckAll"),
+    name = Some("Check Headers"),
+  ) +: steps
+}
+ThisBuild / githubWorkflowBuildPostamble ++= Seq(
+  WorkflowStep.Sbt(
+    commands = List("docs/makeSite"),
+    name = Some(s"Check Doc Site (${`scala-2.13`} JVM only)"),
+    cond = Some(s"matrix.scala == '${`scala-2.13`}' && matrix.project == 'rootJVM'"),
+  )
+)
+ThisBuild / githubWorkflowAddedJobs +=
+  WorkflowJob(
+    id = "coverage",
+    name = s"Generate coverage report (${`scala-2.13`} JVM only)",
+    scalas = List(`scala-2.13`),
+    steps = List(WorkflowStep.CheckoutFull) ++
+      WorkflowStep.SetupJava(githubWorkflowJavaVersions.value.toList) ++
+      githubWorkflowGeneratedCacheSteps.value ++ 
+      setupCertAndDocker ++
+      List(
+        WorkflowStep.Sbt(List("coverage", "rootJVM/test", "coverageReport")),
+        WorkflowStep.Run(
+          List("bash <(curl -s https://codecov.io/bash)"),
+          name = Some("Upload code coverage data")
+        )
+      )
+  )
+
+// https://github.com/sbt/sbt/issues/6997
+ThisBuild / libraryDependencySchemes ++= Seq(
+  "org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always
+)
 
 // This is used in a couple places
-lazy val fs2Version = "3.1.1"
-lazy val natchezVersion = "0.1.5"
-
-// We do `evictionCheck` in CI
-inThisBuild(Seq(
-  evictionRules ++= Seq(
-    "org.typelevel" % "cats-*" % "semver-spec",
-    "org.scala-js" % "scalajs-*" % "semver-spec",
-    "org.portable-scala" % "portable-scala-reflect_*" % "semver-spec",
-    "io.github.cquiroz" % "scala-java-time_*" % "semver-spec",
-  )
-))
+lazy val fs2Version = "3.2.14"
+lazy val natchezVersion = "0.1.6"
 
 // Global Settings
 lazy val commonSettings = Seq(
 
   // Resolvers
-  resolvers += Resolver.sonatypeRepo("public"),
-  resolvers += Resolver.sonatypeRepo("snapshots"),
-
-  // Publishing
-  organization := "org.tpolecat",
-  licenses    ++= Seq(("MIT", url("http://opensource.org/licenses/MIT"))),
-  homepage     := Some(url("https://github.com/tpolecat/skunk")),
-  developers   := List(
-    Developer("tpolecat", "Rob Norris", "rob_norris@mac.com", url("http://www.tpolecat.org"))
-  ),
+  resolvers ++= Resolver.sonatypeOssRepos("public"),
+  resolvers ++= Resolver.sonatypeOssRepos("snapshots"),
 
   // Headers
   headerMappings := headerMappings.value + (HeaderFileType.scala -> HeaderCommentStyle.cppStyleLineComment),
@@ -45,8 +90,6 @@ lazy val commonSettings = Seq(
   ),
 
   // Compilation
-  scalaVersion       := `scala-2.13`,
-  crossScalaVersions := Seq(`scala-2.12`, `scala-2.13`, `scala-3.0`),
   scalacOptions -= "-language:experimental.macros", // doesn't work cross-version
   Compile / doc / scalacOptions --= Seq("-Xfatal-warnings"),
   Compile / doc / scalacOptions ++= Seq(
@@ -56,7 +99,7 @@ lazy val commonSettings = Seq(
   ),
   libraryDependencies ++= Seq(
     compilerPlugin("org.typelevel" %% "kind-projector" % "0.13.2" cross CrossVersion.full),
-  ).filterNot(_ => scalaVersion.value.startsWith("3.")),
+  ).filterNot(_ => tlIsScala3.value),
 
   // Coverage Exclusions
   coverageExcludedPackages := "ffstest.*;tests.*;example.*;natchez.http4s.*",
@@ -87,48 +130,42 @@ lazy val commonSettings = Seq(
 
 )
 
-lazy val skunk = project
-  .in(file("."))
-  .enablePlugins(AutomateHeaderPlugin)
+lazy val skunk = tlCrossRootProject
+  .settings(name := "skunk")
+  .aggregate(core, tests, circe, refined, example)
   .settings(commonSettings)
-  .settings(publish / skip := true)
-  .dependsOn(core.jvm, core.js, tests.jvm, tests.js, circe.jvm, circe.js, refined.jvm, refined.js, example)
-  .aggregate(core.jvm, core.js, tests.jvm, tests.js, circe.jvm, circe.js, refined.jvm, refined.js, example)
 
 lazy val core = crossProject(JVMPlatform, JSPlatform)
   .crossType(CrossType.Full)
   .in(file("modules/core"))
   .enablePlugins(AutomateHeaderPlugin)
-  .jsEnablePlugins(ScalaJSBundlerPlugin)
-  .jsConfigure(_.disablePlugins(ScoverageSbtPlugin))
   .settings(commonSettings)
   .settings(
     name := "skunk-core",
     description := "Tagless, non-blocking data access library for Postgres.",
-    resolvers   +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
+    scalacOptions ~= (_.filterNot(_ == "-source:3.0-migration")),
     libraryDependencies ++= Seq(
-      "org.typelevel"          %%% "cats-core"               % "2.6.1",
-      "org.typelevel"          %%% "cats-effect"             % "3.1.1",
+      "org.typelevel"          %%% "cats-core"               % "2.8.0",
+      "org.typelevel"          %%% "cats-effect"             % "3.3.14",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
-      "org.scodec"             %%% "scodec-core"             % (if (scalaVersion.value.startsWith("3.")) "2.0.0" else "1.11.8"),
-      "org.scodec"             %%% "scodec-cats"             % "1.1.0",
+      "org.scodec"             %%% "scodec-bits"             % "1.1.34",
+      "org.scodec"             %%% "scodec-core"             % (if (tlIsScala3.value) "2.2.0" else "1.11.10"),
+      "org.scodec"             %%% "scodec-cats"             % "1.2.0",
       "org.tpolecat"           %%% "natchez-core"            % natchezVersion,
       "org.tpolecat"           %%% "sourcepos"               % "1.0.1",
-      "org.scala-lang.modules" %%% "scala-collection-compat" % "2.4.4",
+      "org.scala-lang.modules" %%% "scala-collection-compat" % "2.8.1",
     ) ++ Seq(
       "com.beachape"  %%% "enumeratum"   % "1.6.1",
-    ).filterNot(_ => scalaVersion.value.startsWith("3."))
+    ).filterNot(_ => tlIsScala3.value)
   ).jvmSettings(
     libraryDependencies += "com.ongres.scram" % "client" % "2.1",
   ).jsSettings(
     libraryDependencies ++= Seq(
-      "io.github.cquiroz" %%% "scala-java-time" % "2.3.0",
-      "io.github.cquiroz" %%% "locales-minimal-en_us-db" % "1.2.1"
+      "com.armanbilge" %%% "saslprep" % "0.1.1",
+      "io.github.cquiroz" %%% "scala-java-time" % "2.4.0",
+      "io.github.cquiroz" %%% "locales-minimal-en_us-db" % "1.4.1"
     ),
-    Compile / npmDependencies += "saslprep" -> "1.0.3",
-    useYarn := true,
-    yarnExtraArgs += "--frozen-lockfile",
   )
 
 lazy val refined = crossProject(JVMPlatform, JSPlatform)
@@ -136,11 +173,10 @@ lazy val refined = crossProject(JVMPlatform, JSPlatform)
   .in(file("modules/refined"))
   .dependsOn(core)
   .enablePlugins(AutomateHeaderPlugin)
-  .jsConfigure(_.disablePlugins(ScoverageSbtPlugin))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "eu.timepit" %%% "refined" % "0.9.27",
+      "eu.timepit" %%% "refined" % "0.9.29",
     )
   )
 
@@ -149,13 +185,12 @@ lazy val circe = crossProject(JVMPlatform, JSPlatform)
   .in(file("modules/circe"))
   .dependsOn(core)
   .enablePlugins(AutomateHeaderPlugin)
-  .jsConfigure(_.disablePlugins(ScoverageSbtPlugin))
   .settings(commonSettings)
   .settings(
     name := "skunk-circe",
     libraryDependencies ++= Seq(
-      "io.circe" %%% "circe-core"   % "0.14.1",
-      "io.circe" %%% "circe-parser" % "0.14.1"
+      "io.circe" %%% "circe-core"   % "0.14.2",
+      "io.circe" %%% "circe-parser" % "0.14.2"
     )
   )
 
@@ -163,20 +198,17 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform)
   .crossType(CrossType.Full)
   .in(file("modules/tests"))
   .dependsOn(core, circe)
-  .enablePlugins(AutomateHeaderPlugin)
-  .jsEnablePlugins(ScalaJSBundlerPlugin)
-  .jsConfigure(_.disablePlugins(ScoverageSbtPlugin))
+  .enablePlugins(AutomateHeaderPlugin, NoPublishPlugin)
   .settings(commonSettings)
   .settings(
-    publish / skip := true,
     scalacOptions  -= "-Xfatal-warnings",
     libraryDependencies ++= Seq(
       "org.scalameta"     %%% "munit"                   % "0.7.29",
       "org.scalameta"     % "junit-interface"           % "0.7.29",
-      "org.typelevel"     %%% "scalacheck-effect-munit" % "1.0.3",
-      "org.typelevel"     %%% "munit-cats-effect-3"     % "1.0.6",
-      "org.typelevel"     %%% "cats-free"               % "2.6.1",
-      "org.typelevel"     %%% "cats-laws"               % "2.6.1",
+      "org.typelevel"     %%% "scalacheck-effect-munit" % "1.0.4",
+      "org.typelevel"     %%% "munit-cats-effect-3"     % "1.0.7",
+      "org.typelevel"     %%% "cats-free"               % "2.8.0",
+      "org.typelevel"     %%% "cats-laws"               % "2.8.0",
       "org.typelevel"     %%% "discipline-munit"        % "1.0.9",
     ) ++ Seq(
       "io.chrisdavenport" %%% "cats-time"               % "0.3.4",
@@ -185,16 +217,14 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform)
   )
   .jsSettings(
     Test / scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.CommonJSModule)),
-    useYarn := true
   )
 
 lazy val example = project
   .in(file("modules/example"))
   .dependsOn(core.jvm)
-  .enablePlugins(AutomateHeaderPlugin)
+  .enablePlugins(AutomateHeaderPlugin, NoPublishPlugin)
   .settings(commonSettings)
   .settings(
-    publish / skip := true,
     libraryDependencies ++= Seq(
       "org.tpolecat"  %%% "natchez-honeycomb"   % natchezVersion,
       "org.tpolecat"  %%% "natchez-jaeger"      % natchezVersion,
@@ -222,9 +252,9 @@ lazy val docs = project
     ghpagesNoJekyll    := true,
     publish / skip     := true,
     paradoxTheme       := Some(builtinParadoxTheme("generic")),
-    version            := version.value.takeWhile(_ != '+'), // strip off the +3-f22dca22+20191110-1520-SNAPSHOT business
+    version            := version.value.takeWhile(_ != '-'), // strip off the -3-f22dca22+20191110-1520-SNAPSHOT business
     paradoxProperties ++= Map(
-      "scala-versions"          -> (core.jvm / crossScalaVersions).value.map(CrossVersion.partialVersion).flatten.map(_._2).mkString("2.", "/", ""),
+      "scala-versions"          -> (core.jvm / crossScalaVersions).value.map(CrossVersion.partialVersion).flatten.map { case (a, b) => s"$a.$b" } .mkString("/"),
       "org"                     -> organization.value,
       "scala.binary.version"    -> s"2.${CrossVersion.partialVersion(scalaVersion.value).get._2}",
       "core-dep"                -> s"${(core.jvm / name).value}_2.${CrossVersion.partialVersion(scalaVersion.value).get._2}",
@@ -241,3 +271,6 @@ lazy val docs = project
       "org.tpolecat"  %%% "natchez-jaeger" % natchezVersion,
     )
 )
+
+// ci
+
