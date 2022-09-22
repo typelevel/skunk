@@ -26,21 +26,21 @@ object Main {
 
         case f: Fragment[_] =>
           Tree.Apply("Fragment", Iterator(
-            Tree.KeyValue("sql", custom.treeify(f.sql)),
-            Tree.KeyValue("encoder", custom.treeify(f.encoder)),
+            Tree.KeyValue("sql", custom.treeify(f.sql, custom.defaultEscapeUnicode, custom.defaultShowFieldNames)),
+            Tree.KeyValue("encoder", custom.treeify(f.encoder, custom.defaultEscapeUnicode, custom.defaultShowFieldNames)),
           ))
 
         case q: Query[_, _] =>
           Tree.Apply("Query", Iterator(
-            Tree.KeyValue("sql", custom.treeify(q.sql)),
-            Tree.KeyValue("encoder", custom.treeify(q.encoder)),
-            Tree.KeyValue("decoder", custom.treeify(q.decoder)),
+            Tree.KeyValue("sql", custom.treeify(q.sql, custom.defaultEscapeUnicode, custom.defaultShowFieldNames)),
+            Tree.KeyValue("encoder", custom.treeify(q.encoder, custom.defaultEscapeUnicode, custom.defaultShowFieldNames)),
+            Tree.KeyValue("decoder", custom.treeify(q.decoder, custom.defaultEscapeUnicode, custom.defaultShowFieldNames)),
           ))
 
         case c: Command[_] =>
           Tree.Apply("Query", Iterator(
-            Tree.KeyValue("sql", custom.treeify(c.sql)),
-            Tree.KeyValue("encoder", custom.treeify(c.encoder)),
+            Tree.KeyValue("sql", custom.treeify(c.sql, custom.defaultEscapeUnicode, custom.defaultShowFieldNames)),
+            Tree.KeyValue("encoder", custom.treeify(c.encoder, custom.defaultEscapeUnicode, custom.defaultShowFieldNames)),
           ))
       }
     )
