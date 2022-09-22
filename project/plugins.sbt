@@ -1,3 +1,8 @@
+// https://github.com/sbt/sbt/issues/6997
+ThisBuild / libraryDependencySchemes ++= Seq(
+  "org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always
+)
+
 addSbtPlugin("org.typelevel"             % "sbt-typelevel"      % "0.4.15")
 addSbtPlugin("com.lightbend.paradox"     % "sbt-paradox"        % "0.10.2")
 addSbtPlugin("com.typesafe.sbt"          % "sbt-site"           % "1.4.1")
