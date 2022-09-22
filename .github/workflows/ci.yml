@@ -75,10 +75,14 @@ jobs:
         run: docker-compose up -d
 
       - name: Check that workflows are up to date
-        run: sbt 'project ${{ matrix.project }}' '++${{ matrix.scala }}' 'project /' githubWorkflowCheck
+        run: sbt githubWorkflowCheck
 
       - name: Check Headers
         run: sbt 'project ${{ matrix.project }}' '++${{ matrix.scala }}' headerCheckAll
+
+      - name: Check headers and formatting
+        if: matrix.java == 'temurin@8'
+        run: sbt 'project ${{ matrix.project }}' '++${{ matrix.scala }}' headerCheckAll scalafmtCheckAll 'project /' scalafmtSbtCheck
 
       - name: scalaJSLink
         if: matrix.project == 'rootJS'

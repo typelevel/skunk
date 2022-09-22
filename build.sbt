@@ -66,16 +66,6 @@ ThisBuild / githubWorkflowAddedJobs +=
 lazy val fs2Version = "3.2.14"
 lazy val natchezVersion = "0.1.6"
 
-// We do `evictionCheck` in CI
-inThisBuild(Seq(
-  evictionRules ++= Seq(
-    "org.typelevel" % "cats-*" % "semver-spec",
-    "org.scala-js" % "scalajs-*" % "semver-spec",
-    "org.portable-scala" % "portable-scala-reflect_*" % "semver-spec",
-    "io.github.cquiroz" % "scala-java-time_*" % "semver-spec",
-  )
-))
-
 // Global Settings
 lazy val commonSettings = Seq(
 
