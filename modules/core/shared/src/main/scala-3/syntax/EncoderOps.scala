@@ -14,11 +14,17 @@ class EncoderOps[A <: Tuple](self: Encoder[A]) {
     (other, self).contramapN[B *: A] { case b *: a => (b, a) }
 
   def pcontramap[P <: Product](
+    using m: Mirror.ProductOf[P] { type MirroredElemTypes = A }
+  ): Encoder[P] =
+    self.contramap(p => Tuple.fromProductTyped(p))
+
+  // For binary compatibility with Skunk 0.3.1 and prior
+  private[skunk] def pcontramap[P <: Product](
     using m: Mirror.ProductOf[P],
           i: m.MirroredElemTypes =:= A
   ): Encoder[P] =
-    self.contramap(p => i(Tuple.fromProductTyped(p)))
-
+    pcontramap(using m.asInstanceOf)
+ 
 }
 
 class EncoderOpsLow[A](self: Encoder[A]) {
