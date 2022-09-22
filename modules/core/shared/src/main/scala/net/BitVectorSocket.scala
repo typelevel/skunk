@@ -73,7 +73,7 @@ object BitVectorSocket {
 
     def sock: Resource[F, Socket[F]] = {
       (Hostname.fromString(host), Port.fromInt(port)) match {
-        case (Some(validHost), Some(validPort)) => sg.client(SocketAddress(validHost, validPort), socketOptions))
+        case (Some(validHost), Some(validPort)) => sg.client(SocketAddress(validHost, validPort), socketOptions)
         case (None, _) =>  fail(s"""Hostname: "$host" is not syntactically valid.""")
         case (_, None) =>  fail(s"Port: $port falls out of the allowed range.")
       }
