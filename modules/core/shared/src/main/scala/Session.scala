@@ -311,6 +311,7 @@ object Session {
     parameters:   Map[String, String] = Session.DefaultConnectionParameters,
     commandCache: Int = 1024,
     queryCache:   Int = 1024,
+    readTimeout:  Duration = Duration.Inf,
   ): Resource[F, Session[F]] =
     pooled(
       host         = host,
@@ -325,6 +326,7 @@ object Session {
       parameters   = parameters,
       commandCache = commandCache,
       queryCache   = queryCache,
+      readTimeout  = readTimeout
     ).flatten
 
   def fromSocketGroup[F[_]: Temporal: Trace: Console](
