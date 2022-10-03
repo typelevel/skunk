@@ -163,6 +163,16 @@ class CommandTest extends SkunkTest {
         DROP DATABASE IF EXISTS skunk_database
        """.command
 
+  val createRole: Command[Void] =
+    sql"""
+        CREATE ROLE skunk_role
+       """.command
+
+  val dropRole: Command[Void] =
+    sql"""
+        DROP ROLE skunk_role
+       """.command
+
   sessionTest("create table, create index, drop index, alter table and drop table") { s =>
     for {
       c <- s.execute(createTable)
@@ -228,6 +238,15 @@ class CommandTest extends SkunkTest {
       _ <- assert("completion", c == Completion.CreateDatabase)
       c <- s.execute(dropDatabase)
       _ <- assert("completion", c == Completion.DropDatabase)
+    } yield "ok"
+  }
+
+  sessionTest("create role, drop role") { s =>
+    for {
+      c <- s.execute(createRole)
+      _ <- assert("completion", c == Completion.CreateRole)
+      c <- s.execute(dropRole)
+      _ <- assert("completion", c == Completion.DropRole)
     } yield "ok"
   }
 
