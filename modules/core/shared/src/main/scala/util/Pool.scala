@@ -43,11 +43,11 @@ object Pool {
     )
 
   // Preserved For Bincompat
-  private[util] def of[F[_]: Concurrent: Trace, A](
+  def of[F[_]: Concurrent: Trace, A](
     rsrc: Resource[F, A],
     size:  Int)(
     recycler: Recycler[F, A]
-  ): Resource[F, Resource[F, A]] = of({(_: Trace[F]) => rsrc}, size)(recycler).map(_.apply(Trace[F]))
+  ): Resource[F, Resource[F, A]] = ofF({(_: Trace[F]) => rsrc}, size)(recycler).map(_.apply(Trace[F]))
 
   /**
    * A pooled resource (which is itself a managed resource).
@@ -56,7 +56,7 @@ object Pool {
    * @param recycler a cleanup/health-check to be done before elements are returned to the pool;
    *   yielding false here means the element should be freed and removed from the pool.
    */
-  def of[F[_]: Concurrent, A](
+  def ofF[F[_]: Concurrent, A](
     rsrc:  Trace[F] => Resource[F, A],
     size:  Int)(
     recycler: Recycler[F, A]

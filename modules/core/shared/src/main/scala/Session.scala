@@ -325,7 +325,7 @@ object Session {
     for {
       dc      <- Resource.eval(Describe.Cache.empty[F](commandCache, queryCache))
       sslOp   <- Resource.eval(ssl.toSSLNegotiationOptions(if (debug) logger.some else none))
-      pool    <- Pool.of({implicit T: Trace[F] => session(Network[F], sslOp, dc)}, max)(Recyclers.full)
+      pool    <- Pool.ofF({implicit T: Trace[F] => session(Network[F], sslOp, dc)}, max)(Recyclers.full)
     } yield pool
 
   }
