@@ -1,9 +1,9 @@
-ThisBuild / tlBaseVersion := "0.3"
+ThisBuild / tlBaseVersion := "0.4"
 
 // Our Scala versions.
-lazy val `scala-2.12` = "2.12.13"
+lazy val `scala-2.12` = "2.12.16"
 lazy val `scala-2.13` = "2.13.8"
-lazy val `scala-3.0`  = "3.1.1"
+lazy val `scala-3.0`  = "3.1.3"
 
 ThisBuild / scalaVersion       := `scala-2.13`
 ThisBuild / crossScalaVersions :=
@@ -17,7 +17,8 @@ ThisBuild / developers   := List(
 
 ThisBuild / tlCiReleaseBranches := Seq("main") // publish snapshits on `main`
 ThisBuild / tlSonatypeUseLegacyHost := false
-ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("8"))
+ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("11"))
+ThisBuild / tlJdkRelease := Some(8)
 
 lazy val setupCertAndDocker = Seq(
   WorkflowStep.Run(
@@ -62,26 +63,21 @@ ThisBuild / githubWorkflowAddedJobs +=
       )
   )
 
-// This is used in a couple places
-lazy val fs2Version = "3.2.4"
-lazy val natchezVersion = "0.1.6"
+// https://github.com/sbt/sbt/issues/6997
+ThisBuild / libraryDependencySchemes ++= Seq(
+  "org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always
+)
 
-// We do `evictionCheck` in CI
-inThisBuild(Seq(
-  evictionRules ++= Seq(
-    "org.typelevel" % "cats-*" % "semver-spec",
-    "org.scala-js" % "scalajs-*" % "semver-spec",
-    "org.portable-scala" % "portable-scala-reflect_*" % "semver-spec",
-    "io.github.cquiroz" % "scala-java-time_*" % "semver-spec",
-  )
-))
+// This is used in a couple places
+lazy val fs2Version = "3.2.14"
+lazy val natchezVersion = "0.1.6"
 
 // Global Settings
 lazy val commonSettings = Seq(
 
   // Resolvers
-  resolvers += Resolver.sonatypeRepo("public"),
-  resolvers += Resolver.sonatypeRepo("snapshots"),
+  resolvers ++= Resolver.sonatypeOssRepos("public"),
+  resolvers ++= Resolver.sonatypeOssRepos("snapshots"),
 
   // Headers
   headerMappings := headerMappings.value + (HeaderFileType.scala -> HeaderCommentStyle.cppStyleLineComment),
@@ -147,18 +143,18 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
   .settings(
     name := "skunk-core",
     description := "Tagless, non-blocking data access library for Postgres.",
-    resolvers   +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
+    scalacOptions ~= (_.filterNot(_ == "-source:3.0-migration")),
     libraryDependencies ++= Seq(
-      "org.typelevel"          %%% "cats-core"               % "2.7.0",
-      "org.typelevel"          %%% "cats-effect"             % "3.3.5",
+      "org.typelevel"          %%% "cats-core"               % "2.8.0",
+      "org.typelevel"          %%% "cats-effect"             % "3.3.14",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
-      "org.scodec"             %%% "scodec-bits"             % "1.1.30",
-      "org.scodec"             %%% "scodec-core"             % (if (tlIsScala3.value) "2.0.0" else "1.11.9"),
-      "org.scodec"             %%% "scodec-cats"             % "1.1.0",
+      "org.scodec"             %%% "scodec-bits"             % "1.1.34",
+      "org.scodec"             %%% "scodec-core"             % (if (tlIsScala3.value) "2.2.0" else "1.11.10"),
+      "org.scodec"             %%% "scodec-cats"             % "1.2.0",
       "org.tpolecat"           %%% "natchez-core"            % natchezVersion,
       "org.tpolecat"           %%% "sourcepos"               % "1.0.1",
-      "org.scala-lang.modules" %%% "scala-collection-compat" % "2.6.0",
+      "org.scala-lang.modules" %%% "scala-collection-compat" % "2.8.1",
     ) ++ Seq(
       "com.beachape"  %%% "enumeratum"   % "1.6.1",
     ).filterNot(_ => tlIsScala3.value)
@@ -166,9 +162,9 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
     libraryDependencies += "com.ongres.scram" % "client" % "2.1",
   ).jsSettings(
     libraryDependencies ++= Seq(
-      "com.armanbilge" %%% "saslprep" % "0.1.0",
-      "io.github.cquiroz" %%% "scala-java-time" % "2.3.0",
-      "io.github.cquiroz" %%% "locales-minimal-en_us-db" % "1.3.0"
+      "com.armanbilge" %%% "saslprep" % "0.1.1",
+      "io.github.cquiroz" %%% "scala-java-time" % "2.4.0",
+      "io.github.cquiroz" %%% "locales-minimal-en_us-db" % "1.4.1"
     ),
   )
 
@@ -180,7 +176,7 @@ lazy val refined = crossProject(JVMPlatform, JSPlatform)
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "eu.timepit" %%% "refined" % "0.9.28",
+      "eu.timepit" %%% "refined" % "0.9.29",
     )
   )
 
@@ -193,8 +189,8 @@ lazy val circe = crossProject(JVMPlatform, JSPlatform)
   .settings(
     name := "skunk-circe",
     libraryDependencies ++= Seq(
-      "io.circe" %%% "circe-core"   % "0.14.1",
-      "io.circe" %%% "circe-parser" % "0.14.1"
+      "io.circe" %%% "circe-core"   % "0.14.2",
+      "io.circe" %%% "circe-parser" % "0.14.2"
     )
   )
 
@@ -209,10 +205,10 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform)
     libraryDependencies ++= Seq(
       "org.scalameta"     %%% "munit"                   % "0.7.29",
       "org.scalameta"     % "junit-interface"           % "0.7.29",
-      "org.typelevel"     %%% "scalacheck-effect-munit" % "1.0.3",
+      "org.typelevel"     %%% "scalacheck-effect-munit" % "1.0.4",
       "org.typelevel"     %%% "munit-cats-effect-3"     % "1.0.7",
-      "org.typelevel"     %%% "cats-free"               % "2.7.0",
-      "org.typelevel"     %%% "cats-laws"               % "2.7.0",
+      "org.typelevel"     %%% "cats-free"               % "2.8.0",
+      "org.typelevel"     %%% "cats-laws"               % "2.8.0",
       "org.typelevel"     %%% "discipline-munit"        % "1.0.9",
     ) ++ Seq(
       "io.chrisdavenport" %%% "cats-time"               % "0.3.4",
