@@ -42,6 +42,13 @@ object Pool {
       """.stripMargin.trim.linesIterator.mkString(" "))
     )
 
+  // Preserved For Bincompat
+  private[util] def of[F[_]: Concurrent: Trace, A](
+    rsrc: Resource[F, A],
+    size:  Int)(
+    recycler: Recycler[F, A]
+  ): Resource[F, Resource[F, A]] = of({(_: Trace[F]) => rsrc}, size)(recycler).map(_.apply(Trace[F]))
+
   /**
    * A pooled resource (which is itself a managed resource).
    * @param rsrc the underlying resource to be pooled
