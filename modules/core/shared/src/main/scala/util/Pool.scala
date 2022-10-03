@@ -42,7 +42,8 @@ object Pool {
       """.stripMargin.trim.linesIterator.mkString(" "))
     )
 
-  // Preserved For Bincompat
+  // Preserved for previous use, and specifically simpler use for
+  // Trace systems that are universal rather than shorter scoped.
   def of[F[_]: Concurrent: Trace, A](
     rsrc: Resource[F, A],
     size:  Int)(
