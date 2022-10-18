@@ -94,6 +94,11 @@ trait Protocol[F[_]] {
   def startup(user: String, database: String, password: Option[String], parameters: Map[String, String]): F[Unit]
 
   /**
+   * Cleanup the session. This will close ay cached prepared statement
+   */
+  def cleanup:F[Unit]
+
+  /**
    * Signal representing the current transaction status as reported by `ReadyForQuery`. It's not
    * clear that this is a useful thing to expose.
    */
@@ -244,6 +249,9 @@ object Protocol {
 
         override def startup(user: String, database: String, password: Option[String], parameters: Map[String, String]): F[Unit] =
           protocol.Startup[F].apply(user, database, password, parameters)
+
+        override def cleanup: F[Unit] =
+          parseCache.value.values.flatMap(xs => xs.traverse_(protocol.Close[F].apply))
 
         override def transactionStatus: Signal[F, TransactionStatus] =
           bms.transactionStatus

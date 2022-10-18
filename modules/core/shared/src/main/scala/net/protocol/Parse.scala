@@ -38,7 +38,7 @@ object Parse {
             Resource.eval(TooManyParametersException(statement).raiseError[F, StatementId])
 
           case Right(os) =>
-            Resource.make {
+            Resource.eval {
               OptionT(cache.value.get(statement)).getOrElseF {
                 exchange("parse") {
                   for {
@@ -57,7 +57,7 @@ object Parse {
                   } yield id
                 }
               }
-            } { Close[F].apply }
+            }
 
           case Left(err) =>
             Resource.eval(UnknownTypeException(statement, err, ty.strategy).raiseError[F, StatementId])

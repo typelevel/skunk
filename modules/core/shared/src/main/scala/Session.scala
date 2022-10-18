@@ -188,6 +188,13 @@ trait Session[F[_]] {
    * the cache through this accessor.
    */
   def describeCache: Describe.Cache[F]
+  
+  /**
+   * Each session has access to a cache of all statements that have been parsed by the
+   * `Parse` protocol, which allows us to skip a network round-trip. Users can inspect and clear
+   * the cache through this accessor.
+   */
+  def parseCache: Parse.Cache[F]
 
 }
 
@@ -376,7 +383,7 @@ object Session {
       proto <- Protocol[F](host, port, debug, namer, socketGroup, socketOptions, sslOptions, describeCache, parseCache)
 >>>>>>> Add parse step caching + boilerplate
       _     <- Resource.eval(proto.startup(user, database, password, parameters))
-      sess  <- Resource.eval(fromProtocol(proto, namer, strategy))
+      sess  <- Resource.make(fromProtocol(proto, namer, strategy))(_ => proto.cleanup)
     } yield sess
 
   /**
@@ -451,6 +458,9 @@ object Session {
         override def describeCache: Describe.Cache[F] =
           proto.describeCache
 
+        override def parseCache: Parse.Cache[F] =
+          proto.parseCache
+
       }
     }
   }
@@ -507,6 +517,8 @@ object Session {
         override def unique[A](query: Query[Void,A]): G[A] = fk(outer.unique(query))
 
         override def describeCache: Describe.Cache[G] = outer.describeCache.mapK(fk)
+
+        override def parseCache: Parse.Cache[G] = outer.parseCache.mapK(fk)
 
       }
   }
