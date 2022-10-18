@@ -21,14 +21,14 @@ trait Prepare[F[_]] {
 
 object Prepare {
 
-  def apply[F[_]: Exchange: MessageSocket: Namer: Trace](describeCache: Describe.Cache[F])(
+  def apply[F[_]: Exchange: MessageSocket: Namer: Trace](describeCache: Describe.Cache[F], parseCache: Parse.Cache[F])(
     implicit ev: MonadError[F, Throwable]
   ): Prepare[F] =
     new Prepare[F] {
 
       override def apply[A](command: skunk.Command[A], ty: Typer): Resource[F, PreparedCommand[F, A]] =
         for {
-          id <- Parse[F].apply(command, ty)
+          id <- Parse[F](parseCache).apply(command, ty)
           _  <- Resource.eval(Describe[F](describeCache).apply(command, id, ty))
         } yield new PreparedCommand[F, A](id, command) { pc =>
           def bind(args: A, origin: Origin): Resource[F, CommandPortal[F, A]] =
@@ -42,7 +42,7 @@ object Prepare {
 
       override def apply[A, B](query: skunk.Query[A, B], ty: Typer): Resource[F, PreparedQuery[F, A, B]] =
         for {
-          id <- Parse[F].apply(query, ty)
+          id <- Parse[F](parseCache).apply(query, ty)
           rd <- Resource.eval(Describe[F](describeCache).apply(query, id, ty))
         } yield new PreparedQuery[F, A, B](id, query, rd) { pq =>
           def bind(args: A, origin: Origin): Resource[F, QueryPortal[F, A, B]] =

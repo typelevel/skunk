@@ -23,6 +23,7 @@ import skunk.data.TransactionIsolationLevel
 import skunk.data.TransactionAccessMode
 import skunk.net.protocol.Describe
 import scala.concurrent.duration.Duration
+import skunk.net.protocol.Parse
 
 /**
  * Represents a live connection to a Postgres database. Operations provided here are safe to use
@@ -277,11 +278,22 @@ object Session {
     socketOptions:   List[SocketOption] = Session.DefaultSocketOptions,
     commandCache: Int = 1024,
     queryCache:   Int = 1024,
+<<<<<<< HEAD
     readTimeout:  Duration = Duration.Inf,
   ): Resource[F, Resource[F, Session[F]]] = {
 
     def session(socketGroup: SocketGroup[F], sslOp: Option[SSLNegotiation.Options[F]], cache: Describe.Cache[F]): Resource[F, Session[F]] =
       fromSocketGroup[F](socketGroup, host, port, user, database, password, debug, strategy, socketOptions, sslOp, parameters, cache, readTimeout)
+=======
+    parseCache:   Int = 1024
+  ): Resource[F, Resource[F, Session[F]]] = {
+
+    def session(socketGroup: SocketGroup[F], sslOp: Option[SSLNegotiation.Options[F]], cache: Describe.Cache[F]): Resource[F, Session[F]] =
+      for {
+        pc <- Resource.eval(Parse.Cache.empty[F](parseCache))
+        s  <- fromSocketGroup[F](socketGroup, host, port, user, database, password, debug, strategy, socketOptions, sslOp, parameters, cache, pc)
+      } yield s
+>>>>>>> Add parse step caching + boilerplate
 
     val logger: String => F[Unit] = s => Console[F].println(s"TLS: $s")
 
@@ -311,7 +323,11 @@ object Session {
     parameters:   Map[String, String] = Session.DefaultConnectionParameters,
     commandCache: Int = 1024,
     queryCache:   Int = 1024,
+<<<<<<< HEAD
     readTimeout:  Duration = Duration.Inf,
+=======
+    parseCache:   Int = 1024
+>>>>>>> Add parse step caching + boilerplate
   ): Resource[F, Session[F]] =
     pooled(
       host         = host,
@@ -326,7 +342,11 @@ object Session {
       parameters   = parameters,
       commandCache = commandCache,
       queryCache   = queryCache,
+<<<<<<< HEAD
       readTimeout  = readTimeout
+=======
+      parseCache   = parseCache
+>>>>>>> Add parse step caching + boilerplate
     ).flatten
 
   def fromSocketGroup[F[_]: Temporal: Trace: Console](
@@ -342,11 +362,19 @@ object Session {
     sslOptions:   Option[SSLNegotiation.Options[F]],
     parameters:   Map[String, String],
     describeCache: Describe.Cache[F],
+<<<<<<< HEAD
     readTimeout:  Duration = Duration.Inf,
   ): Resource[F, Session[F]] =
     for {
       namer <- Resource.eval(Namer[F])
       proto <- Protocol[F](host, port, debug, namer, socketGroup, socketOptions, sslOptions, describeCache, readTimeout)
+=======
+    parseCache: Parse.Cache[F]
+  ): Resource[F, Session[F]] =
+    for {
+      namer <- Resource.eval(Namer[F])
+      proto <- Protocol[F](host, port, debug, namer, socketGroup, socketOptions, sslOptions, describeCache, parseCache)
+>>>>>>> Add parse step caching + boilerplate
       _     <- Resource.eval(proto.startup(user, database, password, parameters))
       sess  <- Resource.eval(fromProtocol(proto, namer, strategy))
     } yield sess

@@ -15,9 +15,10 @@ import skunk.util.{ Namer, Origin }
 import skunk.util.Typer
 import natchez.Trace
 import fs2.io.net.{ SocketGroup, SocketOption }
-import skunk.net.protocol.Exchange
 import skunk.net.protocol.Describe
 import scala.concurrent.duration.Duration
+import skunk.net.protocol.Exchange
+import skunk.net.protocol.Parse
 
 /**
  * Interface for a Postgres database, expressed through high-level operations that rely on exchange
@@ -100,6 +101,9 @@ trait Protocol[F[_]] {
 
   /** Cache for the `Describe` protocol. */
   def describeCache: Describe.Cache[F]
+  
+  /** Cache for the `Parse` protocol. */
+  def parseCache: Parse.Cache[F]
 
 }
 
@@ -197,17 +201,19 @@ object Protocol {
     socketOptions: List[SocketOption],
     sslOptions:   Option[SSLNegotiation.Options[F]],
     describeCache: Describe.Cache[F],
+    parseCache: Parse.Cache[F],
     readTimeout:  Duration
   ): Resource[F, Protocol[F]] =
     for {
       bms <- BufferedMessageSocket[F](host, port, 256, debug, sg, socketOptions, sslOptions, readTimeout) // TODO: should we expose the queue size?
-      p   <- Resource.eval(fromMessageSocket(bms, nam, describeCache))
+      p   <- Resource.eval(fromMessageSocket(bms, nam, describeCache, parseCache))
     } yield p
 
   def fromMessageSocket[F[_]: Concurrent: Trace](
     bms: BufferedMessageSocket[F],
     nam: Namer[F],
     dc:  Describe.Cache[F],
+    pc:  Parse.Cache[F]
   ): F[Protocol[F]] =
     Exchange[F].map { ex =>
       new Protocol[F] {
@@ -225,10 +231,10 @@ object Protocol {
           bms.parameters
 
         override def prepare[A](command: Command[A], ty: Typer): Resource[F, PreparedCommand[F, A]] =
-          protocol.Prepare[F](describeCache).apply(command, ty)
+          protocol.Prepare[F](describeCache, parseCache).apply(command, ty)
 
         override def prepare[A, B](query: Query[A, B], ty: Typer): Resource[F, PreparedQuery[F, A, B]] =
-          protocol.Prepare[F](describeCache).apply(query, ty)
+          protocol.Prepare[F](describeCache, parseCache).apply(query, ty)
 
         override def execute(command: Command[Void]): F[Completion] =
           protocol.Query[F].apply(command)
@@ -244,6 +250,9 @@ object Protocol {
 
         override val describeCache: Describe.Cache[F] =
           dc
+
+        override val parseCache: Parse.Cache[F] =
+          pc
 
       }
     }
