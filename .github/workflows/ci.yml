@@ -28,7 +28,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        scala: [2.12.16, 2.13.8, 3.1.3]
+        scala: [2.12.16, 2.13.10, 3.1.3]
         java: [temurin@11]
         project: [rootJS, rootJVM]
     runs-on: ${{ matrix.os }}
@@ -100,7 +100,7 @@ jobs:
         run: sbt 'project ${{ matrix.project }}' '++${{ matrix.scala }}' doc
 
       - name: Check Doc Site (2.13.8 JVM only)
-        if: matrix.scala == '2.13.8' && matrix.project == 'rootJVM'
+        if: matrix.scala == '2.13.10' && matrix.project == 'rootJVM'
         run: sbt 'project ${{ matrix.project }}' '++${{ matrix.scala }}' docs/makeSite
 
       - name: Make target directories
@@ -125,7 +125,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        scala: [2.13.8]
+        scala: [2.13.10]
         java: [temurin@11]
     runs-on: ${{ matrix.os }}
     steps:
@@ -241,7 +241,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        scala: [2.13.8]
+        scala: [2.13.10]
         java: [temurin@11]
     runs-on: ${{ matrix.os }}
     steps:
