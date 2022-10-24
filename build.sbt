@@ -132,7 +132,7 @@ lazy val commonSettings = Seq(
 
 lazy val skunk = tlCrossRootProject
   .settings(name := "skunk")
-  .aggregate(core, tests, circe, refined, example)
+  .aggregate(core, tests, circe, refined, example, `scala-xml`)
   .settings(commonSettings)
 
 lazy val core = crossProject(JVMPlatform, JSPlatform)
@@ -194,10 +194,26 @@ lazy val circe = crossProject(JVMPlatform, JSPlatform)
     )
   )
 
+lazy val `scala-xml` = project
+  .in(file("modules/scalaxml"))
+  .dependsOn(core.jvm)
+  .settings(
+    tlVersionIntroduced := List("2.12", "2.13", "3").map(_ -> "0.3.2").toMap
+  )
+  .enablePlugins(AutomateHeaderPlugin)
+  .settings(commonSettings)
+  .settings(
+    name := "skunk-scala-xml",
+    libraryDependencies ++= Seq(
+      "org.scala-lang.modules" %% "scala-xml" % "2.1.0"
+    )
+  )
+
 lazy val tests = crossProject(JVMPlatform, JSPlatform)
   .crossType(CrossType.Full)
   .in(file("modules/tests"))
   .dependsOn(core, circe)
+  .jvmConfigure(_.dependsOn(`scala-xml`))
   .enablePlugins(AutomateHeaderPlugin, NoPublishPlugin)
   .settings(commonSettings)
   .settings(
