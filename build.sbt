@@ -1,9 +1,9 @@
 ThisBuild / tlBaseVersion := "0.4"
 
 // Our Scala versions.
-lazy val `scala-2.12` = "2.12.13"
+lazy val `scala-2.12` = "2.12.16"
 lazy val `scala-2.13` = "2.13.8"
-lazy val `scala-3.0`  = "3.1.1"
+lazy val `scala-3.0`  = "3.1.3"
 
 ThisBuild / scalaVersion       := `scala-2.13`
 ThisBuild / crossScalaVersions :=
@@ -17,7 +17,8 @@ ThisBuild / developers   := List(
 
 ThisBuild / tlCiReleaseBranches := Seq("main") // publish snapshits on `main`
 ThisBuild / tlSonatypeUseLegacyHost := false
-ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("8"))
+ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("11"))
+ThisBuild / tlJdkRelease := Some(8)
 
 lazy val setupCertAndDocker = Seq(
   WorkflowStep.Run(
@@ -77,26 +78,21 @@ ThisBuild / githubWorkflowAddedJobs +=
 
 ThisBuild / resolvers ++= Resolver.sonatypeOssRepos("snapshots")
 
+// https://github.com/sbt/sbt/issues/6997
+ThisBuild / libraryDependencySchemes ++= Seq(
+  "org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always
+)
+
 // This is used in a couple places
 lazy val fs2Version = "3.2.14-76-9e561b4-SNAPSHOT"
 lazy val natchezVersion = "0.1.6-SNAPSHOT"
-
-// We do `evictionCheck` in CI
-inThisBuild(Seq(
-  evictionRules ++= Seq(
-    "org.typelevel" % "cats-*" % "semver-spec",
-    "org.scala-js" % "scalajs-*" % "semver-spec",
-    "org.portable-scala" % "portable-scala-reflect_*" % "semver-spec",
-    "io.github.cquiroz" % "scala-java-time_*" % "semver-spec",
-  )
-))
 
 // Global Settings
 lazy val commonSettings = Seq(
 
   // Resolvers
-  resolvers += Resolver.sonatypeRepo("public"),
-  resolvers += Resolver.sonatypeRepo("snapshots"),
+  resolvers ++= Resolver.sonatypeOssRepos("public"),
+  resolvers ++= Resolver.sonatypeOssRepos("snapshots"),
 
   // Headers
   headerMappings := headerMappings.value + (HeaderFileType.scala -> HeaderCommentStyle.cppStyleLineComment),
@@ -162,7 +158,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .settings(
     name := "skunk-core",
     description := "Tagless, non-blocking data access library for Postgres.",
-    resolvers   +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
+    scalacOptions ~= (_.filterNot(_ == "-source:3.0-migration")),
     libraryDependencies ++= Seq(
       "org.typelevel"          %%% "cats-core"               % "2.8.0",
       "org.typelevel"          %%% "cats-effect"             % "3.3.14-5-4591364",
@@ -171,7 +167,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.scodec"             %%% "scodec-bits"             % "1.1.34",
       "org.scodec"             %%% "scodec-core"             % (if (tlIsScala3.value) "2.2.0" else "1.11.10"),
       "org.scodec"             %%% "scodec-cats"             % "1.2.0",
-      "com.armanbilge"           %%% "natchez-core"            % natchezVersion,
+      "org.tpolecat"           %%% "natchez-core"            % natchezVersion,
       "com.armanbilge"           %%% "sourcepos"               % "1.0.2-SNAPSHOT",
       "org.scala-lang.modules" %%% "scala-collection-compat" % "2.8.1",
     ) ++ Seq(
@@ -208,8 +204,8 @@ lazy val circe = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .settings(
     name := "skunk-circe",
     libraryDependencies ++= Seq(
-      "com.armanbilge" %%% "circe-core"   % "0.14.2-158-f15be0d",
-      "com.armanbilge" %%% "circe-parser" % "0.14.2-158-f15be0d"
+      "io.circe" %%% "circe-core"   % "0.14.2",
+      "io.circe" %%% "circe-parser" % "0.14.2"
     )
   )
 

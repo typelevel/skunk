@@ -14,7 +14,7 @@ import scodec.codecs._
 import scodec.interop.cats._
 import skunk.net.message.{ Sync => _, _ }
 import skunk.util.Origin
-import fs2.io.net.SocketGroup
+import fs2.io.net.{ SocketGroup, SocketOption }
 
 /** A higher-level `BitVectorSocket` that speaks in terms of `Message`. */
 trait MessageSocket[F[_]] {
@@ -91,10 +91,11 @@ object MessageSocket {
     port:         Int,
     debug:        Boolean,
     sg:           SocketGroup[F],
+    socketOptions: List[SocketOption],
     sslOptions:   Option[SSLNegotiation.Options[F]],
   ): Resource[F, MessageSocket[F]] =
     for {
-      bvs <- BitVectorSocket(host, port, sg, sslOptions)
+      bvs <- BitVectorSocket(host, port, sg, socketOptions, sslOptions)
       ms  <- Resource.eval(fromBitVectorSocket(bvs, debug))
     } yield ms
 
