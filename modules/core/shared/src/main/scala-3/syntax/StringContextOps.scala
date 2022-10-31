@@ -71,7 +71,7 @@ object StringContextOps {
 
     // The interpolated args are a list of size `parts.length - 1`. We also just know this.
     val args: List[Expr[Any]] = {
-      val Varargs(args) = argsExpr
+      val Varargs(args) = argsExpr: @unchecked
       args.toList
     }
 
