@@ -20,6 +20,9 @@ ThisBuild / tlSonatypeUseLegacyHost := false
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("11"))
 ThisBuild / tlJdkRelease := Some(8)
 
+ThisBuild / githubWorkflowBuildPreamble ++= nativeBrewInstallWorkflowSteps.value
+ThisBuild / nativeBrewInstallCond := Some("matrix.project == 'rootNative'")
+
 lazy val setupCertAndDocker = Seq(
   WorkflowStep.Run(
     commands = List("chmod 600 world/server.key", "sudo chown 999 world/server.key"),
@@ -36,15 +39,7 @@ val isLinux = {
   osName.exists(_.toLowerCase().contains("linux"))
 }
 
-lazy val installNativeDeps = Seq(
-  WorkflowStep.Run(
-    List("brew install utf8proc s2n"),
-    name = Some("Install utf8proc and s2n"),
-    cond = Some("startsWith(matrix.project, 'rootNative')")
-  )
-)
-
-ThisBuild / githubWorkflowBuildPreamble ++= installNativeDeps ++ setupCertAndDocker
+ThisBuild / githubWorkflowBuildPreamble ++= setupCertAndDocker
 ThisBuild / githubWorkflowBuild ~= { steps =>
   WorkflowStep.Sbt(
     commands = List("headerCheckAll"),
@@ -232,20 +227,11 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .jsSettings(
     Test / scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.CommonJSModule)),
   )
+  .nativeEnablePlugins(ScalaNativeBrewedConfigPlugin)
   .nativeSettings(
     libraryDependencies += "com.armanbilge" %%% "epollcat" % "0.0-ab1026e",
-    nativeConfig ~= { c =>
-      if (isLinux) { // brew-installed s2n
-        c.withLinkingOptions(c.linkingOptions :+ "-L/home/linuxbrew/.linuxbrew/lib")
-      } else c
-    },
-    Test / envVars ++= {
-      val ldLibPath =
-        if (isLinux)
-          Map("LD_LIBRARY_PATH" -> "/home/linuxbrew/.linuxbrew/lib")
-        else Map.empty
-      Map("S2N_DONT_MLOCK" -> "1") ++ ldLibPath
-    }
+    Test / nativeBrewFormulas ++= Set("s2n", "utf8proc"),
+    Test / envVars ++= Map("S2N_DONT_MLOCK" -> "1")
   )
 
 lazy val example = project
