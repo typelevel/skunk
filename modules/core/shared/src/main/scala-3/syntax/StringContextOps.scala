@@ -61,77 +61,79 @@ object StringContextOps {
     // Our prefix looks like this, and the stringy parts of the interpolation will be a non-empty
     // list of string expressions. We just know this because of the way interpolator desugaring
     // works. If it doesn't work something bad has happened.
-    val strings: List[String] =
+    val strings: Either[Expr[Any], List[String]] =
       sc match {
-        case '{ StringContext(${Varargs(Exprs(parts))}: _*) } => parts.toList
+        case '{ StringContext(${Varargs(Exprs(parts))}: _*) } => Right(parts.toList)
         case _ =>
-          report.error(s"StringContext arguments must be literals.")
-          return '{???}
+          Left('{ compiletime.error(s"StringContext arguments must be literals.") })
       }
 
     // The interpolated args are a list of size `parts.length - 1`. We also just know this.
     val args: List[Expr[Any]] = {
-      val Varargs(args) = argsExpr: @unchecked
+      val Varargs(args) = argsExpr: @unchecked // we just know this. right?
       args.toList
     }
 
     // Weave the strings and args together, and accumulate a single encoder.
-    val lastPart: Expr[Part] = '{Str(${Expr(strings.last)})}
-    val (parts, encoders): (List[Expr[Part]], List[Expr[Any]]) =
-      (strings zip args).foldRight((List[Expr[Part]](lastPart), List.empty[Expr[Any]])) {
+    val partsEncoders: Either[Expr[Any], (List[Expr[Part]], List[Expr[Any]])] = strings.flatMap { strings =>
+      val lastPart: Expr[Part] = '{Str(${Expr(strings.last)})}
+      (strings zip args).reverse.foldLeftM((List[Expr[Part]](lastPart), List.empty[Expr[Any]])) {
 
-      case ((str, arg), (parts, es)) =>
+        case ((parts, es), (str, arg)) =>
 
-        if (str.endsWith("#")) {
+          if (str.endsWith("#")) {
 
-          // Interpolations like "...#$foo ..." require `foo` to be a String.
-          arg match {
-            case '{ $s: String } => ('{Str(${Expr(str.dropRight(1))})} :: '{Str($s)} :: parts, es)
-            case '{ $a: t }     =>
+            // Interpolations like "...#$foo ..." require `foo` to be a String.
+            arg match {
+              case '{ $s: String } => Right(('{Str(${Expr(str.dropRight(1))})} :: '{Str($s)} :: parts, es))
+              case '{ $a: t }     =>
               report.error(s"Found ${Type.show[t]}, expected String.}", a)
-              return '{???} ///
+              Left('{ compiletime.error("Expected String") }) ///
           }
 
-        } else {
+          } else {
 
-          arg match {
+            arg match {
 
-            // The interpolated thing is an Encoder.
-            case '{ $e: Encoder[t] } =>
-              val newParts    = '{Str(${Expr(str)})} :: '{Par($e.sql)} :: parts
-              val newEncoders = '{ $e : Encoder[t] } :: es
-              (newParts, newEncoders)
+              // The interpolated thing is an Encoder.
+              case '{ $e: Encoder[t] } =>
+                val newParts    = '{Str(${Expr(str)})} :: '{Par($e.sql)} :: parts
+                val newEncoders = '{ $e : Encoder[t] } :: es
+                Right((newParts, newEncoders))
 
-            // The interpolated thing is a Fragment[Void]
-            case '{ $f: Fragment[Void] } =>
-              val newParts    = '{Str(${Expr(str)})} :: '{Emb($f.parts)} :: parts
-              (newParts, es)
+              // The interpolated thing is a Fragment[Void]
+              case '{ $f: Fragment[Void] } =>
+                val newParts    = '{Str(${Expr(str)})} :: '{Emb($f.parts)} :: parts
+                Right((newParts, es))
 
-            // The interpolated thing is a Fragment[A] for some A other than Void
-            case '{ $f: Fragment[a] } =>
-              val newParts    = '{Str(${Expr(str)})} :: '{Emb($f.parts)} :: parts
-              val newEncoders = '{ $f.encoder : Encoder[a] } :: es
-              (newParts, newEncoders)
+              // The interpolated thing is a Fragment[A] for some A other than Void
+              case '{ $f: Fragment[a] } =>
+                val newParts    = '{Str(${Expr(str)})} :: '{Emb($f.parts)} :: parts
+                val newEncoders = '{ $f.encoder : Encoder[a] } :: es
+                Right((newParts, newEncoders))
 
-            case '{ $a: t } =>
+              case '{ $a: t } =>
               report.error(s"Found ${Type.show[t]}, expected String, Encoder, or Fragment.", a)
-              return '{???}
+              Left('{compiletime.error("Expected String, Encoder, or Fragment.")})
+
+            }
 
           }
 
+      }
+    }
+
+    partsEncoders.map { (parts, encoders) =>
+      val finalEnc: Expr[Any] =
+        if (encoders.isEmpty) '{ Void.codec }
+        else encoders.reduceLeft {
+          case ('{$a : Encoder[a]}, '{ $b : Encoder[b] }) => '{$a ~ $b}
         }
 
-    }
-
-    val finalEnc: Expr[Any] =
-      if (encoders.isEmpty) '{ Void.codec }
-      else encoders.reduceLeft {
-        case ('{$a : Encoder[a]}, '{ $b : Encoder[b] }) => '{$a ~ $b}
+      finalEnc match {
+        case '{ $e : Encoder[t] } => '{ fragmentFromParts[t](${Expr.ofList(parts)}, $e, $origin) }
       }
-
-    finalEnc match {
-      case '{ $e : Encoder[t] } => '{ fragmentFromParts[t](${Expr.ofList(parts)}, $e, $origin) }
-    }
+    }.merge
 
   }
 

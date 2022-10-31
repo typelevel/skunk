@@ -220,16 +220,26 @@ jobs:
           tar xf targets.tar
           rm targets.tar
 
+<<<<<<< HEAD
       - name: Download target directories (2.13.8, rootNative)
         uses: actions/download-artifact@v2
         with:
           name: target-${{ matrix.os }}-${{ matrix.java }}-2.13.8-rootNative
 
       - name: Inflate target directories (2.13.8, rootNative)
+=======
+      - name: Download target directories (3.2.0, rootJS)
+        uses: actions/download-artifact@v2
+        with:
+          name: target-${{ matrix.os }}-${{ matrix.java }}-3.2.0-rootJS
+
+      - name: Inflate target directories (3.2.0, rootJS)
+>>>>>>> update/scala3-library-3.2.0
         run: |
           tar xf targets.tar
           rm targets.tar
 
+<<<<<<< HEAD
       - name: Download target directories (3.2.0, rootJS)
         uses: actions/download-artifact@v2
         with:
@@ -256,6 +266,14 @@ jobs:
           name: target-${{ matrix.os }}-${{ matrix.java }}-3.2.0-rootNative
 
       - name: Inflate target directories (3.2.0, rootNative)
+=======
+      - name: Download target directories (3.2.0, rootJVM)
+        uses: actions/download-artifact@v2
+        with:
+          name: target-${{ matrix.os }}-${{ matrix.java }}-3.2.0-rootJVM
+
+      - name: Inflate target directories (3.2.0, rootJVM)
+>>>>>>> update/scala3-library-3.2.0
         run: |
           tar xf targets.tar
           rm targets.tar
