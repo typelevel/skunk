@@ -84,8 +84,8 @@ ThisBuild / libraryDependencySchemes ++= Seq(
 )
 
 // This is used in a couple places
-lazy val fs2Version = "3.2.14-76-9e561b4-SNAPSHOT"
-lazy val natchezVersion = "0.1.6-SNAPSHOT"
+lazy val fs2Version = "3.3.0"
+lazy val natchezVersion = "0.1.6-269-2b28bcd-SNAPSHOT"
 
 // Global Settings
 lazy val commonSettings = Seq(
@@ -225,7 +225,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.typelevel"     %%% "cats-free"               % "2.8.0",
       "org.typelevel"     %%% "cats-laws"               % "2.8.0",
       "org.typelevel"     %%% "discipline-munit"        % "2.0.0-M3",
-      "org.typelevel"     %%% "cats-time"               % "0.5.0-116-9b15b89-SNAPSHOT",
+      "org.typelevel"     %%% "cats-time"               % "0.5.0-144-8b56ffa-SNAPSHOT",
     ),
     testFrameworks += new TestFramework("munit.Framework")
   )
