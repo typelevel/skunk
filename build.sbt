@@ -107,36 +107,12 @@ lazy val commonSettings = Seq(
     "-sourcepath", (LocalRootProject / baseDirectory).value.getAbsolutePath,
     "-doc-source-url", "https://github.com/tpolecat/skunk/blob/v" + version.value + "€{FILE_PATH}.scala",
   ),
-  libraryDependencies ++= Seq(
-    compilerPlugin("org.typelevel" %% "kind-projector" % "0.13.2" cross CrossVersion.full),
-  ).filterNot(_ => tlIsScala3.value),
 
   // Coverage Exclusions
   coverageExcludedPackages := "ffstest.*;tests.*;example.*;natchez.http4s.*",
 
   // uncomment in case of emergency
   // scalacOptions ++= { if (scalaVersion.value.startsWith("3.")) Seq("-source:3.0-migration") else Nil },
-
-  // Add some more source directories
-  Compile / unmanagedSourceDirectories ++= {
-    val sourceDir = (Compile / sourceDirectory).value
-    CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((3, _))  => Seq(sourceDir / "scala-2.13+", file(sourceDir.getPath.replaceFirst("jvm", "shared").replaceFirst("js", "shared").replaceFirst("native", "shared")) / "scala-2.13+")
-      case Some((2, 12)) => Seq()
-      case Some((2, _))  => Seq(sourceDir / "scala-2.13+", file(sourceDir.getPath.replaceFirst("jvm", "shared").replaceFirst("js", "shared").replaceFirst("native", "shared")) / "scala-2.13+")
-      case _             => Seq()
-    }
-  },
-
-
-  // dottydoc really doesn't work at all right now
-  Compile / doc / sources := {
-    val old = (Compile / doc / sources).value
-    if (scalaVersion.value.startsWith("3."))
-      Seq()
-    else
-      old
-  },
 
 )
 
