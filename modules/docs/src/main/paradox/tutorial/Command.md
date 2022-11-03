@@ -280,7 +280,7 @@ object CommandExample extends IOApp {
 
 Running this program yields the following.
 
-```scala mdoc:passthrough
+```scala mdoc:compile-only
 println("```")
 import skunk.mdoc._
 CommandExample.run(Nil).unsafeRunSyncWithRedirect()

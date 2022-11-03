@@ -313,7 +313,7 @@ object QueryExample extends IOApp {
 
 Running this program yields the following.
 
-```scala mdoc:passthrough
+```scala mdoc:compile-only
 println("```")
 import skunk.mdoc._
 QueryExample.run(Nil).unsafeRunSyncWithRedirect()
@@ -404,7 +404,7 @@ object QueryExample2 extends IOApp {
 
 Running this program yields the same output as above.
 
-```scala mdoc:passthrough
+```scala mdoc:compile-only
 println("```")
 import skunk.mdoc._
 QueryExample2.run(Nil).unsafeRunSyncWithRedirect()
