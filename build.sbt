@@ -2,8 +2,8 @@ ThisBuild / tlBaseVersion := "0.4"
 
 // Our Scala versions.
 lazy val `scala-2.12` = "2.12.17"
-lazy val `scala-2.13` = "2.13.8"
-lazy val `scala-3.0`  = "3.1.3"
+lazy val `scala-2.13` = "2.13.10"
+lazy val `scala-3.0`  = "3.2.0"
 
 ThisBuild / scalaVersion       := `scala-2.13`
 ThisBuild / crossScalaVersions :=
@@ -69,7 +69,7 @@ ThisBuild / libraryDependencySchemes ++= Seq(
 )
 
 // This is used in a couple places
-lazy val fs2Version = "3.2.14"
+lazy val fs2Version = "3.3.0"
 lazy val natchezVersion = "0.1.6"
 
 // Global Settings
@@ -176,7 +176,7 @@ lazy val refined = crossProject(JVMPlatform, JSPlatform)
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "eu.timepit" %%% "refined" % "0.9.29",
+      "eu.timepit" %%% "refined" % "0.10.1",
     )
   )
 
@@ -189,8 +189,8 @@ lazy val circe = crossProject(JVMPlatform, JSPlatform)
   .settings(
     name := "skunk-circe",
     libraryDependencies ++= Seq(
-      "io.circe" %%% "circe-core"   % "0.14.2",
-      "io.circe" %%% "circe-parser" % "0.14.2"
+      "io.circe" %%% "circe-core"   % "0.14.3",
+      "io.circe" %%% "circe-parser" % "0.14.3"
     )
   )
 
