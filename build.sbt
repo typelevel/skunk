@@ -145,7 +145,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
     description := "Tagless, non-blocking data access library for Postgres.",
     scalacOptions ~= (_.filterNot(_ == "-source:3.0-migration")),
     libraryDependencies ++= Seq(
-      "org.typelevel"          %%% "cats-core"               % "2.8.0",
+      "org.typelevel"          %%% "cats-core"               % "2.9.0",
       "org.typelevel"          %%% "cats-effect"             % "3.3.14",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
@@ -207,8 +207,8 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform)
       "org.scalameta"     % "junit-interface"           % "0.7.29",
       "org.typelevel"     %%% "scalacheck-effect-munit" % "1.0.4",
       "org.typelevel"     %%% "munit-cats-effect-3"     % "1.0.7",
-      "org.typelevel"     %%% "cats-free"               % "2.8.0",
-      "org.typelevel"     %%% "cats-laws"               % "2.8.0",
+      "org.typelevel"     %%% "cats-free"               % "2.9.0",
+      "org.typelevel"     %%% "cats-laws"               % "2.9.0",
       "org.typelevel"     %%% "discipline-munit"        % "1.0.9",
     ) ++ Seq(
       "io.chrisdavenport" %%% "cats-time"               % "0.3.4",
