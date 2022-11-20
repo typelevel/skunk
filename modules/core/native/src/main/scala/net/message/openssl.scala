@@ -4,14 +4,12 @@
 
 package skunk.net.message
 
-import scala.annotation.nowarn
 import scala.scalanative.unsafe._
 
 @link("crypto")
 @extern
-@nowarn
 private[message] object openssl {
-  
+
   final val EVP_MAX_MD_SIZE = 64
 
   type EVP_MD

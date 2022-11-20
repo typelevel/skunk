@@ -5,7 +5,7 @@
 package skunk
 
 import cats._
-import cats.effect._
+import cats.effect.Resource
 import cats.syntax.all._
 import fs2.io.net.Network
 import fs2.io.net.tls.TLSContext

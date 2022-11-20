@@ -5,7 +5,7 @@
 package skunk
 
 import cats._
-import cats.effect._
+import cats.effect.Resource
 import java.nio.file.Path
 import java.security.KeyStore
 import javax.net.ssl.SSLContext

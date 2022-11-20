@@ -1,9 +1,9 @@
 ThisBuild / tlBaseVersion := "0.4"
 
 // Our Scala versions.
-lazy val `scala-2.12` = "2.12.16"
-lazy val `scala-2.13` = "2.13.8"
-lazy val `scala-3.0`  = "3.2.0"
+lazy val `scala-2.12` = "2.12.17"
+lazy val `scala-2.13` = "2.13.10"
+lazy val `scala-3.0`  = "3.2.1"
 
 ThisBuild / scalaVersion       := `scala-2.13`
 ThisBuild / crossScalaVersions :=
@@ -80,8 +80,8 @@ ThisBuild / libraryDependencySchemes ++= Seq(
 )
 
 // This is used in a couple places
-lazy val fs2Version = "3.3.0"
-lazy val natchezVersion = "0.1.6-269-2b28bcd-SNAPSHOT"
+lazy val fs2Version = "3.4.0"
+lazy val natchezVersion = "0.2.0"
 
 // Global Settings
 lazy val commonSettings = Seq(
@@ -132,8 +132,8 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     description := "Tagless, non-blocking data access library for Postgres.",
     scalacOptions ~= (_.filterNot(_ == "-source:3.0-migration")),
     libraryDependencies ++= Seq(
-      "org.typelevel"          %%% "cats-core"               % "2.8.0",
-      "org.typelevel"          %%% "cats-effect"             % "3.3.14-5-4591364",
+      "org.typelevel"          %%% "cats-core"               % "2.9.0",
+      "org.typelevel"          %%% "cats-effect"             % "3.4.1",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
       "org.scodec"             %%% "scodec-bits"             % "1.1.34",
@@ -192,12 +192,12 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     libraryDependencies ++= Seq(
       "org.scalameta"     %%% "munit"                   % "1.0.0-M6",
       "org.scalameta"     % "junit-interface"           % "1.0.0-M6",
-      "org.typelevel"     %%% "scalacheck-effect-munit" % "2.0-9366e44",
-      "org.typelevel"     %%% "munit-cats-effect"       % "2.0-5e03bfc",
-      "org.typelevel"     %%% "cats-free"               % "2.8.0",
-      "org.typelevel"     %%% "cats-laws"               % "2.8.0",
+      "org.typelevel"     %%% "scalacheck-effect-munit" % "2.0.0-M2",
+      "org.typelevel"     %%% "munit-cats-effect"       % "2.0.0-M3",
+      "org.typelevel"     %%% "cats-free"               % "2.9.0",
+      "org.typelevel"     %%% "cats-laws"               % "2.9.0",
       "org.typelevel"     %%% "discipline-munit"        % "2.0.0-M3",
-      "org.typelevel"     %%% "cats-time"               % "0.5.0-144-8b56ffa-SNAPSHOT",
+      "org.typelevel"     %%% "cats-time"               % "0.5.1",
     ),
     testFrameworks += new TestFramework("munit.Framework")
   )
@@ -218,8 +218,8 @@ lazy val example = project
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "org.tpolecat"  %%% "natchez-honeycomb"   % "0.1.6",
-      "org.tpolecat"  %%% "natchez-jaeger"      % "0.1.6",
+      "org.tpolecat"  %%% "natchez-honeycomb"   % natchezVersion,
+      "org.tpolecat"  %%% "natchez-jaeger"      % natchezVersion,
     )
     // ) ++ Seq(
     //   "org.http4s"    %%% "http4s-dsl"          % "0.21.22",
@@ -260,7 +260,7 @@ lazy val docs = project
     makeSite := makeSite.dependsOn(mdoc.toTask("")).value,
     mdocExtraArguments := Seq("--no-link-hygiene"), // paradox handles this
     libraryDependencies ++= Seq(
-      "org.tpolecat"  %%% "natchez-jaeger" % "0.1.6",
+      "org.tpolecat"  %%% "natchez-jaeger" % natchezVersion,
     )
 )
 
