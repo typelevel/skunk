@@ -35,11 +35,6 @@ lazy val setupCertAndDocker = Seq(
   )
 )
 
-val isLinux = {
-  val osName = Option(System.getProperty("os.name"))
-  osName.exists(_.toLowerCase().contains("linux"))
-}
-
 ThisBuild / githubWorkflowBuildPreamble ++= setupCertAndDocker
 ThisBuild / githubWorkflowBuild ~= { steps =>
   WorkflowStep.Sbt(
@@ -71,8 +66,6 @@ ThisBuild / githubWorkflowAddedJobs +=
         )
       )
   )
-
-ThisBuild / resolvers ++= Resolver.sonatypeOssRepos("snapshots")
 
 // https://github.com/sbt/sbt/issues/6997
 ThisBuild / libraryDependencySchemes ++= Seq(
