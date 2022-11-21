@@ -253,6 +253,6 @@ class StartupTest extends ffstest.FTest {
       host     = "blergh",
       user     = "bob",
       database = "nobody cares",
-    ).use(_ => IO.unit).assertFailsWith[UnknownHostException]
+    ).use(_ => IO.unit).assertFailsWith[IOException] // ideally an `UnknownHostException`
   }
 }
