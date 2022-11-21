@@ -140,7 +140,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.scodec"             %%% "scodec-core"             % (if (tlIsScala3.value) "2.2.0" else "1.11.10"),
       "org.scodec"             %%% "scodec-cats"             % "1.2.0",
       "org.tpolecat"           %%% "natchez-core"            % natchezVersion,
-      "com.armanbilge"           %%% "sourcepos"               % "1.0.2-SNAPSHOT",
+      "org.tpolecat"           %%% "sourcepos"               % "1.1.0",
       "org.scala-lang.modules" %%% "scala-collection-compat" % "2.8.1",
     )
   ).jvmSettings(
