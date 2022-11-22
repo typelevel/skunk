@@ -153,7 +153,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
       "org.scodec"             %%% "scodec-core"             % (if (tlIsScala3.value) "2.2.0" else "1.11.10"),
       "org.scodec"             %%% "scodec-cats"             % "1.2.0",
       "org.tpolecat"           %%% "natchez-core"            % natchezVersion,
-      "org.tpolecat"           %%% "sourcepos"               % "1.0.1",
+      "org.tpolecat"           %%% "sourcepos"               % "1.1.0",
       "org.scala-lang.modules" %%% "scala-collection-compat" % "2.8.1",
     ) ++ Seq(
       "com.beachape"  %%% "enumeratum"   % "1.6.1",
