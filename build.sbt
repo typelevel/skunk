@@ -17,8 +17,12 @@ ThisBuild / developers   := List(
 
 ThisBuild / tlCiReleaseBranches := Seq("main") // publish snapshits on `main`
 ThisBuild / tlSonatypeUseLegacyHost := false
+ThisBuild / githubWorkflowOSes := Seq("ubuntu-22.04")
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("11"))
 ThisBuild / tlJdkRelease := Some(8)
+
+ThisBuild / githubWorkflowBuildPreamble ++= nativeBrewInstallWorkflowSteps.value
+ThisBuild / nativeBrewInstallCond := Some("matrix.project == 'rootNative'")
 
 lazy val setupCertAndDocker = Seq(
   WorkflowStep.Run(
@@ -69,8 +73,8 @@ ThisBuild / libraryDependencySchemes ++= Seq(
 )
 
 // This is used in a couple places
-lazy val fs2Version = "3.3.0"
-lazy val natchezVersion = "0.1.6"
+lazy val fs2Version = "3.4.0"
+lazy val natchezVersion = "0.2.2"
 
 // Global Settings
 lazy val commonSettings = Seq(
@@ -97,36 +101,12 @@ lazy val commonSettings = Seq(
     "-sourcepath", (LocalRootProject / baseDirectory).value.getAbsolutePath,
     "-doc-source-url", "https://github.com/tpolecat/skunk/blob/v" + version.value + "€{FILE_PATH}.scala",
   ),
-  libraryDependencies ++= Seq(
-    compilerPlugin("org.typelevel" %% "kind-projector" % "0.13.2" cross CrossVersion.full),
-  ).filterNot(_ => tlIsScala3.value),
 
   // Coverage Exclusions
   coverageExcludedPackages := "ffstest.*;tests.*;example.*;natchez.http4s.*",
 
   // uncomment in case of emergency
   // scalacOptions ++= { if (scalaVersion.value.startsWith("3.")) Seq("-source:3.0-migration") else Nil },
-
-  // Add some more source directories
-  Compile / unmanagedSourceDirectories ++= {
-    val sourceDir = (Compile / sourceDirectory).value
-    CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((3, _))  => Seq(sourceDir / "scala-2.13+", file(sourceDir.getPath.replaceFirst("jvm", "shared").replaceFirst("js", "shared")) / "scala-2.13+")
-      case Some((2, 12)) => Seq()
-      case Some((2, _))  => Seq(sourceDir / "scala-2.13+", file(sourceDir.getPath.replaceFirst("jvm", "shared").replaceFirst("js", "shared")) / "scala-2.13+")
-      case _             => Seq()
-    }
-  },
-
-
-  // dottydoc really doesn't work at all right now
-  Compile / doc / sources := {
-    val old = (Compile / doc / sources).value
-    if (scalaVersion.value.startsWith("3."))
-      Seq()
-    else
-      old
-  },
 
 )
 
@@ -135,7 +115,7 @@ lazy val skunk = tlCrossRootProject
   .aggregate(core, tests, circe, refined, example)
   .settings(commonSettings)
 
-lazy val core = crossProject(JVMPlatform, JSPlatform)
+lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .crossType(CrossType.Full)
   .in(file("modules/core"))
   .enablePlugins(AutomateHeaderPlugin)
@@ -153,14 +133,18 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
       "org.scodec"             %%% "scodec-core"             % (if (tlIsScala3.value) "2.2.0" else "1.11.10"),
       "org.scodec"             %%% "scodec-cats"             % "1.2.0",
       "org.tpolecat"           %%% "natchez-core"            % natchezVersion,
-      "org.tpolecat"           %%% "sourcepos"               % "1.0.1",
+      "org.tpolecat"           %%% "sourcepos"               % "1.1.0",
       "org.scala-lang.modules" %%% "scala-collection-compat" % "2.8.1",
-    ) ++ Seq(
-      "com.beachape"  %%% "enumeratum"   % "1.6.1",
-    ).filterNot(_ => tlIsScala3.value)
+    )
   ).jvmSettings(
     libraryDependencies += "com.ongres.scram" % "client" % "2.1",
-  ).jsSettings(
+  )
+  .platformsSettings(JVMPlatform, JSPlatform)(
+    libraryDependencies ++= Seq(
+      "com.beachape"  %%% "enumeratum"   % "1.6.1",
+    ).filterNot(_ => tlIsScala3.value)
+  )
+  .platformsSettings(JSPlatform, NativePlatform)(
     libraryDependencies ++= Seq(
       "com.armanbilge" %%% "saslprep" % "0.1.1",
       "io.github.cquiroz" %%% "scala-java-time" % "2.4.0",
@@ -168,7 +152,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
     ),
   )
 
-lazy val refined = crossProject(JVMPlatform, JSPlatform)
+lazy val refined = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .crossType(CrossType.Pure)
   .in(file("modules/refined"))
   .dependsOn(core)
@@ -180,7 +164,7 @@ lazy val refined = crossProject(JVMPlatform, JSPlatform)
     )
   )
 
-lazy val circe = crossProject(JVMPlatform, JSPlatform)
+lazy val circe = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .crossType(CrossType.Pure)
   .in(file("modules/circe"))
   .dependsOn(core)
@@ -194,7 +178,7 @@ lazy val circe = crossProject(JVMPlatform, JSPlatform)
     )
   )
 
-lazy val tests = crossProject(JVMPlatform, JSPlatform)
+lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .crossType(CrossType.Full)
   .in(file("modules/tests"))
   .dependsOn(core, circe)
@@ -203,20 +187,25 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform)
   .settings(
     scalacOptions  -= "-Xfatal-warnings",
     libraryDependencies ++= Seq(
-      "org.scalameta"     %%% "munit"                   % "0.7.29",
-      "org.scalameta"     % "junit-interface"           % "0.7.29",
-      "org.typelevel"     %%% "scalacheck-effect-munit" % "1.0.4",
-      "org.typelevel"     %%% "munit-cats-effect-3"     % "1.0.7",
+      "org.scalameta"     %%% "munit"                   % "1.0.0-M6",
+      "org.scalameta"     % "junit-interface"           % "1.0.0-M6",
+      "org.typelevel"     %%% "scalacheck-effect-munit" % "2.0.0-M2",
+      "org.typelevel"     %%% "munit-cats-effect"       % "2.0.0-M3",
       "org.typelevel"     %%% "cats-free"               % "2.9.0",
       "org.typelevel"     %%% "cats-laws"               % "2.9.0",
-      "org.typelevel"     %%% "discipline-munit"        % "1.0.9",
-    ) ++ Seq(
-      "io.chrisdavenport" %%% "cats-time"               % "0.3.4",
-    ).filterNot(_ => scalaVersion.value.startsWith("3.")),
+      "org.typelevel"     %%% "discipline-munit"        % "2.0.0-M3",
+      "org.typelevel"     %%% "cats-time"               % "0.5.1",
+    ),
     testFrameworks += new TestFramework("munit.Framework")
   )
   .jsSettings(
     Test / scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.CommonJSModule)),
+  )
+  .nativeEnablePlugins(ScalaNativeBrewedConfigPlugin)
+  .nativeSettings(
+    libraryDependencies += "com.armanbilge" %%% "epollcat" % "0.0-ab1026e",
+    Test / nativeBrewFormulas ++= Set("s2n", "utf8proc"),
+    Test / envVars ++= Map("S2N_DONT_MLOCK" -> "1")
   )
 
 lazy val example = project
