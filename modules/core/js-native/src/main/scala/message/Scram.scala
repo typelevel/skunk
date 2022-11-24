@@ -8,27 +8,19 @@ import com.armanbilge.SaslPrep
 import scodec.bits.ByteVector
 import scodec.codecs.utf8
 
-import scala.scalajs.js
-import scala.scalajs.js.typedarray.Uint8Array
-
 /**
   * Partial implementation of [RFC5802](https://tools.ietf.org/html/rfc5802), as needed by PostgreSQL.
   * 
   * That is, only features used by PostgreSQL are implemented -- e.g., channel binding is not supported and
   * optional message fields omitted by PostgreSQL are not supported.
   */
-private[skunk] object Scram {
+private[skunk] object Scram extends ScramPlatform {
   val SaslMechanism = "SCRAM-SHA-256"
 
   val NoChannelBinding = ByteVector.view("n,,".getBytes)
 
   private implicit class StringOps(val value: String) extends AnyVal {
     def bytesUtf8: ByteVector = ByteVector.view(value.getBytes(java.nio.charset.StandardCharsets.UTF_8))
-  }
-
-  def clientFirstBareWithRandomNonce: ByteVector = {
-    val nonce = ByteVector.view(crypto.randomBytes(32).asInstanceOf[Uint8Array]).toBase64
-    clientFirstBareWithNonce(nonce)
   }
 
   def clientFirstBareWithNonce(nonce: String): ByteVector =
@@ -67,27 +59,6 @@ private[skunk] object Scram {
         case _ => 
           None
       }
-  }
-
-  private val crypto = js.Dynamic.global.require("crypto")
-
-  private def HMAC(key: ByteVector, str: ByteVector): ByteVector = {
-    val mac = crypto.createHmac("sha256", key.toUint8Array)
-    mac.update(str.toUint8Array)
-    ByteVector.view(mac.digest().asInstanceOf[Uint8Array])
-  }
-
-  private def H(input: ByteVector): ByteVector = {
-    val hash = crypto.createHash("sha256")
-    hash.update(input.toUint8Array)
-    ByteVector.view(hash.digest().asInstanceOf[Uint8Array])
-  }
-
-  private def Hi(str: String, salt: ByteVector, iterations: Int): ByteVector = {
-    // TODO It is unfortunate that we have to use a sync API here when an async is available
-    // To make the change here will require running an F[_]: Async up the hiearchy    
-    val salted = crypto.pbkdf2Sync(str, salt.toUint8Array, iterations, 8 * 32, "sha256")
-    ByteVector.view(salted.asInstanceOf[Uint8Array]).take(32)
   }
 
   private def makeClientProofAndServerSignature(password: String, salt: ByteVector, iterations: Int, clientFirstMessageBare: ByteVector, serverFirstMessage: ByteVector, clientFinalMessageWithoutProof: ByteVector): (ClientProof, Verifier) = {

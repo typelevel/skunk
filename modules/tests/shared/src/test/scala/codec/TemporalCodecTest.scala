@@ -7,7 +7,7 @@ package codec
 
 import cats.Eq
 import cats.syntax.all._
-import io.chrisdavenport.cats.time.{ offsetdatetimeInstances => _, _ }
+import org.typelevel.cats.time.{ offsetdatetimeInstances => _, _ }
 import java.time._
 import skunk.codec.temporal._
 import cats.effect.{IO, Resource}

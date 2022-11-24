@@ -287,7 +287,7 @@ object Session {
 
     for {
       dc      <- Resource.eval(Describe.Cache.empty[F](commandCache, queryCache))
-      sslOp   <- Resource.eval(ssl.toSSLNegotiationOptions(if (debug) logger.some else none))
+      sslOp   <- ssl.toSSLNegotiationOptions(if (debug) logger.some else none)
       pool    <- Pool.of(session(Network[F], sslOp, dc), max)(Recyclers.full)
     } yield pool
 
