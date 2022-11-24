@@ -5,7 +5,7 @@
 package skunk.net
 
 import cats.syntax.all._
-import cats.effect.{ Concurrent, Resource }
+import cats.effect.{ Concurrent, Temporal, Resource }
 import cats.effect.std.Console
 import fs2.concurrent.Signal
 import fs2.Stream
@@ -17,6 +17,7 @@ import natchez.Trace
 import fs2.io.net.{ SocketGroup, SocketOption }
 import skunk.net.protocol.Exchange
 import skunk.net.protocol.Describe
+import scala.concurrent.duration.Duration
 
 /**
  * Interface for a Postgres database, expressed through high-level operations that rely on exchange
@@ -187,7 +188,7 @@ object Protocol {
    * @param host  Postgres server host
    * @param port  Postgres port, default 5432
    */
-  def apply[F[_]: Concurrent: Trace: Console](
+  def apply[F[_]: Temporal: Trace: Console](
     host:         String,
     port:         Int,
     debug:        Boolean,
@@ -196,9 +197,10 @@ object Protocol {
     socketOptions: List[SocketOption],
     sslOptions:   Option[SSLNegotiation.Options[F]],
     describeCache: Describe.Cache[F],
+    readTimeout:  Duration
   ): Resource[F, Protocol[F]] =
     for {
-      bms <- BufferedMessageSocket[F](host, port, 256, debug, sg, socketOptions, sslOptions) // TODO: should we expose the queue size?
+      bms <- BufferedMessageSocket[F](host, port, 256, debug, sg, socketOptions, sslOptions, readTimeout) // TODO: should we expose the queue size?
       p   <- Resource.eval(fromMessageSocket(bms, nam, describeCache))
     } yield p
 
