@@ -32,7 +32,7 @@
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.2.3
+0.4
 </div>
 </div>
 <div class="nav-toc">
@@ -87,7 +87,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.2.3
+0.4
 </div>
 </div>
 <div class="nav-toc">
@@ -145,24 +145,25 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
   sql&quot;SELECT name FROM country&quot;.query(varchar)
 // a: Query[Void, String] = Query(
 //   sql = &quot;SELECT name FROM country&quot;,
+//   origin = Origin(file = &quot;Query.md&quot;, line = 36),
 //   encoder = Codec(void),
 //   decoder = Codec(varchar)
 // )
 </code></pre>
 <p>Observe the following:</p>
 <ul>
-  <li>We are using the <a href="../reference/Fragments.html">sql interpolator</a> to construct a <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.2.3/skunk/Fragment.html" title="skunk.Fragment"><code>Fragment</code></a>, which we then turn into a <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.2.3/skunk/Query.html" title="skunk.Query"><code>Query</code></a> by calling the <code>query</code> method (fragments are also used to construct <a href="Command.html">Commands</a>).</li>
+  <li>We are using the <a href="../reference/Fragments.html">sql interpolator</a> to construct a <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.4/skunk/Fragment.html" title="skunk.Fragment"><code>Fragment</code></a>, which we then turn into a <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.4/skunk/Query.html" title="skunk.Query"><code>Query</code></a> by calling the <code>query</code> method (fragments are also used to construct <a href="Command.html">Commands</a>).</li>
   <li>The argument to <code>query</code> is a value called <code>varchar</code>, which has type <code>Decoder[String]</code> and defines the read relationship between the Postgres type <code>varchar</code> and the Scala type <code>String</code>. The relationship between Postgres types and Scala types is summarized in the reference section <a href="../reference/SchemaTypes.html">Schema Types</a>.</li>
   <li>The first type argument for our <code>Query</code> type is <code>Void</code>, which means this query has no parameters. The second type argument is <code>String</code>, which means we expect rows to be decoded as <code>String</code> values (via our <code>varchar</code> decoder).</li>
 </ul><div class="callout note "><div class="callout-title">Note</div>
 <p>Query and Command types are usually inferrable, but specifying a type ensures that the chosen encoders and decoders are consistent with the expected input and output Scala types. For this reason (and for clarity) we will always use explicit type annotations in the documentation.</p></div>
 <p>The query above is a <em>simple query</em>.</p><div class="callout note "><div class="callout-title">Definition</div>
 <p>A <em>simple query</em> is a query with no parameters.</p></div>
-<p>Postgres provides a <a href="https://www.postgresql.org/docs/10/protocol-flow.html#id-1.10.5.7.4">protocol</a> for execution of simple queries, returning all rows at once (Skunk returns them as a list). Such queries can be passed directly to <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.2.3/skunk/Session.html#execute" title="skunk.Session"><code>Session#execute</code></a>.</p>
+<p>Postgres provides a <a href="https://www.postgresql.org/docs/10/protocol-flow.html#id-1.10.5.7.4">protocol</a> for execution of simple queries, returning all rows at once (Skunk returns them as a list). Such queries can be passed directly to <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.4/skunk/Session.html#execute" title="skunk.Session"><code>Session#execute</code></a>.</p>
 <pre class="prettyprint"><code class="language-scala">// assume s: Session[IO]
 s.execute(a) // IO[List[String]]
 </code></pre>
-<p><a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.2.3/skunk/Session.html" title="skunk.Session"><code>Session</code></a> provides the following methods for direct execution of simple queries. See the Scaladoc for more information.</p>
+<p><a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.4/skunk/Session.html" title="skunk.Session"><code>Session</code></a> provides the following methods for direct execution of simple queries. See the Scaladoc for more information.</p>
 <table>
   <thead>
     <tr>
@@ -193,8 +194,9 @@ s.execute(a) // IO[List[String]]
 <p>Our next example selects two columns.</p>
 <pre class="prettyprint"><code class="language-scala">val b: Query[Void, String ~ Int] =
   sql&quot;SELECT name, population FROM country&quot;.query(varchar ~ int4)
-// b: Query[Void, (String, Int)] = Query(
+// b: Query[Void, String ~ Int] = Query(
 //   sql = &quot;SELECT name, population FROM country&quot;,
+//   origin = Origin(file = &quot;Query.md&quot;, line = 54),
 //   encoder = Codec(void),
 //   decoder = Codec(varchar, int4)
 // )
@@ -210,6 +212,7 @@ val c: Query[Void, Country] =
     .map { case n ~ p =&gt; Country(n, p) }  // (2)
 // c: Query[Void, Country] = Query(
 //   sql = &quot;SELECT name, population FROM country&quot;,
+//   origin = Origin(file = &quot;Query.md&quot;, line = 64),
 //   encoder = Encoder(),
 //   decoder = Decoder(varchar, int4)
 // )
@@ -230,6 +233,7 @@ val d: Query[Void, Country] =
   sql&quot;SELECT name, population FROM country&quot;.query(country)  // (2)
 // d: Query[Void, Country] = Query(
 //   sql = &quot;SELECT name, population FROM country&quot;,
+//   origin = Origin(file = &quot;Query.md&quot;, line = 77),
 //   encoder = Codec(void),
 //   decoder = Decoder(varchar, int4)
 // )
@@ -253,6 +257,7 @@ val d: Query[Void, Country] =
     .gmap[Country]
 // c2: Query[Void, Country] = Query(
 //   sql = &quot;SELECT name, population FROM country&quot;,
+//   origin = Origin(file = &quot;Query.md&quot;, line = 91),
 //   encoder = Encoder(),
 //   decoder = Decoder(varchar, int4)
 // )
@@ -271,6 +276,7 @@ val d: Query[Void, Country] =
 //     FROM   country
 //     WHERE  name LIKE $1
 //   &quot;&quot;&quot;,
+//   origin = Origin(file = &quot;Query.md&quot;, line = 100),
 //   encoder = Codec(varchar),
 //   decoder = Decoder(varchar, int4)
 // )
@@ -290,7 +296,7 @@ s.prepare(e).use { ps =&gt;
     .drain
 } // IO[Unit]
 </code></pre>
-<p>Observe that <code>prepare</code> returns a <code>Resource</code> that prepares the statement before use and then frees it on completion. Here we use <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.2.3/skunk/PreparedQuery.html#stream" title="skunk.PreparedQuery"><code>PreparedQuery#stream</code></a> to pass our parameter <code>&quot;U%&quot;</code> and then create an <a href="http://fs2.io">fs2</a> stream that fetches rows in blocks of 64 and prints them to the console.</p>
+<p>Observe that <code>prepare</code> returns a <code>Resource</code> that prepares the statement before use and then frees it on completion. Here we use <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.4/skunk/PreparedQuery.html#stream" title="skunk.PreparedQuery"><code>PreparedQuery#stream</code></a> to pass our parameter <code>&quot;U%&quot;</code> and then create an <a href="http://fs2.io">fs2</a> stream that fetches rows in blocks of 64 and prints them to the console.</p>
 <p>Note that when using <code>Resource</code> and <code>Stream</code> together it is often convenient to express the entire program in terms of <code>Stream</code>.</p>
 <pre class="prettyprint"><code class="language-scala">// assume s: Session[IO]
 val stream: Stream[IO, Unit] =
@@ -303,7 +309,7 @@ val stream: Stream[IO, Unit] =
 stream.compile.drain // IO[Unit]
 </code></pre>
 <p>This program does the same thing, but perhaps in a more convenient style.</p>
-<p><a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.2.3/skunk/PreparedQuery.html" title="skunk.PreparedQuery"><code>PreparedQuery[A, B]</code></a> provides the following methods for execution. See the Scaladoc for more information.</p>
+<p><a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.4/skunk/PreparedQuery.html" title="skunk.PreparedQuery"><code>PreparedQuery[A, B]</code></a> provides the following methods for execution. See the Scaladoc for more information.</p>
 <table>
   <thead>
     <tr>
@@ -349,13 +355,14 @@ stream.compile.drain // IO[Unit]
     WHERE  name LIKE $varchar
     AND    population &lt; $int4
   &quot;&quot;&quot;.query(country)
-// f: Query[(String, Int), Country] = Query(
+// f: Query[String ~ Int, Country] = Query(
 //   sql = &quot;&quot;&quot;
 //     SELECT name, population
 //     FROM   country
 //     WHERE  name LIKE $1
 //     AND    population &lt; $2
 //   &quot;&quot;&quot;,
+//   origin = Origin(file = &quot;Query.md&quot;, line = 148),
 //   encoder = Codec(varchar, int4),
 //   decoder = Decoder(varchar, int4)
 // )
@@ -455,7 +462,7 @@ object QueryExample extends IOApp {
 }
 </code></pre>
 <p>Running this program yields the following.</p>
-<pre><code>timestamp is 2022-02-01T17:11:54.968129Z
+<pre><code>timestamp is 2022-11-25T13:59:58.925086Z
 Country(United Arab Emirates,ARE,2441000)
 Country(United Kingdom,GBR,59623400)
 Country(Uganda,UGA,21778000)
@@ -544,7 +551,7 @@ object QueryExample2 extends IOApp {
 }
 </code></pre>
 <p>Running this program yields the same output as above.</p>
-<pre><code>timestamp is 2022-02-01T17:11:55.132605Z
+<pre><code>timestamp is 2022-11-25T13:59:59.090845Z
 Country(United Arab Emirates,ARE,2441000)
 Country(United Kingdom,GBR,59623400)
 Country(Uganda,UGA,21778000)
@@ -748,7 +755,7 @@ The source code for this page can be found <a id="source-link" href="https://git
 <script type="text/javascript" src="../lib/prettify/prettify.js"></script>
 <script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
 <script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
-<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.2.3', 'https://github.com/tpolecat/skunk')});</script>
+<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.4', 'https://github.com/tpolecat/skunk')});</script>
 
 
 </html>

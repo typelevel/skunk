@@ -32,7 +32,7 @@
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.2.3
+0.4
 </div>
 </div>
 <div class="nav-toc">
@@ -87,7 +87,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.2.3
+0.4
 </div>
 </div>
 <div class="nav-toc">
@@ -144,15 +144,27 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <p>Here is a statement with an interpolated base encoder.</p>
 <pre class="prettyprint"><code class="language-scala">sql&quot;SELECT name FROM country WHERE code = $varchar&quot;
 // res0: Fragment[String] = Fragment(
-//   sql = &quot;SELECT name FROM country WHERE code = $1&quot;,
-//   encoder = Codec(varchar)
+//   parts = List(
+//     Left(value = &quot;SELECT name FROM country WHERE code = &quot;),
+//     Right(value = cats.data.IndexedStateT@65edd4be),
+//     Left(value = &quot;&quot;)
+//   ),
+//   encoder = Codec(varchar),
+//   origin = Origin(file = &quot;Encoders.md&quot;, line = 22)
 // )
 </code></pre>
 <p>If there is more than one interpolated encoder (or an encoder composed of multiple smaller encoders, as we will see below) there will be multiple placeholders in the SQL statement, numbered sequentially.</p>
 <pre class="prettyprint"><code class="language-scala">sql&quot;SELECT name FROM country WHERE code = $varchar AND population &lt; $int8&quot;
-// res1: Fragment[(String, Long)] = Fragment(
-//   sql = &quot;SELECT name FROM country WHERE code = $1 AND population &lt; $2&quot;,
-//   encoder = Codec(varchar, int8)
+// res1: Fragment[String ~ Long] = Fragment(
+//   parts = List(
+//     Left(value = &quot;SELECT name FROM country WHERE code = &quot;),
+//     Right(value = cats.data.IndexedStateT@65edd4be),
+//     Left(value = &quot; AND population &lt; &quot;),
+//     Right(value = cats.data.IndexedStateT@7b07da3e),
+//     Left(value = &quot;&quot;)
+//   ),
+//   encoder = Codec(varchar, int8),
+//   origin = Origin(file = &quot;Encoders.md&quot;, line = 29)
 // )
 </code></pre>
 <h2><a href="#composite-encoders" name="composite-encoders" class="anchor"><span class="anchor-link"></span></a>Composite Encoders</h2>
@@ -160,40 +172,64 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <p>A <strong>composite encoder</strong> maps a Scala type to a <em>sequence</em> of Postgres schema types.</p></div>
 <p>Here is a statement with a composite encoder constructed from two base encoders.</p>
 <pre class="prettyprint"><code class="language-scala">sql&quot;INSERT INTO person (name, age) VALUES (${varchar ~ int4})&quot;
-// res2: Fragment[(String, Int)] = Fragment(
-//   sql = &quot;INSERT INTO person (name, age) VALUES ($1, $2)&quot;,
-//   encoder = Codec(varchar, int4)
+// res2: Fragment[String ~ Int] = Fragment(
+//   parts = List(
+//     Left(value = &quot;INSERT INTO person (name, age) VALUES (&quot;),
+//     Right(value = cats.data.IndexedStateT@37811bdc),
+//     Left(value = &quot;)&quot;)
+//   ),
+//   encoder = Codec(varchar, int4),
+//   origin = Origin(file = &quot;Encoders.md&quot;, line = 36)
 // )
 </code></pre>
 <p>Here is a statement with a base encoder and a composite encoder constructed from three base encoders. Note that the composite structure is &ldquo;flattened&rdquo; in the resulting SQL statement; it is purely for convenience on the Scala side.</p>
 <pre class="prettyprint"><code class="language-scala">val enc = varchar ~ int4 ~ float4
-// enc: Codec[((String, Int), Float)] = Codec(varchar, int4, float4)
+// enc: Codec[String ~ Int ~ Float] = Codec(varchar, int4, float4)
 
 sql&quot;INSERT INTO person (comment, name, age, weight, comment) VALUES ($text, $enc)&quot;
-// res3: Fragment[(String, ((String, Int), Float))] = Fragment(
-//   sql = &quot;INSERT INTO person (comment, name, age, weight, comment) VALUES ($1, $2, $3, $4)&quot;,
-//   encoder = Codec(text, varchar, int4, float4)
+// res3: Fragment[String ~ String ~ Int ~ Float] = Fragment(
+//   parts = List(
+//     Left(
+//       value = &quot;INSERT INTO person (comment, name, age, weight, comment) VALUES (&quot;
+//     ),
+//     Right(value = cats.data.IndexedStateT@1bda8d9d),
+//     Left(value = &quot;, &quot;),
+//     Right(value = cats.data.IndexedStateT@547060f4),
+//     Left(value = &quot;)&quot;)
+//   ),
+//   encoder = Codec(text, varchar, int4, float4),
+//   origin = Origin(file = &quot;Encoders.md&quot;, line = 46)
 // )
 </code></pre>
 <h2><a href="#combinators" name="combinators" class="anchor"><span class="anchor-link"></span></a>Combinators</h2>
 <p>The <code>values</code> combinator adds parentheses around an encoder&rsquo;s generated placeholders.</p>
 <pre class="prettyprint"><code class="language-scala">val enc = (varchar ~ int4).values
-// enc: Encoder[(String, Int)] = Encoder(varchar, int4)
+// enc: Encoder[String ~ Int] = Encoder(varchar, int4)
 
 sql&quot;INSERT INTO person (name, age) VALUES $enc&quot;
-// res4: Fragment[(String, Int)] = Fragment(
-//   sql = &quot;INSERT INTO person (name, age) VALUES ($1, $2)&quot;,
-//   encoder = Encoder(varchar, int4)
+// res4: Fragment[String ~ Int] = Fragment(
+//   parts = List(
+//     Left(value = &quot;INSERT INTO person (name, age) VALUES &quot;),
+//     Right(value = cats.data.IndexedStateT@1163966e),
+//     Left(value = &quot;&quot;)
+//   ),
+//   encoder = Encoder(varchar, int4),
+//   origin = Origin(file = &quot;Encoders.md&quot;, line = 56)
 // )
 </code></pre>
 <p>This can be very useful in combination with the <code>list</code> combinator, which creates an encoder for a list of values of a given length.</p>
 <pre class="prettyprint"><code class="language-scala">val enc = (varchar ~ int4).values
-// enc: Encoder[(String, Int)] = Encoder(varchar, int4)
+// enc: Encoder[String ~ Int] = Encoder(varchar, int4)
 
 sql&quot;INSERT INTO person (name, age) VALUES ${enc.list(3)}&quot;
-// res5: Fragment[List[(String, Int)]] = Fragment(
-//   sql = &quot;INSERT INTO person (name, age) VALUES ($1, $2), ($3, $4), ($5, $6)&quot;,
-//   encoder = Encoder(varchar, int4, varchar, int4, varchar, int4)
+// res5: Fragment[List[String ~ Int]] = Fragment(
+//   parts = List(
+//     Left(value = &quot;INSERT INTO person (name, age) VALUES &quot;),
+//     Right(value = cats.data.IndexedStateT@2e832065),
+//     Left(value = &quot;&quot;)
+//   ),
+//   encoder = Encoder(varchar, int4, varchar, int4, varchar, int4),
+//   origin = Origin(file = &quot;Encoders.md&quot;, line = 66)
 // )
 </code></pre>
 <h2><a href="#transforming-the-input-type" name="transforming-the-input-type" class="anchor"><span class="anchor-link"></span></a>Transforming the Input Type</h2>
@@ -205,8 +241,13 @@ val person = (varchar ~ int4).values.contramap((p: Person) =&gt; p.name ~ p.age)
 
 sql&quot;INSERT INTO person (name, age) VALUES $person&quot;
 // res6: Fragment[Person] = Fragment(
-//   sql = &quot;INSERT INTO person (name, age) VALUES ($1, $2)&quot;,
-//   encoder = Encoder(varchar, int4)
+//   parts = List(
+//     Left(value = &quot;INSERT INTO person (name, age) VALUES &quot;),
+//     Right(value = cats.data.IndexedStateT@617af64d),
+//     Left(value = &quot;&quot;)
+//   ),
+//   encoder = Encoder(varchar, int4),
+//   origin = Origin(file = &quot;Encoders.md&quot;, line = 79)
 // )
 </code></pre>
 <p>Because contramapping from case classes is so common, Skunk provides <code>gcontramap</code> which adapts an encoder to a case class of the same structure.</p>
@@ -217,8 +258,13 @@ val person = (varchar ~ int4).values.gcontramap[Person]
 
 sql&quot;INSERT INTO person (name, age) VALUES $person&quot;
 // res8: Fragment[Person] = Fragment(
-//   sql = &quot;INSERT INTO person (name, age) VALUES ($1, $2)&quot;,
-//   encoder = Encoder(varchar, int4)
+//   parts = List(
+//     Left(value = &quot;INSERT INTO person (name, age) VALUES &quot;),
+//     Right(value = cats.data.IndexedStateT@36da4d56),
+//     Left(value = &quot;&quot;)
+//   ),
+//   encoder = Encoder(varchar, int4),
+//   origin = Origin(file = &quot;Encoders.md&quot;, line = 106)
 // )
 </code></pre>
 <script type="text/javascript" src="../js/link_fix.js"></script>
@@ -312,7 +358,7 @@ The source code for this page can be found <a id="source-link" href="https://git
 <script type="text/javascript" src="../lib/prettify/prettify.js"></script>
 <script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
 <script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
-<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.2.3', 'https://github.com/tpolecat/skunk')});</script>
+<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.4', 'https://github.com/tpolecat/skunk')});</script>
 
 
 </html>
