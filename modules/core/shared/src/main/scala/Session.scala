@@ -141,6 +141,20 @@ trait Session[F[_]] {
    * @group Commands
    */
   def prepare[A](command: Command[A]): Resource[F, PreparedCommand[F, A]]
+  
+  /**
+   * Prepares then cache a query, yielding a `PreparedQuery` which can be executed multiple
+   * times with different arguments. 
+   * @group Queries
+   */
+  def prepareAndCache[A, B](query: Query[A, B]): F[PreparedQuery[F, A, B]]
+
+  /**
+   * Prepares then cache an `INSERT`, `UPDATE`, or `DELETE` command that returns no rows. The resulting
+   * `PreparedCommand` can be executed multiple times with different arguments.
+   * @group Commands
+   */
+  def prepareAndCache[A](command: Command[A]): F[PreparedCommand[F, A]]
 
   /**
    * Transform a `Command` into a `Pipe` from inputs to `Completion`s.
@@ -285,22 +299,14 @@ object Session {
     socketOptions:   List[SocketOption] = Session.DefaultSocketOptions,
     commandCache: Int = 1024,
     queryCache:   Int = 1024,
-<<<<<<< HEAD
+    parseCache:   Int = 1024,
     readTimeout:  Duration = Duration.Inf,
   ): Resource[F, Resource[F, Session[F]]] = {
-
-    def session(socketGroup: SocketGroup[F], sslOp: Option[SSLNegotiation.Options[F]], cache: Describe.Cache[F]): Resource[F, Session[F]] =
-      fromSocketGroup[F](socketGroup, host, port, user, database, password, debug, strategy, socketOptions, sslOp, parameters, cache, readTimeout)
-=======
-    parseCache:   Int = 1024
-  ): Resource[F, Resource[F, Session[F]]] = {
-
     def session(socketGroup: SocketGroup[F], sslOp: Option[SSLNegotiation.Options[F]], cache: Describe.Cache[F]): Resource[F, Session[F]] =
       for {
         pc <- Resource.eval(Parse.Cache.empty[F](parseCache))
-        s  <- fromSocketGroup[F](socketGroup, host, port, user, database, password, debug, strategy, socketOptions, sslOp, parameters, cache, pc)
+        s  <- fromSocketGroup[F](socketGroup, host, port, user, database, password, debug, strategy, socketOptions, sslOp, parameters, cache, pc, readTimeout)
       } yield s
->>>>>>> Add parse step caching + boilerplate
 
     val logger: String => F[Unit] = s => Console[F].println(s"TLS: $s")
 
@@ -330,11 +336,8 @@ object Session {
     parameters:   Map[String, String] = Session.DefaultConnectionParameters,
     commandCache: Int = 1024,
     queryCache:   Int = 1024,
-<<<<<<< HEAD
+    parseCache:   Int = 1024,
     readTimeout:  Duration = Duration.Inf,
-=======
-    parseCache:   Int = 1024
->>>>>>> Add parse step caching + boilerplate
   ): Resource[F, Session[F]] =
     pooled(
       host         = host,
@@ -349,11 +352,8 @@ object Session {
       parameters   = parameters,
       commandCache = commandCache,
       queryCache   = queryCache,
-<<<<<<< HEAD
+      parseCache   = parseCache,
       readTimeout  = readTimeout
-=======
-      parseCache   = parseCache
->>>>>>> Add parse step caching + boilerplate
     ).flatten
 
   def fromSocketGroup[F[_]: Temporal: Trace: Console](
@@ -369,19 +369,12 @@ object Session {
     sslOptions:   Option[SSLNegotiation.Options[F]],
     parameters:   Map[String, String],
     describeCache: Describe.Cache[F],
-<<<<<<< HEAD
+    parseCache: Parse.Cache[F],
     readTimeout:  Duration = Duration.Inf,
   ): Resource[F, Session[F]] =
     for {
       namer <- Resource.eval(Namer[F])
-      proto <- Protocol[F](host, port, debug, namer, socketGroup, socketOptions, sslOptions, describeCache, readTimeout)
-=======
-    parseCache: Parse.Cache[F]
-  ): Resource[F, Session[F]] =
-    for {
-      namer <- Resource.eval(Namer[F])
-      proto <- Protocol[F](host, port, debug, namer, socketGroup, socketOptions, sslOptions, describeCache, parseCache)
->>>>>>> Add parse step caching + boilerplate
+      proto <- Protocol[F](host, port, debug, namer, socketGroup, socketOptions, sslOptions, describeCache, parseCache, readTimeout)
       _     <- Resource.eval(proto.startup(user, database, password, parameters))
       sess  <- Resource.make(fromProtocol(proto, namer, strategy))(_ => proto.cleanup)
     } yield sess
@@ -448,6 +441,12 @@ object Session {
 
         override def prepare[A](command: Command[A]): Resource[F, PreparedCommand[F, A]] =
           proto.prepare(command, typer).map(PreparedCommand.fromProto(_))
+        
+        override def prepareAndCache[A, B](query: Query[A, B]): F[PreparedQuery[F, A, B]] =
+          proto.prepareAndCache(query, typer).map(PreparedQuery.fromProto(_))
+
+        override def prepareAndCache[A](command: Command[A]): F[PreparedCommand[F, A]] =
+          proto.prepareAndCache(command, typer).map(PreparedCommand.fromProto(_))
 
         override def transaction[A]: Resource[F, Transaction[F]] =
           Transaction.fromSession(this, namer, none, none)
@@ -506,6 +505,10 @@ object Session {
         override def prepare[A, B](query: Query[A,B]): Resource[G,PreparedQuery[G,A,B]] = outer.prepare(query).mapK(fk).map(_.mapK(fk))
 
         override def prepare[A](command: Command[A]): Resource[G,PreparedCommand[G,A]] = outer.prepare(command).mapK(fk).map(_.mapK(fk))
+        
+        override def prepareAndCache[A, B](query: Query[A,B]): G[PreparedQuery[G,A,B]] = fk(outer.prepareAndCache(query)).map(_.mapK(fk))
+
+        override def prepareAndCache[A](command: Command[A]): G[PreparedCommand[G,A]] = fk(outer.prepareAndCache(command)).map(_.mapK(fk))
 
         override def transaction[A]: Resource[G,Transaction[G]] = outer.transaction[A].mapK(fk).map(_.mapK(fk))
 

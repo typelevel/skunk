@@ -21,7 +21,9 @@ import natchez.Trace
 import cats.data.OptionT
 
 trait Parse[F[_]] {
-  def apply[A](statement: Statement[A], ty: Typer): Resource[F, StatementId]
+  def prepareAndCache[A](statement: Statement[A], ty: Typer): F[StatementId]
+  def apply[A](statement: Statement[A], ty: Typer): Resource[F, StatementId] = 
+    Resource.eval(prepareAndCache(statement, ty))
 }
 
 object Parse {
@@ -30,37 +32,34 @@ object Parse {
     implicit ev: MonadError[F, Throwable]
   ): Parse[F] =
     new Parse[F] {
-
-      override def apply[A](statement: Statement[A], ty: Typer): Resource[F, StatementId] =
+      override def prepareAndCache[A](statement: Statement[A], ty: Typer): F[StatementId] =
         statement.encoder.oids(ty) match {
 
           case Right(os) if os.length > Short.MaxValue =>
-            Resource.eval(TooManyParametersException(statement).raiseError[F, StatementId])
+            TooManyParametersException(statement).raiseError[F, StatementId]
 
           case Right(os) =>
-            Resource.eval {
-              OptionT(cache.value.get(statement)).getOrElseF {
-                exchange("parse") {
-                  for {
-                    id <- nextName("statement").map(StatementId(_))
-                    _  <- Trace[F].put(
-                            "statement-name"            -> id.value,
-                            "statement-sql"             -> statement.sql,
-                            "statement-parameter-types" -> os.map(n => ty.typeForOid(n, -1).getOrElse(n)).mkString("[", ", ", "]")
-                          )
-                    _  <- send(ParseMessage(id.value, statement.sql, os))
-                    _  <- send(Flush)
-                    _  <- flatExpect {
-                            case ParseComplete       => ().pure[F]
-                            case ErrorResponse(info) => syncAndFail(statement, info)
-                          }
-                  } yield id
-                }
+            OptionT(cache.value.get(statement)).getOrElseF {
+              exchange("parse") {
+                for {
+                  id <- nextName("statement").map(StatementId(_))
+                  _  <- Trace[F].put(
+                          "statement-name"            -> id.value,
+                          "statement-sql"             -> statement.sql,
+                          "statement-parameter-types" -> os.map(n => ty.typeForOid(n, -1).getOrElse(n)).mkString("[", ", ", "]")
+                        )
+                  _  <- send(ParseMessage(id.value, statement.sql, os))
+                  _  <- send(Flush)
+                  _  <- flatExpect {
+                          case ParseComplete       => ().pure[F]
+                          case ErrorResponse(info) => syncAndFail(statement, info)
+                        }
+                } yield id
               }
             }
 
           case Left(err) =>
-            Resource.eval(UnknownTypeException(statement, err, ty.strategy).raiseError[F, StatementId])
+            UnknownTypeException(statement, err, ty.strategy).raiseError[F, StatementId]
 
         }
 
