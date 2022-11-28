@@ -133,14 +133,16 @@ trait Session[F[_]] {
    * times with different arguments.
    * @group Queries
    */
-  def prepare[A, B](query: Query[A, B]): Resource[F, PreparedQuery[F, A, B]]
+  def prepare[A, B](query: Query[A, B]): Resource[F, PreparedQuery[F, A, B]] = 
+    Resource.eval(prepareAndCache(query))
 
   /**
    * Prepare an `INSERT`, `UPDATE`, or `DELETE` command that returns no rows. The resulting
    * `PreparedCommand` can be executed multiple times with different arguments.
    * @group Commands
    */
-  def prepare[A](command: Command[A]): Resource[F, PreparedCommand[F, A]]
+  def prepare[A](command: Command[A]): Resource[F, PreparedCommand[F, A]] =
+    Resource.eval(prepareAndCache(command))
   
   /**
    * Prepares then cache a query, yielding a `PreparedQuery` which can be executed multiple
@@ -436,17 +438,11 @@ object Session {
             case _        => ev.raiseError(new RuntimeException("Expected at most one row, more returned."))
           }
 
-        override def prepare[A, B](query: Query[A, B]): Resource[F, PreparedQuery[F, A, B]] =
+        override def prepareAndCache[A, B](query: Query[A, B]): F[PreparedQuery[F, A, B]] =
           proto.prepare(query, typer).map(PreparedQuery.fromProto(_))
 
-        override def prepare[A](command: Command[A]): Resource[F, PreparedCommand[F, A]] =
-          proto.prepare(command, typer).map(PreparedCommand.fromProto(_))
-        
-        override def prepareAndCache[A, B](query: Query[A, B]): F[PreparedQuery[F, A, B]] =
-          proto.prepareAndCache(query, typer).map(PreparedQuery.fromProto(_))
-
         override def prepareAndCache[A](command: Command[A]): F[PreparedCommand[F, A]] =
-          proto.prepareAndCache(command, typer).map(PreparedCommand.fromProto(_))
+          proto.prepare(command, typer).map(PreparedCommand.fromProto(_))
 
         override def transaction[A]: Resource[F, Transaction[F]] =
           Transaction.fromSession(this, namer, none, none)
@@ -502,10 +498,6 @@ object Session {
 
         override def parameters: Signal[G,Map[String,String]] = outer.parameters.mapK(fk)
 
-        override def prepare[A, B](query: Query[A,B]): Resource[G,PreparedQuery[G,A,B]] = outer.prepare(query).mapK(fk).map(_.mapK(fk))
-
-        override def prepare[A](command: Command[A]): Resource[G,PreparedCommand[G,A]] = outer.prepare(command).mapK(fk).map(_.mapK(fk))
-        
         override def prepareAndCache[A, B](query: Query[A,B]): G[PreparedQuery[G,A,B]] = fk(outer.prepareAndCache(query)).map(_.mapK(fk))
 
         override def prepareAndCache[A](command: Command[A]): G[PreparedCommand[G,A]] = fk(outer.prepareAndCache(command)).map(_.mapK(fk))

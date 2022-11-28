@@ -63,27 +63,15 @@ trait Protocol[F[_]] {
 
   /**
    * Prepare a command (a statement that produces no rows), yielding a `Protocol.PreparedCommand`
-   * which will be closed after use.
-   */
-  def prepare[A](command: Command[A], ty: Typer): Resource[F, Protocol.PreparedCommand[F, A]]
-
-  /**
-   * Prepare a query (a statement that produces rows), yielding a `Protocol.PreparedCommand` which
-   * which will be closed after use.
-   */
-  def prepare[A, B](query: Query[A, B], ty: Typer): Resource[F, Protocol.PreparedQuery[F, A, B]]
-  
-  /**
-   * Prepare a command (a statement that produces no rows), yielding a `Protocol.PreparedCommand`
    * which will cached per session and closed on session close.
    */
-  def prepareAndCache[A](command: Command[A], ty: Typer): F[Protocol.PreparedCommand[F, A]]
+  def prepare[A](command: Command[A], ty: Typer): F[Protocol.PreparedCommand[F, A]]
 
   /**
    * Prepare a query (a statement that produces rows), yielding a `Protocol.PreparedCommand` which
    * which will cached per session and closed on session close.
    */
-  def prepareAndCache[A, B](query: Query[A, B], ty: Typer): F[Protocol.PreparedQuery[F, A, B]]
+  def prepare[A, B](query: Query[A, B], ty: Typer): F[Protocol.PreparedQuery[F, A, B]]
 
   /**
    * Execute a non-parameterized command (a statement that produces no rows), yielding a
@@ -247,17 +235,11 @@ object Protocol {
         override def parameters: Signal[F, Map[String, String]] =
           bms.parameters
 
-        override def prepare[A](command: Command[A], ty: Typer): Resource[F, PreparedCommand[F, A]] =
+        override def prepare[A](command: Command[A], ty: Typer): F[PreparedCommand[F, A]] =
           protocol.Prepare[F](describeCache, parseCache).apply(command, ty)
 
-        override def prepare[A, B](query: Query[A, B], ty: Typer): Resource[F, PreparedQuery[F, A, B]] =
+        override def prepare[A, B](query: Query[A, B], ty: Typer): F[PreparedQuery[F, A, B]] =
           protocol.Prepare[F](describeCache, parseCache).apply(query, ty)
-        
-        override def prepareAndCache[A](command: Command[A], ty: Typer): F[PreparedCommand[F, A]] =
-          protocol.Prepare[F](describeCache, parseCache).prepareAndCache(command, ty)
-
-        override def prepareAndCache[A, B](query: Query[A, B], ty: Typer): F[PreparedQuery[F, A, B]] =
-          protocol.Prepare[F](describeCache, parseCache).prepareAndCache(query, ty)
 
         override def execute(command: Command[Void]): F[Completion] =
           protocol.Query[F].apply(command)

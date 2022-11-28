@@ -6,7 +6,6 @@ package skunk.net.protocol
 
 import cats._
 import cats.effect.Ref
-import cats.effect.Resource
 import cats.syntax.all._
 import skunk.util.StatementCache
 import skunk.exception.PostgresErrorException
@@ -21,9 +20,7 @@ import natchez.Trace
 import cats.data.OptionT
 
 trait Parse[F[_]] {
-  def prepareAndCache[A](statement: Statement[A], ty: Typer): F[StatementId]
-  def apply[A](statement: Statement[A], ty: Typer): Resource[F, StatementId] = 
-    Resource.eval(prepareAndCache(statement, ty))
+  def apply[A](statement: Statement[A], ty: Typer): F[StatementId]
 }
 
 object Parse {
@@ -32,7 +29,7 @@ object Parse {
     implicit ev: MonadError[F, Throwable]
   ): Parse[F] =
     new Parse[F] {
-      override def prepareAndCache[A](statement: Statement[A], ty: Typer): F[StatementId] =
+      override def apply[A](statement: Statement[A], ty: Typer): F[StatementId] =
         statement.encoder.oids(ty) match {
 
           case Right(os) if os.length > Short.MaxValue =>
