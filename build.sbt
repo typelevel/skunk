@@ -74,7 +74,7 @@ ThisBuild / libraryDependencySchemes ++= Seq(
 
 // This is used in a couple places
 lazy val fs2Version = "3.4.0"
-lazy val natchezVersion = "0.2.2"
+lazy val natchezVersion = "0.3.0-M2"
 
 // Global Settings
 lazy val commonSettings = Seq(
