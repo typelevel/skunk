@@ -42,6 +42,18 @@ final case class Fragment[A](
   def ~[B](fb: Fragment[B]): Fragment[A ~ B] =
     product(fb)
 
+  def stripMargin: Fragment[A] = stripMargin('|')
+
+  def stripMargin(marginChar: Char): Fragment[A] = {
+    val ps = parts.map {
+      _.bimap(
+        _.stripMargin(marginChar).replaceAll("\n", " "),
+        _.map(_.stripMargin(marginChar).replaceAll("\n", " "))
+      )
+    }
+    Fragment(ps, encoder, origin)
+  }
+
   def apply(a: A): AppliedFragment =
     AppliedFragment(this, a)
 
