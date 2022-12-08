@@ -141,7 +141,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   )
   .platformsSettings(JVMPlatform, JSPlatform)(
     libraryDependencies ++= Seq(
-      "com.beachape"  %%% "enumeratum"   % "1.6.1",
+      "com.beachape"  %%% "enumeratum"   % "1.7.2",
     ).filterNot(_ => tlIsScala3.value)
   )
   .platformsSettings(JSPlatform, NativePlatform)(
