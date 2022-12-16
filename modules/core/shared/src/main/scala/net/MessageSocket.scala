@@ -47,7 +47,7 @@ object MessageSocket {
       new AbstractMessageSocket[F] with MessageSocket[F] {
 
         private def debug(msg: => String): F[Unit] =
-          Console[F].println(msg).whenA(debugEnabled)
+          if (debugEnabled) Console[F].println(msg) else Concurrent[F].unit
 
         /**
         * Messages are prefixed with a 5-byte header consisting of a tag (byte) and a length (int32,
