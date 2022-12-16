@@ -135,16 +135,12 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.tpolecat"           %%% "natchez-core"            % natchezVersion,
       "org.tpolecat"           %%% "sourcepos"               % "1.1.0",
       "org.scala-lang.modules" %%% "scala-collection-compat" % "2.8.1",
-    )
+    ) ++ Seq(
+      "com.beachape"  %%% "enumeratum"   % "1.7.2",
+    ).filterNot(_ => tlIsScala3.value)
   ).jvmSettings(
     libraryDependencies += "com.ongres.scram" % "client" % "2.1",
-  )
-  .platformsSettings(JVMPlatform, JSPlatform)(
-    libraryDependencies ++= Seq(
-      "com.beachape"  %%% "enumeratum"   % "1.6.1",
-    ).filterNot(_ => tlIsScala3.value)
-  )
-  .platformsSettings(JSPlatform, NativePlatform)(
+  ).platformsSettings(JSPlatform, NativePlatform)(
     libraryDependencies ++= Seq(
       "com.armanbilge" %%% "saslprep" % "0.1.1",
       "io.github.cquiroz" %%% "scala-java-time" % "2.4.0",
