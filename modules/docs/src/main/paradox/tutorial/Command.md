@@ -90,7 +90,7 @@ And if we're yet more clever we can turn `pc` into an fs2 `Pipe`.
 
 ```scala mdoc:compile-only
 // assume s: Session[IO]
-Stream.resource(s.prepare(c)).flatMap { pc =>
+Stream.eval(s.prepare(c)).flatMap { pc =>
   Stream("xyzzy", "fnord", "blech").through(pc.pipe)
 } // Stream[IO, Completion]
 ```
@@ -192,8 +192,9 @@ The *extend command protocol* (i.e., `Session#prepare`) is more powerful and mor
 Here is a complete program listing that demonstrates our knowledge thus far, using the service pattern introduced earlier.
 
 ```scala mdoc:reset
+import cats.Monad
 import cats.effect._
-import cats.implicits._
+import cats.syntax.all._
 import natchez.Trace.Implicits.noop
 import skunk._
 import skunk.codec.all._
