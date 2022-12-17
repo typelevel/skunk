@@ -63,13 +63,13 @@ trait Protocol[F[_]] {
 
   /**
    * Prepare a command (a statement that produces no rows), yielding a `Protocol.PreparedCommand`
-   * which will cached per session and closed on session close.
+   * which will be cached per session and closed on session close.
    */
   def prepare[A](command: Command[A], ty: Typer): F[Protocol.PreparedCommand[F, A]]
 
   /**
    * Prepare a query (a statement that produces rows), yielding a `Protocol.PreparedCommand` which
-   * which will cached per session and closed on session close.
+   * which will be cached per session and closed on session close.
    */
   def prepare[A, B](query: Query[A, B], ty: Typer): F[Protocol.PreparedQuery[F, A, B]]
 
@@ -94,9 +94,9 @@ trait Protocol[F[_]] {
   def startup(user: String, database: String, password: Option[String], parameters: Map[String, String]): F[Unit]
 
   /**
-   * Cleanup the session. This will close ay cached prepared statement
+   * Cleanup the session. This will close any cached prepared statements.
    */
-  def cleanup:F[Unit]
+  def cleanup: F[Unit]
 
   /**
    * Signal representing the current transaction status as reported by `ReadyForQuery`. It's not
@@ -106,10 +106,9 @@ trait Protocol[F[_]] {
 
   /** Cache for the `Describe` protocol. */
   def describeCache: Describe.Cache[F]
-  
+
   /** Cache for the `Parse` protocol. */
   def parseCache: Parse.Cache[F]
-
 }
 
 object Protocol {

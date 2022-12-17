@@ -41,7 +41,7 @@ object Prepare {
               }
             }
         }
-      
+
       override def apply[A, B](query: skunk.Query[A, B], ty: Typer): F[PreparedQuery[F, A, B]] =
         for {
           id <- Parse[F](parseCache).apply(query, ty)

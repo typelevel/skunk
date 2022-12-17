@@ -133,7 +133,7 @@ trait Session[F[_]] {
    * times with different arguments.
    * @group Queries
    */
-  def prepare[A, B](query: Query[A, B]): Resource[F, PreparedQuery[F, A, B]] = 
+  def prepare[A, B](query: Query[A, B]): Resource[F, PreparedQuery[F, A, B]] =
     Resource.eval(prepareAndCache(query))
 
   /**
@@ -143,16 +143,16 @@ trait Session[F[_]] {
    */
   def prepare[A](command: Command[A]): Resource[F, PreparedCommand[F, A]] =
     Resource.eval(prepareAndCache(command))
-  
+
   /**
-   * Prepares then cache a query, yielding a `PreparedQuery` which can be executed multiple
-   * times with different arguments. 
+   * Prepares then caches a query, yielding a `PreparedQuery` which can be executed multiple
+   * times with different arguments.
    * @group Queries
    */
   def prepareAndCache[A, B](query: Query[A, B]): F[PreparedQuery[F, A, B]]
 
   /**
-   * Prepares then cache an `INSERT`, `UPDATE`, or `DELETE` command that returns no rows. The resulting
+   * Prepares then caches an `INSERT`, `UPDATE`, or `DELETE` command that returns no rows. The resulting
    * `PreparedCommand` can be executed multiple times with different arguments.
    * @group Commands
    */
