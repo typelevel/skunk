@@ -325,6 +325,7 @@ println("```")
 In real life a program like `QueryExample` above will grow complicated an hard to maintain because the database abstractions are out in the open. It's better to define an interface that *uses* a database session and write your program in terms of that interface. Here is a rewritten version of the program above that demonstrates this pattern.
 
 ```scala mdoc:reset
+import cats.syntax.all._
 import cats.effect._
 import skunk._
 import skunk.implicits._
@@ -384,7 +385,7 @@ object QueryExample2 extends IOApp {
 
   // A source of services
   val service: Resource[IO, Service[IO]] =
-    session.mapEval(Service.fromSession(_))
+    session.evalMap(Service.fromSession(_))
 
   // our entry point ... there is no indication that we're using a database at all!
   def run(args: List[String]): IO[ExitCode] =
