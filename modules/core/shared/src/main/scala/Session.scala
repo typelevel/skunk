@@ -23,6 +23,7 @@ import skunk.data.TransactionIsolationLevel
 import skunk.data.TransactionAccessMode
 import skunk.net.protocol.Describe
 import scala.concurrent.duration.Duration
+import skunk.net.protocol.Parse
 
 /**
  * Represents a live connection to a Postgres database. Operations provided here are safe to use
@@ -132,14 +133,30 @@ trait Session[F[_]] {
    * times with different arguments.
    * @group Queries
    */
-  def prepare[A, B](query: Query[A, B]): Resource[F, PreparedQuery[F, A, B]]
+  def prepare[A, B](query: Query[A, B]): Resource[F, PreparedQuery[F, A, B]] =
+    Resource.eval(prepareAndCache(query))
 
   /**
    * Prepare an `INSERT`, `UPDATE`, or `DELETE` command that returns no rows. The resulting
    * `PreparedCommand` can be executed multiple times with different arguments.
    * @group Commands
    */
-  def prepare[A](command: Command[A]): Resource[F, PreparedCommand[F, A]]
+  def prepare[A](command: Command[A]): Resource[F, PreparedCommand[F, A]] =
+    Resource.eval(prepareAndCache(command))
+
+  /**
+   * Prepares then caches a query, yielding a `PreparedQuery` which can be executed multiple
+   * times with different arguments.
+   * @group Queries
+   */
+  def prepareAndCache[A, B](query: Query[A, B]): F[PreparedQuery[F, A, B]]
+
+  /**
+   * Prepares then caches an `INSERT`, `UPDATE`, or `DELETE` command that returns no rows. The resulting
+   * `PreparedCommand` can be executed multiple times with different arguments.
+   * @group Commands
+   */
+  def prepareAndCache[A](command: Command[A]): F[PreparedCommand[F, A]]
 
   /**
    * Transform a `Command` into a `Pipe` from inputs to `Completion`s.
@@ -187,6 +204,13 @@ trait Session[F[_]] {
    * the cache through this accessor.
    */
   def describeCache: Describe.Cache[F]
+  
+  /**
+   * Each session has access to a cache of all statements that have been parsed by the
+   * `Parse` protocol, which allows us to skip a network round-trip. Users can inspect and clear
+   * the cache through this accessor.
+   */
+  def parseCache: Parse.Cache[F]
 
 }
 
@@ -277,11 +301,14 @@ object Session {
     socketOptions:   List[SocketOption] = Session.DefaultSocketOptions,
     commandCache: Int = 1024,
     queryCache:   Int = 1024,
+    parseCache:   Int = 1024,
     readTimeout:  Duration = Duration.Inf,
   ): Resource[F, Resource[F, Session[F]]] = {
-
     def session(socketGroup: SocketGroup[F], sslOp: Option[SSLNegotiation.Options[F]], cache: Describe.Cache[F]): Resource[F, Session[F]] =
-      fromSocketGroup[F](socketGroup, host, port, user, database, password, debug, strategy, socketOptions, sslOp, parameters, cache, readTimeout)
+      for {
+        pc <- Resource.eval(Parse.Cache.empty[F](parseCache))
+        s  <- fromSocketGroup[F](socketGroup, host, port, user, database, password, debug, strategy, socketOptions, sslOp, parameters, cache, pc, readTimeout)
+      } yield s
 
     val logger: String => F[Unit] = s => Console[F].println(s"TLS: $s")
 
@@ -311,6 +338,7 @@ object Session {
     parameters:   Map[String, String] = Session.DefaultConnectionParameters,
     commandCache: Int = 1024,
     queryCache:   Int = 1024,
+    parseCache:   Int = 1024,
     readTimeout:  Duration = Duration.Inf,
   ): Resource[F, Session[F]] =
     pooled(
@@ -326,6 +354,7 @@ object Session {
       parameters   = parameters,
       commandCache = commandCache,
       queryCache   = queryCache,
+      parseCache   = parseCache,
       readTimeout  = readTimeout
     ).flatten
 
@@ -342,13 +371,14 @@ object Session {
     sslOptions:   Option[SSLNegotiation.Options[F]],
     parameters:   Map[String, String],
     describeCache: Describe.Cache[F],
+    parseCache: Parse.Cache[F],
     readTimeout:  Duration = Duration.Inf,
   ): Resource[F, Session[F]] =
     for {
       namer <- Resource.eval(Namer[F])
-      proto <- Protocol[F](host, port, debug, namer, socketGroup, socketOptions, sslOptions, describeCache, readTimeout)
+      proto <- Protocol[F](host, port, debug, namer, socketGroup, socketOptions, sslOptions, describeCache, parseCache, readTimeout)
       _     <- Resource.eval(proto.startup(user, database, password, parameters))
-      sess  <- Resource.eval(fromProtocol(proto, namer, strategy))
+      sess  <- Resource.make(fromProtocol(proto, namer, strategy))(_ => proto.cleanup)
     } yield sess
 
   /**
@@ -408,10 +438,10 @@ object Session {
             case _        => ev.raiseError(new RuntimeException("Expected at most one row, more returned."))
           }
 
-        override def prepare[A, B](query: Query[A, B]): Resource[F, PreparedQuery[F, A, B]] =
+        override def prepareAndCache[A, B](query: Query[A, B]): F[PreparedQuery[F, A, B]] =
           proto.prepare(query, typer).map(PreparedQuery.fromProto(_))
 
-        override def prepare[A](command: Command[A]): Resource[F, PreparedCommand[F, A]] =
+        override def prepareAndCache[A](command: Command[A]): F[PreparedCommand[F, A]] =
           proto.prepare(command, typer).map(PreparedCommand.fromProto(_))
 
         override def transaction[A]: Resource[F, Transaction[F]] =
@@ -422,6 +452,9 @@ object Session {
 
         override def describeCache: Describe.Cache[F] =
           proto.describeCache
+
+        override def parseCache: Parse.Cache[F] =
+          proto.parseCache
 
       }
     }
@@ -465,9 +498,9 @@ object Session {
 
         override def parameters: Signal[G,Map[String,String]] = outer.parameters.mapK(fk)
 
-        override def prepare[A, B](query: Query[A,B]): Resource[G,PreparedQuery[G,A,B]] = outer.prepare(query).mapK(fk).map(_.mapK(fk))
+        override def prepareAndCache[A, B](query: Query[A,B]): G[PreparedQuery[G,A,B]] = fk(outer.prepareAndCache(query)).map(_.mapK(fk))
 
-        override def prepare[A](command: Command[A]): Resource[G,PreparedCommand[G,A]] = outer.prepare(command).mapK(fk).map(_.mapK(fk))
+        override def prepareAndCache[A](command: Command[A]): G[PreparedCommand[G,A]] = fk(outer.prepareAndCache(command)).map(_.mapK(fk))
 
         override def transaction[A]: Resource[G,Transaction[G]] = outer.transaction[A].mapK(fk).map(_.mapK(fk))
 
@@ -479,6 +512,8 @@ object Session {
         override def unique[A](query: Query[Void,A]): G[A] = fk(outer.unique(query))
 
         override def describeCache: Describe.Cache[G] = outer.describeCache.mapK(fk)
+
+        override def parseCache: Parse.Cache[G] = outer.parseCache.mapK(fk)
 
       }
   }
