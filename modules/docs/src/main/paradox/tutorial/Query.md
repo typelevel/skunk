@@ -175,7 +175,7 @@ Note that when using `Resource` and `Stream` together it is often convenient to 
 // assume s: Session[IO]
 val stream: Stream[IO, Unit] =
   for {
-    ps <- Stream.resource(s.prepare(e))
+    ps <- Stream.eval(s.prepare(e))
     c  <- ps.stream("U%", 64)
     _  <- Stream.eval(IO.println(c))
   } yield ()
@@ -357,7 +357,7 @@ object Service {
     """.query(varchar ~ bpchar(3) ~ int4)
        .gmap[Country]
 
-  def fromSession[F[_]: Applicative](s: Session[F]): Resource[F, Service[F]] =
+  def fromSession[F[_]: Applicative](s: Session[F]): F[Service[F]] =
     s.prepare(countries).map { pq =>
 
       // Our service implementation. Note that we are preparing the query on construction, so
@@ -384,7 +384,7 @@ object QueryExample2 extends IOApp {
 
   // A source of services
   val service: Resource[IO, Service[IO]] =
-    session.flatMap(Service.fromSession(_))
+    session.mapEval(Service.fromSession(_))
 
   // our entry point ... there is no indication that we're using a database at all!
   def run(args: List[String]): IO[ExitCode] =
