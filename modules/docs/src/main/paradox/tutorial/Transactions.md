@@ -131,7 +131,7 @@ object PetService {
       .gmap[Pet]
 
   // construct a PetService, preparing our statement once on construction
-  def fromSession(s: Session[IO]): Resource[IO, PetService[IO]] =
+  def fromSession(s: Session[IO]): IO[PetService[IO]] =
     s.prepare(insertOne).map { pc =>
       new PetService[IO] {
 
@@ -196,7 +196,7 @@ object TransactionExample extends IOApp {
       s  <- session
       _  <- withPetsTable(s)
       _  <- withTransactionStatusLogger(s)
-      ps <- PetService.fromSession(s)
+      ps <- Resource.eval(PetService.fromSession(s))
     } yield ps
 
   // Some test data
