@@ -126,7 +126,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     scalacOptions ~= (_.filterNot(_ == "-source:3.0-migration")),
     libraryDependencies ++= Seq(
       "org.typelevel"          %%% "cats-core"               % "2.9.0",
-      "org.typelevel"          %%% "cats-effect"             % "3.4.1",
+      "org.typelevel"          %%% "cats-effect"             % "3.4.2",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
       "org.scodec"             %%% "scodec-bits"             % "1.1.34",
@@ -134,17 +134,13 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.scodec"             %%% "scodec-cats"             % "1.2.0",
       "org.tpolecat"           %%% "natchez-core"            % natchezVersion,
       "org.tpolecat"           %%% "sourcepos"               % "1.1.0",
-      "org.scala-lang.modules" %%% "scala-collection-compat" % "2.8.1",
-    )
+      "org.scala-lang.modules" %%% "scala-collection-compat" % "2.9.0",
+    ) ++ Seq(
+      "com.beachape"  %%% "enumeratum"   % "1.7.2",
+    ).filterNot(_ => tlIsScala3.value)
   ).jvmSettings(
     libraryDependencies += "com.ongres.scram" % "client" % "2.1",
-  )
-  .platformsSettings(JVMPlatform, JSPlatform)(
-    libraryDependencies ++= Seq(
-      "com.beachape"  %%% "enumeratum"   % "1.6.1",
-    ).filterNot(_ => tlIsScala3.value)
-  )
-  .platformsSettings(JSPlatform, NativePlatform)(
+  ).platformsSettings(JSPlatform, NativePlatform)(
     libraryDependencies ++= Seq(
       "com.armanbilge" %%% "saslprep" % "0.1.1",
       "io.github.cquiroz" %%% "scala-java-time" % "2.4.0",
@@ -203,7 +199,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   )
   .nativeEnablePlugins(ScalaNativeBrewedConfigPlugin)
   .nativeSettings(
-    libraryDependencies += "com.armanbilge" %%% "epollcat" % "0.0-ab1026e",
+    libraryDependencies += "com.armanbilge" %%% "epollcat" % "0.1.3",
     Test / nativeBrewFormulas ++= Set("s2n", "utf8proc"),
     Test / envVars ++= Map("S2N_DONT_MLOCK" -> "1")
   )
