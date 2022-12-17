@@ -260,38 +260,38 @@ class CommandTest extends SkunkTest {
 
   sessionTest("insert, update and delete record") { s =>
     for {
-      c <- s.prepare(insertCity).use(_.execute(Garin))
+      c <- s.prepare(insertCity).flatMap(_.execute(Garin))
       _ <- assert("completion",  c == Completion.Insert(1))
-      c <- s.prepare(selectCity).use(_.unique(Garin.id))
+      c <- s.prepare(selectCity).flatMap(_.unique(Garin.id))
       _ <- assert("read", c == Garin)
       p <- IO(Garin.pop + 1000)
-      c <- s.prepare(updateCityPopulation).use(_.execute(p ~ Garin.id))
+      c <- s.prepare(updateCityPopulation).flatMap(_.execute(p ~ Garin.id))
       _ <- assert("completion",  c == Completion.Update(1))
-      c <- s.prepare(selectCity).use(_.unique(Garin.id))
+      c <- s.prepare(selectCity).flatMap(_.unique(Garin.id))
       _ <- assert("read", c == Garin.copy(pop = p))
-      _ <- s.prepare(deleteCity).use(_.execute(Garin.id))
+      _ <- s.prepare(deleteCity).flatMap(_.execute(Garin.id))
       _ <- s.assertHealthy
     } yield "ok"
   }
 
   sessionTest("insert and delete record with contramapped command") { s =>
     for {
-      c <- s.prepare(insertCity2).use(_.execute(Garin2))
+      c <- s.prepare(insertCity2).flatMap(_.execute(Garin2))
       _ <- assert("completion",  c == Completion.Insert(1))
-      c <- s.prepare(selectCity).use(_.unique(Garin2.id))
+      c <- s.prepare(selectCity).flatMap(_.unique(Garin2.id))
       _ <- assert("read", c == Garin2)
-      _ <- s.prepare(deleteCity).use(_.execute(Garin2.id))
+      _ <- s.prepare(deleteCity).flatMap(_.execute(Garin2.id))
       _ <- s.assertHealthy
     } yield "ok"
   }
 
   sessionTest("insert and delete record with contramapped command (via Contravariant instance") { s =>
     for {
-      c <- s.prepare(insertCity2a).use(_.execute(Garin3))
+      c <- s.prepare(insertCity2a).flatMap(_.execute(Garin3))
       _ <- assert("completion",  c == Completion.Insert(1))
-      c <- s.prepare(selectCity).use(_.unique(Garin3.id))
+      c <- s.prepare(selectCity).flatMap(_.unique(Garin3.id))
       _ <- assert("read", c == Garin3)
-      _ <- s.prepare(deleteCity).use(_.execute(Garin3.id))
+      _ <- s.prepare(deleteCity).flatMap(_.execute(Garin3.id))
       _ <- s.assertHealthy
     } yield "ok"
   }
@@ -316,7 +316,7 @@ class CommandTest extends SkunkTest {
 
   sessionTest("should be a query") { s =>
     s.prepare(sql"select * from country".command)
-      .use(_ => IO.unit)
+      .flatMap(_ => IO.unit)
       .assertFailsWith[UnexpectedRowsException]
       .as("ok")
   }

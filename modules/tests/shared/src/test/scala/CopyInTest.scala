@@ -24,13 +24,13 @@ class CopyInTest extends SkunkTest {
 
   sessionTest("copy in (extended, query)") { s =>
     s.prepare(sql"COPY country FROM STDIN".query(int4))
-      .use { _ => IO.unit }
+      .flatMap { _ => IO.unit }
       .assertFailsWith[NoDataException] *> s.assertHealthy // can't distinguish this from other cases, probably will be an FAQ
   }
 
   sessionTest("copy in (extended command)") { s =>
     s.prepare(sql"COPY country FROM STDIN".command)
-      .use { _.execute(skunk.Void) }
+      .flatMap { _.execute(skunk.Void) }
       .assertFailsWith[CopyNotSupportedException] *> s.assertHealthy
   }
 

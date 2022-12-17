@@ -159,7 +159,7 @@ Here we use the extended query protocol to stream directly to the console using 
 
 ```scala mdoc:compile-only
 // assume s: Session[IO]
-s.prepare(e).use { ps =>
+s.prepare(e).flatMap { ps =>
   ps.stream("U%", 64)
     .evalMap(c => IO.println(c))
     .compile
@@ -213,7 +213,7 @@ Observe that we have two parameter encoders `varchar` and `int4` (in that order)
 
 ```scala mdoc:compile-only
 // assume s: Session[IO]
-s.prepare(f).use { ps =>
+s.prepare(f).flatMap { ps =>
   ps.stream("U%" ~ 2000000, 64)
     .evalMap(c => IO.println(c))
     .compile
@@ -292,7 +292,7 @@ object QueryExample extends IOApp {
 
   // run our extended query
   def doExtended(s: Session[IO]): IO[Unit] =
-    s.prepare(extended).use { ps =>
+    s.prepare(extended).flatMap { ps =>
       ps.stream("U%", 32)
         .evalMap(c => IO.println(c))
         .compile

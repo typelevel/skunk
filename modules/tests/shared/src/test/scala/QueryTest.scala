@@ -19,7 +19,7 @@ class QueryTest extends SkunkTest{
 
     sessionTest("map") { s =>
         val f = sql"select $int4"
-        s.prepare(f.query(int4).map(_.toString)).use { ps =>
+        s.prepare(f.query(int4).map(_.toString)).flatMap { ps =>
             for {
                 n <- ps.unique(123)
                 _ <- assertEqual("123", n, "123")
@@ -29,7 +29,7 @@ class QueryTest extends SkunkTest{
 
     sessionTest("gmap") { s =>
         val f = sql"select $int4"
-        s.prepare(f.query(int4).gmap[Number]).use { ps =>
+        s.prepare(f.query(int4).gmap[Number]).flatMap { ps =>
             for {
                 n <- ps.unique(123)
                 _ <- assertEqual("123", n, Number(123))
@@ -39,7 +39,7 @@ class QueryTest extends SkunkTest{
 
     sessionTest("contramap") { s =>
         val f = sql"select $int4"
-        s.prepare(f.query(int4).contramap[String](_.toInt)).use { ps =>
+        s.prepare(f.query(int4).contramap[String](_.toInt)).flatMap { ps =>
             for {
                 n <- ps.unique("123")
                 _ <- assertEqual("123", n, 123)
@@ -49,7 +49,7 @@ class QueryTest extends SkunkTest{
 
     sessionTest("gcontramap") { s =>
         val f = sql"select $int4"
-        s.prepare(f.query(int4).gcontramap[Number]).use { ps =>
+        s.prepare(f.query(int4).gcontramap[Number]).flatMap { ps =>
             for {
                 n <- ps.unique(Number(123))
                 _ <- assertEqual("123", n, 123)
@@ -70,7 +70,7 @@ class QueryTest extends SkunkTest{
         }
         for {
             sessionBroken <- getS.use { s =>
-                s.prepare(f.query(void)).use { ps =>
+                s.prepare(f.query(void)).flatMap { ps =>
                     for {
                         ret <- ps.unique(8).attempt
                         _ <- assertEqual("timeout error check", getErr(ret), Option("2 seconds"))
@@ -79,7 +79,7 @@ class QueryTest extends SkunkTest{
             }.attempt
             _ <- assertEqual("timeout error check", getErr(sessionBroken), Option("2 seconds"))
             _ <- getS.use { s =>
-                s.prepare(f.query(void)).use { ps =>
+                s.prepare(f.query(void)).flatMap { ps =>
                     for {
                         ret <- ps.unique(1).attempt
                         _ <- assertEqual("timeout error ok", ret.isRight, true)

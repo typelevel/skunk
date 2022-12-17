@@ -127,36 +127,43 @@ trait Session[F[_]] {
    * @group Commands
    */
   def execute(command: Command[Void]): F[Completion]
-
-  /**
-   * Resource that prepares a query, yielding a `PreparedQuery` which can be executed multiple
-   * times with different arguments.
-   * @group Queries
-   */
-  def prepare[A, B](query: Query[A, B]): Resource[F, PreparedQuery[F, A, B]] =
-    Resource.eval(prepareAndCache(query))
-
-  /**
-   * Prepare an `INSERT`, `UPDATE`, or `DELETE` command that returns no rows. The resulting
-   * `PreparedCommand` can be executed multiple times with different arguments.
-   * @group Commands
-   */
-  def prepare[A](command: Command[A]): Resource[F, PreparedCommand[F, A]] =
-    Resource.eval(prepareAndCache(command))
-
   /**
    * Prepares then caches a query, yielding a `PreparedQuery` which can be executed multiple
    * times with different arguments.
    * @group Queries
    */
-  def prepareAndCache[A, B](query: Query[A, B]): F[PreparedQuery[F, A, B]]
+  def prepare[A, B](query: Query[A, B]): F[PreparedQuery[F, A, B]]
 
   /**
    * Prepares then caches an `INSERT`, `UPDATE`, or `DELETE` command that returns no rows. The resulting
    * `PreparedCommand` can be executed multiple times with different arguments.
    * @group Commands
    */
-  def prepareAndCache[A](command: Command[A]): F[PreparedCommand[F, A]]
+  def prepare[A](command: Command[A]): F[PreparedCommand[F, A]]
+
+  /**
+   * Resource that prepares a query, yielding a `PreparedQuery` which can be executed multiple
+   * times with different arguments.
+   * 
+   * Note: this method only exists to ease migration from Skunk 0.3 and prior. Use the
+   * non-resource variant instead.
+   * 
+   * @group Queries
+   */
+  def prepareR[A, B](query: Query[A, B]): Resource[F, PreparedQuery[F, A, B]] =
+    Resource.eval(prepare(query))
+
+  /**
+   * Prepare an `INSERT`, `UPDATE`, or `DELETE` command that returns no rows. The resulting
+   * `PreparedCommand` can be executed multiple times with different arguments.
+   * 
+   * Note: this method only exists to ease migration from Skunk 0.3 and prior. Use the
+   * non-resource variant instead.
+   * 
+   * @group Commands
+   */
+  def prepareR[A](command: Command[A]): Resource[F, PreparedCommand[F, A]] =
+    Resource.eval(prepare(command))
 
   /**
    * Transform a `Command` into a `Pipe` from inputs to `Completion`s.
@@ -186,7 +193,6 @@ trait Session[F[_]] {
    * @group Transactions
    */
   def transaction[A]: Resource[F, Transaction[F]]
-
 
   /**
     * Resource that wraps a transaction block.
@@ -422,7 +428,7 @@ object Session {
           proto.execute(query, typer)
 
         override def pipe[A](command: Command[A]): Pipe[F, A, Completion] = fa =>
-          Stream.resource(prepare(command)).flatMap(pc => fa.evalMap(pc.execute)).scope
+          Stream.eval(prepare(command)).flatMap(pc => fa.evalMap(pc.execute)).scope
 
         override def unique[A](query: Query[Void, A]): F[A] =
           execute(query).flatMap {
@@ -438,10 +444,10 @@ object Session {
             case _        => ev.raiseError(new RuntimeException("Expected at most one row, more returned."))
           }
 
-        override def prepareAndCache[A, B](query: Query[A, B]): F[PreparedQuery[F, A, B]] =
+        override def prepare[A, B](query: Query[A, B]): F[PreparedQuery[F, A, B]] =
           proto.prepare(query, typer).map(PreparedQuery.fromProto(_))
 
-        override def prepareAndCache[A](command: Command[A]): F[PreparedCommand[F, A]] =
+        override def prepare[A](command: Command[A]): F[PreparedCommand[F, A]] =
           proto.prepare(command, typer).map(PreparedCommand.fromProto(_))
 
         override def transaction[A]: Resource[F, Transaction[F]] =
@@ -490,7 +496,7 @@ object Session {
         override def execute[A](query: Query[Void,A]): G[List[A]] = fk(outer.execute(query))
 
         override def pipe[A](command: Command[A]): Pipe[G, A, Completion] = fa =>
-          Stream.resource(prepare(command)).flatMap(pc => fa.evalMap(pc.execute)).scope
+          Stream.eval(prepare(command)).flatMap(pc => fa.evalMap(pc.execute)).scope
 
         override def option[A](query: Query[Void,A]): G[Option[A]] = fk(outer.option(query))
 
@@ -498,9 +504,9 @@ object Session {
 
         override def parameters: Signal[G,Map[String,String]] = outer.parameters.mapK(fk)
 
-        override def prepareAndCache[A, B](query: Query[A,B]): G[PreparedQuery[G,A,B]] = fk(outer.prepareAndCache(query)).map(_.mapK(fk))
+        override def prepare[A, B](query: Query[A,B]): G[PreparedQuery[G,A,B]] = fk(outer.prepare(query)).map(_.mapK(fk))
 
-        override def prepareAndCache[A](command: Command[A]): G[PreparedCommand[G,A]] = fk(outer.prepareAndCache(command)).map(_.mapK(fk))
+        override def prepare[A](command: Command[A]): G[PreparedCommand[G,A]] = fk(outer.prepare(command)).map(_.mapK(fk))
 
         override def transaction[A]: Resource[G,Transaction[G]] = outer.transaction[A].mapK(fk).map(_.mapK(fk))
 

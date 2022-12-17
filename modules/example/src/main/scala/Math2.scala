@@ -4,7 +4,9 @@
 
 package example
 
+import cats.Monad
 import cats.effect.{ ExitCode, IO, IOApp, Resource }
+import cats.syntax.all._
 import skunk.Session
 import skunk.implicits._
 import skunk.codec.numeric.{ int4, float8 }
@@ -35,7 +37,7 @@ object Math2 extends IOApp {
       val sqrt = sql"select sqrt($float8)".query(float8)
     }
 
-    def fromSession[F[_]](sess: Session[F]): Resource[F, Math[F]] =
+    def fromSession[F[_]: Monad](sess: Session[F]): F[Math[F]] =
       for {
         pAdd  <- sess.prepare(Statements.add)
         pSqrt <- sess.prepare(Statements.sqrt)
@@ -48,7 +50,7 @@ object Math2 extends IOApp {
   }
 
   def run(args: List[String]): IO[ExitCode] =
-    session.flatMap(Math.fromSession(_)).use { m =>
+    session.evalMap(Math.fromSession(_)).use { m =>
       for {
         n  <- m.add(42, 71)
         d  <- m.sqrt(2)
