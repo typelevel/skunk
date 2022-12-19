@@ -6,7 +6,7 @@ package skunk
 
 import cats.{ Contravariant, Functor, ~> }
 import cats.arrow.Profunctor
-import cats.effect.Resource
+import cats.effect.{ Resource, MonadCancel }
 import cats.effect.kernel.MonadCancelThrow
 import cats.syntax.all._
 import fs2.{ Pipe, Stream }
@@ -39,6 +39,21 @@ trait Channel[F[_], A, B] extends Pipe[F, A, Unit] { outer =>
    */
   def listen(maxQueued: Int): Stream[F, Notification[B]]
 
+  /**
+   * Construct a `Resource[F, Stream]` that subscribes to notifications for this Channel that emits any notifications
+   * that arrive (this can happen at any time) once resource is acquired and unsubscribes when the resource is released.
+   * Note that once such a stream is started it is important to consume all notifications as quickly
+   * as possible to avoid blocking message processing for other operations on the `Session`
+   * (although typically a dedicated `Session` will receive channel notifications so this won't be
+   * an issue).
+   *
+   * @param maxQueued the maximum number of notifications to hold in a queue before [semantically]
+   *                  blocking message exchange on the controlling `Session`.
+   * @group Notifications
+   * @see [[https://www.postgresql.org/docs/10/static/sql-listen.html LISTEN]]
+   */
+  def listenR(maxQueued: Int): Resource[F, Stream[F, Notification[B]]]
+
   /** This `Channel` acts as an fs2 `Pipe`. */
   def apply(sa: Stream[F, A]): Stream[F,Unit] =
     sa.evalMap(notify)
@@ -69,22 +84,26 @@ trait Channel[F[_], A, B] extends Pipe[F, A, Unit] { outer =>
   /**
    * Contramap inputs from a new type `C` and map outputs to a new type `D`, yielding a
    * `Channel[F, C, D]`.
+   *
    * @group Transformations
    */
   def dimap[C, D](f: C => A)(g: B => D): Channel[F, C, D] =
     new Channel[F, C, D] {
       def listen(maxQueued: Int): Stream[F, Notification[D]] = outer.listen(maxQueued).map(_.map(g))
       def notify(message: C): F[Unit] = outer.notify(f(message))
+      def listenR(maxQueued: Int): Resource[F, Stream[F, Notification[D]]] = outer.listenR(maxQueued).map(_.map(_.map(g)))
     }
 
   /**
    * Transform this `Channel` by a given `FunctionK`.
+   *
    * @group Transformations
    */
-  def mapK[G[_]](fk: F ~> G): Channel[G, A, B] =
+  def mapK[G[_]: MonadCancelThrow](fk: F ~> G)(implicit f: MonadCancel[F, _]): Channel[G, A, B] =
     new Channel[G, A, B] {
       def listen(maxQueued: Int): Stream[G, Notification[B]] = outer.listen(maxQueued).translate(fk)
       def notify(message: A): G[Unit] = fk(outer.notify(message))
+      def listenR(maxQueued: Int): Resource[G, Stream[G, Notification[B]]] = outer.listenR(maxQueued).map(_.translate(fk)).mapK(fk)
     }
 
 }
@@ -109,10 +128,18 @@ object Channel {
     def listen(maxQueued: Int): Stream[F, Notification[String]] =
       for {
         _ <- Stream.resource(Resource.make(listen)(_ => unlisten))
-        n <- proto.notifications(maxQueued).filter(_.channel === name)
+        s <- Stream.resource(proto.notifications(maxQueued))
+        n <- s.filter(_.channel === name)
       } yield n
 
-    def notify(message: String): F[Unit] =
+
+      override def listenR(maxQueued: Int): Resource[F, Stream[F, Notification[String]]] =
+        Resource.make(listen)(_ => unlisten)
+          .flatMap(_ => proto.notifications(maxQueued))
+          .map(stream => stream.filter(_.channel === name))
+
+
+      def notify(message: String): F[Unit] =
       // TODO: escape the message
       proto.execute(Command(s"NOTIFY ${name.value}, '$message'", Origin.unknown, Void.codec)).void
 
