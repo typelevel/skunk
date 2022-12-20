@@ -140,7 +140,7 @@ object Channel {
       } yield stream.filter(_.channel === name)
 
 
-      def notify(message: String): F[Unit] =
+    def notify(message: String): F[Unit] =
       // TODO: escape the message
       proto.execute(Command(s"NOTIFY ${name.value}, '$message'", Origin.unknown, Void.codec)).void
 
