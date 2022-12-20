@@ -134,9 +134,10 @@ object Channel {
 
 
     def listenR(maxQueued: Int): Resource[F, Stream[F, Notification[String]]] =
-      Resource.make(listen)(_ => unlisten)
-        .flatMap(_ => proto.notifications(maxQueued))
-        .map(stream => stream.filter(_.channel === name))
+      for {
+        _      <- Resource.make(listen)(_ => unlisten)
+        stream <- proto.notifications(maxQueued)
+      } yield stream.filter(_.channel === name)
 
 
       def notify(message: String): F[Unit] =
