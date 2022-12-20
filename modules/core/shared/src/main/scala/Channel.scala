@@ -99,7 +99,7 @@ trait Channel[F[_], A, B] extends Pipe[F, A, Unit] { outer =>
    *
    * @group Transformations
    */
-  def mapK[G[_]: MonadCancelThrow](fk: F ~> G)(implicit f: MonadCancel[F, _]): Channel[G, A, B] =
+  def mapK[G[_]](fk: F ~> G)(implicit f: MonadCancel[F, _], g: MonadCancel[G, _]): Channel[G, A, B] =
     new Channel[G, A, B] {
       def listen(maxQueued: Int): Stream[G, Notification[B]] = outer.listen(maxQueued).translate(fk)
       def notify(message: A): G[Unit] = fk(outer.notify(message))
@@ -133,10 +133,10 @@ object Channel {
       } yield n
 
 
-      override def listenR(maxQueued: Int): Resource[F, Stream[F, Notification[String]]] =
-        Resource.make(listen)(_ => unlisten)
-          .flatMap(_ => proto.notifications(maxQueued))
-          .map(stream => stream.filter(_.channel === name))
+    def listenR(maxQueued: Int): Resource[F, Stream[F, Notification[String]]] =
+      Resource.make(listen)(_ => unlisten)
+        .flatMap(_ => proto.notifications(maxQueued))
+        .map(stream => stream.filter(_.channel === name))
 
 
       def notify(message: String): F[Unit] =
