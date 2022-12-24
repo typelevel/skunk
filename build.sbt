@@ -192,7 +192,12 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.typelevel"     %%% "discipline-munit"        % "2.0.0-M3",
       "org.typelevel"     %%% "cats-time"               % "0.5.1",
     ),
-    testFrameworks += new TestFramework("munit.Framework")
+    testFrameworks += new TestFramework("munit.Framework"),
+    testOptions += {
+      if(System.getProperty("os.arch").startsWith("aarch64")) {
+        Tests.Argument(TestFrameworks.MUnit, "--exclude-tags=X86ArchOnly")
+      } else Tests.Argument()
+    }
   )
   .jsSettings(
     Test / scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.CommonJSModule)),

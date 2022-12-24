@@ -10,8 +10,9 @@ import skunk.exception.StartupException
 import natchez.Trace.Implicits.noop
 
 class RedshiftTest extends ffstest.FTest {
+  object X86ArchOnly extends munit.Tag("X86ArchOnly")
 
-  test("redshift - successfully connect") {
+  test("redshift - successfully connect".tag(X86ArchOnly)) {
     Session.single[IO](
       host = "localhost",
       user = "postgres",
@@ -22,7 +23,7 @@ class RedshiftTest extends ffstest.FTest {
     ).use(_ => IO.unit)
   }
 
-  test("redshift - cannot connect with default params") {
+  test("redshift - cannot connect with default params".tag(X86ArchOnly)) {
     Session.single[IO](
       host = "localhost",
       user = "postgres",
