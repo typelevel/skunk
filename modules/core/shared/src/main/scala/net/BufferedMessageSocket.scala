@@ -135,7 +135,7 @@ object BufferedMessageSocket {
       paSig <- SignallingRef[F, Map[String, String]](Map.empty)
       bkSig <- Deferred[F, BackendKeyData]
       noTop <- Topic[F, Notification[String]]
-      fib   <- next(ms, xaSig, paSig, bkSig, noTop).repeat.evalMap(queue.offer).compile.drain.attempt.flatMap {
+      fib   <- next(ms, xaSig, paSig, bkSig, noTop).repeat.foreach(queue.offer).compile.drain.attempt.flatMap {
         case Left(e)  => queue.offer(NetworkError(e)) // publish the failure
         case Right(a) => a.pure[F]
       } .start
