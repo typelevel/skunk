@@ -10,7 +10,6 @@ import cats.effect.std.Console
 import cats.syntax.all._
 import fs2.concurrent.Signal
 import fs2.io.net.{ Network, SocketGroup, SocketOption }
-import fs2.Compiler
 import fs2.Pipe
 import fs2.Stream
 import natchez.Trace
@@ -114,8 +113,7 @@ trait Session[F[_]] {
    *
    * @group Queries
    */
-  def execute[A, B](query: Query[A, B], args: A)(implicit F: Monad[F], c: Compiler[F,F]): F[List[B]] =
-    Monad[F].flatMap(prepare(query))(pq => pq.stream(args, Int.MaxValue).compile.toList)
+  def execute[A, B](query: Query[A, B], args: A): F[List[B]]
 
   /**
    * Execute a non-parameterized query and yield exactly one row, raising an exception if there are
@@ -130,8 +128,7 @@ trait Session[F[_]] {
    *
    * @group Queries
    */
-  def unique[A, B](query: Query[A, B], args: A)(implicit F: Monad[F]): F[B] =
-    Monad[F].flatMap(prepare(query))(_.unique(args))
+  def unique[A, B](query: Query[A, B], args: A): F[B]
 
   /**
    * Execute a non-parameterized query and yield at most one row, raising an exception if there are
@@ -146,8 +143,7 @@ trait Session[F[_]] {
    *
    * @group Queries
    */
-  def option[A, B](query: Query[A, B], args: A)(implicit F: Monad[F]): F[Option[B]] =
-    Monad[F].flatMap(prepare(query))(_.option(args))
+  def option[A, B](query: Query[A, B], args: A): F[Option[B]]
 
   /**
    * Execute a non-parameterized command and yield a `Completion`. If you have parameters use
@@ -161,8 +157,7 @@ trait Session[F[_]] {
    *
    * @group Commands
    */
-  def execute[A](command: Command[A], args: A)(implicit F: Monad[F]): F[Completion] =
-    Monad[F].flatMap(prepare(command))(_.execute(args))
+  def execute[A](command: Command[A], args: A): F[Completion]
 
   /**
    * Prepares then caches a query, yielding a `PreparedQuery` which can be executed multiple
@@ -212,7 +207,7 @@ trait Session[F[_]] {
   /**
    * Transform a `Query` into a `Pipe` from inputs to outputs.
    *
-   * @param chunkSize how many rows must be fetched by page 
+   * @param chunkSize how many rows must be fetched by page
    * @group Commands
    */
   def pipe[A, B](query: Query[A, B], chunkSize: Int): Pipe[F, A, B] = fa =>
@@ -271,6 +266,28 @@ trait Session[F[_]] {
 
 /** @group Companions */
 object Session {
+
+  /**
+   * Abstract implementation that use the MonadCancelThrow constraint to implement prepared-if-needed API
+   */
+  abstract class Impl[F[_]: MonadCancelThrow] extends Session[F] {
+
+    override def execute[A, B](query: Query[A, B], args: A): F[List[B]] =
+      Monad[F].flatMap(prepare(query))(_.cursor(args).use {
+        _.fetch(Int.MaxValue).map { case (rows, _) => rows }
+      })
+
+    override def unique[A, B](query: Query[A, B], args: A): F[B] =
+      Monad[F].flatMap(prepare(query))(_.unique(args))
+
+    override def option[A, B](query: Query[A, B], args: A): F[Option[B]] =
+      Monad[F].flatMap(prepare(query))(_.option(args))
+
+    override def execute[A](command: Command[A], args: A): F[Completion] =
+      Monad[F].flatMap(prepare(command))(_.execute(args))
+
+  }
+
   val DefaultConnectionParameters: Map[String, String] =
     Map(
       "client_min_messages" -> "WARNING",
@@ -452,7 +469,7 @@ object Session {
       }
 
     ft.map { typ =>
-      new Session[F] {
+      new Impl[F] {
 
         override val typer: Typer = typ
 
@@ -529,7 +546,7 @@ object Session {
     def mapK[G[_]: MonadCancelThrow](fk: F ~> G)(
       implicit mcf: MonadCancel[F, _]
     ): Session[G] =
-      new Session[G] {
+      new Impl[G] {
 
         override val typer: Typer = outer.typer
 
