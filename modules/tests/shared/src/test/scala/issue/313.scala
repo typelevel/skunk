@@ -30,7 +30,7 @@ class Test313 extends SkunkTest {
   sessionTest("issue/313") { s =>
     for {
       _  <- s.execute(sql"SET TIME ZONE +3".command)
-      i  <- s.prepare(sql"SELECT $instantCodec".query(instantCodec)).use(_.unique(instant))
+      i  <- s.prepare(sql"SELECT $instantCodec".query(instantCodec)).flatMap(_.unique(instant))
       _  <- assertEqual("instant roundtrip via timestamptz", instant, i)
     } yield "ok"
   }

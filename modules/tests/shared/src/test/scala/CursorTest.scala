@@ -16,7 +16,7 @@ class CursorTest extends SkunkTest {
   case class Data(s: String, n: Int)
 
   def cursor(s: Session[IO]): Resource[IO, Cursor[IO, Data]] =
-    s.prepare(sql"select name, population from country".query(varchar ~ int4))
+    s.prepareR(sql"select name, population from country".query(varchar ~ int4))
      .flatMap(_.cursor(Void).map { c =>
        c.map { case s ~ n => Data(s, n) } .mapK(FunctionK.id) // coverage
      })

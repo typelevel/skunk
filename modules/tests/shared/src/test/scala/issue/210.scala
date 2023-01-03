@@ -50,8 +50,8 @@ class Test210 extends SkunkTest {
   def doInserts(ready: Deferred[IO, Unit], done: Deferred[IO, Unit]): IO[Unit] =
     session.flatTap(withPetsTable).use { s =>
       for {
-        _ <- s.prepare(insertOne).use(pc => pc.execute(Pet("Bob", 12)))
-        _ <- s.prepare(insertMany(beatles)).use(pc => pc.execute(beatles))
+        _ <- s.prepare(insertOne).flatMap(pc => pc.execute(Pet("Bob", 12)))
+        _ <- s.prepare(insertMany(beatles)).flatMap(pc => pc.execute(beatles))
         _ <- ready.complete(())
         _ <- done.get // wait for main fiber to finish
       } yield ()

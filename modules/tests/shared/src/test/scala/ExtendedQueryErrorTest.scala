@@ -17,7 +17,7 @@ class ExtendedQueryErrorTest extends SkunkTest {
 
   sessionTest("syntax error") { s =>
     for {
-      e <- s.prepare(sql"foo".query(int4)).use(ps => ps.stream(Void, 64).compile.drain).assertFailsWith[PostgresErrorException]
+      e <- s.prepare(sql"foo".query(int4)).flatMap(ps => ps.stream(Void, 64).compile.drain).assertFailsWith[PostgresErrorException]
       _ <- assert("message",  e.message  === "Syntax error at or near \"foo\".")
       _ <- assert("hint",     e.hint     === None)
       _ <- assert("position", e.position === Some(1))
@@ -27,7 +27,7 @@ class ExtendedQueryErrorTest extends SkunkTest {
 
   sessionTest("invalid input syntax") { s =>
     for {
-      e <- s.prepare(sql"select 1 < 'foo'".query(int4)).use(ps => ps.stream(Void, 64).compile.drain).assertFailsWith[PostgresErrorException]
+      e <- s.prepare(sql"select 1 < 'foo'".query(int4)).flatMap(ps => ps.stream(Void, 64).compile.drain).assertFailsWith[PostgresErrorException]
       _ <- assert("message",  e.message  === "Invalid input syntax for integer: \"foo\".")
       _ <- assert("hint",     e.hint     === None)
       _ <- assert("position", e.position === Some(12))
@@ -37,7 +37,7 @@ class ExtendedQueryErrorTest extends SkunkTest {
 
   sessionTest("unknown column, no hint") { s =>
     for {
-      e <- s.prepare(sql"select abc".query(int4)).use(ps => ps.stream(Void, 64).compile.drain).assertFailsWith[PostgresErrorException]
+      e <- s.prepare(sql"select abc".query(int4)).flatMap(ps => ps.stream(Void, 64).compile.drain).assertFailsWith[PostgresErrorException]
       _ <- assert("message",  e.message  === "Column \"abc\" does not exist.")
       _ <- assert("hint",     e.hint     === None)
       _ <- assert("position", e.position === Some(8))
@@ -47,7 +47,7 @@ class ExtendedQueryErrorTest extends SkunkTest {
 
   sessionTest("unknown column, hint") { s =>
     for {
-      e <- s.prepare(sql"select popsulation from country".query(int4)).use(ps => ps.stream(Void, 64).compile.drain).assertFailsWith[PostgresErrorException]
+      e <- s.prepare(sql"select popsulation from country".query(int4)).flatMap(ps => ps.stream(Void, 64).compile.drain).assertFailsWith[PostgresErrorException]
       _ <- assert("message",  e.message  === "Column \"popsulation\" does not exist.")
       _ <- assert("hint",     e.hint     === Some("Perhaps you meant to reference the column \"country.population\"."))
       _ <- assert("position", e.position === Some(8))
@@ -57,7 +57,7 @@ class ExtendedQueryErrorTest extends SkunkTest {
 
   sessionTest("column alignment, unmapped column") { s =>
     for {
-      e <- s.prepare(sql"select name, population from country".query(varchar)).use(ps => ps.stream(Void, 64).compile.drain).assertFailsWith[ColumnAlignmentException]
+      e <- s.prepare(sql"select name, population from country".query(varchar)).flatMap(ps => ps.stream(Void, 64).compile.drain).assertFailsWith[ColumnAlignmentException]
       _ <- assert("message",  e.message  === "Asserted and actual column types differ.")
       // TODO: check that the reported alignment is varchar ~ int4 vs varchar
       _ <- s.assertHealthy
@@ -66,7 +66,7 @@ class ExtendedQueryErrorTest extends SkunkTest {
 
   sessionTest("column alignment, type mismatch, one row") { s =>
     for {
-      e <- s.prepare(sql"select 1".query(varchar ~ varchar)).use(ps => ps.stream(Void, 64).compile.drain).assertFailsWith[ColumnAlignmentException]
+      e <- s.prepare(sql"select 1".query(varchar ~ varchar)).flatMap(ps => ps.stream(Void, 64).compile.drain).assertFailsWith[ColumnAlignmentException]
       _ <- assert("message",  e.message  === "Asserted and actual column types differ.")
       // TODO: check that the reported alignment is varchar ~ int4 vs varchar ~ varchar
       _ <- s.assertHealthy
@@ -75,7 +75,7 @@ class ExtendedQueryErrorTest extends SkunkTest {
 
   sessionTest("column alignment, type mismatch, many row2") { s =>
     for {
-      e <- s.prepare(sql"select name, population from country".query(varchar ~ varchar)).use(ps => ps.stream(Void, 64).compile.drain).assertFailsWith[ColumnAlignmentException]
+      e <- s.prepare(sql"select name, population from country".query(varchar ~ varchar)).flatMap(ps => ps.stream(Void, 64).compile.drain).assertFailsWith[ColumnAlignmentException]
       _ <- assert("message",  e.message  === "Asserted and actual column types differ.")
       // TODO: check that the reported alignment is varchar ~ int4 vs varchar ~ varchar
       _ <- s.assertHealthy
@@ -84,7 +84,7 @@ class ExtendedQueryErrorTest extends SkunkTest {
 
   sessionTest("decode error, one row") { s =>
     for {
-      e <- s.prepare(sql"select null::varchar".query(varchar)).use(ps => ps.stream(Void, 64).compile.drain).assertFailsWith[DecodeException[IO, _, _]]
+      e <- s.prepare(sql"select null::varchar".query(varchar)).flatMap(ps => ps.stream(Void, 64).compile.drain).assertFailsWith[DecodeException[IO, _, _]]
       _ <- assert("message",  e.message  === "Decoding error.")
       _ <- assertEqual("detail", e.detail, Some("This query's decoder was unable to decode a row of data."))
       // TODO: check the specific error
@@ -94,7 +94,7 @@ class ExtendedQueryErrorTest extends SkunkTest {
 
   sessionTest("decode error, many rows") { s =>
     for {
-      e <- s.prepare(sql"select null::varchar from country".query(varchar)).use(ps => ps.stream(Void, 64).compile.drain).assertFailsWith[DecodeException[IO, _, _]]
+      e <- s.prepare(sql"select null::varchar from country".query(varchar)).flatMap(ps => ps.stream(Void, 64).compile.drain).assertFailsWith[DecodeException[IO, _, _]]
       _ <- assert("message",  e.message  === "Decoding error.")
       _ <- assertEqual("detail", e.detail, Some("This query's decoder was unable to decode a row of data."))
       // TODO: check the specific error
@@ -104,7 +104,7 @@ class ExtendedQueryErrorTest extends SkunkTest {
 
   sessionTest("not a query") { s =>
     for {
-      e <- s.prepare(sql"set seed = 0.123".query(int4)).use(ps => ps.stream(Void, 64).compile.drain).assertFailsWith[NoDataException]
+      e <- s.prepare(sql"set seed = 0.123".query(int4)).flatMap(ps => ps.stream(Void, 64).compile.drain).assertFailsWith[NoDataException]
       _ <- assert("message",  e.message  === "Statement does not return data.")
       _ <- s.assertHealthy
     } yield "ok"
@@ -112,7 +112,7 @@ class ExtendedQueryErrorTest extends SkunkTest {
 
   sessionTest("not a query, with warning") { s =>
     for {
-      e <- s.prepare(sql"commit".query(int4)).use(ps => ps.stream(Void, 64).compile.drain).assertFailsWith[NoDataException]
+      e <- s.prepare(sql"commit".query(int4)).flatMap(ps => ps.stream(Void, 64).compile.drain).assertFailsWith[NoDataException]
       _ <- assertEqual("message", e.message, "Statement does not return data.")
       _ <- s.assertHealthy
     } yield "ok"
@@ -135,7 +135,7 @@ class ExtendedQueryErrorTest extends SkunkTest {
 
     tables.use { _ =>
       for {
-        e <- s.prepare(sql"insert into foo (bar_id) values (42) returning *".query(int8)).use(ps => ps.stream(Void, 64).compile.drain).assertFailsWith[PostgresErrorException]
+        e <- s.prepare(sql"insert into foo (bar_id) values (42) returning *".query(int8)).flatMap(ps => ps.stream(Void, 64).compile.drain).assertFailsWith[PostgresErrorException]
         _ <- assertEqual("message", e.message, """Insert or update on table "foo" violates foreign key constraint "foo_bar_id_fkey".""")
         _ <- s.assertHealthy
       } yield "ok"
@@ -145,7 +145,7 @@ class ExtendedQueryErrorTest extends SkunkTest {
   sessionTest("unknown type") { s =>
     val tstate = `enum`[String](identity, Some(_), Type("bogus"))
     s.prepare(sql"select ${tstate}".query(tstate))
-      .use(_ => IO.unit)
+      .flatMap(_ => IO.unit)
       .assertFailsWith[UnknownTypeException]
       .as("ok")
   }

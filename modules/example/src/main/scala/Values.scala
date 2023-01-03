@@ -41,7 +41,7 @@ object Values extends IOApp {
   def run(args: List[String]): IO[ExitCode] =
     session.use { s =>
       val q = query(examples.length)
-      s.prepare(q).use { pq =>
+      s.prepare(q).flatMap { pq =>
         for {
           _  <- IO(println(q.sql))
           ds <- pq.stream(examples, 64).compile.to(List)

@@ -5,6 +5,7 @@
 package example
 
 import cats.effect._
+import cats.syntax.all._
 import skunk.Session
 import skunk.implicits._
 import skunk.codec.numeric.{ int4, float8 }
@@ -39,8 +40,8 @@ object Math1 extends IOApp {
       implicit ev: MonadCancel[F, Throwable]
     ): Math[F] =
       new Math[F] {
-        def add(a: Int, b: Int) = sess.prepare(Statements.add).use(_.unique(a ~ b))
-        def sqrt(d: Double)     = sess.prepare(Statements.sqrt).use(_.unique(d))
+        def add(a: Int, b: Int) = sess.prepare(Statements.add).flatMap(_.unique(a ~ b))
+        def sqrt(d: Double)     = sess.prepare(Statements.sqrt).flatMap(_.unique(d))
       }
 
   }

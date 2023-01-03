@@ -31,14 +31,14 @@ class ErrorResponseTest extends SkunkTest {
 
   sessionTest("prepared query, syntax error") { s =>
     for {
-      _ <- s.prepare(sql"foo?".query(int4)).use(_ => IO.unit).assertFailsWith[PostgresErrorException]
+      _ <- s.prepare(sql"foo?".query(int4)).flatMap(_ => IO.unit).assertFailsWith[PostgresErrorException]
       _ <- s.assertHealthy
     } yield "ok"
   }
 
   sessionTest("prepared command, syntax error") { s =>
     for {
-      _ <- s.prepare(sql"foo?".command).use(_ => IO.unit).assertFailsWith[PostgresErrorException]
+      _ <- s.prepare(sql"foo?".command).flatMap(_ => IO.unit).assertFailsWith[PostgresErrorException]
       _ <- s.assertHealthy
     } yield "ok"
   }
