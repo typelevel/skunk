@@ -108,11 +108,27 @@ trait Session[F[_]] {
   def execute[A](query: Query[Void, A]): F[List[A]]
 
   /**
+   * Prepare if needed, then execute a parameterized query and yield all results. If you wish to limit
+   * returned rows use `prepare` instead.
+   *
+   * @group Queries
+   */
+  def execute[A, B](query: Query[A, B], args: A): F[List[B]]
+
+  /**
    * Execute a non-parameterized query and yield exactly one row, raising an exception if there are
    * more or fewer. If you have parameters use `prepare` instead.
    * @group Queries
    */
   def unique[A](query: Query[Void, A]): F[A]
+
+  /**
+   * Prepare if needed, then execute a parameterized query and yield exactly one row, raising an exception if there are
+   * more or fewer.
+   *
+   * @group Queries
+   */
+  def unique[A, B](query: Query[A, B], args: A): F[B]
 
   /**
    * Execute a non-parameterized query and yield at most one row, raising an exception if there are
@@ -122,11 +138,27 @@ trait Session[F[_]] {
   def option[A](query: Query[Void, A]): F[Option[A]]
 
   /**
+   * Prepare if needed, then execute a parameterized query and yield at most one row, raising an exception if there are
+   * more.
+   *
+   * @group Queries
+   */
+  def option[A, B](query: Query[A, B], args: A): F[Option[B]]
+
+  /**
    * Execute a non-parameterized command and yield a `Completion`. If you have parameters use
    * `prepare` instead.
    * @group Commands
    */
   def execute(command: Command[Void]): F[Completion]
+
+  /**
+   * Prepare if needed, then execute a parameterized command and yield a `Completion`.
+   *
+   * @group Commands
+   */
+  def execute[A](command: Command[A], args: A): F[Completion]
+
   /**
    * Prepares then caches a query, yielding a `PreparedQuery` which can be executed multiple
    * times with different arguments.
@@ -169,7 +201,17 @@ trait Session[F[_]] {
    * Transform a `Command` into a `Pipe` from inputs to `Completion`s.
    * @group Commands
    */
-  def pipe[A](command: Command[A]): Pipe[F, A, Completion]
+  def pipe[A](command: Command[A]): Pipe[F, A, Completion] = fa =>
+    Stream.eval(prepare(command)).flatMap(pc => fa.evalMap(pc.execute)).scope
+
+  /**
+   * Transform a `Query` into a `Pipe` from inputs to outputs.
+   *
+   * @param chunkSize how many rows must be fetched by page
+   * @group Commands
+   */
+  def pipe[A, B](query: Query[A, B], chunkSize: Int): Pipe[F, A, B] = fa =>
+    Stream.eval(prepare(query)).flatMap(pq => fa.flatMap(a => pq.stream(a, chunkSize))).scope
 
   /**
    * A named asynchronous channel that can be used for inter-process communication.
@@ -224,6 +266,28 @@ trait Session[F[_]] {
 
 /** @group Companions */
 object Session {
+
+  /**
+   * Abstract implementation that use the MonadCancelThrow constraint to implement prepared-if-needed API
+   */
+  abstract class Impl[F[_]: MonadCancelThrow] extends Session[F] {
+
+    override def execute[A, B](query: Query[A, B], args: A): F[List[B]] =
+      Monad[F].flatMap(prepare(query))(_.cursor(args).use {
+        _.fetch(Int.MaxValue).map { case (rows, _) => rows }
+      })
+
+    override def unique[A, B](query: Query[A, B], args: A): F[B] =
+      Monad[F].flatMap(prepare(query))(_.unique(args))
+
+    override def option[A, B](query: Query[A, B], args: A): F[Option[B]] =
+      Monad[F].flatMap(prepare(query))(_.option(args))
+
+    override def execute[A](command: Command[A], args: A): F[Completion] =
+      Monad[F].flatMap(prepare(command))(_.execute(args))
+
+  }
+
   val DefaultConnectionParameters: Map[String, String] =
     Map(
       "client_min_messages" -> "WARNING",
@@ -405,7 +469,7 @@ object Session {
       }
 
     ft.map { typ =>
-      new Session[F] {
+      new Impl[F] {
 
         override val typer: Typer = typ
 
@@ -426,9 +490,6 @@ object Session {
 
         override def execute[A](query: Query[Void, A]): F[List[A]] =
           proto.execute(query, typer)
-
-        override def pipe[A](command: Command[A]): Pipe[F, A, Completion] = fa =>
-          Stream.eval(prepare(command)).flatMap(pc => fa.evalMap(pc.execute)).scope
 
         override def unique[A](query: Query[Void, A]): F[A] =
           execute(query).flatMap {
@@ -485,7 +546,7 @@ object Session {
     def mapK[G[_]: MonadCancelThrow](fk: F ~> G)(
       implicit mcf: MonadCancel[F, _]
     ): Session[G] =
-      new Session[G] {
+      new Impl[G] {
 
         override val typer: Typer = outer.typer
 
