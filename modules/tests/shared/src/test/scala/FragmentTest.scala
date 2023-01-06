@@ -41,6 +41,26 @@ class FragmentTest extends SkunkTest {
     }
   }
 
+  sessionTest("~>") { s =>
+    val f = sql"select" ~> sql" $int4, $varchar"
+    s.prepare(f.query(int4 ~ varchar)).flatMap { ps =>
+      for {
+        n <- ps.unique(123 ~ "456")
+        _ <- assertEqual("123 ~ \"456\"", n, 123 ~ "456")
+      } yield "ok"
+    }
+  }
+
+  sessionTest("<~") { s =>
+    val f = sql"select $int4" <~ sql", '456'"
+    s.prepare(f.query(int4 ~ text)).flatMap { ps =>
+      for {
+        n <- ps.unique(123)
+        _ <- assertEqual("123 ~ \"456\"", n, 123 ~ "456")
+      } yield "ok"
+    }
+  }
+
   sessionTest("contramap via ContravariantSemigroupal") { s =>
     val f = ContravariantSemigroupal[Fragment].contramap[Int, String](sql"select $int4")(_.toInt)
     s.prepare(f.query(int4)).flatMap { ps =>
