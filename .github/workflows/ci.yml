@@ -85,7 +85,7 @@ jobs:
         run: sbt 'project ${{ matrix.project }}' '++${{ matrix.scala }}' headerCheckAll
 
       - name: Check headers and formatting
-        if: matrix.java == 'temurin@11'
+        if: matrix.java == 'temurin@11' && matrix.os == 'ubuntu-22.04'
         run: sbt 'project ${{ matrix.project }}' '++${{ matrix.scala }}' headerCheckAll scalafmtCheckAll 'project /' scalafmtSbtCheck
 
       - name: scalaJSLink
@@ -100,11 +100,11 @@ jobs:
         run: sbt 'project ${{ matrix.project }}' '++${{ matrix.scala }}' test
 
       - name: Check binary compatibility
-        if: matrix.java == 'temurin@11'
+        if: matrix.java == 'temurin@11' && matrix.os == 'ubuntu-22.04'
         run: sbt 'project ${{ matrix.project }}' '++${{ matrix.scala }}' mimaReportBinaryIssues
 
       - name: Generate API documentation
-        if: matrix.java == 'temurin@11'
+        if: matrix.java == 'temurin@11' && matrix.os == 'ubuntu-22.04'
         run: sbt 'project ${{ matrix.project }}' '++${{ matrix.scala }}' doc
 
       - name: Check Doc Site (2.13.10 JVM only)
