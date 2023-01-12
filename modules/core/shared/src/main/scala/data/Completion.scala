@@ -37,6 +37,9 @@ object Completion {
   case object Do                 extends Completion
   case object CreateView         extends Completion
   case object DropView           extends Completion
+  case object CreateProcedure    extends Completion
+  case object DropProcedure      extends Completion
+  case object Call               extends Completion
   case object CreateDomain       extends Completion
   case object DropDomain         extends Completion
   case object CreateSequence     extends Completion

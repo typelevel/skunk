@@ -118,6 +118,27 @@ class CommandTest extends SkunkTest {
       DROP VIEW city_view
       """.command
 
+  val createProcedure: Command[Void] =
+    sql"""
+      CREATE OR REPLACE PROCEDURE proc(n integer)
+      LANGUAGE plpgsql
+      AS $$$$
+      BEGIN
+        RAISE DEBUG 'proc called';
+      END;
+      $$$$;
+      """.command
+
+  val dropProcedure: Command[Void] =
+    sql"""
+      DROP PROCEDURE proc
+      """.command
+
+  val callProcedure: Command[Void] =
+    sql"""
+      CALL proc(123)
+      """.command
+
   val doCommand : Command[Void] =
     sql"""
       DO $$$$ begin
@@ -205,6 +226,18 @@ class CommandTest extends SkunkTest {
       _ <- assert("completion", c == Completion.CreateView)
       c <- s.execute(dropView)
       _ <- assert("completion", c == Completion.DropView)
+      _ <- s.assertHealthy
+    } yield "ok"
+  }
+
+  sessionTest("create, call and drop procedure"){ s=>
+    for{
+      c <- s.execute(createProcedure)
+      _ <- assert("completion", c == Completion.CreateProcedure)
+      c <- s.execute(callProcedure)
+      _ <- assert("completion", c == Completion.Call)
+      c <- s.execute(dropProcedure)
+      _ <- assert("completion", c == Completion.DropProcedure)
       _ <- s.assertHealthy
     } yield "ok"
   }
