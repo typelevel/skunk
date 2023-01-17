@@ -305,7 +305,7 @@ class CommandTest extends SkunkTest {
     } yield "ok"
   }
 
-  sessionTest("refresh materialized view, refresh materialized view concurrently"){ s =>
+  sessionTest("refresh materialized view, refresh materialized view concurrently") { s =>
     for{
       c <- s.execute(createMaterializedView)
       _ <- assert("completion " + c, c == Completion.CreateMaterializedView)
@@ -318,7 +318,7 @@ class CommandTest extends SkunkTest {
     } yield "ok"
   }
 
-  sessionTest("do command"){ s=>
+  sessionTest("do command") { s =>
     for{
       c <- s.execute(doCommand)
       _ <- assert("completion", c == Completion.Do)
