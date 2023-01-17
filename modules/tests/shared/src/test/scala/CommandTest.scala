@@ -194,6 +194,33 @@ class CommandTest extends SkunkTest {
         DROP ROLE skunk_role
        """.command
 
+  val createMaterializedView: Command[Void] =
+    sql"""
+        CREATE MATERIALIZED VIEW IF NOT EXISTS my_foo_mv
+        AS
+        SELECT now()
+       """.command
+
+  val createUniqueIndexForMaterializedView: Command[Void] =
+    sql"""
+        CREATE UNIQUE INDEX IF NOT exists my_foo_mv_unique ON my_foo_mv(now)
+        """.command
+
+  val refreshMaterializedView: Command[Void] =
+    sql"""
+        REFRESH MATERIALIZED VIEW my_foo_mv
+       """.command
+
+  val refreshMaterializedViewConcurrently: Command[Void] =
+    sql"""
+        REFRESH MATERIALIZED VIEW CONCURRENTLY my_foo_mv
+       """.command
+
+  val dropMaterializedView: Command[Void] =
+    sql"""
+        DROP MATERIALIZED VIEW my_foo_mv
+       """.command
+
   sessionTest("create table, create index, drop index, alter table and drop table") { s =>
     for {
       c <- s.execute(createTable)
@@ -227,6 +254,23 @@ class CommandTest extends SkunkTest {
       c <- s.execute(dropView)
       _ <- assert("completion", c == Completion.DropView)
       _ <- s.assertHealthy
+    } yield "ok"
+  }
+
+  sessionTest("refresh materialized view, refresh materialized view concurrently") { s =>
+    for {
+      c <- s.execute(createMaterializedView)
+      _ <- assert("completion", c == Completion.Select(1))
+      c <- s.execute(createMaterializedView)
+      _ <- assert("completion", c == Completion.CreateMaterializedView)
+      c <- s.execute(refreshMaterializedView)
+      _ <- assert("completion", c == Completion.RefreshMaterializedView)
+      c <- s.execute(createUniqueIndexForMaterializedView)
+      _ <- assert("completion",  c == Completion.CreateIndex)
+      c <- s.execute(refreshMaterializedViewConcurrently)
+      _ <- assert("completion", c == Completion.RefreshMaterializedView)
+      c <- s.execute(dropMaterializedView)
+      _ <- assert("completion", c == Completion.DropMaterializedView)
     } yield "ok"
   }
 
@@ -283,7 +327,7 @@ class CommandTest extends SkunkTest {
     } yield "ok"
   }
 
-  sessionTest("do command"){ s=>
+  sessionTest("do command") { s =>
     for{
       c <- s.execute(doCommand)
       _ <- assert("completion", c == Completion.Do)
