@@ -171,6 +171,6 @@ To prepare and execute some `af: AppliedFragment` you must extract its underlyin
 def usage(s: Session[IO]) = {
   val f = countryQuery(Some("Un%"), None) // AppliedFragment
   val q = f.fragment.query(varchar)       // Query[f.A, String]
-  s.prepare(q).use(_.stream(f.argument, 64).compile.to(List))
+  s.prepare(q).flatMap(_.stream(f.argument, 64).compile.to(List))
 }
 ```

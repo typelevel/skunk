@@ -28,13 +28,13 @@ class MultipleStatementsTest extends SkunkTest {
 
   sessionTest("extended query (postgres raises an error here)") { s =>
     s.prepare(sql"select 1;commit".query(int4))
-      .use(_ => IO.unit)
+      .flatMap(_ => IO.unit)
       .assertFailsWith[PostgresErrorException] *> s.assertHealthy
   }
 
   sessionTest("extended command (postgres raises an error here)") { s =>
     s.prepare(sql"select 1;commit".command)
-      .use(_ => IO.unit)
+      .flatMap(_ => IO.unit)
       .assertFailsWith[PostgresErrorException] *> s.assertHealthy
   }
 

@@ -18,7 +18,7 @@ class ListTest extends SkunkTest {
       sql"SELECT * FROM (VALUES $aLotOfStringsCodec) AS tmp LIMIT 1".query(text)
 
     for {
-      res <- s.prepare(bigValuesCommand).use(q => q.unique(aLotOfStrings))
+      res <- s.prepare(bigValuesCommand).flatMap(q => q.unique(aLotOfStrings))
       _ <- assert("read", res == "foo")
       _ <- s.assertHealthy
     } yield "ok"

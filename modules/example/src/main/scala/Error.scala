@@ -31,7 +31,7 @@ object Error extends IOApp {
     """.query(varchar ~ int4)
 
   def prog[F[_]](s: Session[F])(implicit ev: MonadCancel[F, Throwable]): F[ExitCode] =
-    s.prepare(query).use(_.unique("foo" ~ 1000000)).as(ExitCode.Success)
+    s.prepare(query).flatMap(_.unique("foo" ~ 1000000)).as(ExitCode.Success)
 
   def run(args: List[String]): IO[ExitCode] =
     session.use(prog(_))

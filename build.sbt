@@ -1,9 +1,9 @@
-ThisBuild / tlBaseVersion := "0.3"
+ThisBuild / tlBaseVersion := "0.4"
 
 // Our Scala versions.
-lazy val `scala-2.12` = "2.12.13"
-lazy val `scala-2.13` = "2.13.8"
-lazy val `scala-3.0`  = "3.1.1"
+lazy val `scala-2.12` = "2.12.17"
+lazy val `scala-2.13` = "2.13.10"
+lazy val `scala-3.0`  = "3.2.1"
 
 ThisBuild / scalaVersion       := `scala-2.13`
 ThisBuild / crossScalaVersions :=
@@ -17,7 +17,12 @@ ThisBuild / developers   := List(
 
 ThisBuild / tlCiReleaseBranches := Seq("main") // publish snapshits on `main`
 ThisBuild / tlSonatypeUseLegacyHost := false
-ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("8"))
+ThisBuild / githubWorkflowOSes := Seq("ubuntu-22.04")
+ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("11"))
+ThisBuild / tlJdkRelease := Some(8)
+
+ThisBuild / githubWorkflowBuildPreamble ++= nativeBrewInstallWorkflowSteps.value
+ThisBuild / nativeBrewInstallCond := Some("matrix.project == 'rootNative'")
 
 lazy val setupCertAndDocker = Seq(
   WorkflowStep.Run(
@@ -62,26 +67,21 @@ ThisBuild / githubWorkflowAddedJobs +=
       )
   )
 
-// This is used in a couple places
-lazy val fs2Version = "3.2.4"
-lazy val natchezVersion = "0.1.6"
+// https://github.com/sbt/sbt/issues/6997
+ThisBuild / libraryDependencySchemes ++= Seq(
+  "org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always
+)
 
-// We do `evictionCheck` in CI
-inThisBuild(Seq(
-  evictionRules ++= Seq(
-    "org.typelevel" % "cats-*" % "semver-spec",
-    "org.scala-js" % "scalajs-*" % "semver-spec",
-    "org.portable-scala" % "portable-scala-reflect_*" % "semver-spec",
-    "io.github.cquiroz" % "scala-java-time_*" % "semver-spec",
-  )
-))
+// This is used in a couple places
+lazy val fs2Version = "3.4.0"
+lazy val natchezVersion = "0.3.0-M3"
 
 // Global Settings
 lazy val commonSettings = Seq(
 
   // Resolvers
-  resolvers += Resolver.sonatypeRepo("public"),
-  resolvers += Resolver.sonatypeRepo("snapshots"),
+  resolvers ++= Resolver.sonatypeOssRepos("public"),
+  resolvers ++= Resolver.sonatypeOssRepos("snapshots"),
 
   // Headers
   headerMappings := headerMappings.value + (HeaderFileType.scala -> HeaderCommentStyle.cppStyleLineComment),
@@ -101,36 +101,12 @@ lazy val commonSettings = Seq(
     "-sourcepath", (LocalRootProject / baseDirectory).value.getAbsolutePath,
     "-doc-source-url", "https://github.com/tpolecat/skunk/blob/v" + version.value + "€{FILE_PATH}.scala",
   ),
-  libraryDependencies ++= Seq(
-    compilerPlugin("org.typelevel" %% "kind-projector" % "0.13.2" cross CrossVersion.full),
-  ).filterNot(_ => tlIsScala3.value),
 
   // Coverage Exclusions
   coverageExcludedPackages := "ffstest.*;tests.*;example.*;natchez.http4s.*",
 
   // uncomment in case of emergency
   // scalacOptions ++= { if (scalaVersion.value.startsWith("3.")) Seq("-source:3.0-migration") else Nil },
-
-  // Add some more source directories
-  Compile / unmanagedSourceDirectories ++= {
-    val sourceDir = (Compile / sourceDirectory).value
-    CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((3, _))  => Seq(sourceDir / "scala-2.13+", file(sourceDir.getPath.replaceFirst("jvm", "shared").replaceFirst("js", "shared")) / "scala-2.13+")
-      case Some((2, 12)) => Seq()
-      case Some((2, _))  => Seq(sourceDir / "scala-2.13+", file(sourceDir.getPath.replaceFirst("jvm", "shared").replaceFirst("js", "shared")) / "scala-2.13+")
-      case _             => Seq()
-    }
-  },
-
-
-  // dottydoc really doesn't work at all right now
-  Compile / doc / sources := {
-    val old = (Compile / doc / sources).value
-    if (scalaVersion.value.startsWith("3."))
-      Seq()
-    else
-      old
-  },
 
 )
 
@@ -139,7 +115,7 @@ lazy val skunk = tlCrossRootProject
   .aggregate(core, tests, circe, refined, example)
   .settings(commonSettings)
 
-lazy val core = crossProject(JVMPlatform, JSPlatform)
+lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .crossType(CrossType.Full)
   .in(file("modules/core"))
   .enablePlugins(AutomateHeaderPlugin)
@@ -147,32 +123,32 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
   .settings(
     name := "skunk-core",
     description := "Tagless, non-blocking data access library for Postgres.",
-    resolvers   +=  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
+    scalacOptions ~= (_.filterNot(_ == "-source:3.0-migration")),
     libraryDependencies ++= Seq(
-      "org.typelevel"          %%% "cats-core"               % "2.7.0",
-      "org.typelevel"          %%% "cats-effect"             % "3.3.5",
+      "org.typelevel"          %%% "cats-core"               % "2.9.0",
+      "org.typelevel"          %%% "cats-effect"             % "3.4.4",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
-      "org.scodec"             %%% "scodec-bits"             % "1.1.30",
-      "org.scodec"             %%% "scodec-core"             % (if (tlIsScala3.value) "2.0.0" else "1.11.9"),
-      "org.scodec"             %%% "scodec-cats"             % "1.1.0",
+      "org.scodec"             %%% "scodec-bits"             % "1.1.34",
+      "org.scodec"             %%% "scodec-core"             % (if (tlIsScala3.value) "2.2.0" else "1.11.10"),
+      "org.scodec"             %%% "scodec-cats"             % "1.2.0",
       "org.tpolecat"           %%% "natchez-core"            % natchezVersion,
-      "org.tpolecat"           %%% "sourcepos"               % "1.0.1",
-      "org.scala-lang.modules" %%% "scala-collection-compat" % "2.6.0",
+      "org.tpolecat"           %%% "sourcepos"               % "1.1.0",
+      "org.scala-lang.modules" %%% "scala-collection-compat" % "2.9.0",
     ) ++ Seq(
-      "com.beachape"  %%% "enumeratum"   % "1.6.1",
+      "com.beachape"  %%% "enumeratum"   % "1.7.2",
     ).filterNot(_ => tlIsScala3.value)
   ).jvmSettings(
     libraryDependencies += "com.ongres.scram" % "client" % "2.1",
-  ).jsSettings(
+  ).platformsSettings(JSPlatform, NativePlatform)(
     libraryDependencies ++= Seq(
-      "com.armanbilge" %%% "saslprep" % "0.1.0",
-      "io.github.cquiroz" %%% "scala-java-time" % "2.3.0",
-      "io.github.cquiroz" %%% "locales-minimal-en_us-db" % "1.3.0"
+      "com.armanbilge" %%% "saslprep" % "0.1.1",
+      "io.github.cquiroz" %%% "scala-java-time" % "2.5.0",
+      "io.github.cquiroz" %%% "locales-minimal-en_us-db" % "1.5.1"
     ),
   )
 
-lazy val refined = crossProject(JVMPlatform, JSPlatform)
+lazy val refined = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .crossType(CrossType.Pure)
   .in(file("modules/refined"))
   .dependsOn(core)
@@ -180,11 +156,11 @@ lazy val refined = crossProject(JVMPlatform, JSPlatform)
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "eu.timepit" %%% "refined" % "0.9.28",
+      "eu.timepit" %%% "refined" % "0.10.1",
     )
   )
 
-lazy val circe = crossProject(JVMPlatform, JSPlatform)
+lazy val circe = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .crossType(CrossType.Pure)
   .in(file("modules/circe"))
   .dependsOn(core)
@@ -193,12 +169,12 @@ lazy val circe = crossProject(JVMPlatform, JSPlatform)
   .settings(
     name := "skunk-circe",
     libraryDependencies ++= Seq(
-      "io.circe" %%% "circe-core"   % "0.14.1",
-      "io.circe" %%% "circe-parser" % "0.14.1"
+      "io.circe" %%% "circe-core"   % "0.14.3",
+      "io.circe" %%% "circe-parser" % "0.14.3"
     )
   )
 
-lazy val tests = crossProject(JVMPlatform, JSPlatform)
+lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .crossType(CrossType.Full)
   .in(file("modules/tests"))
   .dependsOn(core, circe)
@@ -207,20 +183,30 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform)
   .settings(
     scalacOptions  -= "-Xfatal-warnings",
     libraryDependencies ++= Seq(
-      "org.scalameta"     %%% "munit"                   % "0.7.29",
-      "org.scalameta"     % "junit-interface"           % "0.7.29",
-      "org.typelevel"     %%% "scalacheck-effect-munit" % "1.0.3",
-      "org.typelevel"     %%% "munit-cats-effect-3"     % "1.0.7",
-      "org.typelevel"     %%% "cats-free"               % "2.7.0",
-      "org.typelevel"     %%% "cats-laws"               % "2.7.0",
-      "org.typelevel"     %%% "discipline-munit"        % "1.0.9",
-    ) ++ Seq(
-      "io.chrisdavenport" %%% "cats-time"               % "0.3.4",
-    ).filterNot(_ => scalaVersion.value.startsWith("3.")),
-    testFrameworks += new TestFramework("munit.Framework")
+      "org.scalameta"     %%% "munit"                   % "1.0.0-M7",
+      "org.scalameta"     % "junit-interface"           % "1.0.0-M7",
+      "org.typelevel"     %%% "scalacheck-effect-munit" % "2.0.0-M2",
+      "org.typelevel"     %%% "munit-cats-effect"       % "2.0.0-M3",
+      "org.typelevel"     %%% "cats-free"               % "2.9.0",
+      "org.typelevel"     %%% "cats-laws"               % "2.9.0",
+      "org.typelevel"     %%% "discipline-munit"        % "2.0.0-M3",
+      "org.typelevel"     %%% "cats-time"               % "0.5.1",
+    ),
+    testFrameworks += new TestFramework("munit.Framework"),
+    testOptions += {
+      if(System.getProperty("os.arch").startsWith("aarch64")) {
+        Tests.Argument(TestFrameworks.MUnit, "--exclude-tags=X86ArchOnly")
+      } else Tests.Argument()
+    }
   )
   .jsSettings(
     Test / scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.CommonJSModule)),
+  )
+  .nativeEnablePlugins(ScalaNativeBrewedConfigPlugin)
+  .nativeSettings(
+    libraryDependencies += "com.armanbilge" %%% "epollcat" % "0.1.3",
+    Test / nativeBrewFormulas ++= Set("s2n", "utf8proc"),
+    Test / envVars ++= Map("S2N_DONT_MLOCK" -> "1")
   )
 
 lazy val example = project

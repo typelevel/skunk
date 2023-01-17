@@ -70,7 +70,7 @@ Here we use the extended protocol to attempt some deletions.
 
 ```scala mdoc:compile-only
 // assume s: Session[IO]
-s.prepare(c).use { pc =>
+s.prepare(c).flatMap { pc =>
   pc.execute("xyzzy") *>
   pc.execute("fnord") *>
   pc.execute("blech")
@@ -81,7 +81,7 @@ If we're slighly more clever we can do this with `traverse` and return a list of
 
 ```scala mdoc:compile-only
 // assume s: Session[IO]
-s.prepare(c).use { pc =>
+s.prepare(c).flatMap { pc =>
   List("xyzzy", "fnord", "blech").traverse(s => pc.execute(s))
 } // IO[List[Completion]]
 ```
@@ -90,7 +90,7 @@ And if we're yet more clever we can turn `pc` into an fs2 `Pipe`.
 
 ```scala mdoc:compile-only
 // assume s: Session[IO]
-Stream.resource(s.prepare(c)).flatMap { pc =>
+Stream.eval(s.prepare(c)).flatMap { pc =>
   Stream("xyzzy", "fnord", "blech").through(pc.pipe)
 } // Stream[IO, Completion]
 ```
@@ -163,14 +163,14 @@ We can pass `pairs` to `execute`.
 
 ```scala mdoc:compile-only
 // assume s: Session[IO]
-s.prepare(insertPairs).use { pc => pc.execute(pairs) }
+s.prepare(insertPairs).flatMap { pc => pc.execute(pairs) }
 ```
 
 However attempting to pass anything *other than* `pairs` is a type error.
 
 ```scala mdoc:fail
 // assume s: Session[IO]
-s.prepare(insertPairs).use { pc => pc.execute(pairs.drop(1)) }
+s.prepare(insertPairs).flatMap { pc => pc.execute(pairs.drop(1)) }
 ```
 
 See the full example below for a demonstration of these techniques.
@@ -192,8 +192,9 @@ The *extend command protocol* (i.e., `Session#prepare`) is more powerful and mor
 Here is a complete program listing that demonstrates our knowledge thus far, using the service pattern introduced earlier.
 
 ```scala mdoc:reset
+import cats.Monad
 import cats.effect._
-import cats.implicits._
+import cats.syntax.all._
 import natchez.Trace.Implicits.noop
 import skunk._
 import skunk.codec.all._
@@ -231,12 +232,10 @@ object PetService {
       .gmap[Pet]
 
   // construct a PetService
-  def fromSession[F[_]](s: Session[F])(
-    implicit ev: MonadCancel[F, Throwable]
-  ): PetService[F] =
+  def fromSession[F[_]: Monad](s: Session[F]): PetService[F] =
     new PetService[F] {
-      def insert(pet: Pet): F[Unit] = s.prepare(insertOne).use(_.execute(pet)).void
-      def insert(ps: List[Pet]): F[Unit] = s.prepare(insertMany(ps)).use(_.execute(ps)).void
+      def insert(pet: Pet): F[Unit] = s.prepare(insertOne).flatMap(_.execute(pet)).void
+      def insert(ps: List[Pet]): F[Unit] = s.prepare(insertMany(ps)).flatMap(_.execute(ps)).void
       def selectAll: F[List[Pet]] = s.execute(all)
     }
 

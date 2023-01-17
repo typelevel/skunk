@@ -36,7 +36,7 @@ object Minimal3 extends IOApp {
   def stream(pattern: String): Stream[IO, Country] =
     for {
       s  <- resource(session)
-      pq <- resource(s.prepare(select))
+      pq <- Stream.eval(s.prepare(select))
       c  <- pq.stream(pattern, 8)
     } yield c
 
