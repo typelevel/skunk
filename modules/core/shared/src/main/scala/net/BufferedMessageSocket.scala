@@ -66,7 +66,7 @@ trait BufferedMessageSocket[F[_]] extends MessageSocket[F] {
    *   blocking message exchange on the controlling `Session`.
    * @see [[https://www.postgresql.org/docs/10/static/sql-listen.html LISTEN]]
    */
-  def notifications(maxQueued: Int): Stream[F, Notification[String]]
+  def notifications(maxQueued: Int): Resource[F, Stream[F, Notification[String]]]
 
 
   // TODO: this is an implementation leakage, fold into the factory below
@@ -163,8 +163,8 @@ object BufferedMessageSocket {
         override def parameters: SignallingRef[F, Map[String, String]] = paSig
         override def backendKeyData: Deferred[F, BackendKeyData] = bkSig
 
-        override def notifications(maxQueued: Int): Stream[F, Notification[String]] =
-          noTop.subscribe(maxQueued)
+        override def notifications(maxQueued: Int): Resource[F, Stream[F, Notification[String]]] =
+          noTop.subscribeAwait(maxQueued)
 
         override protected def terminate: F[Unit] =
           fib.cancel *>      // stop processing incoming messages

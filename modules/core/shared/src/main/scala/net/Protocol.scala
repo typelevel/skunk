@@ -35,7 +35,7 @@ trait Protocol[F[_]] {
    * @see [[https://www.postgresql.org/docs/10/static/sql-listen.html LISTEN]]
    * @see [[https://www.postgresql.org/docs/10/static/sql-notify.html NOTIFY]]
    */
-  def notifications(maxQueued: Int): Stream[F, Notification[String]]
+  def notifications(maxQueued: Int): Resource[F, Stream[F, Notification[String]]]
 
   /**
    * Signal representing the current state of all Postgres configuration variables announced to this
@@ -228,7 +228,7 @@ object Protocol {
         implicit val na: Namer[F] = nam
         implicit val ExchangeF: protocol.Exchange[F] = ex
 
-        override def notifications(maxQueued: Int): Stream[F, Notification[String]] =
+        override def notifications(maxQueued: Int): Resource[F, Stream[F, Notification[String]]] =
           bms.notifications(maxQueued)
 
         override def parameters: Signal[F, Map[String, String]] =
