@@ -5,6 +5,7 @@
 package skunk
 
 import cats._
+import cats.data.Kleisli
 import cats.effect._
 import cats.effect.std.Console
 import cats.syntax.all._
@@ -383,23 +384,65 @@ object Session {
    * @group Constructors
    */
   def pooled[F[_]: Temporal: Trace: Network: Console](
-    host:         String,
-    port:         Int            = 5432,
-    user:         String,
-    database:     String,
-    password:     Option[String] = none,
-    max:          Int,
-    debug:        Boolean        = false,
-    strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly,
-    ssl:          SSL            = SSL.None,
-    parameters:   Map[String, String] = Session.DefaultConnectionParameters,
-    socketOptions:   List[SocketOption] = Session.DefaultSocketOptions,
-    commandCache: Int = 1024,
-    queryCache:   Int = 1024,
-    parseCache:   Int = 1024,
-    readTimeout:  Duration = Duration.Inf,
+    host:          String,
+    port:          Int            = 5432,
+    user:          String,
+    database:      String,
+    password:      Option[String] = none,
+    max:           Int,
+    debug:         Boolean        = false,
+    strategy:      Typer.Strategy = Typer.Strategy.BuiltinsOnly,
+    ssl:           SSL            = SSL.None,
+    parameters:    Map[String, String] = Session.DefaultConnectionParameters,
+    socketOptions: List[SocketOption] = Session.DefaultSocketOptions,
+    commandCache:  Int = 1024,
+    queryCache:    Int = 1024,
+    parseCache:    Int = 1024,
+    readTimeout:   Duration = Duration.Inf,
   ): Resource[F, Resource[F, Session[F]]] = {
-    def session(socketGroup: SocketGroup[F], sslOp: Option[SSLNegotiation.Options[F]], cache: Describe.Cache[F]): Resource[F, Session[F]] =
+    pooledF[F](host, port, user, database, password, max, debug, strategy, ssl, parameters, socketOptions, commandCache, queryCache, parseCache, readTimeout).map(_.apply(Trace[F]))
+  }
+
+  /**
+   * Resource yielding a function from Trace to `SessionPool` managing up to `max` concurrent `Session`s. Typically you
+   * will `use` this resource once on application startup and pass the resulting
+   * `Resource[F, Session[F]]` to the rest of your program.
+   *
+   * The pool maintains a cache of queries and commands that have been checked against the schema,
+   * eliminating the need to check them more than once. If your program is changing the schema on
+   * the fly than you probably don't want this behavior; you can disable it by setting the
+   * `commandCache` and `queryCache` parameters to zero.
+   *
+   * @param host          Postgres server host
+   * @param port          Postgres port, default 5432
+   * @param user          Postgres user
+   * @param database      Postgres database
+   * @param max           Maximum concurrent sessions
+   * @param debug
+   * @param strategy
+   * @param commandCache  Size of the cache for command checking
+   * @param queryCache    Size of the cache for query checking
+   * @group Constructors
+   */
+  def pooledF[F[_]: Temporal: Network: Console](
+    host:          String,
+    port:          Int            = 5432,
+    user:          String,
+    database:      String,
+    password:      Option[String] = none,
+    max:           Int,
+    debug:         Boolean        = false,
+    strategy:      Typer.Strategy = Typer.Strategy.BuiltinsOnly,
+    ssl:           SSL            = SSL.None,
+    parameters:    Map[String, String] = Session.DefaultConnectionParameters,
+    socketOptions: List[SocketOption] = Session.DefaultSocketOptions,
+    commandCache:  Int = 1024,
+    queryCache:    Int = 1024,
+    parseCache:    Int = 1024,
+    readTimeout:   Duration = Duration.Inf,
+  ): Resource[F, Trace[F] => Resource[F, Session[F]]] = {
+
+    def session(socketGroup: SocketGroup[F], sslOp: Option[SSLNegotiation.Options[F]], cache: Describe.Cache[F])(implicit T: Trace[F]): Resource[F, Session[F]] =
       for {
         pc <- Resource.eval(Parse.Cache.empty[F](parseCache))
         s  <- fromSocketGroup[F](socketGroup, host, port, user, database, password, debug, strategy, socketOptions, sslOp, parameters, cache, pc, readTimeout)
@@ -410,9 +453,8 @@ object Session {
     for {
       dc      <- Resource.eval(Describe.Cache.empty[F](commandCache, queryCache))
       sslOp   <- ssl.toSSLNegotiationOptions(if (debug) logger.some else none)
-      pool    <- Pool.of(session(Network[F], sslOp, dc), max)(Recyclers.full)
+      pool    <- Pool.ofF({implicit T: Trace[F] => session(Network[F], sslOp, dc)}, max)(Recyclers.full)
     } yield pool
-
   }
 
   /**
@@ -436,7 +478,30 @@ object Session {
     parseCache:   Int = 1024,
     readTimeout:  Duration = Duration.Inf,
   ): Resource[F, Session[F]] =
-    pooled(
+    singleF[F](host, port, user, database, password, debug, strategy, ssl, parameters, commandCache, queryCache, parseCache, readTimeout).apply(Trace[F])
+
+  /**
+   * Resource yielding logically unpooled sessions given a Trace. This can be convenient for demonstrations and
+   * programs that only need a single session. In reality each session is managed by its own
+   * single-session pool.
+   * @see pooledF
+   */
+  def singleF[F[_]: Temporal: Network: Console](
+    host:         String,
+    port:         Int            = 5432,
+    user:         String,
+    database:     String,
+    password:     Option[String] = none,
+    debug:        Boolean        = false,
+    strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly,
+    ssl:          SSL            = SSL.None,
+    parameters:   Map[String, String] = Session.DefaultConnectionParameters,
+    commandCache: Int = 1024,
+    queryCache:   Int = 1024,
+    parseCache:   Int = 1024,
+    readTimeout:  Duration = Duration.Inf,
+  ): Trace[F] => Resource[F, Session[F]] =
+    Kleisli((_: Trace[F]) => pooledF(
       host         = host,
       port         = port,
       user         = user,
@@ -451,7 +516,9 @@ object Session {
       queryCache   = queryCache,
       parseCache   = parseCache,
       readTimeout  = readTimeout
-    ).flatten
+    )).flatMap(f =>
+      Kleisli { implicit T: Trace[F] => f(T) }
+    ).run
 
   def fromSocketGroup[F[_]: Temporal: Trace: Console](
     socketGroup:  SocketGroup[F],
