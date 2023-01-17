@@ -5,6 +5,7 @@
 package skunk
 
 import cats._
+import cats.data.Kleisli
 import cats.effect._
 import cats.effect.std.Console
 import cats.syntax.all._
@@ -500,7 +501,7 @@ object Session {
     parseCache:   Int = 1024,
     readTimeout:  Duration = Duration.Inf,
   ): Trace[F] => Resource[F, Session[F]] =
-    cats.data.Kleisli{(_: Trace[F]) => pooledF(
+    Kleisli((_: Trace[F]) => pooledF(
       host         = host,
       port         = port,
       user         = user,
@@ -515,8 +516,8 @@ object Session {
       queryCache   = queryCache,
       parseCache   = parseCache,
       readTimeout  = readTimeout
-    )}.flatMap(f =>
-      cats.data.Kleisli{implicit T: Trace[F] => f(T)}
+    )).flatMap(f =>
+      Kleisli { implicit T: Trace[F] => f(T) }
     ).run
 
   def fromSocketGroup[F[_]: Temporal: Trace: Console](
