@@ -196,8 +196,7 @@ class CommandTest extends SkunkTest {
 
   val createMaterializedView: Command[Void] =
     sql"""
-        CREATE MATERIALIZED VIEW IF NOT EXISTS my_foo_mv
-        AS
+        CREATE MATERIALIZED VIEW IF NOT EXISTS my_foo_mv AS
         SELECT now()
        """.command
 
