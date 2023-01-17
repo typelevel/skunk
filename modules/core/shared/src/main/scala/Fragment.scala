@@ -42,6 +42,12 @@ final case class Fragment[A](
   def ~[B](fb: Fragment[B]): Fragment[A ~ B] =
     product(fb)
 
+  def ~>[B](fb: Fragment[B])(implicit ev: Void =:= A): Fragment[B] =
+    product(fb).contramap((Void, _))
+
+  def <~(fb: Fragment[Void]): Fragment[A] =
+    product(fb).contramap((_, Void))
+
   def stripMargin: Fragment[A] = stripMargin('|')
 
   def stripMargin(marginChar: Char): Fragment[A] = {
