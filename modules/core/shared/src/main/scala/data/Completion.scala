@@ -51,6 +51,7 @@ object Completion {
   case object DropRole                  extends Completion
   case object CreateMaterializedView    extends Completion
   case object RefreshMaterializedView   extends Completion
+  case object DropMaterializedView      extends Completion
   // more ...
 
   /**

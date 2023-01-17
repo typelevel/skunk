@@ -84,6 +84,7 @@ object CommandComplete {
     case "DROP ROLE"                  => apply(Completion.DropRole)
     case "CREATE MATERIALIZED VIEW"   => apply(Completion.CreateMaterializedView)
     case "REFRESH MATERIALIZED VIEW"  => apply(Completion.RefreshMaterializedView)
+    case "DROP MATERIALIZED VIEW"     => apply(Completion.DropMaterializedView)
     case Patterns.Select(s)           => apply(Completion.Select(s.toInt))
     case Patterns.Delete(s)           => apply(Completion.Delete(s.toInt))
     case Patterns.Update(s)           => apply(Completion.Update(s.toInt))

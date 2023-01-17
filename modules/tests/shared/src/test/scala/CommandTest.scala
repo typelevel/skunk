@@ -211,9 +211,14 @@ class CommandTest extends SkunkTest {
         REFRESH MATERIALIZED VIEW my_foo_mv
        """.command
 
- val refreshMaterializedViewConcurrently: Command[Void] =
+  val refreshMaterializedViewConcurrently: Command[Void] =
     sql"""
         REFRESH MATERIALIZED VIEW CONCURRENTLY my_foo_mv
+       """.command
+
+  val dropMaterializedView: Command[Void] =
+    sql"""
+        DROP MATERIALIZED VIEW my_foo_mv
        """.command
 
   sessionTest("create table, create index, drop index, alter table and drop table") { s =>
@@ -255,6 +260,8 @@ class CommandTest extends SkunkTest {
   sessionTest("refresh materialized view, refresh materialized view concurrently") { s =>
     for {
       c <- s.execute(createMaterializedView)
+      _ <- assert("completion", c == Completion.Select(1))
+      c <- s.execute(createMaterializedView)
       _ <- assert("completion", c == Completion.CreateMaterializedView)
       c <- s.execute(refreshMaterializedView)
       _ <- assert("completion", c == Completion.RefreshMaterializedView)
@@ -262,6 +269,8 @@ class CommandTest extends SkunkTest {
       _ <- assert("completion",  c == Completion.CreateIndex)
       c <- s.execute(refreshMaterializedViewConcurrently)
       _ <- assert("completion", c == Completion.RefreshMaterializedView)
+      c <- s.execute(dropMaterializedView)
+      _ <- assert("completion", c == Completion.DropMaterializedView)
     } yield "ok"
   }
 
