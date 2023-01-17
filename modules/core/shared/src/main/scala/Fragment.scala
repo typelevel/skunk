@@ -28,7 +28,13 @@ final case class Fragment[A](
     } .runA(1).value.combineAll
 
   def query[B](decoder: Decoder[B]): Query[A, B] =
-    Query(sql, origin, encoder, decoder)
+    Query(sql, origin, encoder, decoder, isDynamic = false)
+
+  def queryDynamic: Query[A, List[Option[String]]] =
+    Query(sql, origin, encoder, new Decoder[List[Option[String]]]{
+        def decode(offset: Int, ss: List[Option[String]]): Either[skunk.Decoder.Error,List[Option[String]]] = Right(ss)
+        def types: List[skunk.data.Type] = Nil
+    }, isDynamic = true)
 
   def command: Command[A] =
     Command(sql, origin, encoder)

@@ -38,7 +38,8 @@ final case class Query[A, B](
   override val sql:     String,
   override val origin:  Origin,
   override val encoder: Encoder[A],
-  decoder: Decoder[B]
+  decoder: Decoder[B],
+  isDynamic: Boolean = false
 ) extends Statement[A] {
 
   /**
@@ -46,7 +47,7 @@ final case class Query[A, B](
    * @group Transformations
    */
   def dimap[C, D](f: C => A)(g: B => D): Query[C, D] =
-    Query(sql, origin, encoder.contramap(f), decoder.map(g))
+    Query(sql, origin, encoder.contramap(f), decoder.map(g), isDynamic)
 
   /**
    * Query is a contravariant functor in `A`.
