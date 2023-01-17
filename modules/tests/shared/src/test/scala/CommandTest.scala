@@ -193,10 +193,10 @@ class CommandTest extends SkunkTest {
     sql"""
         DROP ROLE skunk_role
        """.command
-       
+
   val createMaterializedView: Command[Void] =
     sql"""
-        CREATE MATERIALIZED VIEW IF NOT EXISTS  my_foo_mv
+        CREATE MATERIALIZED VIEW IF NOT EXISTS my_foo_mv
         AS
         SELECT now()
        """.command
@@ -305,10 +305,10 @@ class CommandTest extends SkunkTest {
     } yield "ok"
   }
 
-  sessionTest("refresh materialized view, refresh materialized view concurrently"){ s=>
+  sessionTest("refresh materialized view, refresh materialized view concurrently"){ s =>
     for{
       c <- s.execute(createMaterializedView)
-      _ <- assert("completion", c == Completion.CreateMaterializedView)
+      _ <- assert("completion " + c, c == Completion.CreateMaterializedView)
       c <- s.execute(refreshMaterializedView)
       _ <- assert("completion", c == Completion.RefreshMaterializedView)
       c <- s.execute(createUniqueIndexForMaterializedView)
