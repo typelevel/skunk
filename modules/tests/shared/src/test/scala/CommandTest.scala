@@ -196,7 +196,8 @@ class CommandTest extends SkunkTest {
 
   val createMaterializedView: Command[Void] =
     sql"""
-        CREATE MATERIALIZED VIEW IF NOT EXISTS my_foo_mv AS
+        CREATE MATERIALIZED VIEW IF NOT EXISTS my_foo_mv
+        AS
         SELECT now()
        """.command
 
@@ -251,6 +252,19 @@ class CommandTest extends SkunkTest {
     } yield "ok"
   }
 
+  sessionTest("refresh materialized view, refresh materialized view concurrently") { s =>
+    for {
+      c <- s.execute(createMaterializedView)
+      _ <- assert("completion", c == Completion.CreateMaterializedView)
+      c <- s.execute(refreshMaterializedView)
+      _ <- assert("completion", c == Completion.RefreshMaterializedView)
+      c <- s.execute(createUniqueIndexForMaterializedView)
+      _ <- assert("completion",  c == Completion.CreateIndex)
+      c <- s.execute(refreshMaterializedViewConcurrently)
+      _ <- assert("completion", c == Completion.RefreshMaterializedView)
+    } yield "ok"
+  }
+
   sessionTest("create, call and drop procedure"){ s=>
     for{
       c <- s.execute(createProcedure)
@@ -301,19 +315,6 @@ class CommandTest extends SkunkTest {
       _ <- assert("completion", c == Completion.CreateRole)
       c <- s.execute(dropRole)
       _ <- assert("completion", c == Completion.DropRole)
-    } yield "ok"
-  }
-
-  sessionTest("refresh materialized view, refresh materialized view concurrently") { s =>
-    for{
-      c <- s.execute(createMaterializedView)
-      _ <- assert("completion " + c, c == Completion.CreateMaterializedView)
-      c <- s.execute(refreshMaterializedView)
-      _ <- assert("completion", c == Completion.RefreshMaterializedView)
-      c <- s.execute(createUniqueIndexForMaterializedView)
-      _ <- assert("completion",  c == Completion.CreateIndex)
-      c <- s.execute(refreshMaterializedViewConcurrently)
-      _ <- assert("completion", c == Completion.RefreshMaterializedView)
     } yield "ok"
   }
 
