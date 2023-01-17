@@ -13,22 +13,42 @@ import skunk.implicits._
 import skunk.util.Typer
 import natchez.Trace.Implicits.noop
 import munit.Location
+import scala.concurrent.duration.Duration
 
 abstract class SkunkTest(debug: Boolean = false, strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly) extends ffstest.FTest {
 
-  def session: Resource[IO, Session[IO]] =
+  def session: Resource[IO, Session[IO]] = session(Duration.Inf)
+
+  def session(readTimeout: Duration): Resource[IO, Session[IO]] =
     Session.single(
-      host     = "localhost",
-      port     = 5432,
-      user     = "jimmy",
-      database = "world",
-      password = Some("banana"),
-      strategy = strategy,
-      debug    = debug
+      host        = "localhost",
+      port        = 5432,
+      user        = "jimmy",
+      database    = "world",
+      password    = Some("banana"),
+      strategy    = strategy,
+      debug       = debug,
+      readTimeout = readTimeout
     )
 
-  def sessionTest[A](name: String)(fa: Session[IO] => IO[A])(implicit loc: Location): Unit =
-    test(name)(session.use(fa))
+  def sessionTest[A](name: String, readTimeout: Duration = Duration.Inf)(fa: Session[IO] => IO[A])(implicit loc: Location): Unit =
+    test(name)(session(readTimeout).use(fa))
+
+  def pooled(readTimeout: Duration): Resource[IO, Resource[IO, Session[IO]]] =
+    Session.pooled(
+      host        = "localhost",
+      port        = 5432,
+      user        = "jimmy",
+      database    = "world",
+      password    = Some("banana"),
+      max         = 8,
+      strategy    = strategy,
+      debug       = debug,
+      readTimeout = readTimeout
+    )
+
+  def pooledTest[A](name: String, readTimeout: Duration = Duration.Inf)(fa: Resource[IO, Session[IO]] => IO[A])(implicit loc: Location): Unit =
+    test(name)(pooled(readTimeout).use(fa))
 
   implicit class SkunkTestSessionOps(s: Session[IO]) {
 

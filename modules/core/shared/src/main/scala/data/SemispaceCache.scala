@@ -28,6 +28,8 @@ sealed abstract case class SemispaceCache[K, V](gen0: Map[K, V], gen1: Map[K, V]
   def containsKey(k: K): Boolean =
     gen0.contains(k) || gen1.contains(k)
 
+  def values: List[V] =
+    (gen0.values.toSet | gen1.values.toSet).toList
 }
 
 object SemispaceCache {

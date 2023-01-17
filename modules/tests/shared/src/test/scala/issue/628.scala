@@ -13,7 +13,7 @@ import tests.SkunkTest
 class Test628 extends SkunkTest {
 
   sessionTest("issue/628") { s =>
-    s.prepare(sql"select name from country".query(varchar)).use { ps =>
+    s.prepare(sql"select name from country".query(varchar)).flatMap { ps =>
       ps.stream(Void, 10).compile.toList
     }
   }

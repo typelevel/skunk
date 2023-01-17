@@ -14,6 +14,7 @@ import fs2.Stream
 import skunk.data._
 import skunk.net.message._
 import fs2.io.net.{SocketGroup, SocketOption}
+import scala.concurrent.duration.Duration
 
 /**
  * A `MessageSocket` that buffers incoming messages, removing and handling asynchronous back-end
@@ -65,7 +66,7 @@ trait BufferedMessageSocket[F[_]] extends MessageSocket[F] {
    *   blocking message exchange on the controlling `Session`.
    * @see [[https://www.postgresql.org/docs/10/static/sql-listen.html LISTEN]]
    */
-  def notifications(maxQueued: Int): Stream[F, Notification[String]]
+  def notifications(maxQueued: Int): Resource[F, Stream[F, Notification[String]]]
 
 
   // TODO: this is an implementation leakage, fold into the factory below
@@ -74,7 +75,7 @@ trait BufferedMessageSocket[F[_]] extends MessageSocket[F] {
 
 object BufferedMessageSocket {
 
-  def apply[F[_]: Concurrent: Console](
+  def apply[F[_]: Temporal: Console](
     host:         String,
     port:         Int,
     queueSize:    Int,
@@ -82,9 +83,10 @@ object BufferedMessageSocket {
     sg:           SocketGroup[F],
     socketOptions: List[SocketOption],
     sslOptions:   Option[SSLNegotiation.Options[F]],
+    readTimeout:  Duration
   ): Resource[F, BufferedMessageSocket[F]] =
     for {
-      ms  <- MessageSocket(host, port, debug, sg, socketOptions, sslOptions)
+      ms  <- MessageSocket(host, port, debug, sg, socketOptions, sslOptions, readTimeout)
       ams <- Resource.make(BufferedMessageSocket.fromMessageSocket[F](ms, queueSize))(_.terminate)
     } yield ams
 
@@ -93,31 +95,34 @@ object BufferedMessageSocket {
    * with asynchronous messages, and messages that require us to record a bit of information that
    * the user might ask for later.
    */
-  private def next[F[_]: Functor](
+  private def next[F[_]: MonadThrow](
     ms:    MessageSocket[F],
     xaSig: Ref[F, TransactionStatus],
     paSig: Ref[F, Map[String, String]],
     bkDef: Deferred[F, BackendKeyData],
-    noTop: Topic[F, Notification[String]]
-  ): Stream[F, BackendMessage] =
-    Stream.eval(ms.receive).flatMap {
-
+    noTop: Topic[F, Notification[String]],
+    queue: Queue[F, BackendMessage]
+  ): F[Unit] = {
+    def step: F[Unit] =  ms.receive.flatMap {
       // RowData is really the only hot spot so we special-case it to avoid the linear search. This
       // may be premature … need to benchmark and see if it matters.
-    case m @ RowData(_)              => Stream.emit(m)
-
+      case m @ RowData(_)              => queue.offer(m)
       // This one is observed and then emitted.
-      case m @ ReadyForQuery(s)        => Stream.eval(xaSig.set(s).as(m)) // observe and then emit
-
+      case m @ ReadyForQuery(s)        => xaSig.set(s) >> queue.offer(m) // observe and then emit
       // These are handled here and are never seen by the higher-level API.
-      case     ParameterStatus(k, v)   => Stream.exec(paSig.update(_ + (k -> v)))
-      case     NotificationResponse(n) => Stream.exec(noTop.publish1(n).void) // TODO -- what if it's closed?
-      case     NoticeResponse(_)       => Stream.empty // TODO -- we're throwing these away!
-      case m @ BackendKeyData(_, _)    => Stream.exec(bkDef.complete(m).void)
-
+      case     ParameterStatus(k, v)   => paSig.update(_ + (k -> v))
+      case     NotificationResponse(n) => noTop.publish1(n).void // TODO -- what if it's closed?
+      case     NoticeResponse(_)       => Monad[F].unit // TODO -- we're throwing these away!
+      case m @ BackendKeyData(_, _)    => bkDef.complete(m).void
       // Everything else is passed through.
-      case m                           => Stream.emit(m)
+      case m                           => queue.offer(m)
+    } >> step
+
+    step.attempt.flatMap {
+      case Left(e)  => queue.offer(NetworkError(e)) // publish the failure
+      case Right(_) => Monad[F].unit
     }
+  }
 
   // Here we read messages as they arrive, rather than waiting for the user to ask. This allows us
   // to handle asynchronous messages, which are dealt with here and not passed on. Other messages
@@ -133,10 +138,7 @@ object BufferedMessageSocket {
       paSig <- SignallingRef[F, Map[String, String]](Map.empty)
       bkSig <- Deferred[F, BackendKeyData]
       noTop <- Topic[F, Notification[String]]
-      fib   <- next(ms, xaSig, paSig, bkSig, noTop).repeat.evalMap(queue.offer).compile.drain.attempt.flatMap {
-        case Left(e)  => queue.offer(NetworkError(e)) // publish the failure
-        case Right(a) => a.pure[F]
-      } .start
+      fib   <- next(ms, xaSig, paSig, bkSig, noTop, queue).start
     } yield
       new AbstractMessageSocket[F] with BufferedMessageSocket[F] {
 
@@ -161,8 +163,8 @@ object BufferedMessageSocket {
         override def parameters: SignallingRef[F, Map[String, String]] = paSig
         override def backendKeyData: Deferred[F, BackendKeyData] = bkSig
 
-        override def notifications(maxQueued: Int): Stream[F, Notification[String]] =
-          noTop.subscribe(maxQueued)
+        override def notifications(maxQueued: Int): Resource[F, Stream[F, Notification[String]]] =
+          noTop.subscribeAwait(maxQueued)
 
         override protected def terminate: F[Unit] =
           fib.cancel *>      // stop processing incoming messages

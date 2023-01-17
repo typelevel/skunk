@@ -59,7 +59,7 @@ object AppliedFragments extends IOApp {
       _  <- IO(println(s"\nargs: $name, $pop, $capital"))
       af  = countryQuery(name, pop, capital)
       _ <- IO(println(af.fragment.sql))
-      _ <- s.prepare(af.fragment.query(country)).use(_.stream(af.argument, 64).take(5).evalMap(c => IO(println(c))).compile.drain)
+      _ <- s.prepare(af.fragment.query(country)).flatMap(_.stream(af.argument, 64).take(5).evalMap(c => IO(println(c))).compile.drain)
     } yield ()
 
   def run(args: List[String]): IO[ExitCode] =

@@ -22,6 +22,8 @@ import skunk.net.SSLNegotiation
 import skunk.data.TransactionIsolationLevel
 import skunk.data.TransactionAccessMode
 import skunk.net.protocol.Describe
+import scala.concurrent.duration.Duration
+import skunk.net.protocol.Parse
 
 /**
  * Represents a live connection to a Postgres database. Operations provided here are safe to use
@@ -106,11 +108,27 @@ trait Session[F[_]] {
   def execute[A](query: Query[Void, A]): F[List[A]]
 
   /**
+   * Prepare if needed, then execute a parameterized query and yield all results. If you wish to limit
+   * returned rows use `prepare` instead.
+   *
+   * @group Queries
+   */
+  def execute[A, B](query: Query[A, B], args: A): F[List[B]]
+
+  /**
    * Execute a non-parameterized query and yield exactly one row, raising an exception if there are
    * more or fewer. If you have parameters use `prepare` instead.
    * @group Queries
    */
   def unique[A](query: Query[Void, A]): F[A]
+
+  /**
+   * Prepare if needed, then execute a parameterized query and yield exactly one row, raising an exception if there are
+   * more or fewer.
+   *
+   * @group Queries
+   */
+  def unique[A, B](query: Query[A, B], args: A): F[B]
 
   /**
    * Execute a non-parameterized query and yield at most one row, raising an exception if there are
@@ -120,6 +138,29 @@ trait Session[F[_]] {
   def option[A](query: Query[Void, A]): F[Option[A]]
 
   /**
+   * Prepare if needed, then execute a parameterized query and yield at most one row, raising an exception if there are
+   * more.
+   *
+   * @group Queries
+   */
+  def option[A, B](query: Query[A, B], args: A): F[Option[B]]
+
+  /**
+   * Returns a stream that prepare if needed, then execute a parameterized query
+   *
+   * @param chunkSize how many rows must be fetched by page
+   * @group Commands
+   */
+  def stream[A, B](command: Query[A, B], args: A, chunkSize: Int): Stream[F, B]
+
+  /**
+   * Prepare if needed, then execute a parameterized query and returns a resource wrapping a cursor in the result set.
+   *
+   * @group Queries
+   */
+  def cursor[A, B](query: Query[A, B], args: A): Resource[F, Cursor[F, B]]
+
+  /**
    * Execute a non-parameterized command and yield a `Completion`. If you have parameters use
    * `prepare` instead.
    * @group Commands
@@ -127,24 +168,63 @@ trait Session[F[_]] {
   def execute(command: Command[Void]): F[Completion]
 
   /**
-   * Resource that prepares a query, yielding a `PreparedQuery` which can be executed multiple
+   * Prepare if needed, then execute a parameterized command and yield a `Completion`.
+   *
+   * @group Commands
+   */
+  def execute[A](command: Command[A], args: A): F[Completion]
+
+  /**
+   * Prepares then caches a query, yielding a `PreparedQuery` which can be executed multiple
    * times with different arguments.
    * @group Queries
    */
-  def prepare[A, B](query: Query[A, B]): Resource[F, PreparedQuery[F, A, B]]
+  def prepare[A, B](query: Query[A, B]): F[PreparedQuery[F, A, B]]
+
+  /**
+   * Prepares then caches an `INSERT`, `UPDATE`, or `DELETE` command that returns no rows. The resulting
+   * `PreparedCommand` can be executed multiple times with different arguments.
+   * @group Commands
+   */
+  def prepare[A](command: Command[A]): F[PreparedCommand[F, A]]
+
+  /**
+   * Resource that prepares a query, yielding a `PreparedQuery` which can be executed multiple
+   * times with different arguments.
+   * 
+   * Note: this method only exists to ease migration from Skunk 0.3 and prior. Use the
+   * non-resource variant instead.
+   *
+   * @group Queries
+   */
+  def prepareR[A, B](query: Query[A, B]): Resource[F, PreparedQuery[F, A, B]] =
+    Resource.eval(prepare(query))
 
   /**
    * Prepare an `INSERT`, `UPDATE`, or `DELETE` command that returns no rows. The resulting
    * `PreparedCommand` can be executed multiple times with different arguments.
+   * 
+   * Note: this method only exists to ease migration from Skunk 0.3 and prior. Use the
+   * non-resource variant instead.
+   *
    * @group Commands
    */
-  def prepare[A](command: Command[A]): Resource[F, PreparedCommand[F, A]]
+  def prepareR[A](command: Command[A]): Resource[F, PreparedCommand[F, A]] =
+    Resource.eval(prepare(command))
 
   /**
    * Transform a `Command` into a `Pipe` from inputs to `Completion`s.
    * @group Commands
    */
   def pipe[A](command: Command[A]): Pipe[F, A, Completion]
+
+  /**
+   * Transform a `Query` into a `Pipe` from inputs to outputs.
+   *
+   * @param chunkSize how many rows must be fetched by page
+   * @group Commands
+   */
+  def pipe[A, B](query: Query[A, B], chunkSize: Int): Pipe[F, A, B]
 
   /**
    * A named asynchronous channel that can be used for inter-process communication.
@@ -169,7 +249,6 @@ trait Session[F[_]] {
    */
   def transaction[A]: Resource[F, Transaction[F]]
 
-
   /**
     * Resource that wraps a transaction block.
     * It has the ability to specify a non-default isolation level and access mode.
@@ -187,12 +266,53 @@ trait Session[F[_]] {
    */
   def describeCache: Describe.Cache[F]
 
+  /**
+   * Each session has access to a cache of all statements that have been parsed by the
+   * `Parse` protocol, which allows us to skip a network round-trip. Users can inspect and clear
+   * the cache through this accessor.
+   */
+  def parseCache: Parse.Cache[F]
+
 }
 
 
 
 /** @group Companions */
 object Session {
+
+  /**
+   * Abstract implementation that use the MonadCancelThrow constraint to implement prepared-if-needed API
+   */
+  abstract class Impl[F[_]: MonadCancelThrow] extends Session[F] {
+
+    override def execute[A, B](query: Query[A, B], args: A): F[List[B]] =
+      Monad[F].flatMap(prepare(query))(_.cursor(args).use {
+        _.fetch(Int.MaxValue).map { case (rows, _) => rows }
+      })
+
+    override def unique[A, B](query: Query[A, B], args: A): F[B] =
+      Monad[F].flatMap(prepare(query))(_.unique(args))
+
+    override def option[A, B](query: Query[A, B], args: A): F[Option[B]] =
+      Monad[F].flatMap(prepare(query))(_.option(args))
+
+    override def stream[A, B](command: Query[A, B], args: A, chunkSize: Int): Stream[F, B] =
+      Stream.eval(prepare(command)).flatMap(_.stream(args, chunkSize)).scope
+
+    override def cursor[A, B](query: Query[A, B], args: A): Resource[F, Cursor[F, B]] =
+      Resource.eval(prepare(query)).flatMap(_.cursor(args))
+
+    override def pipe[A, B](query: Query[A, B], chunkSize: Int): Pipe[F, A, B] = fa =>
+      Stream.eval(prepare(query)).flatMap(pq => fa.flatMap(a => pq.stream(a, chunkSize))).scope
+
+    override def execute[A](command: Command[A], args: A): F[Completion] =
+      Monad[F].flatMap(prepare(command))(_.execute(args))
+
+    override def pipe[A](command: Command[A]): Pipe[F, A, Completion] = fa =>
+      Stream.eval(prepare(command)).flatMap(pc => fa.evalMap(pc.execute)).scope
+
+  }
+
   val DefaultConnectionParameters: Map[String, String] =
     Map(
       "client_min_messages" -> "WARNING",
@@ -262,22 +382,24 @@ object Session {
    * @param queryCache    Size of the cache for query checking
    * @group Constructors
    */
-  def pooled[F[_]: Concurrent: Trace: Network: Console](
-    host:         String,
-    port:         Int            = 5432,
-    user:         String,
-    database:     String,
-    password:     Option[String] = none,
-    max:          Int,
-    debug:        Boolean        = false,
-    strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly,
-    ssl:          SSL            = SSL.None,
-    parameters:   Map[String, String] = Session.DefaultConnectionParameters,
-    socketOptions:   List[SocketOption] = Session.DefaultSocketOptions,
-    commandCache: Int = 1024,
-    queryCache:   Int = 1024,
+  def pooled[F[_]: Temporal: Trace: Network: Console](
+    host:          String,
+    port:          Int            = 5432,
+    user:          String,
+    database:      String,
+    password:      Option[String] = none,
+    max:           Int,
+    debug:         Boolean        = false,
+    strategy:      Typer.Strategy = Typer.Strategy.BuiltinsOnly,
+    ssl:           SSL            = SSL.None,
+    parameters:    Map[String, String] = Session.DefaultConnectionParameters,
+    socketOptions: List[SocketOption] = Session.DefaultSocketOptions,
+    commandCache:  Int = 1024,
+    queryCache:    Int = 1024,
+    parseCache:    Int = 1024,
+    readTimeout:   Duration = Duration.Inf,
   ): Resource[F, Resource[F, Session[F]]] = {
-    pooledF[F](host, port, user, database, password, max, debug, strategy, ssl, parameters, socketOptions, commandCache, queryCache).map(_.apply(Trace[F]))
+    pooledF[F](host, port, user, database, password, max, debug, strategy, ssl, parameters, socketOptions, commandCache, queryCache, parseCache, readTimeout).map(_.apply(Trace[F]))
   }
 
   /**
@@ -301,33 +423,37 @@ object Session {
    * @param queryCache    Size of the cache for query checking
    * @group Constructors
    */
-  def pooledF[F[_]: Concurrent: Network: Console](
-    host:         String,
-    port:         Int            = 5432,
-    user:         String,
-    database:     String,
-    password:     Option[String] = none,
-    max:          Int,
-    debug:        Boolean        = false,
-    strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly,
-    ssl:          SSL            = SSL.None,
-    parameters:   Map[String, String] = Session.DefaultConnectionParameters,
-    socketOptions:   List[SocketOption] = Session.DefaultSocketOptions,
-    commandCache: Int = 1024,
-    queryCache:   Int = 1024,
+  def pooledF[F[_]: Temporal: Network: Console](
+    host:          String,
+    port:          Int            = 5432,
+    user:          String,
+    database:      String,
+    password:      Option[String] = none,
+    max:           Int,
+    debug:         Boolean        = false,
+    strategy:      Typer.Strategy = Typer.Strategy.BuiltinsOnly,
+    ssl:           SSL            = SSL.None,
+    parameters:    Map[String, String] = Session.DefaultConnectionParameters,
+    socketOptions: List[SocketOption] = Session.DefaultSocketOptions,
+    commandCache:  Int = 1024,
+    queryCache:    Int = 1024,
+    parseCache:    Int = 1024,
+    readTimeout:   Duration = Duration.Inf,
   ): Resource[F, Trace[F] => Resource[F, Session[F]]] = {
 
-    def session(socketGroup:  SocketGroup[F], sslOp: Option[SSLNegotiation.Options[F]], cache: Describe.Cache[F])(implicit T: Trace[F]): Resource[F, Session[F]] =
-      fromSocketGroup[F](socketGroup, host, port, user, database, password, debug, strategy, socketOptions, sslOp, parameters, cache)
+    def session(socketGroup: SocketGroup[F], sslOp: Option[SSLNegotiation.Options[F]], cache: Describe.Cache[F])(implicit T: Trace[F]): Resource[F, Session[F]] =
+      for {
+        pc <- Resource.eval(Parse.Cache.empty[F](parseCache))
+        s  <- fromSocketGroup[F](socketGroup, host, port, user, database, password, debug, strategy, socketOptions, sslOp, parameters, cache, pc, readTimeout)
+      } yield s
 
     val logger: String => F[Unit] = s => Console[F].println(s"TLS: $s")
 
     for {
       dc      <- Resource.eval(Describe.Cache.empty[F](commandCache, queryCache))
-      sslOp   <- Resource.eval(ssl.toSSLNegotiationOptions(if (debug) logger.some else none))
+      sslOp   <- ssl.toSSLNegotiationOptions(if (debug) logger.some else none)
       pool    <- Pool.ofF({implicit T: Trace[F] => session(Network[F], sslOp, dc)}, max)(Recyclers.full)
     } yield pool
-
   }
 
   /**
@@ -336,7 +462,7 @@ object Session {
    * single-session pool. This method is shorthand for `Session.pooled(..., max = 1, ...).flatten`.
    * @see pooled
    */
-  def single[F[_]: Concurrent: Trace: Network: Console](
+  def single[F[_]: Temporal: Trace: Network: Console](
     host:         String,
     port:         Int            = 5432,
     user:         String,
@@ -348,8 +474,10 @@ object Session {
     parameters:   Map[String, String] = Session.DefaultConnectionParameters,
     commandCache: Int = 1024,
     queryCache:   Int = 1024,
-  ): Resource[F, Session[F]] = 
-    singleF[F](host, port, user, database, password, debug, strategy, ssl, parameters, commandCache, queryCache).apply(Trace[F])
+    parseCache:   Int = 1024,
+    readTimeout:  Duration = Duration.Inf,
+  ): Resource[F, Session[F]] =
+    singleF[F](host, port, user, database, password, debug, strategy, ssl, parameters, commandCache, queryCache, parseCache, readTimeout).apply(Trace[F])
 
   /**
    * Resource yielding logically unpooled sessions given a Trace. This can be convenient for demonstrations and
@@ -357,7 +485,7 @@ object Session {
    * single-session pool.
    * @see pooledF
    */
-  def singleF[F[_]: Concurrent: Network: Console](
+  def singleF[F[_]: Temporal: Network: Console](
     host:         String,
     port:         Int            = 5432,
     user:         String,
@@ -369,6 +497,8 @@ object Session {
     parameters:   Map[String, String] = Session.DefaultConnectionParameters,
     commandCache: Int = 1024,
     queryCache:   Int = 1024,
+    parseCache:   Int = 1024,
+    readTimeout:  Duration = Duration.Inf,
   ): Trace[F] => Resource[F, Session[F]] =
     cats.data.Kleisli{(_: Trace[F]) => pooledF(
       host         = host,
@@ -383,11 +513,13 @@ object Session {
       parameters   = parameters,
       commandCache = commandCache,
       queryCache   = queryCache,
-    )}.flatMap(f => 
+      parseCache   = parseCache,
+      readTimeout  = readTimeout
+    )}.flatMap(f =>
       cats.data.Kleisli{implicit T: Trace[F] => f(T)}
     ).run
 
-  def fromSocketGroup[F[_]: Concurrent: Trace: Console](
+  def fromSocketGroup[F[_]: Temporal: Trace: Console](
     socketGroup:  SocketGroup[F],
     host:         String,
     port:         Int            = 5432,
@@ -400,12 +532,14 @@ object Session {
     sslOptions:   Option[SSLNegotiation.Options[F]],
     parameters:   Map[String, String],
     describeCache: Describe.Cache[F],
+    parseCache: Parse.Cache[F],
+    readTimeout:  Duration = Duration.Inf,
   ): Resource[F, Session[F]] =
     for {
       namer <- Resource.eval(Namer[F])
-      proto <- Protocol[F](host, port, debug, namer, socketGroup, socketOptions, sslOptions, describeCache)
+      proto <- Protocol[F](host, port, debug, namer, socketGroup, socketOptions, sslOptions, describeCache, parseCache, readTimeout)
       _     <- Resource.eval(proto.startup(user, database, password, parameters))
-      sess  <- Resource.eval(fromProtocol(proto, namer, strategy))
+      sess  <- Resource.make(fromProtocol(proto, namer, strategy))(_ => proto.cleanup)
     } yield sess
 
   /**
@@ -426,7 +560,7 @@ object Session {
       }
 
     ft.map { typ =>
-      new Session[F] {
+      new Impl[F] {
 
         override val typer: Typer = typ
 
@@ -448,9 +582,6 @@ object Session {
         override def execute[A](query: Query[Void, A]): F[List[A]] =
           proto.execute(query, typer)
 
-        override def pipe[A](command: Command[A]): Pipe[F, A, Completion] = fa =>
-          Stream.resource(prepare(command)).flatMap(pc => fa.evalMap(pc.execute)).scope
-
         override def unique[A](query: Query[Void, A]): F[A] =
           execute(query).flatMap {
             case a :: Nil => a.pure[F]
@@ -465,10 +596,10 @@ object Session {
             case _        => ev.raiseError(new RuntimeException("Expected at most one row, more returned."))
           }
 
-        override def prepare[A, B](query: Query[A, B]): Resource[F, PreparedQuery[F, A, B]] =
+        override def prepare[A, B](query: Query[A, B]): F[PreparedQuery[F, A, B]] =
           proto.prepare(query, typer).map(PreparedQuery.fromProto(_))
 
-        override def prepare[A](command: Command[A]): Resource[F, PreparedCommand[F, A]] =
+        override def prepare[A](command: Command[A]): F[PreparedCommand[F, A]] =
           proto.prepare(command, typer).map(PreparedCommand.fromProto(_))
 
         override def transaction[A]: Resource[F, Transaction[F]] =
@@ -479,6 +610,9 @@ object Session {
 
         override def describeCache: Describe.Cache[F] =
           proto.describeCache
+
+        override def parseCache: Parse.Cache[F] =
+          proto.parseCache
 
       }
     }
@@ -503,7 +637,7 @@ object Session {
     def mapK[G[_]: MonadCancelThrow](fk: F ~> G)(
       implicit mcf: MonadCancel[F, _]
     ): Session[G] =
-      new Session[G] {
+      new Impl[G] {
 
         override val typer: Typer = outer.typer
 
@@ -513,29 +647,28 @@ object Session {
 
         override def execute[A](query: Query[Void,A]): G[List[A]] = fk(outer.execute(query))
 
-        override def pipe[A](command: Command[A]): Pipe[G, A, Completion] = fa =>
-          Stream.resource(prepare(command)).flatMap(pc => fa.evalMap(pc.execute)).scope
-
         override def option[A](query: Query[Void,A]): G[Option[A]] = fk(outer.option(query))
 
         override def parameter(key: String): Stream[G,String] = outer.parameter(key).translate(fk)
 
         override def parameters: Signal[G,Map[String,String]] = outer.parameters.mapK(fk)
 
-        override def prepare[A, B](query: Query[A,B]): Resource[G,PreparedQuery[G,A,B]] = outer.prepare(query).mapK(fk).map(_.mapK(fk))
+        override def prepare[A, B](query: Query[A,B]): G[PreparedQuery[G,A,B]] = fk(outer.prepare(query)).map(_.mapK(fk))
 
-        override def prepare[A](command: Command[A]): Resource[G,PreparedCommand[G,A]] = outer.prepare(command).mapK(fk).map(_.mapK(fk))
+        override def prepare[A](command: Command[A]): G[PreparedCommand[G,A]] = fk(outer.prepare(command)).map(_.mapK(fk))
 
-        override def transaction[A]: Resource[G,Transaction[G]] = outer.transaction[A].mapK(fk).map(_.mapK(fk))
+        override def transaction[A]: Resource[G,Transaction[G]] = outer.transaction.mapK(fk).map(_.mapK(fk))
 
         override def transaction[A](isolationLevel: TransactionIsolationLevel, accessMode: TransactionAccessMode): Resource[G,Transaction[G]] =
-          outer.transaction[A](isolationLevel, accessMode).mapK(fk).map(_.mapK(fk))
+          outer.transaction(isolationLevel, accessMode).mapK(fk).map(_.mapK(fk))
 
         override def transactionStatus: Signal[G,TransactionStatus] = outer.transactionStatus.mapK(fk)
 
         override def unique[A](query: Query[Void,A]): G[A] = fk(outer.unique(query))
 
         override def describeCache: Describe.Cache[G] = outer.describeCache.mapK(fk)
+
+        override def parseCache: Parse.Cache[G] = outer.parseCache.mapK(fk)
 
       }
   }

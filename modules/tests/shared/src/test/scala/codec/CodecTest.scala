@@ -37,7 +37,7 @@ abstract class CodecTest(
     }).asInstanceOf[Fragment[A]] // macro doesn't quite work in dotty yet
 
     sessionTest(s"${codec.types.mkString(", ")}") { s =>
-      s.prepare(sqlString.query(codec)).use { ps =>
+      s.prepare(sqlString.query(codec)).flatMap { ps =>
         as.toList.traverse { a =>
           for {
             aʹ <- ps.unique(a)
@@ -48,7 +48,7 @@ abstract class CodecTest(
     }
 
     sessionTest(s"${codec.types.mkString(", ")} (gmap)") { s =>
-      s.prepare(sqlString.query(codec.gmap[Box[A]])).use { ps =>
+      s.prepare(sqlString.query(codec.gmap[Box[A]])).flatMap { ps =>
         as.toList.traverse { a =>
           for {
             aʹ <- ps.unique(a)
@@ -63,7 +63,7 @@ abstract class CodecTest(
   // Test a specific special value like NaN where equals doesn't work
   def roundtripWithSpecialValueTest[A](name: String, codec: Codec[A], ascription: Option[String] = None)(value: A, isOk: A => Boolean): Unit =
     sessionTest(s"${codec.types.mkString(",")}") { s =>
-      s.prepare(sql"select $codec#${ascription.foldMap("::" + _)}".asInstanceOf[Fragment[A]].query(codec)).use { ps =>
+      s.prepare(sql"select $codec#${ascription.foldMap("::" + _)}".asInstanceOf[Fragment[A]].query(codec)).flatMap { ps =>
         ps.unique(value).flatMap { a =>
           assert(name, isOk(a)).as(name)
         }

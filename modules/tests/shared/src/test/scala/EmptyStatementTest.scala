@@ -28,12 +28,12 @@ class EmptyStatementTest extends SkunkTest {
   }
 
   sessionTest("empty query (extended query)") { s =>
-    s.prepare(sql"".query(int4)).use(_ => IO.unit)
+    s.prepare(sql"".query(int4)).flatMap(_ => IO.unit)
       .assertFailsWith[NoDataException] *> s.assertHealthy
   }
 
   sessionTest("empty query (extended command)") { s =>
-    s.prepare(sql"".command).use(_.execute(skunk.Void))
+    s.prepare(sql"".command).flatMap(_.execute(skunk.Void))
       .assertFailsWith[EmptyStatementException] *> s.assertHealthy
   }
 

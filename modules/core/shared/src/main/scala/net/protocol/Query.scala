@@ -85,7 +85,7 @@ object Query {
               rd.typed(ty) match {
 
                 case Right(td) =>
-                  if (query.decoder.types === td.types) {
+                  if (query.isDynamic || query.decoder.types === td.types) {
                     unroll(
                       extended       = false,
                       sql            = query.sql,
