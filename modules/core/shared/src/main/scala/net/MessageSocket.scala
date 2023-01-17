@@ -14,7 +14,8 @@ import scodec.codecs._
 import scodec.interop.cats._
 import skunk.net.message.{ Sync => _, _ }
 import skunk.util.Origin
-import fs2.io.net.SocketGroup
+import fs2.io.net.{ SocketGroup, SocketOption }
+import scala.concurrent.duration.Duration
 
 /** A higher-level `BitVectorSocket` that speaks in terms of `Message`. */
 trait MessageSocket[F[_]] {
@@ -40,10 +41,13 @@ object MessageSocket {
 
   def fromBitVectorSocket[F[_]: Concurrent: Console](
     bvs: BitVectorSocket[F],
-    debug: Boolean
+    debugEnabled: Boolean
   ): F[MessageSocket[F]] =
     Queue.circularBuffer[F, Either[Any, Any]](10).map { cb =>
       new AbstractMessageSocket[F] with MessageSocket[F] {
+
+        private def debug(msg: => String): F[Unit] =
+          if (debugEnabled) Console[F].println(msg) else Concurrent[F].unit
 
         /**
         * Messages are prefixed with a 5-byte header consisting of a tag (byte) and a length (int32,
@@ -56,7 +60,7 @@ object MessageSocket {
             val decoder    = BackendMessage.decoder(tag)
             bvs.read(len - 4).map(decoder.decodeValue(_).require)
           } .onError {
-            case t => Console[F].println(s" ← ${AnsiColor.RED}${t.getMessage}${AnsiColor.RESET}").whenA(debug)
+            case t => debug(s" ← ${AnsiColor.RED}${t.getMessage}${AnsiColor.RESET}")
           }
         }
 
@@ -64,12 +68,12 @@ object MessageSocket {
           for {
             msg <- receiveImpl
             _   <- cb.offer(Right(msg))
-            _   <- Console[F].println(s" ← ${AnsiColor.GREEN}$msg${AnsiColor.RESET}").whenA(debug)
+            _   <- debug(s" ← ${AnsiColor.GREEN}$msg${AnsiColor.RESET}")
           } yield msg
 
         override def send(message: FrontendMessage): F[Unit] =
           for {
-            _ <- Console[F].println(s" → ${AnsiColor.YELLOW}$message${AnsiColor.RESET}").whenA(debug)
+            _ <- debug(s" → ${AnsiColor.YELLOW}$message${AnsiColor.RESET}")
             _ <- bvs.write(message.encode)
             _ <- cb.offer(Left(message))
           } yield ()
@@ -86,15 +90,17 @@ object MessageSocket {
       }
     }
 
-  def apply[F[_]: Concurrent: Console](
+  def apply[F[_]: Console: Temporal](
     host:         String,
     port:         Int,
     debug:        Boolean,
     sg:           SocketGroup[F],
+    socketOptions: List[SocketOption],
     sslOptions:   Option[SSLNegotiation.Options[F]],
+    readTimeout:  Duration
   ): Resource[F, MessageSocket[F]] =
     for {
-      bvs <- BitVectorSocket(host, port, sg, sslOptions)
+      bvs <- BitVectorSocket(host, port, sg, socketOptions, sslOptions, readTimeout)
       ms  <- Resource.eval(fromBitVectorSocket(bvs, debug))
     } yield ms
 

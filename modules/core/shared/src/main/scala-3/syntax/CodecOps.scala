@@ -20,11 +20,16 @@ class CodecOps[A <: Tuple](self: Codec[A]) {
     (other, self).contramapN(t => (t.head, t.tail))
 
   def pimap[P <: Product](
+    using m: Mirror.ProductOf[P] { type MirroredElemTypes = A }
+  ): Codec[P] =
+    self.imap(m.fromProduct)(p => Tuple.fromProductTyped(p))
+
+  // For binary compatibility with Skunk 0.3.1 and prior
+  private[skunk] def pimap[P <: Product](
     using m: Mirror.ProductOf[P],
           i: m.MirroredElemTypes =:= A
   ): Codec[P] =
-    self.imap(m.fromProduct)(p => i(Tuple.fromProductTyped(p)))
-
+    pimap(using m.asInstanceOf)
 }
 
 class CodecOpsLow[A](self: Codec[A]) {

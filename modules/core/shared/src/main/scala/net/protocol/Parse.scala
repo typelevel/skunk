@@ -4,9 +4,10 @@
 
 package skunk.net.protocol
 
-import cats.effect.Resource
+import cats._
+import cats.effect.Ref
 import cats.syntax.all._
-import cats.MonadError
+import skunk.util.StatementCache
 import skunk.exception.PostgresErrorException
 import skunk.net.message.{ Parse => ParseMessage, Close => _, _ }
 import skunk.net.MessageSocket
@@ -16,26 +17,26 @@ import skunk.util.Namer
 import skunk.util.Typer
 import skunk.exception.{ UnknownTypeException, TooManyParametersException }
 import natchez.Trace
+import cats.data.OptionT
 
 trait Parse[F[_]] {
-  def apply[A](statement: Statement[A], ty: Typer): Resource[F, StatementId]
+  def apply[A](statement: Statement[A], ty: Typer): F[StatementId]
 }
 
 object Parse {
 
-  def apply[F[_]: Exchange: MessageSocket: Namer: Trace](
+  def apply[F[_]: Exchange: MessageSocket: Namer: Trace](cache: Cache[F])(
     implicit ev: MonadError[F, Throwable]
   ): Parse[F] =
     new Parse[F] {
-
-      override def apply[A](statement: Statement[A], ty: Typer): Resource[F, StatementId] =
+      override def apply[A](statement: Statement[A], ty: Typer): F[StatementId] =
         statement.encoder.oids(ty) match {
 
           case Right(os) if os.length > Short.MaxValue =>
-            Resource.eval(TooManyParametersException(statement).raiseError[F, StatementId])
+            TooManyParametersException(statement).raiseError[F, StatementId]
 
           case Right(os) =>
-            Resource.make {
+            OptionT(cache.value.get(statement)).getOrElseF {
               exchange("parse") {
                 for {
                   id <- nextName("statement").map(StatementId(_))
@@ -52,10 +53,10 @@ object Parse {
                         }
                 } yield id
               }
-            } { Close[F].apply }
+            }
 
           case Left(err) =>
-            Resource.eval(UnknownTypeException(statement, err, ty.strategy).raiseError[F, StatementId])
+            UnknownTypeException(statement, err, ty.strategy).raiseError[F, StatementId]
 
         }
 
@@ -73,5 +74,16 @@ object Parse {
         } yield a
 
     }
+
+  /** A cache for the `Parse` protocol. */
+  final case class Cache[F[_]](value: StatementCache[F, StatementId]) {
+    def mapK[G[_]](fk: F ~> G): Cache[G] =
+      Cache(value.mapK(fk))
+  }
+
+  object Cache {
+    def empty[F[_]: Functor: Ref.Make](capacity: Int): F[Cache[F]] =
+      StatementCache.empty[F, StatementId](capacity).map(Parse.Cache(_))
+  }
 
 }

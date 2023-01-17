@@ -65,15 +65,21 @@ Skunk codecs have the same names as their corresponding Postgres data types. Def
 - This codec is importable from `skunk.codec.boolean._` or `skunk.codec.all._`.
 - See [§8.6](https://www.postgresql.org/docs/9.1/datatype-boolean.html) in the Postgres documentation for more information on the boolean data type.
 
-## Binary Type
+## Binary Types
 
-| ANSI SQL Type      | Size                                         | Postgres Type   | Scala Type     |
-|--------------------|----------------------------------------------|-----------------|----------------|
-| `blob`             | 1 or 4 bytes plus the actual binary string   | `bytea`         | `Array[Byte]`  |
+| ANSI SQL Type      | Postgres Type   | Scala Type              | Notes                   |
+|--------------------|-----------------|-------------------------|-------------------------|
+| `blob`             | `bytea`         | `Array[Byte]`           |                         |
+| n/a                | `bit`           | `scodec.bits.BitVector` | Equivalent to `bit(1)`. |
+| n/a                | `bit(n)`        | `scodec.bits.BitVector` | Exactly `n` bits.       |
+| n/a                | `varbit(n)`     | `scodec.bits.BitVector` | At most `n` bits.       |
+| n/a                | `varbit`        | `scodec.bits.BitVector` | Any size.               |
 
 #### Notes
-- This codec uses [Hex Format](https://www.postgresql.org/docs/11/datatype-binary.html#id-1.5.7.12.9). Bytea octets in PostgreSQL are output in hex format by default.
-- See [§8.4](https://www.postgresql.org/docs/11/datatype-binary.html) in the Postgres documentation for more information on binary data types.
+- Prefer `boolean` over `bit`/`bit(1)`.
+- The `bytea` codec uses [Hex Format](https://www.postgresql.org/docs/11/datatype-binary.html#id-1.5.7.12.9). Bytea octets in PostgreSQL are output in hex format by default.
+- See [§8.4](https://www.postgresql.org/docs/11/datatype-binary.html) in the Postgres documentation for more information on the `bytea` data type.
+- See [§8.10](https://www.postgresql.org/docs/11/datatype-bit.html) in the Postgres documentation for more information on the `bit` and `varbit` data types.
 
 ## Enumerated Types
 

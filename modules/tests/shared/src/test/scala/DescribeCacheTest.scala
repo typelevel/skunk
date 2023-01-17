@@ -65,16 +65,16 @@ class DescribeCacheTest extends SkunkTest {
   sessionTest("command should not be cached if `prepare` fails") { s =>
     val cmd = sql"foo".command
     for {
-      _ <- s.prepare(cmd).use(_ => IO.unit).assertFailsWith[PostgresErrorException]
+      _ <- s.prepare(cmd).flatMap(_ => IO.unit).assertFailsWith[PostgresErrorException]
       c <- s.describeCache.commandCache.containsKey(cmd)
       _ <- assertEqual("should not be in cache", c, false)
     } yield "ok"
   }
 
-  sessionTest("command should be cached after `prepare.use`" ) { s =>
+  sessionTest("command should be cached after `prepare`" ) { s =>
     val cmd = sql"commit".command
     for {
-      _ <- s.prepare(cmd).use(_ => IO.unit)
+      _ <- s.prepare(cmd).flatMap(_ => IO.unit)
       c <- s.describeCache.commandCache.containsKey(cmd)
       _ <- assertEqual("should be in cache", c, true)
     } yield "ok"
@@ -83,7 +83,7 @@ class DescribeCacheTest extends SkunkTest {
   sessionTest("command should not be cached after cache is cleared") { s =>
     val cmd = sql"commit".command
     for {
-      _ <- s.prepare(cmd).use(_ => IO.unit)
+      _ <- s.prepare(cmd).flatMap(_ => IO.unit)
       c <- s.describeCache.commandCache.containsKey(cmd)
       _ <- assertEqual("should be in cache", c, true)
       _ <- s.describeCache.commandCache.clear
@@ -94,7 +94,7 @@ class DescribeCacheTest extends SkunkTest {
 
   // Queries
 
-  sessionTest("query should not be cached before `prepare.use`") { s =>
+  sessionTest("query should not be cached before `prepare`") { s =>
     val qry = sql"select 1".query(int4)
     for {
       c <- s.describeCache.queryCache.containsKey(qry)
@@ -105,16 +105,16 @@ class DescribeCacheTest extends SkunkTest {
   sessionTest("query should not be cached if `prepare` fails") { s =>
     val qry = sql"foo".query(int4)
     for {
-      _ <- s.prepare(qry).use(_ => IO.unit).assertFailsWith[PostgresErrorException]
+      _ <- s.prepare(qry).flatMap(_ => IO.unit).assertFailsWith[PostgresErrorException]
       c <- s.describeCache.commandCache.containsKey(qry)
       _ <- assertEqual("should not be in cache", c, false)
     } yield "ok"
   }
 
-  sessionTest("query should be cached after `prepare.use`" ) { s =>
+  sessionTest("query should be cached after `prepare`" ) { s =>
     val qry = sql"select 1".query(int4)
     for {
-      _ <- s.prepare(qry).use(_ => IO.unit)
+      _ <- s.prepare(qry).flatMap(_ => IO.unit)
       c <- s.describeCache.queryCache.containsKey(qry)
       _ <- assertEqual("should be in cache", c, true)
     } yield "ok"
@@ -123,7 +123,7 @@ class DescribeCacheTest extends SkunkTest {
   sessionTest("query should not be cached after cache is cleared") { s =>
     val qry = sql"select 1".query(int4)
     for {
-      _ <- s.prepare(qry).use(_ => IO.unit)
+      _ <- s.prepare(qry).flatMap(_ => IO.unit)
       c <- s.describeCache.queryCache.containsKey(qry)
       _ <- assertEqual("should be in cache", c, true)
       _ <- s.describeCache.queryCache.clear

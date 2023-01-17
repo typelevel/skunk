@@ -26,7 +26,7 @@ Postgres connections are always in one of three transaction states.
 
 Because transaction status is a property of the session itself, all operations on that session during a transaction's lifespan will take part in the transaction. For this reason it is recommended that sessions not be used concurrently in the presence of transactions. See the chapter on @ref:[Concurrency](../reference/Concurrency.md) for more details.
 
-`Sesson`'s transaction status is available via its `transactionStatus` member (an fs2 `Signal`). The example below takes advantage of this facility.
+`Session`'s transaction status is available via its `transactionStatus` member (an fs2 `Signal`). The example below takes advantage of this facility.
 
 ## Basic Usage Pattern
 
@@ -131,7 +131,7 @@ object PetService {
       .gmap[Pet]
 
   // construct a PetService, preparing our statement once on construction
-  def fromSession(s: Session[IO]): Resource[IO, PetService[IO]] =
+  def fromSession(s: Session[IO]): IO[PetService[IO]] =
     s.prepare(insertOne).map { pc =>
       new PetService[IO] {
 
@@ -196,7 +196,7 @@ object TransactionExample extends IOApp {
       s  <- session
       _  <- withPetsTable(s)
       _  <- withTransactionStatusLogger(s)
-      ps <- PetService.fromSession(s)
+      ps <- Resource.eval(PetService.fromSession(s))
     } yield ps
 
   // Some test data

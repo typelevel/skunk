@@ -6,20 +6,22 @@ package tests
 
 import cats.effect._
 import fs2.io.net.ConnectException
-import fs2.io.net.UnknownHostException
 import natchez.Trace.Implicits.noop
 import skunk._
 import skunk.exception.SkunkException
 import skunk.exception.StartupException
 
+import java.io.IOException
+
 class StartupTest extends ffstest.FTest {
 
   // Different ports for different authentication schemes.
   object Port {
-    val Invalid = 5431
-    val MD5     = 5432
-    val Trust   = 5433
-    val Scram   = 5434
+    val Invalid  = 5431
+    val MD5      = 5432
+    val Trust    = 5433
+    val Scram    = 5434
+    val Password = 5435
   }
 
   test("md5 - successful login") {
@@ -180,6 +182,64 @@ class StartupTest extends ffstest.FTest {
      .flatMap(e => assertEqual("code", e.code, "28P01"))
   }
 
+  test("password - successful login") {
+    Session.single[IO](
+      host     = "localhost",
+      user     = "jimmy",
+      database = "world",
+      password = Some("banana"),
+      port     = Port.Password
+    ).use(_ => IO.unit)
+  }
+
+  test("password - non-existent database") {
+    Session.single[IO](
+      host     = "localhost",
+      user     = "jimmy",
+      database = "blah",
+      password = Some("banana"),
+      port     = Port.Password,
+    ).use(_ => IO.unit)
+     .assertFailsWith[StartupException]
+     .flatMap(e => assertEqual("code", e.code, "3D000"))
+  }
+
+  test("password - missing password") {
+    Session.single[IO](
+      host     = "localhost",
+      user     = "jimmy",
+      database = "blah",
+      password = None,
+      port     = Port.Password,
+    ).use(_ => IO.unit)
+     .assertFailsWith[SkunkException]
+     .flatMap(e => assertEqual("message", e.message, "Password required."))
+  }
+
+  test("password - incorrect user") {
+    Session.single[IO](
+      host     = "localhost",
+      user     = "frank",
+      database = "world",
+      password = Some("banana"),
+      port     = Port.Password,
+    ).use(_ => IO.unit)
+     .assertFailsWith[StartupException]
+     .flatMap(e => assertEqual("code", e.code, "28P01"))
+  }
+
+  test("password - incorrect password") {
+    Session.single[IO](
+      host     = "localhost",
+      user     = "jimmy",
+      database = "world",
+      password = Some("apple"),
+      port     = Port.Password,
+    ).use(_ => IO.unit)
+     .assertFailsWith[StartupException]
+     .flatMap(e => assertEqual("code", e.code, "28P01"))
+  }
+
   test("invalid port") {
     Session.single[IO](
       host     = "localhost",
@@ -194,6 +254,6 @@ class StartupTest extends ffstest.FTest {
       host     = "blergh",
       user     = "bob",
       database = "nobody cares",
-    ).use(_ => IO.unit).assertFailsWith[UnknownHostException]
+    ).use(_ => IO.unit).assertFailsWith[IOException] // ideally an `UnknownHostException`
   }
 }

@@ -49,10 +49,10 @@ object Join extends IOApp with StreamOps {
         ORDER BY country.code, city.name ASC
       """.query((varchar ~ bpchar(3) ~ int4) ~ (varchar ~ int4).gmap[City].opt)
 
-    def fromSession[F[_]: MonadCancelThrow](s: Session[F]): WorldService[F] =
+    def fromSession[F[_]](s: Session[F]): WorldService[F] =
       new WorldService[F] {
         def countriesByName(pat: Pattern): Stream[F,Country] =
-          Stream.resource(s.prepare(countriesByNameQuery)).flatMap { cs =>
+          Stream.eval(s.prepare(countriesByNameQuery)).flatMap { cs =>
             cs.stream(pat, 64)
               .chunkAdjacent
               .map { case ((name ~ code ~ pop), chunk) =>

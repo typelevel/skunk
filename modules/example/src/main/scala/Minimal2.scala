@@ -45,7 +45,7 @@ object Minimal2 extends IOApp {
   def lookup[F[_]: Async: Trace](pat: String, s: Session[F]): F[Unit] =
     Trace[F].span("lookup") {
       Trace[F].put("pattern" -> pat) *>
-      s.prepare(select).use { pq =>
+      s.prepare(select).flatMap { pq =>
         pq.stream(pat, 1024)
           .evalMap(c => Sync[F].delay(println(s"⭐️⭐  $c")))
           .compile

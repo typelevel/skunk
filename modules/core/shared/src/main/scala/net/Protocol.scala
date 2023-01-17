@@ -5,7 +5,7 @@
 package skunk.net
 
 import cats.syntax.all._
-import cats.effect.{ Concurrent, Resource }
+import cats.effect.{ Concurrent, Temporal, Resource }
 import cats.effect.std.Console
 import fs2.concurrent.Signal
 import fs2.Stream
@@ -14,9 +14,11 @@ import skunk.data._
 import skunk.util.{ Namer, Origin }
 import skunk.util.Typer
 import natchez.Trace
-import fs2.io.net.SocketGroup
-import skunk.net.protocol.Exchange
+import fs2.io.net.{ SocketGroup, SocketOption }
 import skunk.net.protocol.Describe
+import scala.concurrent.duration.Duration
+import skunk.net.protocol.Exchange
+import skunk.net.protocol.Parse
 
 /**
  * Interface for a Postgres database, expressed through high-level operations that rely on exchange
@@ -33,7 +35,7 @@ trait Protocol[F[_]] {
    * @see [[https://www.postgresql.org/docs/10/static/sql-listen.html LISTEN]]
    * @see [[https://www.postgresql.org/docs/10/static/sql-notify.html NOTIFY]]
    */
-  def notifications(maxQueued: Int): Stream[F, Notification[String]]
+  def notifications(maxQueued: Int): Resource[F, Stream[F, Notification[String]]]
 
   /**
    * Signal representing the current state of all Postgres configuration variables announced to this
@@ -61,15 +63,15 @@ trait Protocol[F[_]] {
 
   /**
    * Prepare a command (a statement that produces no rows), yielding a `Protocol.PreparedCommand`
-   * which will be closed after use.
+   * which will be cached per session and closed on session close.
    */
-  def prepare[A](command: Command[A], ty: Typer): Resource[F, Protocol.PreparedCommand[F, A]]
+  def prepare[A](command: Command[A], ty: Typer): F[Protocol.PreparedCommand[F, A]]
 
   /**
    * Prepare a query (a statement that produces rows), yielding a `Protocol.PreparedCommand` which
-   * which will be closed after use.
+   * which will be cached per session and closed on session close.
    */
-  def prepare[A, B](query: Query[A, B], ty: Typer): Resource[F, Protocol.PreparedQuery[F, A, B]]
+  def prepare[A, B](query: Query[A, B], ty: Typer): F[Protocol.PreparedQuery[F, A, B]]
 
   /**
    * Execute a non-parameterized command (a statement that produces no rows), yielding a
@@ -92,6 +94,11 @@ trait Protocol[F[_]] {
   def startup(user: String, database: String, password: Option[String], parameters: Map[String, String]): F[Unit]
 
   /**
+   * Cleanup the session. This will close any cached prepared statements.
+   */
+  def cleanup: F[Unit]
+
+  /**
    * Signal representing the current transaction status as reported by `ReadyForQuery`. It's not
    * clear that this is a useful thing to expose.
    */
@@ -100,6 +107,8 @@ trait Protocol[F[_]] {
   /** Cache for the `Describe` protocol. */
   def describeCache: Describe.Cache[F]
 
+  /** Cache for the `Parse` protocol. */
+  def parseCache: Parse.Cache[F]
 }
 
 object Protocol {
@@ -187,24 +196,28 @@ object Protocol {
    * @param host  Postgres server host
    * @param port  Postgres port, default 5432
    */
-  def apply[F[_]: Concurrent: Trace: Console](
+  def apply[F[_]: Temporal: Trace: Console](
     host:         String,
     port:         Int,
     debug:        Boolean,
     nam:          Namer[F],
     sg:           SocketGroup[F],
+    socketOptions: List[SocketOption],
     sslOptions:   Option[SSLNegotiation.Options[F]],
     describeCache: Describe.Cache[F],
+    parseCache: Parse.Cache[F],
+    readTimeout:  Duration
   ): Resource[F, Protocol[F]] =
     for {
-      bms <- BufferedMessageSocket[F](host, port, 256, debug, sg, sslOptions) // TODO: should we expose the queue size?
-      p   <- Resource.eval(fromMessageSocket(bms, nam, describeCache))
+      bms <- BufferedMessageSocket[F](host, port, 256, debug, sg, socketOptions, sslOptions, readTimeout) // TODO: should we expose the queue size?
+      p   <- Resource.eval(fromMessageSocket(bms, nam, describeCache, parseCache))
     } yield p
 
   def fromMessageSocket[F[_]: Concurrent: Trace](
     bms: BufferedMessageSocket[F],
     nam: Namer[F],
     dc:  Describe.Cache[F],
+    pc:  Parse.Cache[F]
   ): F[Protocol[F]] =
     Exchange[F].map { ex =>
       new Protocol[F] {
@@ -215,17 +228,17 @@ object Protocol {
         implicit val na: Namer[F] = nam
         implicit val ExchangeF: protocol.Exchange[F] = ex
 
-        override def notifications(maxQueued: Int): Stream[F, Notification[String]] =
+        override def notifications(maxQueued: Int): Resource[F, Stream[F, Notification[String]]] =
           bms.notifications(maxQueued)
 
         override def parameters: Signal[F, Map[String, String]] =
           bms.parameters
 
-        override def prepare[A](command: Command[A], ty: Typer): Resource[F, PreparedCommand[F, A]] =
-          protocol.Prepare[F](describeCache).apply(command, ty)
+        override def prepare[A](command: Command[A], ty: Typer): F[PreparedCommand[F, A]] =
+          protocol.Prepare[F](describeCache, parseCache).apply(command, ty)
 
-        override def prepare[A, B](query: Query[A, B], ty: Typer): Resource[F, PreparedQuery[F, A, B]] =
-          protocol.Prepare[F](describeCache).apply(query, ty)
+        override def prepare[A, B](query: Query[A, B], ty: Typer): F[PreparedQuery[F, A, B]] =
+          protocol.Prepare[F](describeCache, parseCache).apply(query, ty)
 
         override def execute(command: Command[Void]): F[Completion] =
           protocol.Query[F].apply(command)
@@ -236,11 +249,17 @@ object Protocol {
         override def startup(user: String, database: String, password: Option[String], parameters: Map[String, String]): F[Unit] =
           protocol.Startup[F].apply(user, database, password, parameters)
 
+        override def cleanup: F[Unit] =
+          parseCache.value.values.flatMap(xs => xs.traverse_(protocol.Close[F].apply))
+
         override def transactionStatus: Signal[F, TransactionStatus] =
           bms.transactionStatus
 
         override val describeCache: Describe.Cache[F] =
           dc
+
+        override val parseCache: Parse.Cache[F] =
+          pc
 
       }
     }

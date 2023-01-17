@@ -159,7 +159,7 @@ Here we use the extended query protocol to stream directly to the console using 
 
 ```scala mdoc:compile-only
 // assume s: Session[IO]
-s.prepare(e).use { ps =>
+s.prepare(e).flatMap { ps =>
   ps.stream("U%", 64)
     .evalMap(c => IO.println(c))
     .compile
@@ -175,7 +175,7 @@ Note that when using `Resource` and `Stream` together it is often convenient to 
 // assume s: Session[IO]
 val stream: Stream[IO, Unit] =
   for {
-    ps <- Stream.resource(s.prepare(e))
+    ps <- Stream.eval(s.prepare(e))
     c  <- ps.stream("U%", 64)
     _  <- Stream.eval(IO.println(c))
   } yield ()
@@ -213,7 +213,7 @@ Observe that we have two parameter encoders `varchar` and `int4` (in that order)
 
 ```scala mdoc:compile-only
 // assume s: Session[IO]
-s.prepare(f).use { ps =>
+s.prepare(f).flatMap { ps =>
   ps.stream("U%" ~ 2000000, 64)
     .evalMap(c => IO.println(c))
     .compile
@@ -292,7 +292,7 @@ object QueryExample extends IOApp {
 
   // run our extended query
   def doExtended(s: Session[IO]): IO[Unit] =
-    s.prepare(extended).use { ps =>
+    s.prepare(extended).flatMap { ps =>
       ps.stream("U%", 32)
         .evalMap(c => IO.println(c))
         .compile
@@ -325,6 +325,7 @@ println("```")
 In real life a program like `QueryExample` above will grow complicated an hard to maintain because the database abstractions are out in the open. It's better to define an interface that *uses* a database session and write your program in terms of that interface. Here is a rewritten version of the program above that demonstrates this pattern.
 
 ```scala mdoc:reset
+import cats.syntax.all._
 import cats.effect._
 import skunk._
 import skunk.implicits._
@@ -357,7 +358,7 @@ object Service {
     """.query(varchar ~ bpchar(3) ~ int4)
        .gmap[Country]
 
-  def fromSession[F[_]: Applicative](s: Session[F]): Resource[F, Service[F]] =
+  def fromSession[F[_]: Applicative](s: Session[F]): F[Service[F]] =
     s.prepare(countries).map { pq =>
 
       // Our service implementation. Note that we are preparing the query on construction, so
@@ -384,7 +385,7 @@ object QueryExample2 extends IOApp {
 
   // A source of services
   val service: Resource[IO, Service[IO]] =
-    session.flatMap(Service.fromSession(_))
+    session.evalMap(Service.fromSession(_))
 
   // our entry point ... there is no indication that we're using a database at all!
   def run(args: List[String]): IO[ExitCode] =

@@ -41,7 +41,7 @@ To learn about Skunk:
 
 Other resources:
 
-- Come chat on the [Gitter Channel](https://gitter.im/skunk-pg/Lobby).
+- Come chat on [Discord](https://sca.la/typeleveldiscord).
 - Skunk is featured in the book [*Practical FP in Scala*](https://leanpub.com/pfp-scala) by [Gabriel Volpe](https://twitter.com/volpegabriel87).
 - [tpolecat](https://twitter.com/tpolecat) did a [talk](https://www.youtube.com/watch?v=NJrgj1vQeAI) on Skunk's architecture at Scala Days 2019 at EPFL.
 

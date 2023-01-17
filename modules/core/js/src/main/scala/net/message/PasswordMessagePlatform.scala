@@ -6,6 +6,7 @@ package skunk.net.message
 
 import scala.scalajs.js
 import scala.scalajs.js.typedarray._
+import scodec.bits.ByteVector
 
 private[message] trait PasswordMessagePlatform {
   
@@ -21,7 +22,7 @@ private[message] trait PasswordMessagePlatform {
     // First round
     md.update(password)
     md.update(user)
-    var hex = BigInt(1, new Int8Array(md.digest().asInstanceOf[ArrayBuffer]).toArray).toString(16)
+    var hex = BigInt(1, ByteVector.view(md.digest().asInstanceOf[Uint8Array]).toArray).toString(16)
     while (hex.length < 32)
       hex = "0" + hex
 
@@ -29,7 +30,7 @@ private[message] trait PasswordMessagePlatform {
     md = crypto.createHash("md5")
     md.update(hex)
     md.update(salt.toTypedArray)
-    hex = BigInt(1, new Int8Array(md.digest().asInstanceOf[ArrayBuffer]).toArray).toString(16)
+    hex = BigInt(1, ByteVector.view(md.digest().asInstanceOf[Uint8Array]).toArray).toString(16)
     while (hex.length < 32)
       hex = "0" + hex
 
