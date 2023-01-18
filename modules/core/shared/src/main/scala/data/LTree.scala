@@ -12,26 +12,26 @@ sealed abstract case class LTree (labels: List[String]) {
     other.labels.startsWith(labels)
 
   def isDescendantOf(other: LTree): Boolean = other.isAncestorOf(this)
-  
+
   override def toString: String = labels.mkString(LTree.Separator.toString())
 }
 
 object LTree {
   val Empty = new LTree(Nil) {}
-  
+
   def fromLabels(s: String*): Either[String, LTree] =
     fromString(s.toList.mkString(Separator.toString()))
-    
+
   def fromString(s: String): Either[String, LTree] = {
 
-    if(s.isEmpty()) {
+    if (s.isEmpty()) {
       Right(new LTree(Nil){})
     } else {
       // We have a failure sentinal and a helper to set it.
       var failure: String = null
       def fail(msg: String): Unit =
         failure = s"ltree parse error: $msg"
-      
+
       val labels = s.split(Separator).toList
 
       if(labels.length > MaxTreeLength)
@@ -49,11 +49,11 @@ object LTree {
     }
   }
 
-  val MaxLabelLength = 255
-  val MaxTreeLength = 65535
-  
-  private val Separator = '.'
-  private val ValidLabelRegex = s"""^[\\p{L}0-9_]{1,$MaxLabelLength}$$""".r
-  
+  final val MaxLabelLength = 255
+  final val MaxTreeLength = 65535
+
+  private final val Separator = '.'
+  private final val ValidLabelRegex = s"""^[\\p{L}0-9_]{1,$MaxLabelLength}$$""".r
+
   implicit val ltreeEq: Eq[LTree] = Eq.fromUniversalEquals[LTree]
 }

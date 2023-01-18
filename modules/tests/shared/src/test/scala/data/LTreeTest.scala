@@ -7,11 +7,11 @@ package data
 
 import skunk.data.LTree
 
-class LTreeTest extends munit.FunSuite {
+class LTreeTest extends ffstest.FTest {
 
-  val foo = LTree.fromLabels("foo").toOption.get
-  val foobar = LTree.fromLabels("foo", "bar").toOption.get
-  
+  lazy val foo = LTree.fromLabels("foo").toOption.get
+  lazy val foobar = LTree.fromLabels("foo", "bar").toOption.get
+
   test("LTree parsing") {
     assertEquals(LTree.fromString("").getOrElse(fail("Failed to parse empty LTree")), LTree.Empty)
 
@@ -23,7 +23,7 @@ class LTreeTest extends munit.FunSuite {
 
     assert(LTree.fromString(List.fill(LTree.MaxTreeLength)("a").mkString(".")).isRight, "max tree len failed")
     assert(LTree.fromString(List.fill(LTree.MaxTreeLength + 1)("a").mkString(".")).isLeft, "max tree len failed")
-    
+
     assert(LTree.fromString(List.fill(3)("a" * LTree.MaxLabelLength).mkString(".")).isRight, "max label len failed")
     assert(LTree.fromString(List.fill(3)("a" * LTree.MaxLabelLength + 1).mkString(".")).isLeft, "max label len failed")
   }
