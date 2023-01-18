@@ -107,7 +107,6 @@ lazy val commonSettings = Seq(
 
   // uncomment in case of emergency
   // scalacOptions ++= { if (scalaVersion.value.startsWith("3.")) Seq("-source:3.0-migration") else Nil },
-
 )
 
 lazy val skunk = tlCrossRootProject
@@ -200,6 +199,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     }
   )
   .jsSettings(
+    scalaJSLinkerConfig ~= { _.withESFeatures(_.withESVersion(org.scalajs.linker.interface.ESVersion.ES2018)) },
     Test / scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.CommonJSModule)),
   )
   .nativeEnablePlugins(ScalaNativeBrewedConfigPlugin)

@@ -6,6 +6,7 @@ services:
     command: -c ssl=on -c ssl_cert_file=/var/lib/postgresql/server.crt -c ssl_key_file=/var/lib/postgresql/server.key
     volumes:
       - ./world/world.sql:/docker-entrypoint-initdb.d/world.sql
+      - ./world/ltree.sql:/docker-entrypoint-initdb.d/ltree.sql
       - ./world/server.crt:/var/lib/postgresql/server.crt
       - ./world/server.key:/var/lib/postgresql/server.key
     ports:

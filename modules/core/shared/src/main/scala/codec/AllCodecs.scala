@@ -12,5 +12,6 @@ trait AllCodecs
      with EnumCodec
      with UuidCodec
      with BinaryCodecs
+     with LTreeCodec
 
 object all extends AllCodecs
