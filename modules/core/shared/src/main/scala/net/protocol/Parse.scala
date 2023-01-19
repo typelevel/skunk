@@ -51,6 +51,7 @@ object Parse {
                           case ParseComplete       => ().pure[F]
                           case ErrorResponse(info) => syncAndFail(statement, info)
                         }
+                  _  <- cache.value.put(statement, id)
                 } yield id
               }
             }
