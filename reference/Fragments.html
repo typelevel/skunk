@@ -32,7 +32,7 @@
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.3.2
+0.5.1
 </div>
 </div>
 <div class="nav-toc">
@@ -87,7 +87,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.3.2
+0.5.1
 </div>
 </div>
 <div class="nav-toc">
@@ -140,13 +140,22 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <p><code>Fragment[A]</code> encapsulates a SQL statement, together with an <code>Encoder</code> for a statement parameter of type <code>A</code>. Fragments are normally constructed via the <code>sql</code> interpolator, which constructs a fragment of a type determined by interpolated parameter encoders, if any.</p>
 <pre class="prettyprint"><code class="language-scala">// A fragment with no interpolated encoders.
 val f1 = sql&quot;SELECT 42&quot;
-// f1: Fragment[Void] = Fragment(sql = &quot;SELECT 42&quot;, encoder = Codec(void))
+// f1: Fragment[Void] = Fragment(
+//   parts = List(Left(value = &quot;SELECT 42&quot;)),
+//   encoder = Codec(void),
+//   origin = Origin(file = &quot;Fragments.md&quot;, line = 27)
+// )
 
 // A fragment with an interpolated encoder.
 val f2 = sql&quot;SELECT foo FROM bar WHERE baz = $int8&quot;
 // f2: Fragment[Long] = Fragment(
-//   sql = &quot;SELECT foo FROM bar WHERE baz = $1&quot;,
-//   encoder = Codec(int8)
+//   parts = List(
+//     Left(value = &quot;SELECT foo FROM bar WHERE baz = &quot;),
+//     Right(value = cats.data.IndexedStateT@722382b2),
+//     Left(value = &quot;&quot;)
+//   ),
+//   encoder = Codec(int8),
+//   origin = Origin(file = &quot;Fragments.md&quot;, line = 30)
 // )
 </code></pre>
 <p>The following sections provide more details on constructing fragments.</p>
@@ -154,8 +163,15 @@ val f2 = sql&quot;SELECT foo FROM bar WHERE baz = $int8&quot;
 <p>Interpolated encoders are replaced with statement parameters (see the first element shown in the <code>Fragment</code> string representation below).</p>
 <pre class="prettyprint"><code class="language-scala">val f3 = sql&quot;foo $int4 bar $varchar bar&quot;
 // f3: Fragment[Int ~ String] = Fragment(
-//   sql = &quot;foo $1 bar $2 bar&quot;,
-//   encoder = Codec(int4, varchar)
+//   parts = List(
+//     Left(value = &quot;foo &quot;),
+//     Right(value = cats.data.IndexedStateT@1476ac9b),
+//     Left(value = &quot; bar &quot;),
+//     Right(value = cats.data.IndexedStateT@18c784cc),
+//     Left(value = &quot; bar&quot;)
+//   ),
+//   encoder = Codec(int4, varchar),
+//   origin = Origin(file = &quot;Fragments.md&quot;, line = 36)
 // )
 </code></pre>
 <p>The resulting statement is prepared, and arguments (encoded) are passed separately as part of the extended query protocol. <strong>Skunk never interpolates statement arguments.</strong></p>
@@ -191,27 +207,67 @@ val frag  = sql&quot;SELECT foo, bar FROM #$table where foo = $int4&quot;
 <p>Fragment products operate like encoder products, appending the resulting SQL.</p>
 <pre class="prettyprint"><code class="language-scala">val f4 = sql&quot;SELECT $int4, foo FROM blah WHERE &quot;
 // f4: Fragment[Int] = Fragment(
-//   sql = &quot;SELECT $1, foo FROM blah WHERE &quot;,
-//   encoder = Codec(int4)
+//   parts = List(
+//     Left(value = &quot;SELECT &quot;),
+//     Right(value = cats.data.IndexedStateT@1476ac9b),
+//     Left(value = &quot;, foo FROM blah WHERE &quot;)
+//   ),
+//   encoder = Codec(int4),
+//   origin = Origin(file = &quot;Fragments.md&quot;, line = 81)
 // )
 
 val f5 = sql&quot;bar = $varchar&quot;
-// f5: Fragment[String] = Fragment(sql = &quot;bar = $1&quot;, encoder = Codec(varchar))
+// f5: Fragment[String] = Fragment(
+//   parts = List(
+//     Left(value = &quot;bar = &quot;),
+//     Right(value = cats.data.IndexedStateT@18c784cc),
+//     Left(value = &quot;&quot;)
+//   ),
+//   encoder = Codec(varchar),
+//   origin = Origin(file = &quot;Fragments.md&quot;, line = 84)
+// )
 
 val f6 = f4 ~ f5
 // f6: Fragment[Int ~ String] = Fragment(
-//   sql = &quot;SELECT $1, foo FROM blah WHERE bar = $2&quot;,
-//   encoder = Encoder(int4, varchar)
+//   parts = List(
+//     Left(value = &quot;SELECT &quot;),
+//     Right(value = cats.data.IndexedStateT@1476ac9b),
+//     Left(value = &quot;, foo FROM blah WHERE &quot;),
+//     Left(value = &quot;bar = &quot;),
+//     Right(value = cats.data.IndexedStateT@18c784cc),
+//     Left(value = &quot;&quot;)
+//   ),
+//   encoder = Encoder(int4, varchar),
+//   origin = Origin(file = &quot;Fragments.md&quot;, line = 81)
 // )
 </code></pre>
 <p>Alternatively we can interpolate fragments inside one another.</p>
 <pre class="prettyprint"><code class="language-scala">val f7 = sql&quot;bar = $varchar&quot;
-// f7: Fragment[String] = Fragment(sql = &quot;bar = $1&quot;, encoder = Codec(varchar))
+// f7: Fragment[String] = Fragment(
+//   parts = List(
+//     Left(value = &quot;bar = &quot;),
+//     Right(value = cats.data.IndexedStateT@18c784cc),
+//     Left(value = &quot;&quot;)
+//   ),
+//   encoder = Codec(varchar),
+//   origin = Origin(file = &quot;Fragments.md&quot;, line = 93)
+// )
 
 val f8 = sql&quot;SELECT $int4, foo FROM blah WHERE $f7 AND x = $int2&quot;
 // f8: Fragment[Int ~ String ~ Short] = Fragment(
-//   sql = &quot;SELECT $1, foo FROM blah WHERE bar = $2 AND x = $3&quot;,
-//   encoder = Encoder(int4, varchar, int2)
+//   parts = List(
+//     Left(value = &quot;SELECT &quot;),
+//     Right(value = cats.data.IndexedStateT@1476ac9b),
+//     Left(value = &quot;, foo FROM blah WHERE &quot;),
+//     Left(value = &quot;bar = &quot;),
+//     Right(value = cats.data.IndexedStateT@18c784cc),
+//     Left(value = &quot;&quot;),
+//     Left(value = &quot; AND x = &quot;),
+//     Right(value = cats.data.IndexedStateT@15b5bb70),
+//     Left(value = &quot;&quot;)
+//   ),
+//   encoder = Encoder(int4, varchar, int2),
+//   origin = Origin(file = &quot;Fragments.md&quot;, line = 96)
 // )
 </code></pre>
 <p>Note how the output type is computed, and parameters are renumbered as necessary.</p>
@@ -221,15 +277,29 @@ val f8 = sql&quot;SELECT $int4, foo FROM blah WHERE $f7 AND x = $int2&quot;
 
 val f9 = sql&quot;INSERT ... VALUES ($varchar, $int4)&quot;
 // f9: Fragment[String ~ Int] = Fragment(
-//   sql = &quot;INSERT ... VALUES ($1, $2)&quot;,
-//   encoder = Codec(varchar, int4)
+//   parts = List(
+//     Left(value = &quot;INSERT ... VALUES (&quot;),
+//     Right(value = cats.data.IndexedStateT@18c784cc),
+//     Left(value = &quot;, &quot;),
+//     Right(value = cats.data.IndexedStateT@1476ac9b),
+//     Left(value = &quot;)&quot;)
+//   ),
+//   encoder = Codec(varchar, int4),
+//   origin = Origin(file = &quot;Fragments.md&quot;, line = 105)
 // )
 
 // note the return type
 val f10 = f9.contramap[Person](p =&gt; (p.name, p.age))
 // f10: Fragment[Person] = Fragment(
-//   sql = &quot;INSERT ... VALUES ($1, $2)&quot;,
-//   encoder = Encoder(varchar, int4)
+//   parts = List(
+//     Left(value = &quot;INSERT ... VALUES (&quot;),
+//     Right(value = cats.data.IndexedStateT@18c784cc),
+//     Left(value = &quot;, &quot;),
+//     Right(value = cats.data.IndexedStateT@1476ac9b),
+//     Left(value = &quot;)&quot;)
+//   ),
+//   encoder = Encoder(varchar, int4),
+//   origin = Origin(file = &quot;Fragments.md&quot;, line = 105)
 // )
 </code></pre>
 <h2><a href="#applied-fragments" name="applied-fragments" class="anchor"><span class="anchor-link"></span></a>Applied Fragments</h2>
@@ -273,16 +343,16 @@ countryQuery(None, None).fragment.sql
 <pre class="prettyprint"><code class="language-scala">def usage(s: Session[IO]) = {
   val f = countryQuery(Some(&quot;Un%&quot;), None) // AppliedFragment
   val q = f.fragment.query(varchar)       // Query[f.A, String]
-  s.prepare(q).use(_.stream(f.argument, 64).compile.to(List))
+  s.prepare(q).flatMap(_.stream(f.argument, 64).compile.to(List))
 }
 </code></pre>
 <script type="text/javascript" src="../js/link_fix.js"></script>
 
 <div class="source-github">
-The source code for this page can be found <a id="source-link" href="https://github.com/tpolecat/skunk/tree/v0.3.2/modules/docs/target/mdoc/reference/Fragments.md">here</a>.
+The source code for this page can be found <a id="source-link" href="https://github.com/tpolecat/skunk/tree/v0.5.1/modules/docs/target/mdoc/reference/Fragments.md">here</a>.
 </div>
 
-<script type="text/javascript">jQuery(function(){sourceUrlFix('https://github.com/tpolecat/skunk/tree/v0.3.2/modules/docs/target/mdoc/reference/Fragments.md')});</script>
+<script type="text/javascript">jQuery(function(){sourceUrlFix('https://github.com/tpolecat/skunk/tree/v0.5.1/modules/docs/target/mdoc/reference/Fragments.md')});</script>
 
 <div class="nav-next">
 <p><strong>Next:</strong> <a href="../reference/Identifiers.html">Identifiers</a></p>
@@ -343,7 +413,7 @@ The source code for this page can be found <a id="source-link" href="https://git
 
 <!--
 <div class="copyright">
-<span class="text">&copy; 2022</span>
+<span class="text">&copy; 2023</span>
 <a href="https://www.example.com" class="logo">logo</a>
 </div>
 -->
@@ -368,7 +438,7 @@ The source code for this page can be found <a id="source-link" href="https://git
 <script type="text/javascript" src="../lib/prettify/prettify.js"></script>
 <script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
 <script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
-<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.3.2', 'https://github.com/tpolecat/skunk')});</script>
+<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.5.1', 'https://github.com/tpolecat/skunk')});</script>
 
 
 </html>

@@ -32,7 +32,7 @@
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.3.2
+0.5.1
 </div>
 </div>
 <div class="nav-toc">
@@ -87,7 +87,7 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <span class="home-icon">⌂</span>Skunk
 </a>
 <div class="version-number">
-0.3.2
+0.5.1
 </div>
 </div>
 <div class="nav-toc">
@@ -143,26 +143,31 @@ C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.
 <p>First let&rsquo;s look at a command that sets the session&rsquo;s random number seed.</p>
 <pre class="prettyprint"><code class="language-scala">val a: Command[Void] =
   sql&quot;SET SEED TO 0.123&quot;.command
-// a: Command[Void] = Query(sql = &quot;SET SEED TO 0.123&quot;, encoder = Codec(void))
+// a: Command[Void] = Command(
+//   sql = &quot;SET SEED TO 0.123&quot;,
+//   origin = Origin(file = &quot;Command.md&quot;, line = 36),
+//   encoder = Codec(void)
+// )
 </code></pre>
 <p>Observe the following:</p>
 <ul>
-  <li>We are using the <a href="../reference/Fragments.html">sql interpolator</a> to construct a <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.3.2/skunk/Fragment.html" title="skunk.Fragment"><code>Fragment</code></a>, which we then turn into a <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.3.2/skunk/Command.html" title="skunk.Command"><code>Command</code></a> by calling the <code>command</code> method.</li>
+  <li>We are using the <a href="../reference/Fragments.html">sql interpolator</a> to construct a <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.5.1/skunk/Fragment.html" title="skunk.Fragment"><code>Fragment</code></a>, which we then turn into a <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.5.1/skunk/Command.html" title="skunk.Command"><code>Command</code></a> by calling the <code>command</code> method.</li>
   <li><code>Command</code> is parameterized by its input type. Because this command has no parameters the input type is <code>Void</code>.</li>
 </ul>
 <p>The command above is a <em>simple command</em>.</p><div class="callout note "><div class="callout-title">Definition</div>
 <p>A <em>simple command</em> is a command with no parameters.</p></div>
-<p>The same <a href="https://www.postgresql.org/docs/10/protocol-flow.html#id-1.10.5.7.4">protocol</a> that executes simple queries also executes simple commands. Such commands can be passed directly to <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.3.2/skunk/Session.html#execute" title="skunk.Session"><code>Session.execute</code></a>.</p>
+<p>The same <a href="https://www.postgresql.org/docs/10/protocol-flow.html#id-1.10.5.7.4">protocol</a> that executes simple queries also executes simple commands. Such commands can be passed directly to <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.5.1/skunk/Session.html#execute" title="skunk.Session"><code>Session.execute</code></a>.</p>
 <pre class="prettyprint"><code class="language-scala">// assume s: Session[IO]
 s.execute(a) // IO[Completion]
 </code></pre>
-<p>On success a command will yield a <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.3.2/skunk/data/Completion.html" title="skunk.data.Completion"><code>Completion</code></a>, which is an ADT that encodes responses from various commands. In this case our completion is simply the value <code>Completion.Set</code>.</p>
+<p>On success a command will yield a <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.5.1/skunk/data/Completion.html" title="skunk.data.Completion"><code>Completion</code></a>, which is an ADT that encodes responses from various commands. In this case our completion is simply the value <code>Completion.Set</code>.</p>
 <h2><a href="#parameterized-command" name="parameterized-command" class="anchor"><span class="anchor-link"></span></a>Parameterized Command</h2>
 <p>Now let&rsquo;s add a parameter to the command.</p>
 <pre class="prettyprint"><code class="language-scala">val c: Command[String] =
   sql&quot;DELETE FROM country WHERE name = $varchar&quot;.command
-// c: Command[String] = Query(
+// c: Command[String] = Command(
 //   sql = &quot;DELETE FROM country WHERE name = $1&quot;,
+//   origin = Origin(file = &quot;Command.md&quot;, line = 54),
 //   encoder = Codec(varchar)
 // )
 </code></pre>
@@ -172,7 +177,7 @@ s.execute(a) // IO[Completion]
 <p>The same protocol Postgres provides for executing extended queries is also used for extended commands, but because the return value is always a single <code>Completion</code> the end-user API is more limited.</p>
 <p>Here we use the extended protocol to attempt some deletions.</p>
 <pre class="prettyprint"><code class="language-scala">// assume s: Session[IO]
-s.prepare(c).use { pc =&gt;
+s.prepare(c).flatMap { pc =&gt;
   pc.execute(&quot;xyzzy&quot;) *&gt;
   pc.execute(&quot;fnord&quot;) *&gt;
   pc.execute(&quot;blech&quot;)
@@ -180,13 +185,13 @@ s.prepare(c).use { pc =&gt;
 </code></pre>
 <p>If we&rsquo;re slighly more clever we can do this with <code>traverse</code> and return a list of <code>Completion</code>.</p>
 <pre class="prettyprint"><code class="language-scala">// assume s: Session[IO]
-s.prepare(c).use { pc =&gt;
+s.prepare(c).flatMap { pc =&gt;
   List(&quot;xyzzy&quot;, &quot;fnord&quot;, &quot;blech&quot;).traverse(s =&gt; pc.execute(s))
 } // IO[List[Completion]]
 </code></pre>
 <p>And if we&rsquo;re yet more clever we can turn <code>pc</code> into an fs2 <code>Pipe</code>.</p>
 <pre class="prettyprint"><code class="language-scala">// assume s: Session[IO]
-Stream.resource(s.prepare(c)).flatMap { pc =&gt;
+Stream.eval(s.prepare(c)).flatMap { pc =&gt;
   Stream(&quot;xyzzy&quot;, &quot;fnord&quot;, &quot;blech&quot;).through(pc.pipe)
 } // Stream[IO, Completion]
 </code></pre>
@@ -201,12 +206,13 @@ val update2: Command[Info] =
     WHERE  code = ${bpchar(3)}
   &quot;&quot;&quot;.command                                          // Command[String ~ String]
      .contramap { case Info(code, hos) =&gt; code ~ hos } // Command[Info]
-// update2: Command[Info] = Query(
+// update2: Command[Info] = Command(
 //   sql = &quot;&quot;&quot;
 //     UPDATE country
 //     SET    headofstate = $1
 //     WHERE  code = $2
 //   &quot;&quot;&quot;,
+//   origin = Origin(file = &quot;Command.md&quot;, line = 105),
 //   encoder = Encoder(varchar, bpchar(3))
 // )
 </code></pre>
@@ -218,12 +224,13 @@ val update2: Command[Info] =
     WHERE  code = ${bpchar(3)}
   &quot;&quot;&quot;.command          // Command[String ~ String]
      .gcontramap[Info] // Command[Info]
-// update3: Command[Info] = Query(
+// update3: Command[Info] = Command(
 //   sql = &quot;&quot;&quot;
 //     UPDATE country
 //     SET    headofstate = $1
 //     WHERE  code = $2
 //   &quot;&quot;&quot;,
+//   origin = Origin(file = &quot;Command.md&quot;, line = 117),
 //   encoder = Encoder(varchar, bpchar(3))
 // )
 </code></pre>
@@ -233,8 +240,9 @@ val update2: Command[Info] =
   sql&quot;DELETE FROM country WHERE name IN (${varchar.list(n)})&quot;.command
 
 val delete3 = deleteMany(3) // takes a list of size 3
-// delete3: Command[List[String]] = Query(
+// delete3: Command[List[String]] = Command(
 //   sql = &quot;DELETE FROM country WHERE name IN ($1, $2, $3)&quot;,
+//   origin = Origin(file = &quot;Command.md&quot;, line = 129),
 //   encoder = Encoder(varchar, varchar, varchar)
 // )
 </code></pre>
@@ -245,8 +253,9 @@ val delete3 = deleteMany(3) // takes a list of size 3
 }
 
 val insert3 = insertMany(3)
-// insert3: Command[List[(String, Short)]] = Query(
+// insert3: Command[List[(String, Short)]] = Command(
 //   sql = &quot;INSERT INTO pets VALUES ($1, $2), ($3, $4), ($5, $6)&quot;,
+//   origin = Origin(file = &quot;Command.md&quot;, line = 140),
 //   encoder = Encoder(varchar, int2, varchar, int2, varchar, int2)
 // )
 </code></pre>
@@ -261,23 +270,24 @@ val pairs = List[(String, Short)]((&quot;Bob&quot;, 3), (&quot;Alice&quot;, 6))
 
 // Note the type!
 val insertPairs = insertExactly(pairs)
-// insertPairs: Command[pairs.type] = Query(
+// insertPairs: Command[pairs.type] = Command(
 //   sql = &quot;INSERT INTO pets VALUES ($1, $2), ($3, $4)&quot;,
+//   origin = Origin(file = &quot;Command.md&quot;, line = 152),
 //   encoder = Encoder(varchar, int2, varchar, int2)
 // )
 </code></pre>
 <p>We can pass <code>pairs</code> to <code>execute</code>.</p>
 <pre class="prettyprint"><code class="language-scala">// assume s: Session[IO]
-s.prepare(insertPairs).use { pc =&gt; pc.execute(pairs) }
+s.prepare(insertPairs).flatMap { pc =&gt; pc.execute(pairs) }
 </code></pre>
 <p>However attempting to pass anything <em>other than</em> <code>pairs</code> is a type error.</p>
 <pre class="prettyprint"><code class="language-scala">// assume s: Session[IO]
-s.prepare(insertPairs).use { pc =&gt; pc.execute(pairs.drop(1)) }
+s.prepare(insertPairs).flatMap { pc =&gt; pc.execute(pairs.drop(1)) }
 // error: type mismatch;
 //  found   : List[(String, Short)]
 //  required: repl.MdocSession.MdocApp.pairs.type
-// s.prepare(insertPairs).use { pc =&gt; pc.execute(pairs.drop(1)) }
-//                                               ^^^^^^^^^^^^^
+// s.prepare(insertPairs).flatMap { pc =&gt; pc.execute(pairs.drop(1)) }
+//                                                   ^^^^^^^^^^^^^
 </code></pre>
 <p>See the full example below for a demonstration of these techniques.</p>
 <h2><a href="#summary-of-command-types" name="summary-of-command-types" class="anchor"><span class="anchor-link"></span></a>Summary of Command Types</h2>
@@ -293,8 +303,9 @@ s.prepare(insertPairs).use { pc =&gt; pc.execute(pairs.drop(1)) }
 </ul>
 <h2><a href="#full-example" name="full-example" class="anchor"><span class="anchor-link"></span></a>Full Example</h2>
 <p>Here is a complete program listing that demonstrates our knowledge thus far, using the service pattern introduced earlier.</p>
-<pre class="prettyprint"><code class="language-scala">import cats.effect._
-import cats.implicits._
+<pre class="prettyprint"><code class="language-scala">import cats.Monad
+import cats.effect._
+import cats.syntax.all._
 import natchez.Trace.Implicits.noop
 import skunk._
 import skunk.codec.all._
@@ -332,12 +343,10 @@ object PetService {
       .gmap[Pet]
 
   // construct a PetService
-  def fromSession[F[_]](s: Session[F])(
-    implicit ev: MonadCancel[F, Throwable]
-  ): PetService[F] =
+  def fromSession[F[_]: Monad](s: Session[F]): PetService[F] =
     new PetService[F] {
-      def insert(pet: Pet): F[Unit] = s.prepare(insertOne).use(_.execute(pet)).void
-      def insert(ps: List[Pet]): F[Unit] = s.prepare(insertMany(ps)).use(_.execute(ps)).void
+      def insert(pet: Pet): F[Unit] = s.prepare(insertOne).flatMap(_.execute(pet)).void
+      def insert(ps: List[Pet]): F[Unit] = s.prepare(insertMany(ps)).flatMap(_.execute(ps)).void
       def selectAll: F[List[Pet]] = s.execute(all)
     }
 
@@ -394,10 +403,10 @@ Pet(Ringo,3)
 <script type="text/javascript" src="../js/link_fix.js"></script>
 
 <div class="source-github">
-The source code for this page can be found <a id="source-link" href="https://github.com/tpolecat/skunk/tree/v0.3.2/modules/docs/target/mdoc/tutorial/Command.md">here</a>.
+The source code for this page can be found <a id="source-link" href="https://github.com/tpolecat/skunk/tree/v0.5.1/modules/docs/target/mdoc/tutorial/Command.md">here</a>.
 </div>
 
-<script type="text/javascript">jQuery(function(){sourceUrlFix('https://github.com/tpolecat/skunk/tree/v0.3.2/modules/docs/target/mdoc/tutorial/Command.md')});</script>
+<script type="text/javascript">jQuery(function(){sourceUrlFix('https://github.com/tpolecat/skunk/tree/v0.5.1/modules/docs/target/mdoc/tutorial/Command.md')});</script>
 
 <div class="nav-next">
 <p><strong>Next:</strong> <a href="../tutorial/Transactions.html">Transactions</a></p>
@@ -459,7 +468,7 @@ The source code for this page can be found <a id="source-link" href="https://git
 
 <!--
 <div class="copyright">
-<span class="text">&copy; 2022</span>
+<span class="text">&copy; 2023</span>
 <a href="https://www.example.com" class="logo">logo</a>
 </div>
 -->
@@ -484,7 +493,7 @@ The source code for this page can be found <a id="source-link" href="https://git
 <script type="text/javascript" src="../lib/prettify/prettify.js"></script>
 <script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
 <script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
-<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.3.2', 'https://github.com/tpolecat/skunk')});</script>
+<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.5.1', 'https://github.com/tpolecat/skunk')});</script>
 
 
 </html>
