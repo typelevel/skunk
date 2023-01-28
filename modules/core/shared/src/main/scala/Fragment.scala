@@ -28,7 +28,13 @@ final case class Fragment[A](
     } .runA(1).value.combineAll
 
   def query[B](decoder: Decoder[B]): Query[A, B] =
-    Query(sql, origin, encoder, decoder)
+    Query(sql, origin, encoder, decoder, isDynamic = false)
+
+  def queryDynamic: Query[A, List[Option[String]]] =
+    Query(sql, origin, encoder, new Decoder[List[Option[String]]]{
+        def decode(offset: Int, ss: List[Option[String]]): Either[skunk.Decoder.Error,List[Option[String]]] = Right(ss)
+        def types: List[skunk.data.Type] = Nil
+    }, isDynamic = true)
 
   def command: Command[A] =
     Command(sql, origin, encoder)
@@ -41,6 +47,24 @@ final case class Fragment[A](
 
   def ~[B](fb: Fragment[B]): Fragment[A ~ B] =
     product(fb)
+
+  def ~>[B](fb: Fragment[B])(implicit ev: Void =:= A): Fragment[B] =
+    product(fb).contramap((Void, _))
+
+  def <~(fb: Fragment[Void]): Fragment[A] =
+    product(fb).contramap((_, Void))
+
+  def stripMargin: Fragment[A] = stripMargin('|')
+
+  def stripMargin(marginChar: Char): Fragment[A] = {
+    val ps = parts.map {
+      _.bimap(
+        _.stripMargin(marginChar).replaceAll("\n", " "),
+        _.map(_.stripMargin(marginChar).replaceAll("\n", " "))
+      )
+    }
+    Fragment(ps, encoder, origin)
+  }
 
   def apply(a: A): AppliedFragment =
     AppliedFragment(this, a)

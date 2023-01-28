@@ -73,7 +73,7 @@ object Describe {
                       case Right(td) =>
                         Trace[F].put("column-types" -> td.fields.map(_.tpe).mkString("[", ", ", "]")).as(td)
                     }
-              _  <- ColumnAlignmentException(query, td).raiseError[F, Unit].unlessA(query.decoder.types === td.types)
+              _  <- ColumnAlignmentException(query, td).raiseError[F, Unit].unlessA(query.isDynamic || query.decoder.types === td.types)
               _  <- cache.queryCache.put(query, td) // on success
             } yield td
           }

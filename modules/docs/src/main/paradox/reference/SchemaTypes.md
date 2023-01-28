@@ -203,6 +203,12 @@ Postgres arrays are either empty and zero-dimensional, or non-empty and rectangu
 | `_bpchar`  | `Arr[String]` | Length argument not yet supported |
 | `_text`    | `Arr[String]` |  |
 
+## ltree Types
+
+| ANSI SQL Type      | Postgres Type   | Scala Type   |
+|--------------------|-----------------|--------------|
+| n/a                | `ltree`         | `LTree`      |
+
 #### Notes
 
 - See [§8.15](https://www.postgresql.org/docs/11/arrays.html) in the Postgres documentation for more information on JSON data types.

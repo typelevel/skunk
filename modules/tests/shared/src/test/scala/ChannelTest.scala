@@ -39,4 +39,22 @@ class ChannelTest extends SkunkTest {
     } yield "ok"
   }
 
+  sessionTest("channel with resource (coverage)") { s =>
+    val data = List("foo", "bar", "baz")
+    val ch0 = s.channel(id"channel_test")
+    val ch1 = ch0.mapK(FunctionK.id)
+    val ch2 = Functor[Channel[IO, String, *]].map(ch1)(identity[String])
+    val ch3 = Contravariant[Channel[IO, *, String]].contramap(ch2)(identity[String])
+    val ch = Profunctor[Channel[IO, *, *]].dimap(ch3)(identity[String])(identity[String])
+
+    ch.listenR(42).use { r =>
+        for {
+          _ <- data.traverse_(ch.notify)
+          d <- r.map(_.value).takeThrough(_ != data.last).compile.toList
+          _ <- assert(s"channel data $d $data", data == d)
+        } yield "ok"
+    }
+  }
+
+
 }

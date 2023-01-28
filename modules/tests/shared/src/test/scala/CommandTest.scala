@@ -118,6 +118,27 @@ class CommandTest extends SkunkTest {
       DROP VIEW city_view
       """.command
 
+  val createProcedure: Command[Void] =
+    sql"""
+      CREATE OR REPLACE PROCEDURE proc(n integer)
+      LANGUAGE plpgsql
+      AS $$$$
+      BEGIN
+        RAISE DEBUG 'proc called';
+      END;
+      $$$$;
+      """.command
+
+  val dropProcedure: Command[Void] =
+    sql"""
+      DROP PROCEDURE proc
+      """.command
+
+  val callProcedure: Command[Void] =
+    sql"""
+      CALL proc(123)
+      """.command
+
   val doCommand : Command[Void] =
     sql"""
       DO $$$$ begin
@@ -173,6 +194,33 @@ class CommandTest extends SkunkTest {
         DROP ROLE skunk_role
        """.command
 
+  val createMaterializedView: Command[Void] =
+    sql"""
+        CREATE MATERIALIZED VIEW IF NOT EXISTS my_foo_mv
+        AS
+        SELECT now()
+       """.command
+
+  val createUniqueIndexForMaterializedView: Command[Void] =
+    sql"""
+        CREATE UNIQUE INDEX IF NOT exists my_foo_mv_unique ON my_foo_mv(now)
+        """.command
+
+  val refreshMaterializedView: Command[Void] =
+    sql"""
+        REFRESH MATERIALIZED VIEW my_foo_mv
+       """.command
+
+  val refreshMaterializedViewConcurrently: Command[Void] =
+    sql"""
+        REFRESH MATERIALIZED VIEW CONCURRENTLY my_foo_mv
+       """.command
+
+  val dropMaterializedView: Command[Void] =
+    sql"""
+        DROP MATERIALIZED VIEW my_foo_mv
+       """.command
+
   sessionTest("create table, create index, drop index, alter table and drop table") { s =>
     for {
       c <- s.execute(createTable)
@@ -205,6 +253,35 @@ class CommandTest extends SkunkTest {
       _ <- assert("completion", c == Completion.CreateView)
       c <- s.execute(dropView)
       _ <- assert("completion", c == Completion.DropView)
+      _ <- s.assertHealthy
+    } yield "ok"
+  }
+
+  sessionTest("refresh materialized view, refresh materialized view concurrently") { s =>
+    for {
+      c <- s.execute(createMaterializedView)
+      _ <- assert("completion", c == Completion.Select(1))
+      c <- s.execute(createMaterializedView)
+      _ <- assert("completion", c == Completion.CreateMaterializedView)
+      c <- s.execute(refreshMaterializedView)
+      _ <- assert("completion", c == Completion.RefreshMaterializedView)
+      c <- s.execute(createUniqueIndexForMaterializedView)
+      _ <- assert("completion",  c == Completion.CreateIndex)
+      c <- s.execute(refreshMaterializedViewConcurrently)
+      _ <- assert("completion", c == Completion.RefreshMaterializedView)
+      c <- s.execute(dropMaterializedView)
+      _ <- assert("completion", c == Completion.DropMaterializedView)
+    } yield "ok"
+  }
+
+  sessionTest("create, call and drop procedure"){ s=>
+    for{
+      c <- s.execute(createProcedure)
+      _ <- assert("completion", c == Completion.CreateProcedure)
+      c <- s.execute(callProcedure)
+      _ <- assert("completion", c == Completion.Call)
+      c <- s.execute(dropProcedure)
+      _ <- assert("completion", c == Completion.DropProcedure)
       _ <- s.assertHealthy
     } yield "ok"
   }
@@ -250,7 +327,7 @@ class CommandTest extends SkunkTest {
     } yield "ok"
   }
 
-  sessionTest("do command"){ s=>
+  sessionTest("do command") { s =>
     for{
       c <- s.execute(doCommand)
       _ <- assert("completion", c == Completion.Do)
@@ -260,38 +337,38 @@ class CommandTest extends SkunkTest {
 
   sessionTest("insert, update and delete record") { s =>
     for {
-      c <- s.prepare(insertCity).use(_.execute(Garin))
+      c <- s.execute(insertCity, Garin)
       _ <- assert("completion",  c == Completion.Insert(1))
-      c <- s.prepare(selectCity).use(_.unique(Garin.id))
+      c <- s.unique(selectCity, Garin.id)
       _ <- assert("read", c == Garin)
       p <- IO(Garin.pop + 1000)
-      c <- s.prepare(updateCityPopulation).use(_.execute(p ~ Garin.id))
+      c <- s.execute(updateCityPopulation, p ~ Garin.id)
       _ <- assert("completion",  c == Completion.Update(1))
-      c <- s.prepare(selectCity).use(_.unique(Garin.id))
+      c <- s.unique(selectCity, Garin.id)
       _ <- assert("read", c == Garin.copy(pop = p))
-      _ <- s.prepare(deleteCity).use(_.execute(Garin.id))
+      _ <- s.execute(deleteCity, Garin.id)
       _ <- s.assertHealthy
     } yield "ok"
   }
 
   sessionTest("insert and delete record with contramapped command") { s =>
     for {
-      c <- s.prepare(insertCity2).use(_.execute(Garin2))
+      c <- s.prepare(insertCity2).flatMap(_.execute(Garin2))
       _ <- assert("completion",  c == Completion.Insert(1))
-      c <- s.prepare(selectCity).use(_.unique(Garin2.id))
+      c <- s.prepare(selectCity).flatMap(_.unique(Garin2.id))
       _ <- assert("read", c == Garin2)
-      _ <- s.prepare(deleteCity).use(_.execute(Garin2.id))
+      _ <- s.prepare(deleteCity).flatMap(_.execute(Garin2.id))
       _ <- s.assertHealthy
     } yield "ok"
   }
 
   sessionTest("insert and delete record with contramapped command (via Contravariant instance") { s =>
     for {
-      c <- s.prepare(insertCity2a).use(_.execute(Garin3))
+      c <- s.prepare(insertCity2a).flatMap(_.execute(Garin3))
       _ <- assert("completion",  c == Completion.Insert(1))
-      c <- s.prepare(selectCity).use(_.unique(Garin3.id))
+      c <- s.prepare(selectCity).flatMap(_.unique(Garin3.id))
       _ <- assert("read", c == Garin3)
-      _ <- s.prepare(deleteCity).use(_.execute(Garin3.id))
+      _ <- s.prepare(deleteCity).flatMap(_.execute(Garin3.id))
       _ <- s.assertHealthy
     } yield "ok"
   }
@@ -316,7 +393,7 @@ class CommandTest extends SkunkTest {
 
   sessionTest("should be a query") { s =>
     s.prepare(sql"select * from country".command)
-      .use(_ => IO.unit)
+      .flatMap(_ => IO.unit)
       .assertFailsWith[UnexpectedRowsException]
       .as("ok")
   }

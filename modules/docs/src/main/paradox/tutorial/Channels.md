@@ -63,7 +63,7 @@ Every `Channel` is also an fs2 `Pipe` that consumes messages.
 ```scala mdoc:compile-only
 // assume s: Session[IO]
 // select all the country names and stream them to the country_names channel.
-s.prepare(sql"select name from country".query(varchar)).use { ps =>
+s.prepare(sql"select name from country".query(varchar)).flatMap { ps =>
   ps.stream(Void, 512)
     .through(s.channel(id"country_names"))
     .compile

@@ -51,7 +51,7 @@ class SimpleSimTest extends SimTest {
   }
 
   simTest("sim error", sim) { s =>
-    s.prepare(sql"select $int4".query(int4)).use(_ => IO.unit)
+    s.prepare(sql"select $int4".query(int4)).flatMap(_ => IO.unit)
      .assertFailsWith[PostgresErrorException]
      .as("ok")
   }

@@ -21,6 +21,7 @@ import skunk.util.Namer
 import skunk.util.Origin
 import skunk.util.Typer
 import skunk.net.protocol.Describe
+import skunk.net.protocol.Parse
 
 trait SimTest extends FTest with SimMessageSocket.DSL {
 
@@ -33,7 +34,7 @@ trait SimTest extends FTest with SimMessageSocket.DSL {
     def transactionStatus: Signal[IO,TransactionStatus] = ???
     def parameters: Signal[IO,Map[String,String]] = ???
     def backendKeyData: Deferred[IO,BackendKeyData] = ???
-    def notifications(maxQueued: Int): fs2.Stream[IO, Notification[String]] = ???
+    def notifications(maxQueued: Int): Resource[IO, fs2.Stream[IO, Notification[String]]] = ???
     def terminate: IO[Unit] = ???
   }
 
@@ -42,7 +43,8 @@ trait SimTest extends FTest with SimMessageSocket.DSL {
       bms <- SimMessageSocket(sim).map(new SimulatedBufferedMessageSocket(_))
       nam <- Namer[IO]
       dc  <- Describe.Cache.empty[IO](1024, 1024)
-      pro <- Protocol.fromMessageSocket(bms, nam, dc)
+      pc  <- Parse.Cache.empty[IO](1024)
+      pro <- Protocol.fromMessageSocket(bms, nam, dc, pc)
       _   <- pro.startup(user, database, password, Session.DefaultConnectionParameters)
       ses <- Session.fromProtocol(pro, nam, Typer.Strategy.BuiltinsOnly)
     } yield ses

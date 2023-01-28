@@ -1,4 +1,4 @@
-ThisBuild / tlBaseVersion := "0.4"
+ThisBuild / tlBaseVersion := "0.5"
 
 // Our Scala versions.
 lazy val `scala-2.12` = "2.12.17"
@@ -73,8 +73,8 @@ ThisBuild / libraryDependencySchemes ++= Seq(
 )
 
 // This is used in a couple places
-lazy val fs2Version = "3.4.0"
-lazy val natchezVersion = "0.2.2"
+lazy val fs2Version = "3.5.0"
+lazy val natchezVersion = "0.3.0"
 
 // Global Settings
 lazy val commonSettings = Seq(
@@ -107,7 +107,6 @@ lazy val commonSettings = Seq(
 
   // uncomment in case of emergency
   // scalacOptions ++= { if (scalaVersion.value.startsWith("3.")) Seq("-source:3.0-migration") else Nil },
-
 )
 
 lazy val skunk = tlCrossRootProject
@@ -126,7 +125,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     scalacOptions ~= (_.filterNot(_ == "-source:3.0-migration")),
     libraryDependencies ++= Seq(
       "org.typelevel"          %%% "cats-core"               % "2.9.0",
-      "org.typelevel"          %%% "cats-effect"             % "3.4.1",
+      "org.typelevel"          %%% "cats-effect"             % "3.4.5",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
       "org.scodec"             %%% "scodec-bits"             % "1.1.34",
@@ -134,21 +133,17 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.scodec"             %%% "scodec-cats"             % "1.2.0",
       "org.tpolecat"           %%% "natchez-core"            % natchezVersion,
       "org.tpolecat"           %%% "sourcepos"               % "1.1.0",
-      "org.scala-lang.modules" %%% "scala-collection-compat" % "2.8.1",
-    )
+      "org.scala-lang.modules" %%% "scala-collection-compat" % "2.9.0",
+    ) ++ Seq(
+      "com.beachape"  %%% "enumeratum"   % "1.7.2",
+    ).filterNot(_ => tlIsScala3.value)
   ).jvmSettings(
     libraryDependencies += "com.ongres.scram" % "client" % "2.1",
-  )
-  .platformsSettings(JVMPlatform, JSPlatform)(
-    libraryDependencies ++= Seq(
-      "com.beachape"  %%% "enumeratum"   % "1.6.1",
-    ).filterNot(_ => tlIsScala3.value)
-  )
-  .platformsSettings(JSPlatform, NativePlatform)(
+  ).platformsSettings(JSPlatform, NativePlatform)(
     libraryDependencies ++= Seq(
       "com.armanbilge" %%% "saslprep" % "0.1.1",
-      "io.github.cquiroz" %%% "scala-java-time" % "2.4.0",
-      "io.github.cquiroz" %%% "locales-minimal-en_us-db" % "1.5.0"
+      "io.github.cquiroz" %%% "scala-java-time" % "2.5.0",
+      "io.github.cquiroz" %%% "locales-minimal-en_us-db" % "1.5.1"
     ),
   )
 
@@ -187,8 +182,8 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .settings(
     scalacOptions  -= "-Xfatal-warnings",
     libraryDependencies ++= Seq(
-      "org.scalameta"     %%% "munit"                   % "1.0.0-M6",
-      "org.scalameta"     % "junit-interface"           % "1.0.0-M6",
+      "org.scalameta"     %%% "munit"                   % "1.0.0-M7",
+      "org.scalameta"     % "junit-interface"           % "1.0.0-M7",
       "org.typelevel"     %%% "scalacheck-effect-munit" % "2.0.0-M2",
       "org.typelevel"     %%% "munit-cats-effect"       % "2.0.0-M3",
       "org.typelevel"     %%% "cats-free"               % "2.9.0",
@@ -196,14 +191,20 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.typelevel"     %%% "discipline-munit"        % "2.0.0-M3",
       "org.typelevel"     %%% "cats-time"               % "0.5.1",
     ),
-    testFrameworks += new TestFramework("munit.Framework")
+    testFrameworks += new TestFramework("munit.Framework"),
+    testOptions += {
+      if(System.getProperty("os.arch").startsWith("aarch64")) {
+        Tests.Argument(TestFrameworks.MUnit, "--exclude-tags=X86ArchOnly")
+      } else Tests.Argument()
+    }
   )
   .jsSettings(
+    scalaJSLinkerConfig ~= { _.withESFeatures(_.withESVersion(org.scalajs.linker.interface.ESVersion.ES2018)) },
     Test / scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.CommonJSModule)),
   )
   .nativeEnablePlugins(ScalaNativeBrewedConfigPlugin)
   .nativeSettings(
-    libraryDependencies += "com.armanbilge" %%% "epollcat" % "0.0-ab1026e",
+    libraryDependencies += "com.armanbilge" %%% "epollcat" % "0.1.3",
     Test / nativeBrewFormulas ++= Set("s2n", "utf8proc"),
     Test / envVars ++= Map("S2N_DONT_MLOCK" -> "1")
   )
