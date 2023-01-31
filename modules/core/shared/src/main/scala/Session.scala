@@ -13,7 +13,7 @@ import fs2.concurrent.Signal
 import fs2.io.net.{ Network, SocketGroup, SocketOption }
 import fs2.Pipe
 import fs2.Stream
-import natchez.Trace
+import org.typelevel.otel4s.trace.Tracer
 import skunk.codec.all.bool
 import skunk.data._
 import skunk.net.Protocol
@@ -383,7 +383,7 @@ object Session {
    * @param queryCache    Size of the cache for query checking
    * @group Constructors
    */
-  def pooled[F[_]: Temporal: Trace: Network: Console](
+  def pooled[F[_]: Temporal: Tracer: Network: Console](
     host:          String,
     port:          Int            = 5432,
     user:          String,
@@ -400,11 +400,11 @@ object Session {
     parseCache:    Int = 1024,
     readTimeout:   Duration = Duration.Inf,
   ): Resource[F, Resource[F, Session[F]]] = {
-    pooledF[F](host, port, user, database, password, max, debug, strategy, ssl, parameters, socketOptions, commandCache, queryCache, parseCache, readTimeout).map(_.apply(Trace[F]))
+    pooledF[F](host, port, user, database, password, max, debug, strategy, ssl, parameters, socketOptions, commandCache, queryCache, parseCache, readTimeout).map(_.apply(Tracer[F]))
   }
 
   /**
-   * Resource yielding a function from Trace to `SessionPool` managing up to `max` concurrent `Session`s. Typically you
+   * Resource yielding a function from Tracer to `SessionPool` managing up to `max` concurrent `Session`s. Typically you
    * will `use` this resource once on application startup and pass the resulting
    * `Resource[F, Session[F]]` to the rest of your program.
    *
@@ -440,9 +440,9 @@ object Session {
     queryCache:    Int = 1024,
     parseCache:    Int = 1024,
     readTimeout:   Duration = Duration.Inf,
-  ): Resource[F, Trace[F] => Resource[F, Session[F]]] = {
+  ): Resource[F, Tracer[F] => Resource[F, Session[F]]] = {
 
-    def session(socketGroup: SocketGroup[F], sslOp: Option[SSLNegotiation.Options[F]], cache: Describe.Cache[F])(implicit T: Trace[F]): Resource[F, Session[F]] =
+    def session(socketGroup: SocketGroup[F], sslOp: Option[SSLNegotiation.Options[F]], cache: Describe.Cache[F])(implicit T: Tracer[F]): Resource[F, Session[F]] =
       for {
         pc <- Resource.eval(Parse.Cache.empty[F](parseCache))
         s  <- fromSocketGroup[F](socketGroup, host, port, user, database, password, debug, strategy, socketOptions, sslOp, parameters, cache, pc, readTimeout)
@@ -453,7 +453,7 @@ object Session {
     for {
       dc      <- Resource.eval(Describe.Cache.empty[F](commandCache, queryCache))
       sslOp   <- ssl.toSSLNegotiationOptions(if (debug) logger.some else none)
-      pool    <- Pool.ofF({implicit T: Trace[F] => session(Network[F], sslOp, dc)}, max)(Recyclers.full)
+      pool    <- Pool.ofF({implicit T: Tracer[F] => session(Network[F], sslOp, dc)}, max)(Recyclers.full)
     } yield pool
   }
 
@@ -463,7 +463,7 @@ object Session {
    * single-session pool. This method is shorthand for `Session.pooled(..., max = 1, ...).flatten`.
    * @see pooled
    */
-  def single[F[_]: Temporal: Trace: Network: Console](
+  def single[F[_]: Temporal: Tracer: Network: Console](
     host:         String,
     port:         Int            = 5432,
     user:         String,
@@ -478,10 +478,10 @@ object Session {
     parseCache:   Int = 1024,
     readTimeout:  Duration = Duration.Inf,
   ): Resource[F, Session[F]] =
-    singleF[F](host, port, user, database, password, debug, strategy, ssl, parameters, commandCache, queryCache, parseCache, readTimeout).apply(Trace[F])
+    singleF[F](host, port, user, database, password, debug, strategy, ssl, parameters, commandCache, queryCache, parseCache, readTimeout).apply(Tracer[F])
 
   /**
-   * Resource yielding logically unpooled sessions given a Trace. This can be convenient for demonstrations and
+   * Resource yielding logically unpooled sessions given a Tracer. This can be convenient for demonstrations and
    * programs that only need a single session. In reality each session is managed by its own
    * single-session pool.
    * @see pooledF
@@ -500,8 +500,8 @@ object Session {
     queryCache:   Int = 1024,
     parseCache:   Int = 1024,
     readTimeout:  Duration = Duration.Inf,
-  ): Trace[F] => Resource[F, Session[F]] =
-    Kleisli((_: Trace[F]) => pooledF(
+  ): Tracer[F] => Resource[F, Session[F]] =
+    Kleisli((_: Tracer[F]) => pooledF(
       host         = host,
       port         = port,
       user         = user,
@@ -517,10 +517,10 @@ object Session {
       parseCache   = parseCache,
       readTimeout  = readTimeout
     )).flatMap(f =>
-      Kleisli { implicit T: Trace[F] => f(T) }
+      Kleisli { implicit T: Tracer[F] => f(T) }
     ).run
 
-  def fromSocketGroup[F[_]: Temporal: Trace: Console](
+  def fromSocketGroup[F[_]: Temporal: Tracer: Console](
     socketGroup:  SocketGroup[F],
     host:         String,
     port:         Int            = 5432,

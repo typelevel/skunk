@@ -13,7 +13,10 @@ import skunk.net.message.{ Query => QueryMessage, _ }
 import skunk.net.MessageSocket
 import skunk.util.Typer
 import skunk.exception.UnknownOidException
-import natchez.Trace
+import org.typelevel.otel4s.Attribute
+import org.typelevel.otel4s.AttributeKey
+import org.typelevel.otel4s.trace.Span
+import org.typelevel.otel4s.trace.Tracer
 import skunk.Statement
 import skunk.exception.SkunkException
 import skunk.exception.EmptyStatementException
@@ -25,7 +28,7 @@ trait Query[F[_]] {
 
 object Query {
 
-  def apply[F[_]: Exchange: MessageSocket: Trace](
+  def apply[F[_]: Exchange: MessageSocket: Tracer](
     implicit ev: MonadError[F, Throwable]
   ): Query[F] =
     new Unroll[F] with Query[F] {
@@ -70,9 +73,9 @@ object Query {
         }
 
       override def apply[B](query: skunk.Query[Void, B], ty: Typer): F[List[B]] =
-        exchange("query") {
-          Trace[F].put(
-            "query.sql" -> query.sql
+        exchange("query") { (span: Span[F]) =>
+          span.addAttribute(
+            Attribute(AttributeKey.string("query.sql"), query.sql)
           ) *> send(QueryMessage(query.sql)) *> flatExpect {
 
             // If we get a RowDescription back it means we have a valid query as far as Postgres is
@@ -161,9 +164,9 @@ object Query {
         }
 
       override def apply(command: Command[Void]): F[Completion] =
-        exchange("query") {
-          Trace[F].put(
-            "command.sql" -> command.sql
+        exchange("query") { (span: Span[F]) =>
+          span.addAttribute(
+            Attribute(AttributeKey.string("command.sql"), command.sql)
           ) *> send(QueryMessage(command.sql)) *> flatExpect {
 
             case CommandComplete(c) =>

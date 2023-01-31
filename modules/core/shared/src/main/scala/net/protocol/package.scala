@@ -6,14 +6,15 @@ package skunk.net
 
 import skunk.net.message._
 import skunk.util.Namer
+import skunk.util.Origin
+import org.typelevel.otel4s.trace.Span
+import org.typelevel.otel4s.trace.Tracer
 
 package object protocol {
-import natchez.Trace
-import skunk.util.Origin
 
-  def exchange[F[_]: Trace, A](label: String)(fa: F[A])(
+  def exchange[F[_]: Tracer, A](label: String)(f: Span[F] => F[A])(
     implicit exchange: Exchange[F]
-  ): F[A] = Trace[F].span(label)(exchange(fa))
+  ): F[A] = Tracer[F].span(label).use(span => exchange(f(span)))
 
   def receive[F[_]](implicit ev: MessageSocket[F]): F[BackendMessage] =
     ev.receive
