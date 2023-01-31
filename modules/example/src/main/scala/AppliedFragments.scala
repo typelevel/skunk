@@ -6,12 +6,14 @@ package example
 
 import cats.effect._
 import cats.implicits._
+import org.typelevel.otel4s.trace.Tracer
 import skunk._
 import skunk.implicits._
 import skunk.codec.all._
-import natchez.Trace.Implicits.noop
 
 object AppliedFragments extends IOApp {
+
+  implicit val tracer: Tracer[IO] = Tracer.noop
 
   val session: Resource[IO, Session[IO]] =
     Session.single(

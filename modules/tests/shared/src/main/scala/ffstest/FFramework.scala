@@ -8,8 +8,8 @@ import cats.Eq
 import cats.effect._
 import cats.syntax.all._
 import scala.reflect.ClassTag
-import natchez.Fields
 import munit.CatsEffectSuite
+import skunk.exception._
 
 trait FTest extends CatsEffectSuite with FTestPlatform {
 
@@ -30,7 +30,7 @@ trait FTest extends CatsEffectSuite with FTestPlatform {
           IO {
             e.toString // ensure toString doesn't crash
             e match {
-              case fs: Fields => fs.fields // ensure .fields doesn't crash
+              case fs: SkunkException => fs.fields // ensure .fields doesn't crash
               case _ =>
             }
           } *>

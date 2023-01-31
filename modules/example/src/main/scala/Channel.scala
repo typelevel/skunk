@@ -7,9 +7,11 @@ package example
 import cats.effect._
 import skunk._
 import skunk.implicits._
-import natchez.Trace.Implicits.noop
+import org.typelevel.otel4s.trace.Tracer
 
 object Channel extends IOApp {
+
+  implicit val tracer: Tracer[IO] = Tracer.noop
 
   val session: Resource[IO, Session[IO]] =
     Session.single(

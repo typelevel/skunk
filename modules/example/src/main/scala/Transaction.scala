@@ -4,13 +4,16 @@
 
 package example
 
+import cats._
 import cats.effect._
 import cats.syntax.all._
 import skunk._, skunk.implicits._, skunk.codec.all.int4
-import natchez.Trace.Implicits.noop
+import org.typelevel.otel4s.trace.Tracer
 import cats.effect.std.Console
 
 object Transaction extends IOApp {
+
+  implicit def tracer[F[_]: Applicative]: Tracer[F] = Tracer.noop
 
   def session[F[_]: Async: Console]: Resource[F, Session[F]] =
     Session.single(

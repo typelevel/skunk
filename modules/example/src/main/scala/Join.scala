@@ -10,9 +10,11 @@ import fs2._
 import skunk._
 import skunk.implicits._
 import skunk.codec.all._
-import natchez.Trace.Implicits.noop
+import org.typelevel.otel4s.trace.Tracer
 
 object Join extends IOApp with StreamOps {
+
+  implicit val tracer: Tracer[IO] = Tracer.noop
 
   val session: Resource[IO, Session[IO]] =
     Session.single(

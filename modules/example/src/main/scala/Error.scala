@@ -9,9 +9,11 @@ import cats.syntax.all._
 import skunk._
 import skunk.implicits._
 import skunk.codec.all._
-import natchez.Trace.Implicits.noop
+import org.typelevel.otel4s.trace.Tracer
 
 object Error extends IOApp {
+
+  implicit val trace: Tracer[IO] = Tracer.noop
 
   val session: Resource[IO, Session[IO]] =
     Session.single(

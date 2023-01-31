@@ -8,9 +8,11 @@ import cats.effect._
 import skunk._
 import skunk.implicits._
 import skunk.codec.all._
-import natchez.Trace.Implicits.noop
+import org.typelevel.otel4s.trace.Tracer
 
 object Minimal1 extends IOApp {
+
+  implicit val tracer: Tracer[IO] = Tracer.noop[IO]
 
   val session: Resource[IO, Session[IO]] =
     Session.single(
