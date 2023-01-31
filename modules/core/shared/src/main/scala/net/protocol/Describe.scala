@@ -15,7 +15,6 @@ import skunk.util.{ StatementCache, Typer }
 import skunk.exception.UnknownOidException
 import skunk.data.TypedRowDescription
 import org.typelevel.otel4s.Attribute
-import org.typelevel.otel4s.AttributeKey
 import org.typelevel.otel4s.trace.Span
 import org.typelevel.otel4s.trace.Tracer
 import cats.data.OptionT
@@ -36,7 +35,7 @@ object Describe {
         exchange("describe") { (span: Span[F]) =>
           OptionT(cache.commandCache.get(cmd)).getOrElseF {
             for {
-              _  <- span.addAttribute(Attribute(AttributeKey.string("statement-id"), id.value))
+              _  <- span.addAttribute(Attribute("statement-id", id.value))
               _  <- send(DescribeMessage.statement(id.value))
               _  <- send(Flush)
               _  <- expect { case ParameterDescription(_) => } // always ok
@@ -63,7 +62,7 @@ object Describe {
         OptionT(cache.queryCache.get(query)).getOrElseF {
           exchange("describe") { (span: Span[F]) =>
             for {
-              _  <- span.addAttribute(Attribute(AttributeKey.string("statement-id"), id.value))
+              _  <- span.addAttribute(Attribute("statement-id", id.value))
               _  <- send(DescribeMessage.statement(id.value))
               _  <- send(Flush)
               _  <- expect { case ParameterDescription(_) => } // always ok
@@ -74,7 +73,7 @@ object Describe {
               td <- rd.typed(ty) match {
                       case Left(err) => UnknownOidException(query, err, ty.strategy).raiseError[F, TypedRowDescription]
                       case Right(td) =>
-                        span.addAttribute(Attribute(AttributeKey.string("column-types"), td.fields.map(_.tpe).mkString("[", ", ", "]"))).as(td)
+                        span.addAttribute(Attribute("column-types", td.fields.map(_.tpe).mkString("[", ", ", "]"))).as(td)
                     }
               _  <- ColumnAlignmentException(query, td).raiseError[F, Unit].unlessA(query.isDynamic || query.decoder.types === td.types)
               _  <- cache.queryCache.put(query, td) // on success

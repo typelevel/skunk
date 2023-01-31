@@ -14,7 +14,6 @@ import skunk.net.MessageSocket
 import skunk.util.Typer
 import skunk.exception.UnknownOidException
 import org.typelevel.otel4s.Attribute
-import org.typelevel.otel4s.AttributeKey
 import org.typelevel.otel4s.trace.Span
 import org.typelevel.otel4s.trace.Tracer
 import skunk.Statement
@@ -75,7 +74,7 @@ object Query {
       override def apply[B](query: skunk.Query[Void, B], ty: Typer): F[List[B]] =
         exchange("query") { (span: Span[F]) =>
           span.addAttribute(
-            Attribute(AttributeKey.string("query.sql"), query.sql)
+            Attribute("query.sql", query.sql)
           ) *> send(QueryMessage(query.sql)) *> flatExpect {
 
             // If we get a RowDescription back it means we have a valid query as far as Postgres is
@@ -166,7 +165,7 @@ object Query {
       override def apply(command: Command[Void]): F[Completion] =
         exchange("query") { (span: Span[F]) =>
           span.addAttribute(
-            Attribute(AttributeKey.string("command.sql"), command.sql)
+            Attribute("command.sql", command.sql)
           ) *> send(QueryMessage(command.sql)) *> flatExpect {
 
             case CommandComplete(c) =>

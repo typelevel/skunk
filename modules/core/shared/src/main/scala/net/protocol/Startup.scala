@@ -7,7 +7,6 @@ package skunk.net.protocol
 import cats.{ApplicativeError, MonadError}
 import cats.syntax.all._
 import org.typelevel.otel4s.Attribute
-import org.typelevel.otel4s.AttributeKey
 import org.typelevel.otel4s.trace.Span
 import org.typelevel.otel4s.trace.Tracer
 import scala.util.control.NonFatal
@@ -37,8 +36,8 @@ object Startup extends StartupCompanionPlatform {
           val sm = StartupMessage(user, database, parameters)
           for {
             _ <- span.addAttributes(
-              Attribute(AttributeKey.string("user"), user),
-              Attribute(AttributeKey.string("database"), database)
+              Attribute("user", user),
+              Attribute("database", database)
             )
             _ <- send(sm)
             _ <- flatExpectStartup(sm) {

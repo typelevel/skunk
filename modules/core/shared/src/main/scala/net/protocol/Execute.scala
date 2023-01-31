@@ -13,7 +13,6 @@ import skunk.net.{ Protocol, MessageSocket }
 import skunk.net.message.{ Execute => ExecuteMessage, _ }
 import skunk.util.Typer
 import org.typelevel.otel4s.Attribute
-import org.typelevel.otel4s.AttributeKey
 import org.typelevel.otel4s.trace.Span
 import org.typelevel.otel4s.trace.Tracer
 import skunk.exception.CopyNotSupportedException
@@ -80,8 +79,8 @@ object Execute {
         exchange("execute") { (span: Span[F]) =>
           for {
             _  <- span.addAttributes(
-                    Attribute(AttributeKey.long("max-rows"),    maxRows.toLong),
-                    Attribute(AttributeKey.string("portal-id"), portal.id.value)
+                    Attribute("max-rows",    maxRows.toLong),
+                    Attribute("portal-id", portal.id.value)
                   )
             _  <- send(ExecuteMessage(portal.id.value, maxRows))
             _  <- send(Flush)

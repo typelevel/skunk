@@ -15,7 +15,6 @@ import skunk.net.Protocol.QueryPortal
 import skunk.util.Origin
 import skunk.data.TypedRowDescription
 import org.typelevel.otel4s.Attribute
-import org.typelevel.otel4s.AttributeKey
 import org.typelevel.otel4s.trace.Tracer
 import skunk.exception.PostgresErrorException
 import scala.util.control.NonFatal
@@ -87,8 +86,8 @@ private[protocol] class Unroll[F[_]: MessageSocket: Tracer](
       Tracer[F].span("read").use { span =>
         accumulate(Nil).flatTap { case (rows, bool) =>
           span.addAttributes(
-            Attribute(AttributeKey.long("row-count"), rows.length.toLong),
-            Attribute(AttributeKey.boolean("more-rows"), bool)
+            Attribute("row-count", rows.length.toLong),
+            Attribute("more-rows", bool)
           )
         }
       }

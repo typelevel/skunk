@@ -13,7 +13,6 @@ import skunk.net.MessageSocket
 import skunk.net.Protocol.{ PreparedStatement, PortalId }
 import skunk.util.{ Origin, Namer }
 import org.typelevel.otel4s.Attribute
-import org.typelevel.otel4s.AttributeKey
 import org.typelevel.otel4s.trace.Span
 import org.typelevel.otel4s.trace.Tracer
 
@@ -45,8 +44,8 @@ object Bind {
               pn <- nextName("portal").map(PortalId(_))
               ea  = statement.statement.encoder.encode(args) // encoded args
               _  <- span.addAttributes(
-                Attribute(AttributeKey.string("arguments"), ea.map(_.orNull).mkString(",")),
-                Attribute(AttributeKey.string("portal-id"), pn.value)
+                Attribute("arguments", ea.map(_.orNull).mkString(",")),
+                Attribute("portal-id", pn.value)
               )
               _  <- send(BindMessage(pn.value, statement.id.value, ea))
               _  <- send(Flush)

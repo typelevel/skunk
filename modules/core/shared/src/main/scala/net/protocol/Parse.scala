@@ -17,7 +17,6 @@ import skunk.util.Namer
 import skunk.util.Typer
 import skunk.exception.{ UnknownTypeException, TooManyParametersException }
 import org.typelevel.otel4s.Attribute
-import org.typelevel.otel4s.AttributeKey
 import org.typelevel.otel4s.trace.Span
 import org.typelevel.otel4s.trace.Tracer
 import cats.data.OptionT
@@ -44,9 +43,9 @@ object Parse {
                 for {
                   id <- nextName("statement").map(StatementId(_))
                   _  <- span.addAttributes(
-                          Attribute(AttributeKey.string("statement-name"), id.value),
-                          Attribute(AttributeKey.string("statement-sql"),  statement.sql),
-                          Attribute(AttributeKey.string("statement-parameter-types"), os.map(n => ty.typeForOid(n, -1).getOrElse(n)).mkString("[", ", ", "]"))
+                          Attribute("statement-name", id.value),
+                          Attribute("statement-sql",  statement.sql),
+                          Attribute("statement-parameter-types", os.map(n => ty.typeForOid(n, -1).getOrElse(n)).mkString("[", ", ", "]"))
                         )
                   _  <- send(ParseMessage(id.value, statement.sql, os))
                   _  <- send(Flush)

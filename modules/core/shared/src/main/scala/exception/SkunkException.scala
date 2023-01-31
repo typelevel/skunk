@@ -6,7 +6,6 @@ package skunk.exception
 
 import cats.syntax.all._
 import org.typelevel.otel4s.Attribute
-import org.typelevel.otel4s.AttributeKey
 import skunk.data.Type
 import skunk.Query
 import skunk.util.{ CallSite, Origin, Pretty }
@@ -28,32 +27,32 @@ class SkunkException protected[skunk](
 
     val builder = List.newBuilder[Attribute[_]]
 
-    builder += Attribute(AttributeKey.string("error.message"), message)
+    builder += Attribute("error.message", message)
 
-    sql     .foreach(a => builder += Attribute(AttributeKey.string("error.sql")      , a))
-    position.foreach(a => builder += Attribute(AttributeKey.long("error.position")   , a.toLong))
-    detail  .foreach(a => builder += Attribute(AttributeKey.string("error.detail")   , a))
-    hint    .foreach(a => builder += Attribute(AttributeKey.string("error.hint")     , a))
+    sql     .foreach(a => builder += Attribute("error.sql"      , a))
+    position.foreach(a => builder += Attribute("error.position"   , a.toLong))
+    detail  .foreach(a => builder += Attribute("error.detail"   , a))
+    hint    .foreach(a => builder += Attribute("error.hint"     , a))
 
     (arguments.zipWithIndex).foreach { case ((typ, os), n) =>
-      builder += Attribute(AttributeKey.string(s"error.argument.${n + 1}.type")  , typ.name)
-      builder += Attribute(AttributeKey.string(s"error.argument.${n + 1}.value") , os.getOrElse[String]("NULL"))
+      builder += Attribute(s"error.argument.${n + 1}.type"  , typ.name)
+      builder += Attribute(s"error.argument.${n + 1}.value" , os.getOrElse[String]("NULL"))
     }
 
     sqlOrigin.foreach { o =>
-      builder += Attribute(AttributeKey.string("error.sqlOrigin.file") , o.file)
-      builder += Attribute(AttributeKey.long("error.sqlOrigin.line") , o.line.toLong)
+      builder += Attribute("error.sqlOrigin.file" , o.file)
+      builder += Attribute("error.sqlOrigin.line" , o.line.toLong)
     }
 
     argumentsOrigin.foreach { o =>
-      builder += Attribute(AttributeKey.string("error.argumentsOrigin.file") , o.file)
-      builder += Attribute(AttributeKey.long("error.argumentsOrigin.line") , o.line.toLong)
+      builder += Attribute("error.argumentsOrigin.file" , o.file)
+      builder += Attribute("error.argumentsOrigin.line" , o.line.toLong)
     }
 
     callSite.foreach { cs =>
-      builder += Attribute(AttributeKey.string("error.callSite.origin.file")   , cs.origin.file)
-      builder += Attribute(AttributeKey.long("error.callSite.origin.line")   , cs.origin.line.toLong)
-      builder += Attribute(AttributeKey.string("error.callSite.origin.method") , cs.methodName)
+      builder += Attribute("error.callSite.origin.file"   , cs.origin.file)
+      builder += Attribute("error.callSite.origin.line"   , cs.origin.line.toLong)
+      builder += Attribute("error.callSite.origin.method" , cs.methodName)
     }
 
     builder.result()

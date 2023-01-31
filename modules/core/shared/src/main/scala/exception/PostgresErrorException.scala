@@ -6,7 +6,6 @@ package skunk.exception
 
 import cats.syntax.all._
 import org.typelevel.otel4s.Attribute
-import org.typelevel.otel4s.AttributeKey
 import skunk.SqlState
 import skunk.data.Type
 import skunk.util.Origin
@@ -37,21 +36,21 @@ class PostgresErrorException (
   override def fields: List[Attribute[_]] = {
     val builder = List.newBuilder[Attribute[_]]
 
-    builder += Attribute(AttributeKey.string("error.postgres.message")  , message)
-    builder += Attribute(AttributeKey.string("error.postgres.severity") , severity)
-    builder += Attribute(AttributeKey.string("error.postgres.code")     , code)
+    builder += Attribute("error.postgres.message"  , message)
+    builder += Attribute("error.postgres.severity" , severity)
+    builder += Attribute("error.postgres.code"     , code)
 
-    internalPosition.foreach(a => builder += Attribute(AttributeKey.long("error.postgres.internalPosition") , a.toLong))
-    internalQuery   .foreach(a => builder += Attribute(AttributeKey.long("error.postgres.internalQuery")      , a.toLong))
-    where           .foreach(a => builder += Attribute(AttributeKey.string("error.postgres.where")            , a))
-    schemaName      .foreach(a => builder += Attribute(AttributeKey.string("error.postgres.schemaName")       , a))
-    tableName       .foreach(a => builder += Attribute(AttributeKey.string("error.postgres.tableName")        , a))
-    columnName      .foreach(a => builder += Attribute(AttributeKey.string("error.postgres.columnName")       , a))
-    dataTypeName    .foreach(a => builder += Attribute(AttributeKey.string("error.postgres.dataTypeName")     , a))
-    constraintName  .foreach(a => builder += Attribute(AttributeKey.string("error.postgres.constraintName")   , a))
-    fileName        .foreach(a => builder += Attribute(AttributeKey.string("error.postgres.fileName")         , a))
-    line            .foreach(a => builder += Attribute(AttributeKey.long("error.postgres.line")               , a.toLong))
-    routine         .foreach(a => builder += Attribute(AttributeKey.string("error.postgres.routine")          , a))
+    internalPosition.foreach(a => builder += Attribute("error.postgres.internalPosition" , a.toLong))
+    internalQuery   .foreach(a => builder += Attribute("error.postgres.internalQuery"      , a.toLong))
+    where           .foreach(a => builder += Attribute("error.postgres.where"            , a))
+    schemaName      .foreach(a => builder += Attribute("error.postgres.schemaName"       , a))
+    tableName       .foreach(a => builder += Attribute("error.postgres.tableName"        , a))
+    columnName      .foreach(a => builder += Attribute("error.postgres.columnName"       , a))
+    dataTypeName    .foreach(a => builder += Attribute("error.postgres.dataTypeName"     , a))
+    constraintName  .foreach(a => builder += Attribute("error.postgres.constraintName"   , a))
+    fileName        .foreach(a => builder += Attribute("error.postgres.fileName"         , a))
+    line            .foreach(a => builder += Attribute("error.postgres.line"               , a.toLong))
+    routine         .foreach(a => builder += Attribute("error.postgres.routine"          , a))
 
     builder.result()
   }

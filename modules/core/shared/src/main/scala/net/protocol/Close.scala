@@ -10,7 +10,6 @@ import cats.syntax.all._
 import skunk.net.message.{ Close => CloseMessage, Flush, CloseComplete }
 import skunk.net.MessageSocket
 import org.typelevel.otel4s.Attribute
-import org.typelevel.otel4s.AttributeKey
 import org.typelevel.otel4s.trace.Span
 import org.typelevel.otel4s.trace.Tracer
 
@@ -26,13 +25,13 @@ object Close {
 
       override def apply(portalId: Protocol.PortalId): F[Unit] =
         exchange("close-portal") { (span: Span[F]) =>
-          span.addAttribute(Attribute(AttributeKey.string("portal"), portalId.value)) *>
+          span.addAttribute(Attribute("portal", portalId.value)) *>
           close(CloseMessage.portal(portalId.value))
         }
 
       override def apply(statementId: Protocol.StatementId): F[Unit] =
         exchange("close-statement") { (span: Span[F]) =>
-          span.addAttribute(Attribute(AttributeKey.string("statement"), statementId.value)) *>
+          span.addAttribute(Attribute("statement", statementId.value)) *>
           close(CloseMessage.statement(statementId.value))
         }
 
