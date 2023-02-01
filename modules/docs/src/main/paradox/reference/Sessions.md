@@ -116,8 +116,8 @@ val dbAccess: Resource[IO, MySessionPool] = for {
 val routesWithDb : Resource[cats.effect.IO, HttpRoutes[IO]] = dbAccess.flatMap { sessionPool => 
    val service : AnHttpServiceImpl[IO] = AnHttpServiceImpl(sessionPool) 
    val getStuffRoute: HttpRoutes[IO] = HttpRoutes.of[IO] { 
-      case req @ GET -> "ui" /: rest =>
-        service.getStuff(rest)
+      case req @ GET -> "stuff" =>
+        service.getStuff()
     }
     getStuffRoute
 }
