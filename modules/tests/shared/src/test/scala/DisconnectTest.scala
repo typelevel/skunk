@@ -8,11 +8,13 @@ import skunk.implicits._
 import skunk.codec.all._
 import cats.effect._
 import skunk.Session
-import natchez.Trace.Implicits.noop
+import org.typelevel.otel4s.trace.Tracer
 import skunk.exception.EofException
 import ffstest.FTest
 
 class DisconnectTest extends FTest {
+
+  implicit val tracer: Tracer[IO] = Tracer.noop
 
   val pool: Resource[IO, Resource[IO, Session[IO]]] =
     Session.pooled(

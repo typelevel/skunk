@@ -6,10 +6,12 @@ package tests
 
 import cats.effect._
 import fs2.io.net.tls.SSLException
-import natchez.Trace.Implicits.noop
+import org.typelevel.otel4s.trace.Tracer
 import skunk._
 
 class SslTest extends ffstest.FTest {
+
+  implicit val tracer: Tracer[IO] = Tracer.noop
 
   object Port {
     val Invalid = 5431

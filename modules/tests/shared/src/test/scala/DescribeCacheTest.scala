@@ -11,9 +11,11 @@ import cats.effect.IO
 import skunk.exception.PostgresErrorException
 import cats.effect.Resource
 import skunk.Session
-import natchez.Trace.Implicits.noop
+import org.typelevel.otel4s.trace.Tracer
 
 class DescribeCacheTest extends SkunkTest {
+
+  implicit val tracer: Tracer[IO] = Tracer.noop
 
   // N.B. this checks that statements are cached, but it _doesn't_ check that the cache is observed
   // by the `Describe` protocol implementation. There's not an easy way to do this without exposing

@@ -9,7 +9,7 @@ import cats.effect.Deferred
 import cats.effect._
 import ffstest.FTest
 import fs2.concurrent.Signal
-import natchez.Trace.Implicits.noop
+import org.typelevel.otel4s.trace.Tracer
 import skunk.Session
 import skunk.data.Notification
 import skunk.data.TransactionStatus
@@ -24,6 +24,8 @@ import skunk.net.protocol.Describe
 import skunk.net.protocol.Parse
 
 trait SimTest extends FTest with SimMessageSocket.DSL {
+
+  implicit val tracer: Tracer[IO] = Tracer.noop
 
   private class SimulatedBufferedMessageSocket(ms: MessageSocket[IO]) extends BufferedMessageSocket[IO] {
     def receive: IO[BackendMessage] = ms.receive
