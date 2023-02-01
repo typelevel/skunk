@@ -92,3 +92,13 @@ codec: Codec[((String, Int), Boolean)] = Codec(varchar, int4, bool)
 @ codec.gimap[Person]
 res7: Codec[Person] = Codec(varchar, int4, bool)
 ```
+
+# Scala 3
+
+Works on a very similar concept... but with the `*:` operator, `pmap` and `pimap`. For example
+
+```scala
+case class Info(s: String, i: Int)
+val scala3Codec : Codec[Info] = (text *: int4).pimap[Info]
+```
+
