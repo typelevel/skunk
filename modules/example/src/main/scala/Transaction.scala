@@ -13,7 +13,7 @@ import cats.effect.std.Console
 
 object Transaction extends IOApp {
 
-  implicit def tracer[F[_]: Applicative]: Tracer[F] = Tracer.noop
+  implicit def tracer[F[_]: MonadCancelThrow]: Tracer[F] = Tracer.noop
 
   def session[F[_]: Async: Console]: Resource[F, Session[F]] =
     Session.single(
