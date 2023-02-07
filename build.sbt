@@ -76,7 +76,7 @@ ThisBuild / libraryDependencySchemes ++= Seq(
 lazy val fs2Version = "3.5.0"
 lazy val natchezVersion = "0.3.0"
 lazy val openTelemetryVersion = "1.22.0"
-lazy val otel4sVersion = "0.0-e3f9bb2-SNAPSHOT"
+lazy val otel4sVersion = "0.0-b5c5056-SNAPSHOT"
 
 // Global Settings
 lazy val commonSettings = Seq(
