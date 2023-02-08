@@ -194,6 +194,16 @@ class CommandTest extends SkunkTest {
         DROP ROLE skunk_role
        """.command
 
+  val createExtension: Command[Void] =
+    sql"""
+        CREATE EXTENSION IF NOT EXISTS "uuid-ossp"
+       """.command
+
+  val dropExtension: Command[Void] =
+    sql"""
+        DROP EXTENSION "uuid-ossp"
+       """.command
+
   val createMaterializedView: Command[Void] =
     sql"""
         CREATE MATERIALIZED VIEW IF NOT EXISTS my_foo_mv
@@ -324,6 +334,15 @@ class CommandTest extends SkunkTest {
       _ <- assert("completion", c == Completion.CreateRole)
       c <- s.execute(dropRole)
       _ <- assert("completion", c == Completion.DropRole)
+    } yield "ok"
+  }
+
+  sessionTest("create extension, drop extension") { s =>
+    for {
+      c <- s.execute(createExtension)
+      _ <- assert("completion", c == Completion.CreateExtension)
+      c <- s.execute(dropExtension)
+      _ <- assert("completion", c == Completion.DropExtension)
     } yield "ok"
   }
 
