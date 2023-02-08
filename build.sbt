@@ -125,7 +125,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     scalacOptions ~= (_.filterNot(_ == "-source:3.0-migration")),
     libraryDependencies ++= Seq(
       "org.typelevel"          %%% "cats-core"               % "2.9.0",
-      "org.typelevel"          %%% "cats-effect"             % "3.4.5",
+      "org.typelevel"          %%% "cats-effect"             % "3.4.6",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
       "org.scodec"             %%% "scodec-bits"             % "1.1.34",
