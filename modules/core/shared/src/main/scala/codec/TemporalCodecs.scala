@@ -17,6 +17,7 @@ import java.time.temporal.ChronoField._
 import skunk.data.Type
 import java.time.temporal.TemporalAccessor
 import java.time.format.DateTimeFormatterBuilder
+import java.time.format.SignStyle
 import java.time.Duration
 import java.util.Locale
 
@@ -58,7 +59,7 @@ trait TemporalCodecs {
   // Instead we need to create custom formatters and append BC/AD after the date
   private val localDateFormatterWithoutEra: DateTimeFormatter =
     new DateTimeFormatterBuilder()
-      .appendValue(YEAR_OF_ERA)
+      .appendValue(YEAR_OF_ERA, 4, 19, SignStyle.NOT_NEGATIVE)
       .appendLiteral('-')
       .appendValue(MONTH_OF_YEAR, 2)
       .appendLiteral('-')

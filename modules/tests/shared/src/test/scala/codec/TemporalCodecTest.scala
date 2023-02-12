@@ -33,6 +33,7 @@ class TemporalCodecTest extends CodecTest {
       LocalDate.of(-4713, 12, 31),  // Earliest date Postgres can store
       LocalDate.of(2019, 6, 17),    // A reasonable date.
       LocalDate.of(256789, 12, 31), // A very distant date
+      LocalDate.of(1, 2, 3),        // A date having a year with less than 3 digits
     )
 
   roundtripTest(date)(dates: _*)
