@@ -73,8 +73,8 @@ ThisBuild / libraryDependencySchemes ++= Seq(
 )
 
 // This is used in a couple places
-lazy val fs2Version = "3.5.0"
-lazy val natchezVersion = "0.3.0"
+lazy val fs2Version = "3.6.1"
+lazy val natchezVersion = "0.3.1"
 
 // Global Settings
 lazy val commonSettings = Seq(
@@ -125,11 +125,11 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     scalacOptions ~= (_.filterNot(_ == "-source:3.0-migration")),
     libraryDependencies ++= Seq(
       "org.typelevel"          %%% "cats-core"               % "2.9.0",
-      "org.typelevel"          %%% "cats-effect"             % "3.4.6",
+      "org.typelevel"          %%% "cats-effect"             % "3.4.7",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
       "org.scodec"             %%% "scodec-bits"             % "1.1.35",
-      "org.scodec"             %%% "scodec-core"             % (if (tlIsScala3.value) "2.2.0" else "1.11.10"),
+      "org.scodec"             %%% "scodec-core"             % (if (tlIsScala3.value) "2.2.1" else "1.11.10"),
       "org.scodec"             %%% "scodec-cats"             % "1.2.0",
       "org.tpolecat"           %%% "natchez-core"            % natchezVersion,
       "org.tpolecat"           %%% "sourcepos"               % "1.1.0",
