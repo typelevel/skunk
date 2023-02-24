@@ -17,14 +17,14 @@ private[message] trait PasswordMessagePlatform {
   // and https://github.com/pgjdbc/pgjdbc/blob/master/pgjdbc/src/main/java/org/postgresql/util/MD5Digest.java
   def md5(user: String, password: String, salt: Array[Byte]): PasswordMessage = Zone { implicit z =>
 
+    val `type` = EVP_get_digestbyname(c"MD5")
+    if (`type` == null)
+      throw new RuntimeException("EVP_get_digestbyname")
+    
     // Hash with this thing
     val ctx = EVP_MD_CTX_new()
     if (ctx == null)
       throw new RuntimeException("EVP_MD_CTX_new")
-
-    val `type` = EVP_get_digestbyname(c"MD5")
-    if (`type` == null)
-      throw new RuntimeException("EVP_get_digestbyname")
 
     try {
 
