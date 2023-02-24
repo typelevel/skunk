@@ -131,7 +131,7 @@ trait AnHttpService[IO] {
 }
 case class AnHttpServiceImpl(pool: MySessionPool) extends AnHttpService[IO] {
 
-  lazy val db = ValuationDb.fromSessionPool(pool)
+  lazy val db = StuffDb.fromSessionPool(pool)
 
   def getStuff(): IO[List[Stuff]] = 
     db.getStuffs().map(???)
