@@ -155,7 +155,7 @@ lazy val refined = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "eu.timepit" %%% "refined" % "0.10.1",
+      "eu.timepit" %%% "refined" % "0.10.2",
     )
   )
 
