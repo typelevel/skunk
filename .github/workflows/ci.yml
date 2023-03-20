@@ -70,13 +70,11 @@ jobs:
         if: (matrix.project == 'rootNative') && startsWith(matrix.os, 'ubuntu')
         run: /home/linuxbrew/.linuxbrew/bin/brew install s2n utf8proc
 
-      - name: Set up cert permissions
+      - name: Start up Postgres
         run: |
           export SERVER_KEY=$(cat world/server.key)
           export SERVER_CERT=$(cat world/server.crt)
-
-      - name: Start up Postgres
-        run: docker-compose up -d
+          docker-compose up -d
 
       - name: Check that workflows are up to date
         run: sbt githubWorkflowCheck
@@ -316,13 +314,11 @@ jobs:
             ~/Library/Caches/Coursier/v1
           key: ${{ runner.os }}-sbt-cache-v2-${{ hashFiles('**/*.sbt') }}-${{ hashFiles('project/build.properties') }}
 
-      - name: Set up cert permissions
+      - name: Start up Postgres
         run: |
           export SERVER_KEY=$(cat world/server.key)
           export SERVER_CERT=$(cat world/server.crt)
-
-      - name: Start up Postgres
-        run: docker-compose up -d
+          docker-compose up -d
 
       - run: sbt '++${{ matrix.scala }}' coverage rootJVM/test coverageReport
 
