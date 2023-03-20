@@ -1,1 +1,1 @@
-CREATE EXTENSION ltree ;
+CREATE EXTENSION if not exists ltree ;

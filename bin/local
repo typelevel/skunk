@@ -23,6 +23,6 @@ case $DIR in
 esac
 
 # Fix postgres ssl key permissions.
-chmod 600 world/server.key
+chmod 640 world/server.key
 
 docker-compose $CMD $EXTRA_FLAGS
