@@ -80,6 +80,21 @@ class CommandTest extends SkunkTest {
       ALTER TABLE earth RENAME COLUMN id TO pk
       """.command
 
+  val createType: Command[Void] =
+    sql"""
+      CREATE TYPE season AS ENUM ('winter', 'spring', 'summer')
+      """.command
+
+  val alterType: Command[Void] =
+    sql"""
+      ALTER TYPE season ADD VALUE 'autumn'
+      """.command
+  
+  val dropType: Command[Void] =
+    sql"""
+      DROP TYPE season
+      """.command
+
   val dropTable: Command[Void] =
     sql"""
       DROP TABLE earth
@@ -253,6 +268,18 @@ class CommandTest extends SkunkTest {
       _ <- assert("completion",  c == Completion.CreateSchema)
       c <- s.execute(dropSchema)
       _ <- assert("completion",  c == Completion.DropSchema)
+      _ <- s.assertHealthy
+    } yield "ok"
+  }
+
+  sessionTest("create, alter and drop type") { s =>
+    for {
+      c <- s.execute(createType)
+      _ <- assert("completion",  c == Completion.CreateType)
+      c <- s.execute(alterType)
+      _ <- assert("completion",  c == Completion.AlterType)
+      c <- s.execute(dropType)
+      _ <- assert("completion",  c == Completion.DropType)
       _ <- s.assertHealthy
     } yield "ok"
   }
