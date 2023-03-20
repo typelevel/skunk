@@ -22,7 +22,10 @@ case $DIR in
   ;;
 esac
 
-# Fix postgres ssl key permissions.
-chmod 600 world/server.key
+# Export server files as environment variables
+# so we can load them onto the file system 
+# as postgres user
+export SERVER_KEY=$(cat world/server.key)
+export SERVER_CERT=$(cat world/server.crt)
 
 docker-compose $CMD $EXTRA_FLAGS
