@@ -72,8 +72,8 @@ jobs:
 
       - name: Set up cert permissions
         run: |
-          chmod 600 world/server.key
-          sudo chown 999 world/server.key
+          export SERVER_KEY=$(cat world/server.key)
+          export SERVER_CERT=$(cat world/server.crt)
 
       - name: Start up Postgres
         run: docker-compose up -d
