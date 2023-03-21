@@ -10,7 +10,7 @@ import scala.scalanative.unsafe._
 @extern
 private[message] object openssl {
 
-  final val EVP_MAX_MD_SIZE = 64
+  final val EVP_MAX_MD_SIZE: Int = 64
 
   type EVP_MD
   type EVP_MD_CTX
