@@ -53,7 +53,7 @@ object Minimal2 extends IOApp {
       }
     }
 
-  def runF[F[_]: Async: Trace: Parallel: Console]: F[ExitCode] =
+  def runF[F[_]: Async: Trace: Parallel: Console: Network]: F[ExitCode] =
     session.use { s =>
       List("A%", "B%").parTraverse(p => lookup(p, s))
     } as ExitCode.Success
