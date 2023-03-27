@@ -78,6 +78,17 @@ val enc = (varchar ~ int4).values
 sql"INSERT INTO person (name, age) VALUES ${enc.list(3)}"
 ```
 
+Similarly, the `values` and `list` combinators can be used to encode an `IN` clause for queries.
+
+```scala mdoc:nest
+case class Person(name: String, age: Int)
+
+val names = List("Ron", "Leslie", "Andy")
+val namesEnc = varchar.values.list(names.length)
+
+sql"SELCT * FROM person WHERE name IN $namesEnc"
+```
+
 ## Transforming the Input Type
 
 An `Encoder[A]` consumes a value of type `A` and encodes it for transmission Postgres, so it can
