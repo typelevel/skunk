@@ -4,8 +4,8 @@
 
 package example
 
-import cats.Parallel
 import cats.effect._
+import cats.effect.implicits._
 import cats.syntax.all._
 import skunk._
 import skunk.implicits._
@@ -22,7 +22,7 @@ import cats.effect.std.Console
 
 object Minimal2 extends IOApp {
 
-  def session[F[_]: Async: Trace: Network: Console]: Resource[F, Session[F]] =
+  def session[F[_]: Temporal: Trace: Network: Console]: Resource[F, Session[F]] =
     Session.single(
       host     = "localhost",
       port     = 5432,
@@ -42,18 +42,18 @@ object Minimal2 extends IOApp {
     """.query(bpchar(3) ~ varchar ~ int4)
        .gmap[Country]
 
-  def lookup[F[_]: Async: Trace](pat: String, s: Session[F]): F[Unit] =
+  def lookup[F[_]: Concurrent: Trace: Console](pat: String, s: Session[F]): F[Unit] =
     Trace[F].span("lookup") {
       Trace[F].put("pattern" -> pat) *>
       s.prepare(select).flatMap { pq =>
         pq.stream(pat, 1024)
-          .evalMap(c => Sync[F].delay(println(s"⭐️⭐  $c")))
+          .evalMap(c => Console[F].println(s"⭐️⭐  $c"))
           .compile
           .drain
       }
     }
 
-  def runF[F[_]: Async: Trace: Parallel: Console: Network]: F[ExitCode] =
+  def runF[F[_]: Temporal: Trace: Console: Network]: F[ExitCode] =
     session.use { s =>
       List("A%", "B%").parTraverse(p => lookup(p, s))
     } as ExitCode.Success
