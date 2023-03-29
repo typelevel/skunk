@@ -86,7 +86,7 @@ case class Person(name: String, age: Int)
 val names = List("Ron", "Leslie", "Andy")
 val namesEnc = varchar.values.list(names.length)
 
-sql"SELCT * FROM person WHERE name IN $namesEnc"
+sql"SELECT * FROM person WHERE name IN $namesEnc"
 ```
 
 ## Transforming the Input Type
