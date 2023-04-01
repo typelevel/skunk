@@ -8,7 +8,7 @@ import cats.syntax.all._
 import cats.effect._
 import cats.effect.syntax.temporal._
 import fs2.Chunk
-import scodec.bits.{BitVector, ByteVector}
+import scodec.bits.BitVector
 import fs2.io.net.{Socket, SocketGroup, SocketOption}
 import com.comcast.ip4s._
 import skunk.exception.{EofException, SkunkException}
@@ -62,28 +62,27 @@ object BitVectorSocket {
 
     }
 
-  def buffered[F[_]](socket: Socket[F], readTimeout: Duration, carryRef: Ref[F, ByteVector])(implicit F: Temporal[F]): BitVectorSocket[F] =
+  def buffered[F[_]](socket: Socket[F], readTimeout: Duration, carryRef: Ref[F, Chunk[Byte]])(implicit F: Temporal[F]): BitVectorSocket[F] =
     new BitVectorSocket[F] {
-      val withTimeout: F[Option[Chunk[Byte]]] => F[Option[Chunk[Byte]]] = readTimeout match {
+      private val withTimeout: F[Option[Chunk[Byte]]] => F[Option[Chunk[Byte]]] = readTimeout match {
         case _: Duration.Infinite   => identity
         case finite: FiniteDuration => _.timeout(finite)
       }
 
       override def read(nBytes: Int): F[BitVector] =
-        // Note: unsafe for concurrent reads
-        carryRef.get
-          .flatMap(carry => readImpl(nBytes, carry))
-          .flatMap { case (remainder, output) =>
-            carryRef.set(remainder).as(output)
-          }
+        // nb: unsafe for concurrent reads but protected by protocol mutex
+        carryRef.get.flatMap(carry => readUntilN(nBytes, carry))
 
-      private def readImpl(nBytes: Int, carry: ByteVector): F[(ByteVector, BitVector)] =
+      private def readUntilN(nBytes: Int, carry: Chunk[Byte]): F[BitVector] =
         if (carry.size < nBytes) {
           withTimeout(socket.read(8192)).flatMap {
-            case Some(bytes) => readImpl(nBytes, carry ++ bytes.toByteVector)
-            case None => sys.error("TODO")
+            case Some(bytes) => readUntilN(nBytes, carry ++ bytes)
+            case None => F.raiseError(EofException(nBytes, carry.size.toInt))
           }
-        } else (carry.drop(nBytes), carry.take(nBytes).bits).pure
+        } else {
+          val (output, remainder) = carry.splitAt(nBytes)
+          carryRef.set(remainder).as(output.toByteVector.bits)
+        }
 
       override def write(bits: BitVector): F[Unit] =
         socket.write(Chunk.byteVector(bits.bytes))
@@ -118,7 +117,7 @@ object BitVectorSocket {
     for {
       sock <- sock
       sockʹ <- sslOptions.fold(sock.pure[Resource[F, *]])(SSLNegotiation.negotiateSSL(sock, _))
-      carry <- Resource.eval(Ref.of(ByteVector.empty))
+      carry <- Resource.eval(Ref.of(Chunk.empty[Byte]))
     } yield buffered(sockʹ, readTimeout, carry)
 
   }
