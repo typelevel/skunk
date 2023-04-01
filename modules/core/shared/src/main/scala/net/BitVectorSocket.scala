@@ -48,18 +48,45 @@ object BitVectorSocket {
         case finite: FiniteDuration => _.timeout(finite)
       }
 
-      def readBytes(n: Int): F[Array[Byte]] =
+      def readBytes(n: Int): F[Chunk[Byte]] =
         withTimeout(socket.readN(n)).flatMap { c =>
-          if (c.size == n) c.toArray.pure[F]
+          if (c.size == n) c.pure[F]
           else ev.raiseError(EofException(n, c.size))
         }
 
       override def read(nBytes: Int): F[BitVector] =
-        readBytes(nBytes).map(BitVector(_))
+        readBytes(nBytes).map(_.toByteVector.bits)
 
       override def write(bits: BitVector): F[Unit] =
-        socket.write(Chunk.array(bits.toByteArray))
+        socket.write(Chunk.byteVector(bits.bytes))
 
+    }
+
+  def buffered[F[_]](socket: Socket[F], readTimeout: Duration, carryRef: Ref[F, BitVector])(implicit F: Temporal[F]): BitVectorSocket[F] =
+    new BitVectorSocket[F] {
+      val withTimeout: F[Option[Chunk[Byte]]] => F[Option[Chunk[Byte]]] = readTimeout match {
+        case _: Duration.Infinite   => identity
+        case finite: FiniteDuration => _.timeout(finite)
+      }
+
+
+      private def doRead =
+        withTimeout(socket.read(Int.MaxValue)).flatMap { 
+          case Some(bytes) => carryRef.update(_ ++ bytes.toByteVector.bits)
+          case None => F.unit
+        }
+
+      override def read(nBytes: Int): F[BitVector] = {
+        val nBits = nBytes * 8
+        // TODO mutex & avoid double access to carryRef
+        carryRef.get.flatMap { carry =>
+          if (carry.size < nBits) doRead >> read(nBytes)
+          else carryRef.modify(c => (c.drop(nBits), c.take(nBits)))
+        }
+      }
+
+      override def write(bits: BitVector): F[Unit] =
+        socket.write(Chunk.byteVector(bits.bytes))
     }
 
   /**
@@ -91,7 +118,8 @@ object BitVectorSocket {
     for {
       sock <- sock
       sockʹ <- sslOptions.fold(sock.pure[Resource[F, *]])(SSLNegotiation.negotiateSSL(sock, _))
-    } yield fromSocket(sockʹ, readTimeout)
+      carry <- Resource.eval(Ref.of(BitVector.empty))
+    } yield buffered(sockʹ, readTimeout, carry)
 
   }
 }
