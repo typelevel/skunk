@@ -12,7 +12,8 @@ import cats.Eq
 import scala.concurrent.duration._
 import skunk.data.Type
 
-class QueryTest extends SkunkTest{
+class QueryTest extends SkunkTest(debug = false) {
+  /*
 
     case class Number(value: Int)
     implicit val numberEq: Eq[Number] = Eq.by(_.value)
@@ -128,5 +129,15 @@ class QueryTest extends SkunkTest{
             }
         } yield "ok"
     }
+    */
 
+    // Even when streaming the results and not accumulating them, we see same time ~12s 
+    sessionTest("large row stream benchmark") { s => 
+      val query = sql"""select generate_series(1,500000)""".query(int4)
+      for {
+        res <- s.stream(query, Void, 64_000).compile.drain.timed
+        (duration, r) = res
+        _ = println(s"Took ${duration.toMillis} to stream 500K rows to /dev/null")
+      } yield "ok"
+    }
 }
