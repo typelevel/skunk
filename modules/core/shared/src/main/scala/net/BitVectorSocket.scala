@@ -69,18 +69,21 @@ object BitVectorSocket {
         case finite: FiniteDuration => _.timeout(finite)
       }
 
-
-      private def doRead =
-        withTimeout(socket.read(16384)).flatMap { 
-          case Some(bytes) => carryRef.update(_ ++ bytes.toByteVector)
-          case None => F.unit
-        }
-
       override def read(nBytes: Int): F[BitVector] =
-        carryRef.modify { carry =>
-          if (carry.size < nBytes) (carry, doRead >> read(nBytes))
-          else (carry.drop(nBytes), carry.take(nBytes).bits.pure)
-        }.flatten
+        // Note: unsafe for concurrent reads
+        carryRef.get
+          .flatMap(carry => readImpl(nBytes, carry))
+          .flatMap { case (remainder, output) =>
+            carryRef.set(remainder).as(output)
+          }
+
+      private def readImpl(nBytes: Int, carry: ByteVector): F[(ByteVector, BitVector)] =
+        if (carry.size < nBytes) {
+          withTimeout(socket.read(8192)).flatMap {
+            case Some(bytes) => readImpl(nBytes, carry ++ bytes.toByteVector)
+            case None => sys.error("TODO")
+          }
+        } else (carry.drop(nBytes), carry.take(nBytes).bits).pure
 
       override def write(bits: BitVector): F[Unit] =
         socket.write(Chunk.byteVector(bits.bytes))
