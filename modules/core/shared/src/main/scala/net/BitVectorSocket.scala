@@ -81,7 +81,7 @@ object BitVectorSocket {
           }
         } else {
           val (output, remainder) = carry.splitAt(nBytes)
-          carryRef.set(remainder).as(output.toByteVector.bits)
+          carryRef.set(remainder).as(output.toBitVector)
         }
 
       override def write(bits: BitVector): F[Unit] =

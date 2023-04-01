@@ -135,7 +135,7 @@ class QueryTest extends SkunkTest(debug = false) {
     sessionTest("large row stream benchmark") { s => 
       val query = sql"""select generate_series(1,500000)""".query(int4)
       for {
-        res <- s.stream(query, Void, 64_000).compile.drain.timed
+        res <- s.stream(query, Void, 64000).compile.drain.timed
         (duration, r) = res
         _ = println(s"Took ${duration.toMillis} to stream 500K rows to /dev/null")
       } yield "ok"
