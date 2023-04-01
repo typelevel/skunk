@@ -8,7 +8,7 @@ import cats.syntax.all._
 import cats.effect._
 import cats.effect.syntax.temporal._
 import fs2.Chunk
-import scodec.bits.BitVector
+import scodec.bits.{BitVector, ByteVector}
 import fs2.io.net.{Socket, SocketGroup, SocketOption}
 import com.comcast.ip4s._
 import skunk.exception.{EofException, SkunkException}
@@ -62,7 +62,7 @@ object BitVectorSocket {
 
     }
 
-  def buffered[F[_]](socket: Socket[F], readTimeout: Duration, carryRef: Ref[F, BitVector])(implicit F: Temporal[F]): BitVectorSocket[F] =
+  def buffered[F[_]](socket: Socket[F], readTimeout: Duration, carryRef: Ref[F, ByteVector])(implicit F: Temporal[F]): BitVectorSocket[F] =
     new BitVectorSocket[F] {
       val withTimeout: F[Option[Chunk[Byte]]] => F[Option[Chunk[Byte]]] = readTimeout match {
         case _: Duration.Infinite   => identity
@@ -71,19 +71,16 @@ object BitVectorSocket {
 
 
       private def doRead =
-        withTimeout(socket.read(Int.MaxValue)).flatMap { 
-          case Some(bytes) => carryRef.update(_ ++ bytes.toByteVector.bits)
+        withTimeout(socket.read(16384)).flatMap { 
+          case Some(bytes) => carryRef.update(_ ++ bytes.toByteVector)
           case None => F.unit
         }
 
-      override def read(nBytes: Int): F[BitVector] = {
-        val nBits = nBytes * 8
-        // TODO mutex & avoid double access to carryRef
-        carryRef.get.flatMap { carry =>
-          if (carry.size < nBits) doRead >> read(nBytes)
-          else carryRef.modify(c => (c.drop(nBits), c.take(nBits)))
-        }
-      }
+      override def read(nBytes: Int): F[BitVector] =
+        carryRef.modify { carry =>
+          if (carry.size < nBytes) (carry, doRead >> read(nBytes))
+          else (carry.drop(nBytes), carry.take(nBytes).bits.pure)
+        }.flatten
 
       override def write(bits: BitVector): F[Unit] =
         socket.write(Chunk.byteVector(bits.bytes))
@@ -118,7 +115,7 @@ object BitVectorSocket {
     for {
       sock <- sock
       sockʹ <- sslOptions.fold(sock.pure[Resource[F, *]])(SSLNegotiation.negotiateSSL(sock, _))
-      carry <- Resource.eval(Ref.of(BitVector.empty))
+      carry <- Resource.eval(Ref.of(ByteVector.empty))
     } yield buffered(sockʹ, readTimeout, carry)
 
   }
