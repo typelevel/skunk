@@ -209,7 +209,7 @@ object Protocol {
     readTimeout:  Duration
   ): Resource[F, Protocol[F]] =
     for {
-      bms <- BufferedMessageSocket[F](host, port, 64000, debug, sg, socketOptions, sslOptions, readTimeout) // TODO: should we expose the queue size?
+      bms <- BufferedMessageSocket[F](host, port, 256, debug, sg, socketOptions, sslOptions, readTimeout) // TODO: should we expose the queue size?
       p   <- Resource.eval(fromMessageSocket(bms, nam, describeCache, parseCache))
     } yield p
 

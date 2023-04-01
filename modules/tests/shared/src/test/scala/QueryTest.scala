@@ -12,7 +12,7 @@ import cats.Eq
 import scala.concurrent.duration._
 import skunk.data.Type
 
-class QueryTest extends SkunkTest(debug = false) {
+class QueryTest extends SkunkTest {
   /*
 
     case class Number(value: Int)
@@ -136,6 +136,7 @@ class QueryTest extends SkunkTest(debug = false) {
       val query = sql"""select generate_series(1,500000)""".query(int4)
       for {
         res <- s.stream(query, Void, 64000).compile.drain.timed
+        //res <- s.execute(query).timed
         (duration, r) = res
         _ = println(s"Took ${duration.toMillis} to stream 500K rows to /dev/null")
       } yield "ok"
