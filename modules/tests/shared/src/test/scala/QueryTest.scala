@@ -128,15 +128,4 @@ class QueryTest extends SkunkTest {
             }
         } yield "ok"
     }
-
-    // Even when streaming the results and not accumulating them, we see same time ~12s 
-    sessionTest("large row stream benchmark") { s => 
-      val query = sql"""select generate_series(1,500000)""".query(int4)
-      for {
-        res <- s.stream(query, Void, 64000).compile.drain.timed
-        //res <- s.execute(query).timed
-        (duration, r) = res
-        _ = println(s"Took ${duration.toMillis} to stream 500K rows to /dev/null")
-      } yield "ok"
-    }
 }
