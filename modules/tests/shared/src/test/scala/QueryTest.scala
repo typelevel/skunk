@@ -13,7 +13,6 @@ import scala.concurrent.duration._
 import skunk.data.Type
 
 class QueryTest extends SkunkTest {
-  /*
 
     case class Number(value: Int)
     implicit val numberEq: Eq[Number] = Eq.by(_.value)
@@ -129,7 +128,6 @@ class QueryTest extends SkunkTest {
             }
         } yield "ok"
     }
-    */
 
     // Even when streaming the results and not accumulating them, we see same time ~12s 
     sessionTest("large row stream benchmark") { s => 
