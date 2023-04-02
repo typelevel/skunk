@@ -10,7 +10,6 @@ import cats.effect.std.Console
 import cats.effect.std.Queue
 import cats.syntax.all._
 import scala.io.AnsiColor
-import scodec.codecs._
 import skunk.net.message.{ Sync => _, _ }
 import skunk.util.Origin
 import fs2.io.net.{ SocketGroup, SocketOption }
@@ -54,7 +53,7 @@ object MessageSocket {
         */
         val receiveImpl: F[BackendMessage] = {
           bvs.read(5).flatMap { bits =>
-            val tag = byte.decodeValue(bits).require
+            val tag = bits.take(8).toByte()
             val len = bits.drop(8).toInt()
             val decoder    = BackendMessage.decoder(tag)
             bvs.read(len - 4).map(decoder.decodeValue(_).require)
