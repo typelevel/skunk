@@ -53,9 +53,9 @@ object MessageSocket {
         * total including self but not including the tag) in network order.
         */
         val receiveImpl: F[BackendMessage] = {
-          val header = byte ~ int32
           bvs.read(5).flatMap { bits =>
-            val (tag, len) = header.decodeValue(bits).require
+            val tag = byte.decodeValue(bits).require
+            val len = bits.drop(8).toInt()
             val decoder    = BackendMessage.decoder(tag)
             bvs.read(len - 4).map(decoder.decodeValue(_).require)
           } .onError {
