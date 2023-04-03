@@ -128,8 +128,8 @@ object StringContextOps {
         if (encoders.isEmpty) '{ Void.codec }
         else encoders.reduceLeft {
           case ('{$a : Encoder[Void]}, '{ $b : Encoder[Void] }) => '{ Void.codec }
-          case ('{$a : Encoder[a]},    '{ $b : Encoder[Void] }) => '{ $a }
-          case ('{$a : Encoder[Void]}, '{ $b : Encoder[b]    }) => '{ $b }
+          case ('{$a : Encoder[a]},    '{ $b : Encoder[Void] }) => a
+          case ('{$a : Encoder[Void]}, '{ $b : Encoder[b]    }) => b
           case ('{$a : Encoder[a]},    '{ $b : Encoder[b]    }) => '{ $a ~ $b }
         }
 
