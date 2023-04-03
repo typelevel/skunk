@@ -135,8 +135,18 @@ object StringContextOps {
         }
 
       // The final encoder is either `Void.codec` or `a ~ b ~ ...`
+
+      val void = q"_root_.skunk.Void.codec"
+
       val finalEncoder: Tree =
-        encoders.reduceLeftOption((a, b) => q"$a ~ $b").getOrElse(q"_root_.skunk.Void.codec")
+        encoders
+          .reduceLeftOption { (a, b) => 
+            if (a == void && b == void) void else
+            if (a == void) b else
+            if (b == void) a else
+            q"$a ~ $b"
+          }
+          .getOrElse(void)
 
       // We now have what we need to construct a fragment.
       q"_root_.skunk.syntax.StringContextOps.fragmentFromParts($finalParts, $finalEncoder, $origin)"
