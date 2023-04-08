@@ -68,6 +68,11 @@ ThisBuild / libraryDependencySchemes ++= Seq(
   "org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always
 )
 
+import com.typesafe.tools.mima.core._
+ThisBuild / mimaBinaryIssueFilters ++= List(
+  ProblemFilters.exclude[DirectMissingMethodProblem]("skunk.net.BitVectorSocket.fromSocket")
+)
+
 // This is used in a couple places
 lazy val fs2Version = "3.7.0-RC4"
 lazy val natchezVersion = "0.3.1"
