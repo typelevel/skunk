@@ -31,7 +31,7 @@ lazy val setupCertAndDocker = Seq(
   )
 )
 
-ThisBuild / githubWorkflowBuildPreamble ++= setupCertAndDocker
+ThisBuild / githubWorkflowJobSetup ++= setupCertAndDocker
 ThisBuild / tlCiHeaderCheck := true
 
 ThisBuild / githubWorkflowAddedJobs +=
@@ -39,10 +39,7 @@ ThisBuild / githubWorkflowAddedJobs +=
     id = "coverage",
     name = s"Generate coverage report (${`scala-2.13`} JVM only)",
     scalas = List(`scala-2.13`),
-    steps = List(WorkflowStep.CheckoutFull) ++
-      WorkflowStep.SetupJava(githubWorkflowJavaVersions.value.toList) ++
-      githubWorkflowGeneratedCacheSteps.value ++ 
-      setupCertAndDocker ++
+    steps = githubWorkflowJobSetup.value.toList ++
       List(
         WorkflowStep.Sbt(List("coverage", "rootJVM/test", "coverageReport")),
         WorkflowStep.Run(
