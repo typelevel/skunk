@@ -221,6 +221,7 @@ lazy val unidocs = project
     name := "skunk-docs",
     ScalaUnidoc / unidoc / unidocProjectFilter := inProjects(core.jvm, refined.jvm, circe.jvm)
   )
+  .settings(commonSettings)
 
 lazy val docs = project
   .in(file("modules/docs"))
