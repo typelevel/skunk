@@ -1,10 +1,8 @@
 ```scala mdoc:invisible
 import cats.effect._
-import cats.implicits._
 import skunk._
 import skunk.implicits._
 import skunk.codec.all._
-import natchez.Trace.Implicits.noop
 val s: Session[IO] = null
 val ch: Channel[IO, String, String] = null
 ```

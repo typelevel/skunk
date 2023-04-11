@@ -1,5 +1,5 @@
 ```scala mdoc:invisible
-import cats.effect._, skunk._, skunk.net.message.StartupMessage
+import cats.effect._, skunk._
 implicit def dummyTrace: natchez.Trace[IO] = ???
 ```
 

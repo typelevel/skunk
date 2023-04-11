@@ -25,8 +25,8 @@ Prerequisites:
 
 To learn about Skunk:
 
-- Read the [Tutorial](tutorial/Index.md).
-- Peruse the [Reference](tutorial/Index.md) material.
+- Read the [Tutorial](tutorial/index.md).
+- Peruse the [Reference](tutorial/index.md) material.
 
 Other resources:
 

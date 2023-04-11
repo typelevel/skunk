@@ -232,19 +232,7 @@ lazy val docs = project
   .enablePlugins(TypelevelSitePlugin)
   .settings(commonSettings)
   .settings(
-    // scalacOptions      := Nil,
-    // paradoxProperties ++= Map(
-    //   "scala-versions"          -> (core.jvm / crossScalaVersions).value.map(CrossVersion.partialVersion).flatten.map { case (a, b) => s"$a.$b" } .mkString("/"),
-    //   "org"                     -> organization.value,
-    //   "scala.binary.version"    -> s"2.${CrossVersion.partialVersion(scalaVersion.value).get._2}",
-    //   "core-dep"                -> s"${(core.jvm / name).value}_2.${CrossVersion.partialVersion(scalaVersion.value).get._2}",
-    //   "circe-dep"               -> s"${(circe.jvm / name).value}_2.${CrossVersion.partialVersion(scalaVersion.value).get._2}",
-    //   "version"                 -> version.value,
-    //   "scaladoc.skunk.base_url" -> s"https://static.javadoc.io/org.tpolecat/skunk-core_2.12/${version.value}",
-    //   "scaladoc.fs2.io.base_url"-> s"https://static.javadoc.io/co.fs2/fs2-io_2.12/${fs2Version}",
-    // ),
-    mdocIn := (baseDirectory.value) / "src" / "main" / "paradox",
-    // mdocExtraArguments := Seq("--no-link-hygiene"), // laika handles this
+    mdocIn := (Compile / sourceDirectory).value / "laika",
     libraryDependencies ++= Seq(
       "org.tpolecat"  %%% "natchez-jaeger" % natchezVersion,
     ),

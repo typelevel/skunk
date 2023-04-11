@@ -1,4 +1,4 @@
-```scala mdoc:nest:invisible
+```scala mdoc:invisible
 import cats.syntax.all._
 import cats.effect._
 import skunk._

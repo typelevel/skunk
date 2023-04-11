@@ -7,7 +7,7 @@ val x: (((Int, String), Boolean), Double) =
   (((42, "hi"), true), 1.23)
 ```
 
-The reason it is useful is that (when combined with a single value as the dengenerate case) it lets us represent non-empty heterogeneous lists. It is sometimes called the "poor-man's `HList`" and it is not unique to Skunk ([scodec]() also uses it).
+The reason it is useful is that (when combined with a single value as the dengenerate case) it lets us represent non-empty heterogeneous lists. It is sometimes called the "poor-man's `HList`" and it is not unique to Skunk ([scodec](http://scodec.org/) also uses it).
 
 By providing a bit of syntax we can write twiddle lists much more succinctly.
 
