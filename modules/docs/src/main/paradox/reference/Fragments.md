@@ -69,10 +69,10 @@ Parameters can only appear in syntactic positions where values can appear (you c
 parameter in place of a table name for instance). In these cases you can interpolate a literal
 strings, by escaping it with `#$`.
 
-@@@warning
+@:callout(warning)
 Interpolating a literal string into a `Fragment` is a SQL injection risk. Never interpolate values
 that have been supplied by the user.
-@@@
+@:@
 
 Here is an example with an iterpolated literal string, as well as a normal parameter.
 

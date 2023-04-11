@@ -158,11 +158,9 @@ val myenum = enum(MyEnum, Type("myenum"))
 
 JSON support is provided by the `skunk-circe` module which must be added as a dependency.
 
-@@dependency[sbt,Maven,Gradle] {
-  group="$org$"
-  artifact="$circe-dep$"
-  version="$version$"
-}
+```scala
+libraryDependencies += "org.tpolecat" %% "skunk-circe" % "@VERSION@"
+```
 
 The `json` and `jsonb` codecs map to the `io.circe.Json` data type, but you can map to any data type with `io.circe.Encoder` and `io.circe.Decoder` instances by passing a type argument to `json` or `jsonb`.
 
@@ -179,10 +177,10 @@ val codec2: Codec[Int ~ MyType] = int4 ~ jsonb[MyType]
 
 Postgres arrays are either empty and zero-dimensional, or non-empty and rectangular (unlike Scala `Array`s, which are ragged) with a postive number of dimensions (all non-empty). This data type is represented by `skunk.data.Arr`.
 
-@@@ warning
+@:callout(warning)
 - Skunk does not yet support arrays containing nullable elements. Attempting to decode such a value will provoke a runtime failure.
 - The API for `Arr` is not finalized and is likely to change in future versions.
-@@@
+@:@
 
 #### Numeric Array Types
 
