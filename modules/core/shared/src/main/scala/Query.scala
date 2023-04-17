@@ -5,6 +5,7 @@
 package skunk
 
 import cats.arrow.Profunctor
+import org.typelevel.twiddles.Iso
 import skunk.util.Origin
 import skunk.util.Twiddler
 
@@ -68,6 +69,9 @@ final case class Query[A, B](
 
   def gmap[D](implicit ev: Twiddler.Aux[D, B]): Query[A, D] =
     map(ev.from)
+
+  def as[D](implicit ev: Iso[B, D]): Query[A, D] =
+    map(ev.to)
 
   def cacheKey: Statement.CacheKey =
     Statement.CacheKey(sql, encoder.types, decoder.types)

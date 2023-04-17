@@ -28,7 +28,7 @@ object Error extends IOApp {
       FROM   country
       WHERE  popsulation > $varchar
       AND    population  < $int4
-    """.query(varchar ~ int4)
+    """.query(varchar *: int4)
 
   def prog[F[_]](s: Session[F])(implicit ev: MonadCancel[F, Throwable]): F[ExitCode] =
     s.prepare(query).flatMap(_.unique("foo" ~ 1000000)).as(ExitCode.Success)

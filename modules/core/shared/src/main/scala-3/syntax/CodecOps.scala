@@ -10,14 +10,14 @@ import scala.deriving.Mirror
 
 class CodecOps[A <: Tuple](self: Codec[A]) {
 
-  def *:[B](other: Codec[B]): Codec[B *: A] =
-    (other, self).imapN((b, a) => b *: a)(t => (t.head, t.tail))
+  // def *:[B](other: Codec[B]): Codec[B *: A] =
+  //   (other, self).imapN((b, a) => b *: a)(t => (t.head, t.tail))
 
-  def *:[B](other: Decoder[B]): Decoder[B *: A] =
-    (other, self).mapN((b, a) => b *: a)
+  // def *:[B](other: Decoder[B]): Decoder[B *: A] =
+  //   (other, self).mapN((b, a) => b *: a)
 
-  def *:[B](other: Encoder[B]): Encoder[B *: A] =
-    (other, self).contramapN(t => (t.head, t.tail))
+  // def *:[B](other: Encoder[B]): Encoder[B *: A] =
+  //   (other, self).contramapN(t => (t.head, t.tail))
 
   def pimap[P <: Product](
     using m: Mirror.ProductOf[P] { type MirroredElemTypes = A }
@@ -34,14 +34,14 @@ class CodecOps[A <: Tuple](self: Codec[A]) {
 
 class CodecOpsLow[A](self: Codec[A]) {
 
-  def *:[B](other: Codec[B]): Codec[B *: A *: EmptyTuple] =
-    other product self
+  // def *:[B](other: Codec[B]): Codec[B *: A *: EmptyTuple] =
+  //   other product self
 
-  def *:[B](other: Decoder[B]): Decoder[B *: A *: EmptyTuple] =
-    other product self
+  // def *:[B](other: Decoder[B]): Decoder[B *: A *: EmptyTuple] =
+  //   other product self
 
-  def *:[B](other: Encoder[B]): Encoder[B *: A *: EmptyTuple] =
-    other product self
+  // def *:[B](other: Encoder[B]): Encoder[B *: A *: EmptyTuple] =
+  //   other product self
 
 }
 

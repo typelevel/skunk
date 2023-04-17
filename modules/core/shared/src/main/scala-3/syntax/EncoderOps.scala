@@ -10,8 +10,8 @@ import scala.deriving.Mirror
 
 class EncoderOps[A <: Tuple](self: Encoder[A]) {
 
-  def *:[B](other: Encoder[B]): Encoder[B *: A] =
-    (other, self).contramapN[B *: A] { case b *: a => (b, a) }
+  // def *:[B](other: Encoder[B]): Encoder[B *: A] =
+  //   (other, self).contramapN[B *: A] { case b *: a => (b, a) }
 
   def pcontramap[P <: Product](
     using m: Mirror.ProductOf[P] { type MirroredElemTypes = A }
@@ -29,8 +29,8 @@ class EncoderOps[A <: Tuple](self: Encoder[A]) {
 
 class EncoderOpsLow[A](self: Encoder[A]) {
 
-  def *:[B](other: Encoder[B]): Encoder[B *: A *: EmptyTuple] =
-    other product self
+  // def *:[B](other: Encoder[B]): Encoder[B *: A *: EmptyTuple] =
+  //   other product self
 
 }
 

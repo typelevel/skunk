@@ -10,8 +10,8 @@ import scala.deriving.Mirror
 
 class DecoderOps[A <: Tuple](self: Decoder[A]) {
 
-  def *:[B](other: Decoder[B]): Decoder[B *: A] =
-    (other, self).mapN(_ *: _)
+  // def *:[B](other: Decoder[B]): Decoder[B *: A] =
+  //   (other, self).mapN(_ *: _)
 
   def pmap[P <: Product](
     using m: Mirror.ProductOf[P] { type MirroredElemTypes = A }
@@ -29,8 +29,8 @@ class DecoderOps[A <: Tuple](self: Decoder[A]) {
 
 class DecoderOpsLow[A](self: Decoder[A]) {
 
-  def *:[B](other: Decoder[B]): Decoder[B *: A *: EmptyTuple] =
-    other product self
+  // def *:[B](other: Decoder[B]): Decoder[B *: A *: EmptyTuple] =
+  //   other product self
 
 }
 

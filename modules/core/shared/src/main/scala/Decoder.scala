@@ -6,6 +6,7 @@ package skunk
 
 import cats._
 import cats.syntax.all._
+import org.typelevel.twiddles.TwiddleSyntax
 import skunk.data.Type
 import skunk.util.Twiddler
 
@@ -75,7 +76,7 @@ trait Decoder[A] { outer =>
 }
 
 /** @group Companions */
-object Decoder {
+object Decoder extends TwiddleSyntax[Decoder] {
 
   /**
    * An error indicating that decoding a value starting at column `offset` and spanning `length`

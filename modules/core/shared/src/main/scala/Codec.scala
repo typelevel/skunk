@@ -7,6 +7,7 @@ package skunk
 import cats._
 import cats.data._
 import cats.syntax.all._
+import org.typelevel.twiddles.TwiddleSyntax
 import skunk.data.{Arr,Type}
 import skunk.util.Twiddler
 
@@ -66,7 +67,7 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
 }
 
 /** @group Companions */
-object Codec {
+object Codec extends TwiddleSyntax[Codec] {
 
   /** @group Constructors */
   def apply[A](

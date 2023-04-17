@@ -19,10 +19,7 @@ object Main extends IOApp {
   case class Country(name: String, code: String, indepyear: Option[Short], population: Int)
 
   val country: Codec[Country] =
-    (varchar ~ bpchar(3) ~ int2.opt ~ int4).gimap[Country]
-
-  def putStrLn(a: Any): IO[Unit] =
-    IO(println(a))
+    (varchar *: bpchar(3) *: int2.opt *: int4).as[Country]
 
   def anyLinesStdOut[F[_]: std.Console]: Pipe[F, Any, Unit] =
     _.map(_.toString).printlns
@@ -50,7 +47,7 @@ object Main extends IOApp {
     """.query(country)
 
   def clientEncodingChanged(enc: String): IO[Unit] =
-    putStrLn(s">>>> CLIENT ENCODING IS NOW: $enc")
+    IO.println(s">>>> CLIENT ENCODING IS NOW: $enc")
 
   def hmm[F[_]: Concurrent: std.Console](ps: PreparedQuery[F, Int ~ String, _]): F[Unit] =
     (ps.stream(100000 ~ "%", 4).take(25) either ps.stream(10000 ~ "%", 4))
@@ -75,10 +72,10 @@ object Main extends IOApp {
           f1  <- s.parameter("client_encoding").evalMap(clientEncodingChanged).compile.drain.start
           st  <- s.transactionStatus.get
           enc <- s.parameters.get.map(_.get("client_encoding"))
-          _   <- putStrLn(s"Logged in! Transaction status is $st and client_encoding is $enc")
+          _   <- IO.println(s"Logged in! Transaction status is $st and client_encoding is $enc")
           f2  <- s.channel(id"foo").listen(10).through(anyLinesStdOut).compile.drain.start
           rs  <- s.execute(sql"select name, code, indepyear, population from country limit 20".query(country))
-          _   <- rs.traverse(putStrLn)
+          _   <- rs.traverse(IO.println)
           _   <- s.execute(sql"set seed = 0.123".command)
           _   <- s.execute(sql"set client_encoding = ISO8859_1".command)
           _   <- s.channel(id"foo").notify("here is a message")
@@ -89,10 +86,10 @@ object Main extends IOApp {
           _   <- f1.cancel // otherwise it will run forever
           _   <- s.execute(sql"select 'x'::bpchar(10)".query(bpchar(10)))
           _   <- s.prepare(sql"select 1".query(int4)).flatMap { _.stream(Void, 10).through(anyLinesStdOut).compile.drain }
-          _   <- putStrLn("Done.")
+          _   <- IO.println("Done.")
         } yield ExitCode.Success
       } *>
-      putStrLn("------------------------- STARTING SECOND SESSION --------") *>
+      IO.println("------------------------- STARTING SECOND SESSION --------") *>
       p.use { s =>
         for {
           _   <- s.execute(sql"set seed = 0.123".command)
