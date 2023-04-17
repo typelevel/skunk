@@ -246,6 +246,25 @@ class CommandTest extends SkunkTest {
         DROP MATERIALIZED VIEW my_foo_mv
        """.command
 
+  val createTrigger: Command[Void] =
+    sql"""
+        CREATE TRIGGER my_earth_trigger
+        AFTER INSERT ON earth
+        FOR EACH ROW EXECUTE PROCEDURE proc() "
+       """.command
+
+  val alterTrigger: Command[Void] =
+    sql"""
+        ALTER TRIGGER my_earth_trigger ON earth
+        RENAME TO my_earth_trigger_renamed;
+       """.command
+
+  val dropTrigger: Command[Void] =
+    sql"""
+        DROP TRIGGER my_earth_trigger_renamed
+        ON my_earth_trigger;
+       """.command
+
   sessionTest("create table, create index, drop index, alter table and drop table") { s =>
     for {
       c <- s.execute(createTable)
@@ -258,6 +277,22 @@ class CommandTest extends SkunkTest {
       _ <- assert("completion",  c == Completion.AlterTable)
       c <- s.execute(dropTable)
       _ <- assert("completion",  c == Completion.DropTable)
+      _ <- s.assertHealthy
+    } yield "ok"
+  }
+
+  sessionTest("create and drop trigger") { s =>
+    for {
+      _ <- s.execute(createTable)
+      _ <- s.execute(createProcedure)
+      c <- s.execute(createTrigger)
+      _ <- assert("completion",  c == Completion.CreateTrigger)
+      c <- s.execute(alterTrigger)
+      _ <- assert("completion", c == Completion.AlterTrigger)
+      c <- s.execute(dropTrigger)
+      _ <- assert("completion",  c == Completion.DropTrigger)
+      _ <- s.execute(dropTable)
+      _ <- s.execute(dropProcedure)
       _ <- s.assertHealthy
     } yield "ok"
   }
