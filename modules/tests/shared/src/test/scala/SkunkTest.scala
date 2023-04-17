@@ -23,9 +23,9 @@ abstract class SkunkTest(debug: Boolean = false, strategy: Typer.Strategy = Type
     Session.single(
       host        = "localhost",
       port        = 5432,
-      user        = "jimmy",
+      user        = "postgres",
       database    = "world",
-      password    = Some("banana"),
+      password    = Some("1234"),
       strategy    = strategy,
       debug       = debug,
       readTimeout = readTimeout
@@ -38,9 +38,9 @@ abstract class SkunkTest(debug: Boolean = false, strategy: Typer.Strategy = Type
     Session.pooled(
       host        = "localhost",
       port        = 5432,
-      user        = "jimmy",
+      user        = "postgres",
       database    = "world",
-      password    = Some("banana"),
+      password    = Some("1234"),
       max         = 8,
       strategy    = strategy,
       debug       = debug,

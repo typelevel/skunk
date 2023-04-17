@@ -33,6 +33,7 @@ object Completion {
   case object DropType                  extends Completion
   case object AlterType                 extends Completion
   case object CreateFunction            extends Completion
+  case object DropFunction            extends Completion
   case class  Copy(count: Int)          extends Completion
   case object Show                      extends Completion
   case object Do                        extends Completion

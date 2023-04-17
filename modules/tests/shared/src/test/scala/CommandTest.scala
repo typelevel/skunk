@@ -246,23 +246,37 @@ class CommandTest extends SkunkTest {
         DROP MATERIALIZED VIEW my_foo_mv
        """.command
 
+  val createFunction: Command[Void] =
+    sql"""
+        CREATE OR REPLACE FUNCTION my_trigger_func() RETURNS TRIGGER
+            LANGUAGE PLPGSQL
+        AS
+        'BEGIN
+          RAISE NOTICE ''Triggered'';
+          RETURN NEW;
+        END;'
+    """.command
+
+  val dropFunction: Command[Void] =
+    sql"DROP FUNCTION my_trigger_func;".command
+
   val createTrigger: Command[Void] =
     sql"""
-        CREATE TRIGGER my_earth_trigger
-        AFTER INSERT ON earth
-        FOR EACH ROW EXECUTE PROCEDURE proc() "
+        CREATE TRIGGER my_city_trigger
+        AFTER INSERT ON city
+        FOR EACH ROW EXECUTE FUNCTION my_trigger_func();
        """.command
 
   val alterTrigger: Command[Void] =
     sql"""
-        ALTER TRIGGER my_earth_trigger ON earth
-        RENAME TO my_earth_trigger_renamed;
+        ALTER TRIGGER my_city_trigger ON city
+        RENAME TO my_city_trigger_renamed;
        """.command
 
   val dropTrigger: Command[Void] =
     sql"""
-        DROP TRIGGER my_earth_trigger_renamed
-        ON my_earth_trigger;
+        DROP TRIGGER my_city_trigger_renamed
+        ON city;
        """.command
 
   sessionTest("create table, create index, drop index, alter table and drop table") { s =>
@@ -283,16 +297,16 @@ class CommandTest extends SkunkTest {
 
   sessionTest("create and drop trigger") { s =>
     for {
-      _ <- s.execute(createTable)
-      _ <- s.execute(createProcedure)
+      c <- s.execute(createFunction)
+      _ <- assert("completion",  c == Completion.CreateFunction)
       c <- s.execute(createTrigger)
       _ <- assert("completion",  c == Completion.CreateTrigger)
       c <- s.execute(alterTrigger)
       _ <- assert("completion", c == Completion.AlterTrigger)
       c <- s.execute(dropTrigger)
       _ <- assert("completion",  c == Completion.DropTrigger)
-      _ <- s.execute(dropTable)
-      _ <- s.execute(dropProcedure)
+      c <- s.execute(dropFunction)
+      _ <- assert("completion",  c == Completion.DropFunction)
       _ <- s.assertHealthy
     } yield "ok"
   }

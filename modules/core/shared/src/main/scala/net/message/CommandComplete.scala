@@ -67,6 +67,7 @@ object CommandComplete {
     case "DROP TYPE"                  => apply(Completion.DropType)
     case "ALTER TYPE"                 => apply(Completion.AlterType)
     case "CREATE FUNCTION"            => apply(Completion.CreateFunction)
+    case "DROP FUNCTION"              => apply(Completion.DropFunction)
     case "SHOW"                       => apply(Completion.Show)
     case "DO"                         => apply(Completion.Do)
     case "CREATE PROCEDURE"           => apply(Completion.CreateProcedure)
