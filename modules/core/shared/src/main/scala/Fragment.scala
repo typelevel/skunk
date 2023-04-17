@@ -27,7 +27,7 @@ final case class Fragment[A](
       case Right(s) => s
     } .runA(1).value.combineAll
 
-  def query[B](decoder: Decoder[B]): Query[A, B] =
+  def query[B](implicit decoder: Decoder[B]): Query[A, B] =
     Query(sql, origin, encoder, decoder, isDynamic = false)
 
   def queryDynamic: Query[A, List[Option[String]]] =
