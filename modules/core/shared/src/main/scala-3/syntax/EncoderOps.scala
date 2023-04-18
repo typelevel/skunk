@@ -10,15 +10,18 @@ import scala.deriving.Mirror
 
 class EncoderOps[A <: Tuple](self: Encoder[A]) {
 
-  // def *:[B](other: Encoder[B]): Encoder[B *: A] =
-  //   (other, self).contramapN[B *: A] { case b *: a => (b, a) }
-
+  // For binary compatibility with Skunk 0.5 and prior
+  private[syntax] def *:[B](other: Encoder[B]): Encoder[B *: A] =
+    (other, self).contramapN[B *: A] { case b *: a => (b, a) }
+  
+  @deprecated("Use .as[P] instead of .pcontramap[P]", "0.6")
   def pcontramap[P <: Product](
     using m: Mirror.ProductOf[P] { type MirroredElemTypes = A }
   ): Encoder[P] =
     self.contramap(p => Tuple.fromProductTyped(p))
 
   // For binary compatibility with Skunk 0.3.1 and prior
+  @deprecated("Use .as[P] instead of .pcontramap[P]", "0.6")
   private[skunk] def pcontramap[P <: Product](
     using m: Mirror.ProductOf[P],
           i: m.MirroredElemTypes =:= A
@@ -29,8 +32,9 @@ class EncoderOps[A <: Tuple](self: Encoder[A]) {
 
 class EncoderOpsLow[A](self: Encoder[A]) {
 
-  // def *:[B](other: Encoder[B]): Encoder[B *: A *: EmptyTuple] =
-  //   other product self
+  // For binary compatibility with Skunk 0.5 and prior
+  private[syntax] def *:[B](other: Encoder[B]): Encoder[B *: A *: EmptyTuple] =
+    other product self
 
 }
 
@@ -40,7 +44,8 @@ trait ToEncoderOps extends ToEncoderOpsLow {
 }
 
 trait ToEncoderOpsLow {
-  implicit def toEncoderOpsLow[A](self: Encoder[A]): EncoderOpsLow[A] =
+  // For binary compatibility with Skunk 0.5 and prior
+  private[syntax] implicit def toEncoderOpsLow[A](self: Encoder[A]): EncoderOpsLow[A] =
     new EncoderOpsLow(self)
 }
 
