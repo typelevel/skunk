@@ -14,43 +14,43 @@ import openssl._
 private[message] trait ScramPlatform { this: Scram.type =>
   
   def clientFirstBareWithRandomNonce: ByteVector = {
-    val buf = stackalloc[Byte](32)
-    if (RAND_bytes(buf, 32) != 1)
+    val buf = new Array[Byte](32)
+    if (RAND_bytes(buf.at(0), 32) != 1)
       throw new RuntimeException("RAND_bytes")
-    val nonce = ByteVector.view(buf, 32).toBase64
+    val nonce = ByteVector.view(buf).toBase64
     clientFirstBareWithNonce(nonce)
   }
 
-  private[message] def HMAC(key: ByteVector, str: ByteVector): ByteVector = Zone { implicit z =>
+  private[message] def HMAC(key: ByteVector, str: ByteVector): ByteVector = {
     val evpMd = EVP_get_digestbyname(c"SHA256")
     if (evpMd == null)
       throw new RuntimeException("EVP_get_digestbyname")
-    val md = stackalloc[Byte](EVP_MAX_MD_SIZE)
+    val md = new Array[Byte](EVP_MAX_MD_SIZE)
     val mdLen = stackalloc[CUnsignedInt]()
-    if (openssl.HMAC(evpMd, key.toPtr, key.size.toInt, str.toPtr, str.size.toULong, md, mdLen) == null)
+    if (openssl.HMAC(evpMd, key.toArrayUnsafe.at(0), key.size.toInt, str.toArrayUnsafe.at(0), str.size.toULong, md.at(0), mdLen) == null)
       throw new RuntimeException("HMAC")
-    ByteVector.fromPtr(md.asInstanceOf[Ptr[Byte]], (!mdLen).toLong)
+    ByteVector.view(md, 0, (!mdLen).toInt)
   }
 
-  private[message] def H(input: ByteVector): ByteVector = Zone { implicit z =>
-    val md = stackalloc[Byte](EVP_MAX_MD_SIZE)
+  private[message] def H(input: ByteVector): ByteVector = {
+    val md = new Array[Byte](EVP_MAX_MD_SIZE)
     val size = stackalloc[CUnsignedInt]()
     val `type` = EVP_get_digestbyname(c"SHA256")
     if (`type` == null)
       throw new RuntimeException("EVP_get_digestbyname")
-    if (EVP_Digest(input.toPtr, input.size.toULong, md, size, `type`, null) != 1)
+    if (EVP_Digest(input.toArrayUnsafe.at(0), input.size.toULong, md.at(0), size, `type`, null) != 1)
       throw new RuntimeException("EVP_Digest")
-    ByteVector.fromPtr(md, (!size).toLong)
+    ByteVector.view(md, 0, (!size).toInt)
   }
 
-  private[message] def Hi(str: String, salt: ByteVector, iterations: Int): ByteVector = Zone { implicit z =>
+  private[message] def Hi(str: String, salt: ByteVector, iterations: Int): ByteVector = {
     val digest = EVP_get_digestbyname(c"SHA256")
     if (digest == null)
       throw new RuntimeException("EVP_get_digestbyname")
-    val out = stackalloc[Byte](32)
-    if (PKCS5_PBKDF2_HMAC(toCString(str), str.length, salt.toPtr, salt.size.toInt, iterations, digest, 32, out) != 1)
+    val out = new Array[Byte](32)
+    if (PKCS5_PBKDF2_HMAC(str.getBytes.at(0), str.length, salt.toArrayUnsafe.at(0), salt.size.toInt, iterations, digest, 32, out.at(0)) != 1)
       throw new RuntimeException("PKCS5_PBKDF2_HMAC")
-    ByteVector.fromPtr(out, 32)
+    ByteVector.view(out)
   }
 
 }
