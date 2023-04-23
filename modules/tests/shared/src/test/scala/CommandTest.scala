@@ -246,6 +246,39 @@ class CommandTest extends SkunkTest {
         DROP MATERIALIZED VIEW my_foo_mv
        """.command
 
+  val createFunction: Command[Void] =
+    sql"""
+        CREATE OR REPLACE FUNCTION my_trigger_func() RETURNS TRIGGER
+            LANGUAGE PLPGSQL
+        AS
+        'BEGIN
+          RAISE NOTICE ''Triggered'';
+          RETURN NEW;
+        END;'
+    """.command
+
+  val dropFunction: Command[Void] =
+    sql"DROP FUNCTION my_trigger_func;".command
+
+  val createTrigger: Command[Void] =
+    sql"""
+        CREATE TRIGGER my_city_trigger
+        AFTER INSERT ON city
+        FOR EACH ROW EXECUTE FUNCTION my_trigger_func();
+       """.command
+
+  val alterTrigger: Command[Void] =
+    sql"""
+        ALTER TRIGGER my_city_trigger ON city
+        RENAME TO my_city_trigger_renamed;
+       """.command
+
+  val dropTrigger: Command[Void] =
+    sql"""
+        DROP TRIGGER my_city_trigger_renamed
+        ON city;
+       """.command
+
   sessionTest("create table, create index, drop index, alter table and drop table") { s =>
     for {
       c <- s.execute(createTable)
@@ -258,6 +291,22 @@ class CommandTest extends SkunkTest {
       _ <- assert("completion",  c == Completion.AlterTable)
       c <- s.execute(dropTable)
       _ <- assert("completion",  c == Completion.DropTable)
+      _ <- s.assertHealthy
+    } yield "ok"
+  }
+
+  sessionTest("create and drop trigger") { s =>
+    for {
+      c <- s.execute(createFunction)
+      _ <- assert("completion",  c == Completion.CreateFunction)
+      c <- s.execute(createTrigger)
+      _ <- assert("completion",  c == Completion.CreateTrigger)
+      c <- s.execute(alterTrigger)
+      _ <- assert("completion", c == Completion.AlterTrigger)
+      c <- s.execute(dropTrigger)
+      _ <- assert("completion",  c == Completion.DropTrigger)
+      c <- s.execute(dropFunction)
+      _ <- assert("completion",  c == Completion.DropFunction)
       _ <- s.assertHealthy
     } yield "ok"
   }
