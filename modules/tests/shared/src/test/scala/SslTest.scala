@@ -44,6 +44,7 @@ class SslTest extends ffstest.FTest {
       database = "world",
       password = Some("banana"),
       ssl      = SSL.System,
+      debug = true
     ).use(_ => IO.unit).assertFailsWith[SSLException].as("sigh") // TODO! Better failure!
   }
 
