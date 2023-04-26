@@ -432,12 +432,11 @@ class CommandTest extends SkunkTest {
 
   sessionTest("set constraints") { s =>
     s.transaction.use { _ =>
-      for{
+      for {
         c <- s.execute(sql"set constraints all deferred".command)
         _ <- assert("completion", c == Completion.SetConstraints)
-        _ <- s.assertHealthy
       } yield "ok"
-    }
+    } >> s.assertHealthy
   }
 
   sessionTest("insert, update and delete record") { s =>
