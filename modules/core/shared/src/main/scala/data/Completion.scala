@@ -59,6 +59,7 @@ object Completion {
   case object CreateTrigger             extends Completion
   case object AlterTrigger              extends Completion
   case object DropTrigger               extends Completion
+  case object SetConstraints            extends Completion
   // more ...
 
   /**
