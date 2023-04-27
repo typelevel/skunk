@@ -55,10 +55,10 @@ object Minimal2 extends IOApp {
       List("A%", "B%").parTraverse(p => lookup(p, s))
     } as ExitCode.Success
 
-  def getTracer[F[_]: Sync: LiftIO]: Resource[F, Tracer[F]] = {
+  def getTracer[F[_]: Async: LiftIO]: Resource[F, Tracer[F]] = {
     Resource
       .eval(Sync[F].delay(GlobalOpenTelemetry.get))
-      .evalMap(OtelJava.forSync[F])
+      .evalMap(OtelJava.forAsync[F])
       .evalMap(_.tracerProvider.tracer("skunk-http4s-example").get)
   }
 
