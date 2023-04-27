@@ -87,3 +87,82 @@ A `Session` is ultimately a TCP Socket, and as such a number of error conditions
 
 Note that if you wish to **limit statement execution time**, it's best to use the `statement_timeout` session parameter (settable via SQL or via `parameters` above), which will raise a server-side exception on expiration and will _not_ invalidate the session.
 
+
+## For beginners
+
+This section aims to help a beginner (me), get and use skunks types in the right place by skteching out a very simplistic, strongly opinionated app design. There may well be many other, and better, ways of achieving the same. We're going to assume we're writing an http4s app backed by a postgres database, and leave a "type sketch" of the program.
+
+Our starting point once configuration is loaded, is likely to be this `val dbAccess = Resource[IO, Resource[IO, Session[IO]]]`. 
+
+Which is a program that when run, yields a `Resource[IO, Session[IO]]`. 
+
+That is, in turn a program that when run, will yield a `Session[IO]`. We can use a `Session[IO]` to run a [query](../tutorial/Query.md). Our question, in which part of our app, does each of these types belong?
+
+@@@ note { title=Pro tip }
+My mental model, was greatly helped by defining and using my own type alias `type MySessionPool = Resource[IO, Session[IO]]`
+@@@
+
+server.scala
+```scala
+case class DBConfig(???)
+val dbConfig: IO[DBConfig] = ???
+val dbAccess: Resource[IO, MySessionPool] = for {
+        c <- Resource.eval(dbConfig)
+        s <- Session.pooled[IO](???)
+      } yield {
+        s
+      }
+
+val routesWithDb : Resource[cats.effect.IO, HttpRoutes[IO]] = dbAccess.flatMap { sessionPool => 
+   val service : AnHttpServiceImpl[IO] = AnHttpServiceImpl(sessionPool) 
+   val getStuffRoute: HttpRoutes[IO] = HttpRoutes.of[IO] { 
+      case req @ GET -> "stuff" =>
+        service.getStuff()
+    }
+    getStuffRoute
+}
+```
+And the `routesWithDb` can be given into the server as the HttpApp. We'll now want to look at the service implementation that sits underneath our routes. We've provided our service, with `MySessionPool`, which is a program that knows how to get a session.
+
+AnHttpServiceImpl.scala
+```scala
+trait AnHttpService[IO] {
+  def getStuff(): IO[List[Stuff]]
+}
+case class AnHttpServiceImpl(pool: MySessionPool) extends AnHttpService[IO] {
+
+  lazy val db = StuffDb.fromSessionPool(pool)
+
+  def getStuff(): IO[List[Stuff]] = 
+    db.getStuffs().map(???)
+
+}
+```
+
+Note that all we're really doing here, is drilling the session pool, straight through the service layer, and into what i think of as the DB layer. 
+
+db.stuff.scala
+```scala
+trait StuffDb {
+  def getStuffs: IO[List[Stuff]]
+}
+
+object StuffDb {
+
+  private val stuffCodec : Codec[Stuff] = (text *: int4).pimap[Stuff]
+
+  private lazy val allStuff = {
+    sql" SELECT * from stuff_table".query[Stuff](stuffcodec)
+  }
+
+  def fromSessionPool(sp: MySessionPool): StuffDb = new StuffDb {
+    def getStuffs(): IO[List[Stuff]] = sp.use{ s =>
+      s.prepare(allStuff).flatMap{
+        _.stream(Void, 128).compile.toList
+      }
+    }
+  }
+
+}
+```
+For me personally, this pattern appears to have been a reasonably maintainable starting point.
