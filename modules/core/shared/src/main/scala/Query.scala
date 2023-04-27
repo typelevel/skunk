@@ -67,6 +67,7 @@ final case class Query[A, B](
   def map[D](g: B => D): Query[A, D] =
     dimap[A, D](identity)(g)
 
+  @deprecated("Use query(a *: b *:c).as[CaseClass] instead of query(a ~ b ~ c).gmap[CaseClass]", "0.6")
   def gmap[D](implicit ev: Twiddler.Aux[D, B]): Query[A, D] =
     map(ev.from)
 

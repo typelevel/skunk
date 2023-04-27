@@ -34,7 +34,7 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
       override val types: List[Type]         = outer.types ++ fb.types
     }
 
-  /** Shorthand for `product`. */
+  /** Shorthand for `product`. Note: consider using `a *: b *: c` instead of `a ~ b ~ c`. */
   def ~[B](fb: Codec[B]): Codec[A ~ B] =
     product(fb)
 
@@ -47,6 +47,7 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
     Codec(b => encode(g(b)), emap(f).decode(_, _), types)
 
   /** Adapt this `Codec` from twiddle-list type A to isomorphic case-class type `B`. */
+  @deprecated("Use (a *: b *: c).as[CaseClass] instead of (a ~ b ~ c).gimap[CaseClass]", "0.6")
   def gimap[B](implicit ev: Twiddler.Aux[B, A]): Codec[B] =
     imap(ev.from)(ev.to)
 

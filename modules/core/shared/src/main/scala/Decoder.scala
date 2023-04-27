@@ -44,6 +44,7 @@ trait Decoder[A] { outer =>
     emap(a => Either.cond(f(a), a, "Filter condition failed."))
 
   /** Adapt this `Decoder` from twiddle-list type A to isomorphic case-class type `B`. */
+  @deprecated("Use (a *: b *: c).as[CaseClass] instead of (a ~ b ~ c).gmap[CaseClass]", "0.6")
   def gmap[B](implicit ev: Twiddler.Aux[B, A]): Decoder[B] =
     map(ev.from)
 

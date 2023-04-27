@@ -18,7 +18,7 @@ class CommandTest extends SkunkTest {
   case class City(id: Int, name: String, code: String, district: String, pop: Int)
 
   val city: Codec[City] =
-    (int4 ~ varchar ~ bpchar(3) ~ varchar ~ int4).gimap[City]
+    (int4 *: varchar *: bpchar(3) *: varchar *: int4).as[City]
 
   val Garin = City(5000, "Garin", "ARG", "Escobar", 11405)
   val Garin2 = City(5001, "Garin2", "ARG", "Escobar", 11405)

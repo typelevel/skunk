@@ -52,7 +52,7 @@ object AppliedFragments extends IOApp {
   }
 
   case class Country(name: String, pop: Int, capital: Option[Int])
-  val country = (varchar ~ int4 ~ int4.opt).gimap[Country]
+  val country = (varchar *: int4 *: int4.opt).as[Country]
 
   def topFive(s: Session[IO], name: Option[String], pop: Option[Int], capital: Option[Option[String]]): IO[Unit] =
     for {

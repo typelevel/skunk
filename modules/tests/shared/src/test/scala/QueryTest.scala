@@ -67,9 +67,9 @@ class QueryTest extends SkunkTest {
         }
     }
 
-    sessionTest("gmap") { s =>
+    sessionTest("as") { s =>
         val f = sql"select $int4"
-        s.prepare(f.query(int4).gmap[Number]).flatMap { ps =>
+        s.prepare(f.query(int4).as[Number]).flatMap { ps =>
             for {
                 n <- ps.unique(123)
                 _ <- assertEqual("123", n, Number(123))
