@@ -14,7 +14,6 @@ import org.scalacheck.Cogen
 import munit.DisciplineSuite
 import cats.laws.discipline.TraverseTests
 import cats.kernel.laws.discipline.EqTests
-import scala.collection.compat._
 
 class ArrTest extends DisciplineSuite {
 

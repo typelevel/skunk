@@ -4,7 +4,6 @@
 
 package example
 
-import cats._
 import cats.effect._
 import cats.syntax.all._
 import skunk._, skunk.implicits._, skunk.codec.all.int4
