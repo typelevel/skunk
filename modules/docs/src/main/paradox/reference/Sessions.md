@@ -1,6 +1,6 @@
 ```scala mdoc:invisible
 import cats.effect._, skunk._, skunk.net.message.StartupMessage
-implicit def dummyTrace: natchez.Trace[IO] = ???
+implicit def dummyTrace: org.typelevel.otel4s.trace.Tracer[IO] = ???
 ```
 
 # Sessions

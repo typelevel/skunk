@@ -4,9 +4,11 @@ import cats.implicits._
 import skunk._
 import skunk.implicits._
 import skunk.codec.all._
+import org.typelevel.otel4s.trace.Tracer
 import natchez.Trace.Implicits.noop
 import fs2.Stream
 val s: Session[IO] = null
+implicit val tracer: Tracer[IO] = Tracer.noop
 ```
 
 # Commands
@@ -195,7 +197,7 @@ Here is a complete program listing that demonstrates our knowledge thus far, usi
 import cats.Monad
 import cats.effect._
 import cats.syntax.all._
-import natchez.Trace.Implicits.noop
+import org.typelevel.otel4s.trace.Tracer
 import skunk._
 import skunk.codec.all._
 import skunk.implicits._
@@ -242,6 +244,8 @@ object PetService {
 }
 
 object CommandExample extends IOApp {
+
+  implicit val tracer: Tracer[IO] = Tracer.noop
 
   // a source of sessions
   val session: Resource[IO, Session[IO]] =
