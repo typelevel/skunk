@@ -80,6 +80,21 @@ class CommandTest extends SkunkTest {
       ALTER TABLE earth RENAME COLUMN id TO pk
       """.command
 
+  val createType: Command[Void] =
+    sql"""
+      CREATE TYPE season AS ENUM ('winter', 'spring', 'summer')
+      """.command
+
+  val alterType: Command[Void] =
+    sql"""
+      ALTER TYPE season ADD VALUE 'autumn'
+      """.command
+  
+  val dropType: Command[Void] =
+    sql"""
+      DROP TYPE season
+      """.command
+
   val dropTable: Command[Void] =
     sql"""
       DROP TABLE earth
@@ -194,6 +209,16 @@ class CommandTest extends SkunkTest {
         DROP ROLE skunk_role
        """.command
 
+  val createExtension: Command[Void] =
+    sql"""
+        CREATE EXTENSION IF NOT EXISTS "uuid-ossp"
+       """.command
+
+  val dropExtension: Command[Void] =
+    sql"""
+        DROP EXTENSION "uuid-ossp"
+       """.command
+
   val createMaterializedView: Command[Void] =
     sql"""
         CREATE MATERIALIZED VIEW IF NOT EXISTS my_foo_mv
@@ -221,6 +246,39 @@ class CommandTest extends SkunkTest {
         DROP MATERIALIZED VIEW my_foo_mv
        """.command
 
+  val createFunction: Command[Void] =
+    sql"""
+        CREATE OR REPLACE FUNCTION my_trigger_func() RETURNS TRIGGER
+            LANGUAGE PLPGSQL
+        AS
+        'BEGIN
+          RAISE NOTICE ''Triggered'';
+          RETURN NEW;
+        END;'
+    """.command
+
+  val dropFunction: Command[Void] =
+    sql"DROP FUNCTION my_trigger_func;".command
+
+  val createTrigger: Command[Void] =
+    sql"""
+        CREATE TRIGGER my_city_trigger
+        AFTER INSERT ON city
+        FOR EACH ROW EXECUTE FUNCTION my_trigger_func();
+       """.command
+
+  val alterTrigger: Command[Void] =
+    sql"""
+        ALTER TRIGGER my_city_trigger ON city
+        RENAME TO my_city_trigger_renamed;
+       """.command
+
+  val dropTrigger: Command[Void] =
+    sql"""
+        DROP TRIGGER my_city_trigger_renamed
+        ON city;
+       """.command
+
   sessionTest("create table, create index, drop index, alter table and drop table") { s =>
     for {
       c <- s.execute(createTable)
@@ -237,12 +295,40 @@ class CommandTest extends SkunkTest {
     } yield "ok"
   }
 
+  sessionTest("create and drop trigger") { s =>
+    for {
+      c <- s.execute(createFunction)
+      _ <- assert("completion",  c == Completion.CreateFunction)
+      c <- s.execute(createTrigger)
+      _ <- assert("completion",  c == Completion.CreateTrigger)
+      c <- s.execute(alterTrigger)
+      _ <- assert("completion", c == Completion.AlterTrigger)
+      c <- s.execute(dropTrigger)
+      _ <- assert("completion",  c == Completion.DropTrigger)
+      c <- s.execute(dropFunction)
+      _ <- assert("completion",  c == Completion.DropFunction)
+      _ <- s.assertHealthy
+    } yield "ok"
+  }
+
   sessionTest("create and drop schema") { s =>
     for {
       c <- s.execute(createSchema)
       _ <- assert("completion",  c == Completion.CreateSchema)
       c <- s.execute(dropSchema)
       _ <- assert("completion",  c == Completion.DropSchema)
+      _ <- s.assertHealthy
+    } yield "ok"
+  }
+
+  sessionTest("create, alter and drop type") { s =>
+    for {
+      c <- s.execute(createType)
+      _ <- assert("completion",  c == Completion.CreateType)
+      c <- s.execute(alterType)
+      _ <- assert("completion",  c == Completion.AlterType)
+      c <- s.execute(dropType)
+      _ <- assert("completion",  c == Completion.DropType)
       _ <- s.assertHealthy
     } yield "ok"
   }
@@ -327,12 +413,30 @@ class CommandTest extends SkunkTest {
     } yield "ok"
   }
 
+  sessionTest("create extension, drop extension") { s =>
+    for {
+      c <- s.execute(createExtension)
+      _ <- assert("completion", c == Completion.CreateExtension)
+      c <- s.execute(dropExtension)
+      _ <- assert("completion", c == Completion.DropExtension)
+    } yield "ok"
+  }
+
   sessionTest("do command") { s =>
     for{
       c <- s.execute(doCommand)
       _ <- assert("completion", c == Completion.Do)
       _ <- s.assertHealthy
     } yield "ok"
+  }
+
+  sessionTest("set constraints") { s =>
+    s.transaction.use { _ =>
+      for {
+        c <- s.execute(sql"set constraints all deferred".command)
+        _ <- assert("completion", c == Completion.SetConstraints)
+      } yield "ok"
+    } >> s.assertHealthy
   }
 
   sessionTest("insert, update and delete record") { s =>

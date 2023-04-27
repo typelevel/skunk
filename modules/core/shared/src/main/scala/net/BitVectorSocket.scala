@@ -35,31 +35,30 @@ object BitVectorSocket {
    * @param socket the underlying `Socket`
    * @group Constructors
    */
-  def fromSocket[F[_]](
-    socket:       Socket[F],
-    readTimeout:  Duration
-  )(
-    implicit ev: Temporal[F]
-  ): BitVectorSocket[F] =
+  def fromSocket[F[_]](socket: Socket[F], readTimeout: Duration, carryRef: Ref[F, Chunk[Byte]])(implicit F: Temporal[F]): BitVectorSocket[F] =
     new BitVectorSocket[F] {
-
-      val withTimeout: F[Chunk[Byte]] => F[Chunk[Byte]] = readTimeout match {
+      private val withTimeout: F[Option[Chunk[Byte]]] => F[Option[Chunk[Byte]]] = readTimeout match {
         case _: Duration.Infinite   => identity
         case finite: FiniteDuration => _.timeout(finite)
       }
 
-      def readBytes(n: Int): F[Array[Byte]] =
-        withTimeout(socket.readN(n)).flatMap { c =>
-          if (c.size == n) c.toArray.pure[F]
-          else ev.raiseError(EofException(n, c.size))
+      override def read(nBytes: Int): F[BitVector] =
+        // nb: unsafe for concurrent reads but protected by protocol mutex
+        carryRef.get.flatMap(carry => readUntilN(nBytes, carry))
+
+      private def readUntilN(nBytes: Int, carry: Chunk[Byte]): F[BitVector] =
+        if (carry.size < nBytes) {
+          withTimeout(socket.read(8192)).flatMap {
+            case Some(bytes) => readUntilN(nBytes, carry ++ bytes)
+            case None => F.raiseError(EofException(nBytes, carry.size.toInt))
+          }
+        } else {
+          val (output, remainder) = carry.splitAt(nBytes)
+          carryRef.set(remainder).as(output.toBitVector)
         }
 
-      override def read(nBytes: Int): F[BitVector] =
-        readBytes(nBytes).map(BitVector(_))
-
       override def write(bits: BitVector): F[Unit] =
-        socket.write(Chunk.array(bits.toByteArray))
-
+        socket.write(Chunk.byteVector(bits.bytes))
     }
 
   /**
@@ -91,7 +90,8 @@ object BitVectorSocket {
     for {
       sock <- sock
       sockʹ <- sslOptions.fold(sock.pure[Resource[F, *]])(SSLNegotiation.negotiateSSL(sock, _))
-    } yield fromSocket(sockʹ, readTimeout)
+      carry <- Resource.eval(Ref.of(Chunk.empty[Byte]))
+    } yield fromSocket(sockʹ, readTimeout, carry)
 
   }
 }

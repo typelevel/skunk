@@ -3,7 +3,7 @@ ThisBuild / tlBaseVersion := "0.5"
 // Our Scala versions.
 lazy val `scala-2.12` = "2.12.17"
 lazy val `scala-2.13` = "2.13.10"
-lazy val `scala-3.0`  = "3.2.1"
+lazy val `scala-3.0`  = "3.2.2"
 
 ThisBuild / scalaVersion       := `scala-2.13`
 ThisBuild / crossScalaVersions :=
@@ -26,11 +26,7 @@ ThisBuild / nativeBrewInstallCond := Some("matrix.project == 'rootNative'")
 
 lazy val setupCertAndDocker = Seq(
   WorkflowStep.Run(
-    commands = List("chmod 600 world/server.key", "sudo chown 999 world/server.key"),
-    name = Some("Set up cert permissions"),
-  ),
-  WorkflowStep.Run(
-    commands = List("docker-compose up -d"),
+    commands = List("export SERVER_KEY=$(cat world/server.key)", "export SERVER_CERT=$(cat world/server.crt)", "docker-compose up -d"),
     name = Some("Start up Postgres"),
   )
 )
@@ -72,9 +68,14 @@ ThisBuild / libraryDependencySchemes ++= Seq(
   "org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always
 )
 
+import com.typesafe.tools.mima.core._
+ThisBuild / mimaBinaryIssueFilters ++= List(
+  ProblemFilters.exclude[DirectMissingMethodProblem]("skunk.net.BitVectorSocket.fromSocket")
+)
+
 // This is used in a couple places
-lazy val fs2Version = "3.5.0"
-lazy val natchezVersion = "0.3.0"
+lazy val fs2Version = "3.6.1"
+lazy val natchezVersion = "0.3.1"
 lazy val openTelemetryVersion = "1.22.0"
 lazy val otel4sVersion = "0.1.0"
 
@@ -127,11 +128,11 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     scalacOptions ~= (_.filterNot(_ == "-source:3.0-migration")),
     libraryDependencies ++= Seq(
       "org.typelevel"          %%% "cats-core"               % "2.9.0",
-      "org.typelevel"          %%% "cats-effect"             % "3.4.5",
+      "org.typelevel"          %%% "cats-effect"             % "3.4.9",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
-      "org.scodec"             %%% "scodec-bits"             % "1.1.34",
-      "org.scodec"             %%% "scodec-core"             % (if (tlIsScala3.value) "2.2.0" else "1.11.10"),
+      "org.scodec"             %%% "scodec-bits"             % "1.1.37",
+      "org.scodec"             %%% "scodec-core"             % (if (tlIsScala3.value) "2.2.1" else "1.11.10"),
       "org.scodec"             %%% "scodec-cats"             % "1.2.0",
       "org.typelevel"          %%% "otel4s-core-trace"       % otel4sVersion,
       "org.tpolecat"           %%% "sourcepos"               % "1.1.0",
@@ -157,7 +158,7 @@ lazy val refined = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "eu.timepit" %%% "refined" % "0.10.1",
+      "eu.timepit" %%% "refined" % "0.10.3",
     )
   )
 
@@ -170,8 +171,8 @@ lazy val circe = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .settings(
     name := "skunk-circe",
     libraryDependencies ++= Seq(
-      "io.circe" %%% "circe-core"   % "0.14.3",
-      "io.circe" %%% "circe-parser" % "0.14.3"
+      "io.circe" %%% "circe-core"   % "0.14.5",
+      "io.circe" %%% "circe-parser" % "0.14.5"
     )
   )
 
@@ -206,7 +207,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   )
   .nativeEnablePlugins(ScalaNativeBrewedConfigPlugin)
   .nativeSettings(
-    libraryDependencies += "com.armanbilge" %%% "epollcat" % "0.1.3",
+    libraryDependencies += "com.armanbilge" %%% "epollcat" % "0.1.4",
     Test / nativeBrewFormulas ++= Set("s2n", "utf8proc"),
     Test / envVars ++= Map("S2N_DONT_MLOCK" -> "1")
   )

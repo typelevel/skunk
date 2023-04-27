@@ -12,7 +12,7 @@ import cats.Eq
 import scala.concurrent.duration._
 import skunk.data.Type
 
-class QueryTest extends SkunkTest{
+class QueryTest extends SkunkTest {
 
     case class Number(value: Int)
     implicit val numberEq: Eq[Number] = Eq.by(_.value)
@@ -128,5 +128,4 @@ class QueryTest extends SkunkTest{
             }
         } yield "ok"
     }
-
 }

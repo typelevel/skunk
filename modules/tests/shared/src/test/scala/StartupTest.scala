@@ -5,13 +5,12 @@
 package tests
 
 import cats.effect._
+import com.comcast.ip4s.UnknownHostException
 import fs2.io.net.ConnectException
 import org.typelevel.otel4s.trace.Tracer
 import skunk._
 import skunk.exception.SkunkException
 import skunk.exception.StartupException
-
-import java.io.IOException
 
 class StartupTest extends ffstest.FTest {
 
@@ -256,6 +255,6 @@ class StartupTest extends ffstest.FTest {
       host     = "blergh",
       user     = "bob",
       database = "nobody cares",
-    ).use(_ => IO.unit).assertFailsWith[IOException] // ideally an `UnknownHostException`
+    ).use(_ => IO.unit).assertFailsWith[UnknownHostException]
   }
 }
