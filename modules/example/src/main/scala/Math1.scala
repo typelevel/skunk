@@ -6,7 +6,7 @@ package example
 
 import cats.effect._
 import cats.syntax.all._
-import skunk.Session
+import skunk._
 import skunk.implicits._
 import skunk.codec.numeric.{ int4, float8 }
 import natchez.Trace.Implicits.noop
