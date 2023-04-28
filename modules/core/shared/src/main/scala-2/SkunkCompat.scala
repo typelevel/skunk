@@ -4,7 +4,7 @@
 
 package skunk
 
-private[skunk] trait SkunkPlatform {
+private[skunk] trait SkunkCompat {
   // Provide aliases for tuple polyfills so folks don't need to import org.typelevel.twiddles._
 
   type Tuple = org.typelevel.twiddles.Tuple

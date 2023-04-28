@@ -122,7 +122,7 @@ import cats.effect.Resource
  * @groupname Companions Companion Objects
  * @groupprio Companions 999
  */
-package object skunk extends SkunkPlatform {
+package object skunk extends SkunkCompat {
 
   // we can use this to defeat value discarding warnings for erasable proof terms
   private[skunk] def void(a: Any*): Unit = (a, ())._2
