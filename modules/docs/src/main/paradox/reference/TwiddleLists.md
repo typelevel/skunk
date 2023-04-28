@@ -80,15 +80,13 @@ res5: ((String, Int), Boolean) = (("Bob", 42), true)
 res6: Person = Person("Bob", 42, true)
 ```
 
-`Decoder`s, `Encoder`s, and `Codec`s use this facility to provide `gmap`, `gcontramap`, and `gimap`, respectively, which allow quick adaptation of a twiddle-list `Codec` (for instance) to one that maps to/from a case class. The `g` stands for "generic".
+`Decoder`s, `Encoder`s, and `Codec`s use this facility to provide `as`, which allows quick adaptation of a twiddle-list `Codec` (for instance) to one that maps to/from a case class.
 
 ```scala
-// Note that the ~ method on Codec is an alias for Apply.product,
-// so Codec[A] ~ Codec[B] yields Codec[A ~ B].
-@ val codec = varchar ~ int4 ~ bool
-codec: Codec[((String, Int), Boolean)] = Codec(varchar, int4, bool)
+@ val codec = varchar *: int4 *: bool
+codec: Codec[String *: Int *: Boolean] = Codec(varchar, int4, bool)
 
 // Since `Person` has the same structure we can gimap to it.
-@ codec.gimap[Person]
+@ codec.as[Person]
 res7: Codec[Person] = Codec(varchar, int4, bool)
 ```

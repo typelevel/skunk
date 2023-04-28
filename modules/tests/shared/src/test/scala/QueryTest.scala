@@ -11,6 +11,7 @@ import tests.SkunkTest
 import cats.Eq
 import scala.concurrent.duration._
 import skunk.data.Type
+import skunk.feature.legacyCommandSyntax
 
 class QueryTest extends SkunkTest {
 
@@ -89,7 +90,7 @@ class QueryTest extends SkunkTest {
 
     sessionTest("gcontramap") { s =>
         val f = sql"select $int4"
-        s.prepare(f.query(int4).gcontramap[Number]).flatMap { ps =>
+        s.prepare(f.query(int4).contramapAs[Number]).flatMap { ps =>
             for {
                 n <- ps.unique(Number(123))
                 _ <- assertEqual("123", n, 123)

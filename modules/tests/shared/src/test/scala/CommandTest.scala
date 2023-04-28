@@ -11,6 +11,7 @@ import skunk.data.Completion
 import skunk.implicits._
 import cats.Contravariant
 import fs2._
+import org.typelevel.twiddles._ // TODO
 import skunk.exception.UnexpectedRowsException
 
 class CommandTest extends SkunkTest {
@@ -36,7 +37,7 @@ class CommandTest extends SkunkTest {
         INSERT INTO city
         VALUES ($int4, $varchar, ${bpchar(3)}, $varchar, $int4)
       """.command.contramap {
-            case c => c.id ~ c.name ~ c.code ~ c.district ~ c.pop
+            c => c.id *: c.name *: c.code *: c.district *: c.pop *: EmptyTuple
           }
 
   val insertCity2a: Command[City] =
@@ -46,8 +47,21 @@ class CommandTest extends SkunkTest {
           VALUES ($int4, $varchar, ${bpchar(3)}, $varchar, $int4)
         """.command
     ) {
-      case c => c.id ~ c.name ~ c.code ~ c.district ~ c.pop
+      c => c.id *: c.name *: c.code *: c.district *: c.pop *: EmptyTuple
     }
+
+  {
+    import skunk.feature.legacyCommandSyntax
+    val insertCity2b: Command[City] =
+      Contravariant[Command].contramap(
+        sql"""
+            INSERT INTO city
+            VALUES ($int4, $varchar, ${bpchar(3)}, $varchar, $int4)
+          """.command
+      ) {
+        c => c.id ~ c.name ~ c.code ~ c.district ~ c.pop
+      }
+  }
 
   val selectCity: Query[Int, City] =
     sql"""
@@ -55,7 +69,7 @@ class CommandTest extends SkunkTest {
           WHERE id = $int4
         """.query(city)
 
-  val updateCityPopulation: Command[Int ~ Int] =
+  val updateCityPopulation: Command[Int *: Int *: EmptyTuple] =
     sql"""
          UPDATE city
          SET population = $int4
@@ -437,7 +451,7 @@ class CommandTest extends SkunkTest {
       c <- s.unique(selectCity, Garin.id)
       _ <- assert("read", c == Garin)
       p <- IO(Garin.pop + 1000)
-      c <- s.execute(updateCityPopulation, p ~ Garin.id)
+      c <- s.execute(updateCityPopulation, p *: Garin.id *: EmptyTuple)
       _ <- assert("completion",  c == Completion.Update(1))
       c <- s.unique(selectCity, Garin.id)
       _ <- assert("read", c == Garin.copy(pop = p))

@@ -8,6 +8,7 @@ import cats._
 import skunk._
 import skunk.codec.all._
 import skunk.implicits._
+import skunk.feature.legacyCommandSyntax
 
 class FragmentTest extends SkunkTest {
 

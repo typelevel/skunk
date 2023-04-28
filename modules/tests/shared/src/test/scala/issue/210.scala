@@ -29,7 +29,7 @@ class Test210 extends SkunkTest {
   val insertOne: Command[Pet] =
     sql"INSERT INTO Test210_pets VALUES ($varchar, $int2)"
       .command
-      .gcontramap[Pet]
+      .as[Pet]
 
   // command to insert a specific list of Test210_pets
   def insertMany(ps: List[Pet]): Command[ps.type] = {

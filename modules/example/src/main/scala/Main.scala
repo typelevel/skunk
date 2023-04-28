@@ -11,6 +11,7 @@ import cats.effect._
 import cats.syntax.all._
 import fs2._
 import natchez.Trace.Implicits.noop
+import org.typelevel.twiddles._
 
 // This does a lot of stuff and is mostly just to test features as they're being added. This class
 // will probably go away.
@@ -28,7 +29,7 @@ object Main extends IOApp {
 
   val frag = sql"population < $int4 AND $fra0"
 
-  val q: Query[Int ~ String, Country] = {
+  val q: Query[Int *: String *: EmptyTuple, Country] = {
     val table = "country"
     sql"""
       SELECT name, code, indepyear, population
@@ -49,8 +50,8 @@ object Main extends IOApp {
   def clientEncodingChanged(enc: String): IO[Unit] =
     IO.println(s">>>> CLIENT ENCODING IS NOW: $enc")
 
-  def hmm[F[_]: Concurrent: std.Console](ps: PreparedQuery[F, Int ~ String, _]): F[Unit] =
-    (ps.stream(100000 ~ "%", 4).take(25) either ps.stream(10000 ~ "%", 4))
+  def hmm[F[_]: Concurrent: std.Console](ps: PreparedQuery[F, Int *: String *: EmptyTuple, _]): F[Unit] =
+    (ps.stream(100000 *: "%" *: EmptyTuple, 4).take(25) either ps.stream(10000 *: "%" *: EmptyTuple, 4))
       .through(anyLinesStdOut)
       .compile
       .drain

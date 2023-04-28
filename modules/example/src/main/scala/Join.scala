@@ -38,8 +38,7 @@ object Join extends IOApp with StreamOps {
   // A service implementation
   object WorldService {
 
-    val pattern: Encoder[Pattern] =
-      varchar.gcontramap[Pattern]
+    val pattern: Encoder[Pattern] = varchar.as[Pattern]
 
     val countriesByNameQuery: Query[Pattern, ((String, String, Int), Option[City])] =
       sql"""
