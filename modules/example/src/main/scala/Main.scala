@@ -11,7 +11,6 @@ import cats.effect._
 import cats.syntax.all._
 import fs2._
 import natchez.Trace.Implicits.noop
-import org.typelevel.twiddles._
 
 // This does a lot of stuff and is mostly just to test features as they're being added. This class
 // will probably go away.

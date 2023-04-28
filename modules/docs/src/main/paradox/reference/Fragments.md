@@ -112,7 +112,7 @@ Note how the output type is computed, and parameters are renumbered as necessary
 
 ## Contramapping Fragments
 
-Fragments form a contravariant semigroupal functor, and this can be tupled (with `~` as above) and
+Fragments form a contravariant semigroupal functor, and this can be tupled (with `*:` as above) and
 can be contramapped to change their input type.
 
 ```scala mdoc
@@ -121,7 +121,7 @@ case class Person(name: String, age: Int)
 val f9 = sql"INSERT ... VALUES ($varchar, $int4)"
 
 // note the return type
-val f10 = f9.contramap[Person](p => (p.name, p.age))
+val f10 = f9.contramap[Person](p => p.name *: p.age *: EmptyTuple)
 ```
 
 

@@ -11,7 +11,6 @@ import skunk.data.Completion
 import skunk.implicits._
 import cats.Contravariant
 import fs2._
-import org.typelevel.twiddles._ // TODO
 import skunk.exception.UnexpectedRowsException
 
 class CommandTest extends SkunkTest {

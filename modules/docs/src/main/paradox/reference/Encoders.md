@@ -105,7 +105,7 @@ import skunk.codec.all._
 ```scala mdoc
 case class Person(name: String, age: Int)
 
-val person = (varchar ~ int4).values.gcontramap[Person]
+val person = (varchar *: int4).values.as[Person]
 
 sql"INSERT INTO person (name, age) VALUES $person"
 ```

@@ -10,7 +10,6 @@ import skunk.Session
 import skunk.implicits._
 import skunk.codec.numeric.{ int4, float8 }
 import natchez.Trace.Implicits.noop
-import org.typelevel.twiddles._
 
 object Math1 extends IOApp {
 

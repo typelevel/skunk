@@ -11,7 +11,6 @@ import skunk._
 import skunk.implicits._
 import skunk.codec.all._
 import natchez.Trace.Implicits.noop
-import org.typelevel.twiddles._
 
 object Join extends IOApp with StreamOps {
 
