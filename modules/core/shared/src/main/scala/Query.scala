@@ -21,7 +21,7 @@ import skunk.util.Twiddler
  * interpolator.
  *
  * {{{
- * sql"SELECT name, age FROM person WHERE age > $int2".query(varchar ~ int2) // Query[Short, String ~ Short]
+ * sql"SELECT name, age FROM person WHERE age > $int2".query(varchar *: int2) // Query[Short, (String, Short)]
  * }}}
  *
  * @param sql A SQL statement returning no rows.
@@ -57,8 +57,12 @@ final case class Query[A, B](
   def contramap[C](f: C => A): Query[C, B] =
     dimap[C, B](f)(identity)
 
+  @deprecated("Use .contramapAs[CaseClass] instead of .gcontramap[CaseClass]", "0.6")
   def gcontramap[C](implicit ev: Twiddler.Aux[C, A]): Query[C, B] =
     contramap(ev.to)
+
+  def contramapAs[C](implicit ev: Iso[A, C]): Query[C, B] =
+    contramap(ev.from)
 
   /**
    * Query is a covariant functor in `B`.
