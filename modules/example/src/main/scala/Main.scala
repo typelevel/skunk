@@ -50,7 +50,7 @@ object Main extends IOApp {
     IO.println(s">>>> CLIENT ENCODING IS NOW: $enc")
 
   def hmm[F[_]: Concurrent: std.Console](ps: PreparedQuery[F, Int *: String *: EmptyTuple, _]): F[Unit] =
-    (ps.stream(100000 *: "%" *: EmptyTuple, 4).take(25) either ps.stream(10000 *: "%" *: EmptyTuple, 4))
+    (ps.stream((100000, "%"), 4).take(25) either ps.stream((10000, "%"), 4))
       .through(anyLinesStdOut)
       .compile
       .drain

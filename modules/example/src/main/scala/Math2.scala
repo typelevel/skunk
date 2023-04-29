@@ -43,7 +43,7 @@ object Math2 extends IOApp {
         pSqrt <- sess.prepare(Statements.sqrt)
       } yield
         new Math[F] {
-          def add(a: Int, b: Int) = pAdd.unique(a *: b *: EmptyTuple)
+          def add(a: Int, b: Int) = pAdd.unique((a, b))
           def sqrt(d: Double)     = pSqrt.unique(d)
         }
 

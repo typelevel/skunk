@@ -36,7 +36,7 @@ class CommandTest extends SkunkTest {
         INSERT INTO city
         VALUES ($int4, $varchar, ${bpchar(3)}, $varchar, $int4)
       """.command.contramap {
-            c => c.id *: c.name *: c.code *: c.district *: c.pop *: EmptyTuple
+            c => (c.id, c.name, c.code, c.district, c.pop)
           }
 
   val insertCity2a: Command[City] =
@@ -46,7 +46,7 @@ class CommandTest extends SkunkTest {
           VALUES ($int4, $varchar, ${bpchar(3)}, $varchar, $int4)
         """.command
     ) {
-      c => c.id *: c.name *: c.code *: c.district *: c.pop *: EmptyTuple
+      c => (c.id, c.name, c.code, c.district, c.pop)
     }
 
   {

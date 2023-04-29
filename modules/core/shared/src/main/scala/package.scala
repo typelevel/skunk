@@ -3,6 +3,7 @@
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
 import cats.effect.Resource
+import org.typelevel.twiddles.TwiddleCompat
 
 /**
  * '''Skunk''' is a functional data access layer for Postgres.
@@ -122,7 +123,7 @@ import cats.effect.Resource
  * @groupname Companions Companion Objects
  * @groupprio Companions 999
  */
-package object skunk extends SkunkCompat {
+package object skunk extends TwiddleCompat {
 
   // we can use this to defeat value discarding warnings for erasable proof terms
   private[skunk] def void(a: Any*): Unit = (a, ())._2
