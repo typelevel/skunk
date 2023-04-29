@@ -8,6 +8,7 @@ import cats.ContravariantSemigroupal
 import cats.data.State
 import cats.syntax.all._
 import skunk.util.Origin
+import org.typelevel.twiddles.TwiddleSyntax
 
 /**
  * A composable, embeddable hunk of SQL and typed parameters (common precursor to `Command` and
@@ -45,6 +46,7 @@ final case class Fragment[A](
   def product[B](fb: Fragment[B]): Fragment[(A, B)] =
     Fragment(parts <+> fb.parts, encoder ~ fb.encoder, origin)
 
+  @deprecated("Use a *: b instead of a ~ b", "0.6")
   def ~[B](fb: Fragment[B]): Fragment[A ~ B] =
     product(fb)
 
@@ -75,7 +77,7 @@ final case class Fragment[A](
 }
 
 /** @group Companions */
-object Fragment {
+object Fragment extends TwiddleSyntax[Fragment] {
 
   implicit val FragmentContravariantSemigroupal: ContravariantSemigroupal[Fragment] =
     new ContravariantSemigroupal[Fragment] {

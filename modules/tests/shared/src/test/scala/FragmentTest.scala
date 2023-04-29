@@ -8,7 +8,6 @@ import cats._
 import skunk._
 import skunk.codec.all._
 import skunk.implicits._
-import skunk.feature.legacyCommandSyntax
 
 class FragmentTest extends SkunkTest {
 
@@ -24,40 +23,40 @@ class FragmentTest extends SkunkTest {
 
   sessionTest("product") { s =>
     val f = sql"select $int4" product sql", $varchar"
-    s.prepare(f.query(int4 ~ varchar)).flatMap { ps =>
+    s.prepare(f.query(int4 *: varchar)).flatMap { ps =>
       for {
-        n <- ps.unique(123 ~ "456")
-        _ <- assertEqual("123 ~ \"456\"", n, 123 ~ "456")
+        n <- ps.unique((123, "456"))
+        _ <- assertEqual("(123, \"456\")", n, 123 *: "456" *: EmptyTuple)
       } yield "ok"
     }
   }
 
   sessionTest("~") { s =>
-    val f = sql"select $int4" ~ sql", $varchar"
-    s.prepare(f.query(int4 ~ varchar)).flatMap { ps =>
+    val f = sql"select $int4" *: sql", $varchar"
+    s.prepare(f.query(int4 *: varchar)).flatMap { ps =>
       for {
-        n <- ps.unique(123 ~ "456")
-        _ <- assertEqual("123 ~ \"456\"", n, 123 ~ "456")
+        n <- ps.unique((123, "456"))
+        _ <- assertEqual("(123, \"456\")", n, 123 *: "456" *: EmptyTuple)
       } yield "ok"
     }
   }
 
   sessionTest("~>") { s =>
     val f = sql"select" ~> sql" $int4, $varchar"
-    s.prepare(f.query(int4 ~ varchar)).flatMap { ps =>
+    s.prepare(f.query(int4 *: varchar)).flatMap { ps =>
       for {
-        n <- ps.unique(123 ~ "456")
-        _ <- assertEqual("123 ~ \"456\"", n, 123 ~ "456")
+        n <- ps.unique((123, "456"))
+        _ <- assertEqual("(123, \"456\")", n, 123 *: "456" *: EmptyTuple)
       } yield "ok"
     }
   }
 
   sessionTest("<~") { s =>
     val f = sql"select $int4" <~ sql", '456'"
-    s.prepare(f.query(int4 ~ text)).flatMap { ps =>
+    s.prepare(f.query(int4 *: text)).flatMap { ps =>
       for {
         n <- ps.unique(123)
-        _ <- assertEqual("123 ~ \"456\"", n, 123 ~ "456")
+        _ <- assertEqual("(123, \"456\")", n, 123 *: "456" *: EmptyTuple)
       } yield "ok"
     }
   }
@@ -74,10 +73,10 @@ class FragmentTest extends SkunkTest {
 
   sessionTest("product via ContravariantSemigroupal") { s =>
     val f = ContravariantSemigroupal[Fragment].product(sql"select $int4", sql", $varchar")
-    s.prepare(f.query(int4 ~ varchar)).flatMap { ps =>
+    s.prepare(f.query(int4 *: varchar)).flatMap { ps =>
       for {
-        n <- ps.unique(123 ~ "456")
-        _ <- assertEqual("123 ~ \"456\"", n, 123 ~ "456")
+        n <- ps.unique((123, "456"))
+        _ <- assertEqual("(123, \"456\")", n, 123 *: "456" *: EmptyTuple)
       } yield "ok"
     }
   }

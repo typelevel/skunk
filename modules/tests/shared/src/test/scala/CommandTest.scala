@@ -445,16 +445,16 @@ class CommandTest extends SkunkTest {
 
   sessionTest("insert, update and delete record") { s =>
     for {
-      c <- s.execute(insertCity, Garin)
+      c <- s.execute(insertCity)(Garin)
       _ <- assert("completion",  c == Completion.Insert(1))
-      c <- s.unique(selectCity, Garin.id)
+      c <- s.unique(selectCity)(Garin.id)
       _ <- assert("read", c == Garin)
       p <- IO(Garin.pop + 1000)
-      c <- s.execute(updateCityPopulation, p *: Garin.id *: EmptyTuple)
+      c <- s.execute(updateCityPopulation)((p, Garin.id))
       _ <- assert("completion",  c == Completion.Update(1))
-      c <- s.unique(selectCity, Garin.id)
+      c <- s.unique(selectCity)(Garin.id)
       _ <- assert("read", c == Garin.copy(pop = p))
-      _ <- s.execute(deleteCity, Garin.id)
+      _ <- s.execute(deleteCity)(Garin.id)
       _ <- s.assertHealthy
     } yield "ok"
   }
