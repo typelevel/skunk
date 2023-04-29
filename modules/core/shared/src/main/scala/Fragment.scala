@@ -46,7 +46,6 @@ final case class Fragment[A](
   def product[B](fb: Fragment[B]): Fragment[(A, B)] =
     Fragment(parts <+> fb.parts, encoder ~ fb.encoder, origin)
 
-  @deprecated("Use a *: b instead of a ~ b", "0.6")
   def ~[B](fb: Fragment[B]): Fragment[A ~ B] =
     product(fb)
 

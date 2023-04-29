@@ -51,6 +51,7 @@ class CommandTest extends SkunkTest {
 
   {
     import skunk.feature.legacyCommandSyntax
+    @annotation.nowarn
     val insertCity2b: Command[City] =
       Contravariant[Command].contramap(
         sql"""
