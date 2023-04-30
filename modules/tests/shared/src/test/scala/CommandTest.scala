@@ -39,6 +39,18 @@ class CommandTest extends SkunkTest {
             c => (c.id, c.name, c.code, c.district, c.pop)
           }
 
+  {
+    import skunk.feature.legacyCommandSyntax
+    @annotation.nowarn
+    val insertCity2Legacy: Command[City] =
+      sql"""
+          INSERT INTO city
+          VALUES ($int4, $varchar, ${bpchar(3)}, $varchar, $int4)
+        """.command.contramap {
+              c => c.id ~ c.name ~ c.code ~ c.district ~ c.pop
+            }
+  }
+
   val insertCity2a: Command[City] =
     Contravariant[Command].contramap(
       sql"""
