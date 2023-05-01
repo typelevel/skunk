@@ -214,14 +214,14 @@ Observe that we have two parameter encoders `varchar` and `int4` (in that order)
 ```scala mdoc:compile-only
 // assume s: Session[IO]
 s.prepare(f).flatMap { ps =>
-  ps.stream("U%" *: 2000000 *: EmptyTuple, 64)
+  ps.stream(("U%", 2000000), 64)
     .evalMap(c => IO.println(c))
     .compile
     .drain
 } // IO[Unit]
 ```
 
-And we pass the value `"U%" *: 2000000 *: EmptyTuple` as our statement argument.
+And we pass the value `("U%", 2000000)` as our statement argument.
 
 ## Summary of Query Types
 
