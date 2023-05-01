@@ -97,6 +97,7 @@ object CommandComplete {
     case Patterns.Update(s)           => apply(Completion.Update(s.toInt))
     case Patterns.Insert(s)           => apply(Completion.Insert(s.drop(2).toInt))
     case Patterns.Copy(s)             => apply(Completion.Copy(s.toInt))
+    case "SET CONSTRAINTS"            => apply(Completion.SetConstraints)
     // more .. fill in as we hit them
 
     case s                  => apply(Completion.Unknown(s))
