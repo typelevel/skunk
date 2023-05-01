@@ -7,7 +7,7 @@ package codec
 
 import skunk.data.Type
 
-trait EnumCodec extends EnumCodecPlatform {
+trait EnumCodec extends EnumCodecCompat {
 
   def `enum`[A](encode: A => String, decode: String => Option[A], tpe: Type): Codec[A] =
     Codec.simple[A](encode, s => decode(s).toRight(s"${tpe.name}: no such element '$s'"), tpe)
