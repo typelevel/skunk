@@ -5,6 +5,7 @@
 package skunk
 
 import cats.arrow.Profunctor
+import org.typelevel.twiddles.Iso
 import skunk.util.Origin
 import skunk.util.Twiddler
 
@@ -20,7 +21,7 @@ import skunk.util.Twiddler
  * interpolator.
  *
  * {{{
- * sql"SELECT name, age FROM person WHERE age > $int2".query(varchar ~ int2) // Query[Short, String ~ Short]
+ * sql"SELECT name, age FROM person WHERE age > $int2".query(varchar *: int2) // Query[Short, (String, Short)]
  * }}}
  *
  * @param sql A SQL statement returning no rows.
@@ -56,8 +57,12 @@ final case class Query[A, B](
   def contramap[C](f: C => A): Query[C, B] =
     dimap[C, B](f)(identity)
 
+  @deprecated("Use .contramapAs[CaseClass] instead of .gcontramap[CaseClass]", "0.6")
   def gcontramap[C](implicit ev: Twiddler.Aux[C, A]): Query[C, B] =
     contramap(ev.to)
+
+  def contramapAs[C](implicit ev: Iso[A, C]): Query[C, B] =
+    contramap(ev.from)
 
   /**
    * Query is a covariant functor in `B`.
@@ -66,8 +71,12 @@ final case class Query[A, B](
   def map[D](g: B => D): Query[A, D] =
     dimap[A, D](identity)(g)
 
+  @deprecated("Use query(a *: b * :c).as[CaseClass] instead of query(a ~ b ~ c).gmap[CaseClass]", "0.6")
   def gmap[D](implicit ev: Twiddler.Aux[D, B]): Query[A, D] =
     map(ev.from)
+
+  def as[D](implicit ev: Iso[B, D]): Query[A, D] =
+    map(ev.to)
 
   def cacheKey: Statement.CacheKey =
     Statement.CacheKey(sql, encoder.types, decoder.types)

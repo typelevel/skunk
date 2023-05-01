@@ -18,7 +18,7 @@ class CommandTest extends SkunkTest {
   case class City(id: Int, name: String, code: String, district: String, pop: Int)
 
   val city: Codec[City] =
-    (int4 ~ varchar ~ bpchar(3) ~ varchar ~ int4).gimap[City]
+    (int4 *: varchar *: bpchar(3) *: varchar *: int4).as[City]
 
   val Garin = City(5000, "Garin", "ARG", "Escobar", 11405)
   val Garin2 = City(5001, "Garin2", "ARG", "Escobar", 11405)
@@ -36,8 +36,20 @@ class CommandTest extends SkunkTest {
         INSERT INTO city
         VALUES ($int4, $varchar, ${bpchar(3)}, $varchar, $int4)
       """.command.contramap {
-            case c => c.id ~ c.name ~ c.code ~ c.district ~ c.pop
+            c => (c.id, c.name, c.code, c.district, c.pop)
           }
+
+  {
+    import skunk.feature.legacyCommandSyntax
+    @annotation.nowarn
+    val insertCity2Legacy: Command[City] =
+      sql"""
+          INSERT INTO city
+          VALUES ($int4, $varchar, ${bpchar(3)}, $varchar, $int4)
+        """.command.contramap {
+              c => c.id ~ c.name ~ c.code ~ c.district ~ c.pop
+            }
+  }
 
   val insertCity2a: Command[City] =
     Contravariant[Command].contramap(
@@ -46,8 +58,22 @@ class CommandTest extends SkunkTest {
           VALUES ($int4, $varchar, ${bpchar(3)}, $varchar, $int4)
         """.command
     ) {
-      case c => c.id ~ c.name ~ c.code ~ c.district ~ c.pop
+      c => (c.id, c.name, c.code, c.district, c.pop)
     }
+
+  {
+    import skunk.feature.legacyCommandSyntax
+    @annotation.nowarn
+    val insertCity2b: Command[City] =
+      Contravariant[Command].contramap(
+        sql"""
+            INSERT INTO city
+            VALUES ($int4, $varchar, ${bpchar(3)}, $varchar, $int4)
+          """.command
+      ) {
+        c => c.id ~ c.name ~ c.code ~ c.district ~ c.pop
+      }
+  }
 
   val selectCity: Query[Int, City] =
     sql"""
@@ -55,7 +81,7 @@ class CommandTest extends SkunkTest {
           WHERE id = $int4
         """.query(city)
 
-  val updateCityPopulation: Command[Int ~ Int] =
+  val updateCityPopulation: Command[Int *: Int *: EmptyTuple] =
     sql"""
          UPDATE city
          SET population = $int4
@@ -441,16 +467,16 @@ class CommandTest extends SkunkTest {
 
   sessionTest("insert, update and delete record") { s =>
     for {
-      c <- s.execute(insertCity, Garin)
+      c <- s.execute(insertCity)(Garin)
       _ <- assert("completion",  c == Completion.Insert(1))
-      c <- s.unique(selectCity, Garin.id)
+      c <- s.unique(selectCity)(Garin.id)
       _ <- assert("read", c == Garin)
       p <- IO(Garin.pop + 1000)
-      c <- s.execute(updateCityPopulation, p ~ Garin.id)
+      c <- s.execute(updateCityPopulation)((p, Garin.id))
       _ <- assert("completion",  c == Completion.Update(1))
-      c <- s.unique(selectCity, Garin.id)
+      c <- s.unique(selectCity)(Garin.id)
       _ <- assert("read", c == Garin.copy(pop = p))
-      _ <- s.execute(deleteCity, Garin.id)
+      _ <- s.execute(deleteCity)(Garin.id)
       _ <- s.assertHealthy
     } yield "ok"
   }

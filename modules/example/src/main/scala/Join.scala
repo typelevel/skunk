@@ -37,17 +37,16 @@ object Join extends IOApp with StreamOps {
   // A service implementation
   object WorldService {
 
-    val pattern: Encoder[Pattern] =
-      varchar.gcontramap[Pattern]
+    val pattern: Encoder[Pattern] = varchar.as[Pattern]
 
-    val countriesByNameQuery: Query[Pattern, (String ~ String ~ Int) ~ Option[City]] =
+    val countriesByNameQuery: Query[Pattern, ((String, String, Int), Option[City])] =
       sql"""
         SELECT country.name, country.code, country.population, city.name, city.population
         FROM country
         LEFT JOIN city ON city.countrycode = country.code
         WHERE country.name LIKE $pattern
         ORDER BY country.code, city.name ASC
-      """.query((varchar ~ bpchar(3) ~ int4) ~ (varchar ~ int4).gmap[City].opt)
+      """.query((varchar *: bpchar(3) *: int4).as[(String, String, Int)] ~ (varchar *: int4).as[City].opt)
 
     def fromSession[F[_]](s: Session[F]): WorldService[F] =
       new WorldService[F] {
@@ -55,7 +54,7 @@ object Join extends IOApp with StreamOps {
           Stream.eval(s.prepare(countriesByNameQuery)).flatMap { cs =>
             cs.stream(pat, 64)
               .chunkAdjacent
-              .map { case ((name ~ code ~ pop), chunk) =>
+              .map { case ((name, code, pop), chunk) =>
                 Country(name, code, pop, chunk.toList)
               }
           }

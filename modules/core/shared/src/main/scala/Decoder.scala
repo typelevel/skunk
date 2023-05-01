@@ -6,6 +6,7 @@ package skunk
 
 import cats._
 import cats.syntax.all._
+import org.typelevel.twiddles.TwiddleSyntax
 import skunk.data.Type
 import skunk.util.Twiddler
 
@@ -43,6 +44,7 @@ trait Decoder[A] { outer =>
     emap(a => Either.cond(f(a), a, "Filter condition failed."))
 
   /** Adapt this `Decoder` from twiddle-list type A to isomorphic case-class type `B`. */
+  @deprecated("Use (a *: b *: c).as[CaseClass] instead of (a ~ b ~ c).gmap[CaseClass]", "0.6")
   def gmap[B](implicit ev: Twiddler.Aux[B, A]): Decoder[B] =
     map(ev.from)
 
@@ -75,7 +77,7 @@ trait Decoder[A] { outer =>
 }
 
 /** @group Companions */
-object Decoder {
+object Decoder extends TwiddleSyntax[Decoder] {
 
   /**
    * An error indicating that decoding a value starting at column `offset` and spanning `length`

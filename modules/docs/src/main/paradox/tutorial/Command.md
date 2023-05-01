@@ -107,11 +107,11 @@ val update2: Command[Info] =
     UPDATE country
     SET    headofstate = $varchar
     WHERE  code = ${bpchar(3)}
-  """.command                                          // Command[String ~ String]
-     .contramap { case Info(code, hos) => code ~ hos } // Command[Info]
+  """.command                                                         // Command[String *: String *: EmptyTuple]
+     .contramap { case Info(code, hos) => code *: hos *: EmptyTuple } // Command[Info]
 ```
 
-However in this case the mapping is entirely mechanical. Similar to `gmap` on query results, we can skip the boilerplate and `gcontramap` directly to an isomosphic case class.
+However in this case the mapping is entirely mechanical. Similar to `as` on query results, we can skip the boilerplate and `as` directly to an isomosphic case class.
 
 ```scala mdoc
 val update3: Command[Info] =
@@ -119,8 +119,8 @@ val update3: Command[Info] =
     UPDATE country
     SET    headofstate = $varchar
     WHERE  code = ${bpchar(3)}
-  """.command          // Command[String ~ String]
-     .gcontramap[Info] // Command[Info]
+  """.command  // Command[String *: String *: EmptyTuple]
+     .as[Info] // Command[Info]
 ```
 
 ## List Parameters
@@ -217,19 +217,19 @@ object PetService {
   private val insertOne: Command[Pet] =
     sql"INSERT INTO pets VALUES ($varchar, $int2)"
       .command
-      .gcontramap[Pet]
+      .as[Pet]
 
   // command to insert a specific list of pets
   private def insertMany(ps: List[Pet]): Command[ps.type] = {
-    val enc = (varchar ~ int2).gcontramap[Pet].values.list(ps)
+    val enc = (varchar *: int2).as[Pet].values.list(ps)
     sql"INSERT INTO pets VALUES $enc".command
   }
 
   // query to select all pets
   private val all: Query[Void, Pet] =
     sql"SELECT name, age FROM pets"
-      .query(varchar ~ int2)
-      .gmap[Pet]
+      .query(varchar *: int2)
+      .as[Pet]
 
   // construct a PetService
   def fromSession[F[_]: Monad](s: Session[F]): PetService[F] =

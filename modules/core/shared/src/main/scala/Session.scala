@@ -114,7 +114,10 @@ trait Session[F[_]] {
    *
    * @group Queries
    */
-  def execute[A, B](query: Query[A, B], args: A): F[List[B]]
+  def execute[A, B](query: Query[A, B])(args: A): F[List[B]]
+
+  @deprecated("Use execute(query)(args) instead of execute(query, args)", "0.6")
+  def execute[A, B](query: Query[A, B], args: A)(implicit ev: DummyImplicit): F[List[B]] = execute(query)(args)
 
   /**
    * Execute a non-parameterized query and yield exactly one row, raising an exception if there are
@@ -129,7 +132,10 @@ trait Session[F[_]] {
    *
    * @group Queries
    */
-  def unique[A, B](query: Query[A, B], args: A): F[B]
+  def unique[A, B](query: Query[A, B])(args: A): F[B]
+
+  @deprecated("Use unique(query)(args) instead of unique(query, args)", "0.6")
+  def unique[A, B](query: Query[A, B], args: A)(implicit ev: DummyImplicit): F[B] = unique(query)(args)
 
   /**
    * Execute a non-parameterized query and yield at most one row, raising an exception if there are
@@ -144,7 +150,10 @@ trait Session[F[_]] {
    *
    * @group Queries
    */
-  def option[A, B](query: Query[A, B], args: A): F[Option[B]]
+  def option[A, B](query: Query[A, B])(args: A): F[Option[B]]
+
+  @deprecated("Use option(query)(args) instead of option(query, args)", "0.6")
+  def option[A, B](query: Query[A, B], args: A)(implicit ev: DummyImplicit): F[Option[B]] = option(query)(args)
 
   /**
    * Returns a stream that prepare if needed, then execute a parameterized query
@@ -152,14 +161,20 @@ trait Session[F[_]] {
    * @param chunkSize how many rows must be fetched by page
    * @group Commands
    */
-  def stream[A, B](command: Query[A, B], args: A, chunkSize: Int): Stream[F, B]
+  def stream[A, B](command: Query[A, B])(args: A, chunkSize: Int): Stream[F, B]
+
+  @deprecated("Use stream(query)(args, chunkSize) instead of stream(query, args, chunkSize)", "0.6")
+  def stream[A, B](query: Query[A, B], args: A, chunkSize: Int)(implicit ev: DummyImplicit): Stream[F, B] = stream(query)(args, chunkSize)
 
   /**
    * Prepare if needed, then execute a parameterized query and returns a resource wrapping a cursor in the result set.
    *
    * @group Queries
    */
-  def cursor[A, B](query: Query[A, B], args: A): Resource[F, Cursor[F, B]]
+  def cursor[A, B](query: Query[A, B])(args: A): Resource[F, Cursor[F, B]]
+
+  @deprecated("Use cursor(query)(args) instead of cursor(query, args)", "0.6")
+  def cursor[A, B](query: Query[A, B], args: A)(implicit ev: DummyImplicit): Resource[F, Cursor[F, B]] = cursor(query)(args)
 
   /**
    * Execute a non-parameterized command and yield a `Completion`. If you have parameters use
@@ -173,7 +188,10 @@ trait Session[F[_]] {
    *
    * @group Commands
    */
-  def execute[A](command: Command[A], args: A): F[Completion]
+  def execute[A](command: Command[A])(args: A): F[Completion]
+
+  @deprecated("Use execute(command)(args) instead of execute(command, args)", "0.6")
+  def execute[A](command: Command[A], args: A)(implicit ev: DummyImplicit): F[Completion] = execute(command)(args)
 
   /**
    * Prepares then caches a query, yielding a `PreparedQuery` which can be executed multiple
@@ -286,27 +304,27 @@ object Session {
    */
   abstract class Impl[F[_]: MonadCancelThrow] extends Session[F] {
 
-    override def execute[A, B](query: Query[A, B], args: A): F[List[B]] =
+    override def execute[A, B](query: Query[A, B])(args: A): F[List[B]] =
       Monad[F].flatMap(prepare(query))(_.cursor(args).use {
         _.fetch(Int.MaxValue).map { case (rows, _) => rows }
       })
 
-    override def unique[A, B](query: Query[A, B], args: A): F[B] =
+    override def unique[A, B](query: Query[A, B])(args: A): F[B] =
       Monad[F].flatMap(prepare(query))(_.unique(args))
 
-    override def option[A, B](query: Query[A, B], args: A): F[Option[B]] =
+    override def option[A, B](query: Query[A, B])(args: A): F[Option[B]] =
       Monad[F].flatMap(prepare(query))(_.option(args))
 
-    override def stream[A, B](command: Query[A, B], args: A, chunkSize: Int): Stream[F, B] =
+    override def stream[A, B](command: Query[A, B])(args: A, chunkSize: Int): Stream[F, B] =
       Stream.eval(prepare(command)).flatMap(_.stream(args, chunkSize)).scope
 
-    override def cursor[A, B](query: Query[A, B], args: A): Resource[F, Cursor[F, B]] =
+    override def cursor[A, B](query: Query[A, B])(args: A): Resource[F, Cursor[F, B]] =
       Resource.eval(prepare(query)).flatMap(_.cursor(args))
 
     override def pipe[A, B](query: Query[A, B], chunkSize: Int): Pipe[F, A, B] = fa =>
       Stream.eval(prepare(query)).flatMap(pq => fa.flatMap(a => pq.stream(a, chunkSize))).scope
 
-    override def execute[A](command: Command[A], args: A): F[Completion] =
+    override def execute[A](command: Command[A])(args: A): F[Completion] =
       Monad[F].flatMap(prepare(command))(_.execute(args))
 
     override def pipe[A](command: Command[A]): Pipe[F, A, Completion] = fa =>

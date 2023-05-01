@@ -6,6 +6,7 @@ package skunk
 package syntax
 
 final class IdOps[A](a: A) {
+  @deprecated("Use regular tuples or twiddle tuples (*:) instead", "0.6")
   def ~[B](b: B): A ~ B = (a, b)
 }
 

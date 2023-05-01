@@ -29,19 +29,19 @@ class Test210 extends SkunkTest {
   val insertOne: Command[Pet] =
     sql"INSERT INTO Test210_pets VALUES ($varchar, $int2)"
       .command
-      .gcontramap[Pet]
+      .as[Pet]
 
   // command to insert a specific list of Test210_pets
   def insertMany(ps: List[Pet]): Command[ps.type] = {
-    val enc = (varchar ~ int2).gcontramap[Pet].values.list(ps)
+    val enc = (varchar *: int2).as[Pet].values.list(ps)
     sql"INSERT INTO Test210_pets VALUES $enc".command
   }
 
   // query to select all Test210_pets
   def selectAll: Query[Void, Pet] =
     sql"SELECT name, age FROM Test210_pets"
-      .query(varchar ~ int2)
-      .gmap[Pet]
+      .query(varchar *: int2)
+      .as[Pet]
 
   // some sample data
   val bob     = Pet("Bob", 12)

@@ -8,17 +8,16 @@ import io.circe.Json
 import io.circe.parser.parse
 import skunk._
 import skunk.circe.codec.all._
-import skunk.implicits._
 
 class JsonCodecTest extends CodecTest {
 
   val j: Json = parse("""{"foo": [true, "bar"], "tags": {"a": 1, "b": null}}""").toOption.get
 
   roundtripTest(json)(j)
-  roundtripTest(json[Int ~ String])(42 ~ "foo")
+  roundtripTest(json[(Int, String)])((42, "foo"))
   roundtripTest(jsonb)(j)
-  roundtripTest(jsonb[Int ~ String])(42 ~ "foo")
-  decodeFailureTest(jsonb[Int ~ String], List("woozle", "blah"))
+  roundtripTest(jsonb[(Int, String)])((42, "foo"))
+  decodeFailureTest(jsonb[(Int, String)], List("woozle", "blah"))
 
 }
 

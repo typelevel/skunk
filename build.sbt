@@ -135,6 +135,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.tpolecat"           %%% "natchez-core"            % natchezVersion,
       "org.tpolecat"           %%% "sourcepos"               % "1.1.0",
       "org.scala-lang.modules" %%% "scala-collection-compat" % "2.10.0",
+      "org.typelevel"          %%% "twiddles-core"           % "0.5.0",
     ) ++ Seq(
       "com.beachape"  %%% "enumeratum"   % "1.7.2",
     ).filterNot(_ => tlIsScala3.value)

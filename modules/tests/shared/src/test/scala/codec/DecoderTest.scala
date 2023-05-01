@@ -7,7 +7,6 @@ package codec
 
 import cats._
 import cats.syntax.all._
-import skunk.implicits._
 import skunk._
 import skunk.codec.all._
 import cats.effect.IO
@@ -22,14 +21,14 @@ class DecoderTest extends SkunkTest {
     test("int ~ varchar") {
       d.decode(0, List(Some("123"), Some("abc"))) match {
         case Left(value)  => fail(value.message)
-        case Right(value) => assertEqual("123 ~ abc", value, 123 ~ "abc")
+        case Right(value) => assertEqual("(123, abc)", value, (123, "abc"))
       }
     }
 
     test("(int ~ varchar).opt (some)") {
       d.opt.decode(0, List(Some("123"), Some("abc"))) match {
         case Left(value)  => fail(value.message)
-        case Right(value) => assertEqual("Some(123 ~ abc)", value, Some(123 ~ "abc"))
+        case Right(value) => assertEqual("Some((123, abc))", value, Some((123, "abc")))
       }
     }
 
