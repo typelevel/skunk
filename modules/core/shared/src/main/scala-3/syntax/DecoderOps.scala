@@ -15,14 +15,14 @@ class DecoderOps[A <: Tuple](self: Decoder[A]) {
     (other, self).mapN(_ *: _)
 
   // For binary compatibility with Skunk 0.5 and prior
-  @deprecated("Use .as[P] instead of .pmap[P]", "0.6")
+  @deprecated("Use .to[P] instead of .pmap[P]", "0.6")
   def pmap[P <: Product](
     using m: Mirror.ProductOf[P] { type MirroredElemTypes = A }
   ): Decoder[P] =
     self.map(m.fromProduct)
 
   // For binary compatibility with Skunk 0.3.1 and prior
-  @deprecated("Use .as[P] instead of .pmap[P]", "0.6")
+  @deprecated("Use .to[P] instead of .pmap[P]", "0.6")
   private[skunk] def pmap[P <: Product](
     using m: Mirror.ProductOf[P],
           i: m.MirroredElemTypes =:= A

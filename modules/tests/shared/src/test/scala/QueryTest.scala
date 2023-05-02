@@ -73,7 +73,7 @@ class QueryTest extends SkunkTest {
 
     sessionTest("as") { s =>
       val f = sql"select $int4"
-      s.prepare(f.query(int4).as[Number]).flatMap { ps =>
+      s.prepare(f.query(int4).to[Number]).flatMap { ps =>
         for {
           n <- ps.unique(123)
           _ <- assertEqual("123", n, Number(123))
@@ -93,7 +93,7 @@ class QueryTest extends SkunkTest {
 
     sessionTest("gcontramap") { s =>
       val f = sql"select $int4"
-      s.prepare(f.query(int4).contramapAs[Number]).flatMap { ps =>
+      s.prepare(f.query(int4).contrato[Number]).flatMap { ps =>
         for {
           n <- ps.unique(Number(123))
           _ <- assertEqual("123", n, 123)

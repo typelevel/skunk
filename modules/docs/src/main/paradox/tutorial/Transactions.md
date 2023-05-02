@@ -122,13 +122,13 @@ object PetService {
   private val insertOne: Command[Pet] =
     sql"INSERT INTO pets VALUES ($varchar, $int2)"
       .command
-      .as[Pet]
+      .to[Pet]
 
   // query to select all pets
   private val all: Query[Void, Pet] =
     sql"SELECT name, age FROM pets"
       .query(varchar *: int2)
-      .as[Pet]
+      .to[Pet]
 
   // construct a PetService, preparing our statement once on construction
   def fromSession(s: Session[IO]): IO[PetService[IO]] =

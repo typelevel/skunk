@@ -23,14 +23,14 @@ class CodecOps[A <: Tuple](self: Codec[A]) {
     (other, self).contramapN(t => (t.head, t.tail))
 
   // For binary compatibility with Skunk 0.5 and prior
-  @deprecated("Use .as[P] instead of .pimap[P]", "0.6")
+  @deprecated("Use .to[P] instead of .pimap[P]", "0.6")
   def pimap[P <: Product](
     using m: Mirror.ProductOf[P] { type MirroredElemTypes = A }
   ): Codec[P] =
     self.imap(m.fromProduct)(p => Tuple.fromProductTyped(p))
 
   // For binary compatibility with Skunk 0.3.1 and prior
-  @deprecated("Use .as[P] instead of .pimap[P]", "0.6")
+  @deprecated("Use .to[P] instead of .pimap[P]", "0.6")
   private[skunk] def pimap[P <: Product](
     using m: Mirror.ProductOf[P],
           i: m.MirroredElemTypes =:= A

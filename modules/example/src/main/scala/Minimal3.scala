@@ -31,7 +31,7 @@ object Minimal3 extends IOApp {
       from country
       WHERE name like $varchar
     """.query(bpchar(3) *: varchar *: int4)
-       .as[Country]
+       .to[Country]
 
   def stream(pattern: String): Stream[IO, Country] =
     for {

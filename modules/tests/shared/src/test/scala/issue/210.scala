@@ -29,11 +29,11 @@ class Test210 extends SkunkTest {
   val insertOne: Command[Pet] =
     sql"INSERT INTO Test210_pets VALUES ($varchar, $int2)"
       .command
-      .as[Pet]
+      .to[Pet]
 
   // command to insert a specific list of Test210_pets
   def insertMany(ps: List[Pet]): Command[ps.type] = {
-    val enc = (varchar *: int2).as[Pet].values.list(ps)
+    val enc = (varchar *: int2).to[Pet].values.list(ps)
     sql"INSERT INTO Test210_pets VALUES $enc".command
   }
 
@@ -41,7 +41,7 @@ class Test210 extends SkunkTest {
   def selectAll: Query[Void, Pet] =
     sql"SELECT name, age FROM Test210_pets"
       .query(varchar *: int2)
-      .as[Pet]
+      .to[Pet]
 
   // some sample data
   val bob     = Pet("Bob", 12)

@@ -48,7 +48,7 @@ abstract class CodecTest(
     }
 
     sessionTest(s"${codec.types.mkString(", ")} (as)") { s =>
-      s.prepare(sqlString.query(codec.as[Box[A]])).flatMap { ps =>
+      s.prepare(sqlString.query(codec.to[Box[A]])).flatMap { ps =>
         as.toList.traverse { a =>
           for {
             aʹ <- ps.unique(a)
