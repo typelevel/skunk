@@ -57,11 +57,11 @@ final case class Query[A, B](
   def contramap[C](f: C => A): Query[C, B] =
     dimap[C, B](f)(identity)
 
-  @deprecated("Use .contramapAs[CaseClass] instead of .gcontramap[CaseClass]", "0.6")
+  @deprecated("Use .contrato[CaseClass] instead of .gcontramap[CaseClass]", "0.6")
   def gcontramap[C](implicit ev: Twiddler.Aux[C, A]): Query[C, B] =
     contramap(ev.to)
 
-  def contramapAs[C](implicit ev: Iso[A, C]): Query[C, B] =
+  def contrato[C](implicit ev: Iso[A, C]): Query[C, B] =
     contramap(ev.from)
 
   /**
@@ -71,11 +71,11 @@ final case class Query[A, B](
   def map[D](g: B => D): Query[A, D] =
     dimap[A, D](identity)(g)
 
-  @deprecated("Use query(a *: b * :c).as[CaseClass] instead of query(a ~ b ~ c).gmap[CaseClass]", "0.6")
+  @deprecated("Use query(a *: b * :c).to[CaseClass] instead of query(a ~ b ~ c).gmap[CaseClass]", "0.6")
   def gmap[D](implicit ev: Twiddler.Aux[D, B]): Query[A, D] =
     map(ev.from)
 
-  def as[D](implicit ev: Iso[B, D]): Query[A, D] =
+  def to[D](implicit ev: Iso[B, D]): Query[A, D] =
     map(ev.to)
 
   def cacheKey: Statement.CacheKey =

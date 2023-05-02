@@ -40,7 +40,7 @@ object Minimal2 extends IOApp {
       from country
       WHERE name like $varchar
     """.query(bpchar(3) *: varchar *: int4)
-       .as[Country]
+       .to[Country]
 
   def lookup[F[_]: Concurrent: Trace: Console](pat: String, s: Session[F]): F[Unit] =
     Trace[F].span("lookup") {

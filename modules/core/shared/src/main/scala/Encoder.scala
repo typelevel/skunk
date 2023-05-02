@@ -54,7 +54,7 @@ trait Encoder[A] { outer =>
     }
 
   /** Adapt this `Encoder` from twiddle-list type A to isomorphic case-class type `B`. */
-  @deprecated("Use (a *: b *: c).as[CaseClass] instead of (a ~ b ~ c).gcontramap[CaseClass]", "0.6")
+  @deprecated("Use (a *: b *: c).to[CaseClass] instead of (a ~ b ~ c).gcontramap[CaseClass]", "0.6")
   def gcontramap[B](implicit ev: Twiddler.Aux[B, A]): Encoder[B] =
     contramap(ev.to)
 

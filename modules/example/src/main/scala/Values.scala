@@ -25,7 +25,7 @@ object Values extends IOApp {
   case class Data(n: Int, s: String, b: Boolean)
 
   val data: Codec[Data] =
-    (int4 *: bpchar *: bool).as[Data]
+    (int4 *: bpchar *: bool).to[Data]
 
   // SQL depends on the number of `Data` elements we wish to "insert"
   def query(len: Int): Query[List[Data], Data] =

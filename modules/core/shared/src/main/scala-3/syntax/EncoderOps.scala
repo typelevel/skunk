@@ -14,14 +14,14 @@ class EncoderOps[A <: Tuple](self: Encoder[A]) {
   private[syntax] def *:[B](other: Encoder[B]): Encoder[B *: A] =
     (other, self).contramapN[B *: A] { case b *: a => (b, a) }
   
-  @deprecated("Use .as[P] instead of .pcontramap[P]", "0.6")
+  @deprecated("Use .to[P] instead of .pcontramap[P]", "0.6")
   def pcontramap[P <: Product](
     using m: Mirror.ProductOf[P] { type MirroredElemTypes = A }
   ): Encoder[P] =
     self.contramap(p => Tuple.fromProductTyped(p))
 
   // For binary compatibility with Skunk 0.3.1 and prior
-  @deprecated("Use .as[P] instead of .pcontramap[P]", "0.6")
+  @deprecated("Use .to[P] instead of .pcontramap[P]", "0.6")
   private[skunk] def pcontramap[P <: Product](
     using m: Mirror.ProductOf[P],
           i: m.MirroredElemTypes =:= A

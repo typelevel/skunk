@@ -124,7 +124,7 @@ val f9 = sql"INSERT ... VALUES ($varchar, $int4)"
 val f10 = f9.contramap[Person](p => (p.name, p.age))
 
 // alternatively
-val f11 = f9.as[Person]
+val f11 = f9.to[Person]
 ```
 
 

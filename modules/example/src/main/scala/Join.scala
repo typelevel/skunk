@@ -37,7 +37,7 @@ object Join extends IOApp with StreamOps {
   // A service implementation
   object WorldService {
 
-    val pattern: Encoder[Pattern] = varchar.as[Pattern]
+    val pattern: Encoder[Pattern] = varchar.to[Pattern]
 
     val countriesByNameQuery: Query[Pattern, ((String, String, Int), Option[City])] =
       sql"""
@@ -46,7 +46,7 @@ object Join extends IOApp with StreamOps {
         LEFT JOIN city ON city.countrycode = country.code
         WHERE country.name LIKE $pattern
         ORDER BY country.code, city.name ASC
-      """.query((varchar *: bpchar(3) *: int4).as[(String, String, Int)] ~ (varchar *: int4).as[City].opt)
+      """.query((varchar *: bpchar(3) *: int4).to[(String, String, Int)] ~ (varchar *: int4).to[City].opt)
 
     def fromSession[F[_]](s: Session[F]): WorldService[F] =
       new WorldService[F] {
