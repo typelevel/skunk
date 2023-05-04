@@ -130,6 +130,8 @@ object StringContextOps {
         else if legacyCommandSyntax then encoders.reduceLeft {
           case ('{$a : Encoder[a]}, '{ $b : Encoder[b] }) => '{$a ~ $b}
         } else encoders.reduceRight {
+          case ('{$a : Encoder[Void]}, '{ $b : Encoder[bh *: bt] }) => b
+          case ('{$a : Encoder[a]}, '{ $b : Encoder[Void] }) => a
           case ('{$a : Encoder[a]}, '{ $b : Encoder[bh *: bt] }) => '{$a *: $b}
           case ('{$a : Encoder[a]}, '{ $b : Encoder[b] }) => '{$a *: $b}
         }

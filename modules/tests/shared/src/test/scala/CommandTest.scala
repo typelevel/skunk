@@ -75,6 +75,17 @@ class CommandTest extends SkunkTest {
       }
   }
 
+  {
+    @annotation.nowarn
+    val voidsAreRemoved: Command[City] =
+      sql"""
+          INSERT INTO city
+          VALUES ($int4, ${Void.codec}, $varchar, ${bpchar(3)}, $varchar, $int4, ${Void.codec})
+        """.command.contramap {
+              c => (c.id, c.name, c.code, c.district, c.pop)
+            }
+  }
+
   val selectCity: Query[Int, City] =
     sql"""
           SELECT * FROM city

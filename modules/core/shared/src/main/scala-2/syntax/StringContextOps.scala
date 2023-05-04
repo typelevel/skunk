@@ -137,11 +137,14 @@ object StringContextOps {
 
       // The final encoder is either `Void.codec` or `a *: b *: ...` or `a ~ b ~ ...` (if legacy command syntax is enabled)
       val legacySyntax = c.inferImplicitValue(typeOf[skunk.featureFlags.legacyCommandSyntax]) != EmptyTree
+      val void = q"_root_.skunk.Void.codec"
       val finalEncoder: Tree =
         if (legacySyntax)
-          encoders.reduceLeftOption((a, b) => q"$a ~ $b").getOrElse(q"_root_.skunk.Void.codec")
+          encoders.reduceLeftOption((a, b) => q"$a ~ $b").getOrElse(void)
         else
-          encoders.reduceRightOption((a, b) => q"$a *: $b").getOrElse(q"_root_.skunk.Void.codec")
+          encoders.reduceRightOption { (a, b) => 
+            if (a == void) b else if (b == void) a else q"$a *: $b"
+          }.getOrElse(void)
 
       // We now have what we need to construct a fragment.
       q"_root_.skunk.syntax.StringContextOps.fragmentFromParts($finalParts, $finalEncoder, $origin)"
