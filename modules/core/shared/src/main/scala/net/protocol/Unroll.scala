@@ -6,9 +6,8 @@ package skunk.net.protocol
 
 import cats.syntax.all._
 import cats.MonadError
-import skunk.{ ~, Encoder, Decoder }
+import skunk.{ Encoder, Decoder }
 import skunk.exception.DecodeException
-import skunk.implicits._
 import skunk.net.message._
 import skunk.net.MessageSocket
 import skunk.net.Protocol.QueryPortal
@@ -30,7 +29,7 @@ private[protocol] class Unroll[F[_]: MessageSocket: Tracer](
   /** Receive the next batch of rows. */
   def unroll[A, B](
     portal:         QueryPortal[F, A, B]
-  ): F[List[B] ~ Boolean] =
+  ): F[(List[B], Boolean)] =
     unroll(
       extended       = true,
       sql            = portal.preparedQuery.query.sql,
@@ -53,9 +52,9 @@ private[protocol] class Unroll[F[_]: MessageSocket: Tracer](
     encoder:        Encoder[A],
     rowDescription: TypedRowDescription,
     decoder:        Decoder[B],
-  ): F[List[B] ~ Boolean] = {
+  ): F[(List[B], Boolean)] = {
 
-    def syncAndFail(info: Map[Char, String]): F[List[List[Option[String]]] ~ Boolean]  =
+    def syncAndFail(info: Map[Char, String]): F[(List[List[Option[String]]], Boolean)]  =
       history(Int.MaxValue).flatMap { hi =>
         send(Sync).whenA(extended)          *>
         expect { case ReadyForQuery(_) => } *>
@@ -66,7 +65,7 @@ private[protocol] class Unroll[F[_]: MessageSocket: Tracer](
           history         = hi,
           arguments       = encoder.types.zip(encoder.encode(args)),
           argumentsOrigin = argsOrigin
-        ).raiseError[F, List[List[Option[String]]] ~ Boolean]
+        ).raiseError[F, (List[List[Option[String]]], Boolean)]
       }
 
     def sync: F[Unit] =
@@ -74,15 +73,15 @@ private[protocol] class Unroll[F[_]: MessageSocket: Tracer](
 
     // N.B. we process all waiting messages to ensure the protocol isn't messed up by decoding
     // failures later on.
-    def accumulate(accum: List[List[Option[String]]]): F[List[List[Option[String]]] ~ Boolean] =
+    def accumulate(accum: List[List[Option[String]]]): F[(List[List[Option[String]]], Boolean)] =
       flatExpect {
         case rd @ RowData(_)          => accumulate(rd.fields :: accum)
-        case      CommandComplete(_)  => sync.as((accum.reverse ~ false))
-        case      PortalSuspended     => (accum.reverse ~ true).pure[F]
+        case      CommandComplete(_)  => sync.as((accum.reverse, false))
+        case      PortalSuspended     => (accum.reverse, true).pure[F]
         case      ErrorResponse(info) => syncAndFail(info)
       }
 
-    val rows: F[List[List[Option[String]]] ~ Boolean] =
+    val rows: F[(List[List[Option[String]]], Boolean)] =
       Tracer[F].span("read").use { span =>
         accumulate(Nil).flatTap { case (rows, bool) =>
           span.addAttributes(
@@ -121,7 +120,7 @@ private[protocol] class Unroll[F[_]: MessageSocket: Tracer](
                 e.cause,
               ).raiseError[F, B]
           }
-        } .map(a => a ~ bool)
+        } .map(a => (a, bool))
       }
 
     }

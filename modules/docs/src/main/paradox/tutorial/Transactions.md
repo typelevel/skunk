@@ -122,13 +122,13 @@ object PetService {
   private val insertOne: Command[Pet] =
     sql"INSERT INTO pets VALUES ($varchar, $int2)"
       .command
-      .gcontramap[Pet]
+      .to[Pet]
 
   // query to select all pets
   private val all: Query[Void, Pet] =
     sql"SELECT name, age FROM pets"
-      .query(varchar ~ int2)
-      .gmap[Pet]
+      .query(varchar *: int2)
+      .to[Pet]
 
   // construct a PetService, preparing our statement once on construction
   def fromSession(s: Session[IO]): IO[PetService[IO]] =

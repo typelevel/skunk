@@ -36,8 +36,8 @@ object Minimal2 extends IOApp {
       select code, name, population
       from country
       WHERE name like $varchar
-    """.query(bpchar(3) ~ varchar ~ int4)
-       .gmap[Country]
+    """.query(bpchar(3) *: varchar *: int4)
+       .to[Country]
 
   def lookup[F[_]: Concurrent: Tracer: Console](pat: String, s: Session[F]): F[Unit] =
     Tracer[F].span("lookup").use { span =>

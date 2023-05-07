@@ -110,20 +110,20 @@ Because decoders are structural (i.e., they rely only on the position of column 
 
 ### Mapping Decoder Results Generically
 
-Because `Country` is a simple case class we can generate the mapping code mechanically. To do this, use `gmap` and specify the target data type.
+Because `Country` is a simple case class we can generate the mapping code mechanically. To do this, use `to` and specify the target data type.
 
 ```scala mdoc
 val country2: Decoder[Country] =
-  (varchar ~ int4).gmap[Country]
+  (varchar *: int4).to[Country]
 ```
 
-Even better, instead of constructing a named decoder you can `gmap` the `Query` itself.
+Even better, instead of constructing a named decoder you can `to` the `Query` itself.
 
 ```scala mdoc
 val c2: Query[Void, Country] =
   sql"SELECT name, population FROM country"
-    .query(varchar ~ int4)
-    .gmap[Country]
+    .query(varchar *: int4)
+    .to[Country]
 ```
 
 ## Parameterized Query
@@ -200,7 +200,7 @@ This program does the same thing, but perhaps in a more convenient style.
 Multiple parameters work analogously to multiple columns.
 
 ```scala mdoc
-val f: Query[String ~ Int, Country] =
+val f: Query[String *: Int *: EmptyTuple, Country] =
   sql"""
     SELECT name, population
     FROM   country
@@ -209,19 +209,19 @@ val f: Query[String ~ Int, Country] =
   """.query(country)
 ```
 
-Observe that we have two parameter encoders `varchar` and `int4` (in that order), whose corresponding Scala input type is `String ~ Int`. See the section on @ref:[twiddle lists](../reference/TwiddleLists.md) for more information.
+Observe that we have two parameter encoders `varchar` and `int4` (in that order), whose corresponding Scala input type is `String *: Int *: EmptyTuple`. See the section on @ref:[twiddle lists](../reference/TwiddleLists.md) for more information.
 
 ```scala mdoc:compile-only
 // assume s: Session[IO]
 s.prepare(f).flatMap { ps =>
-  ps.stream("U%" ~ 2000000, 64)
+  ps.stream(("U%", 2000000), 64)
     .evalMap(c => IO.println(c))
     .compile
     .drain
 } // IO[Unit]
 ```
 
-And we pass the value `"U%" ~ 2000000` as our statement argument.
+And we pass the value `("U%", 2000000)` as our statement argument.
 
 ## Summary of Query Types
 
@@ -280,8 +280,8 @@ object QueryExample extends IOApp {
       SELECT name, code, population
       FROM   country
       WHERE  name like $text
-    """.query(varchar ~ bpchar(3) ~ int4)
-       .gmap[Country]
+    """.query(varchar *: bpchar(3) *: int4)
+       .to[Country]
 
   // run our simple query
   def doSimple(s: Session[IO]): IO[Unit] =
@@ -355,8 +355,8 @@ object Service {
       SELECT name, code, population
       FROM   country
       WHERE  name like $text
-    """.query(varchar ~ bpchar(3) ~ int4)
-       .gmap[Country]
+    """.query(varchar *: bpchar(3) *: int4)
+       .to[Country]
 
   def fromSession[F[_]: Applicative](s: Session[F]): F[Service[F]] =
     s.prepare(countries).map { pq =>

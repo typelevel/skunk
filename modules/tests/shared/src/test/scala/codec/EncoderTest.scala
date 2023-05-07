@@ -6,7 +6,6 @@ package tests
 package codec
 
 import cats._
-import skunk.implicits._
 import skunk._
 import skunk.codec.all._
 
@@ -18,12 +17,12 @@ class EncoderTest extends SkunkTest {
   def testEncoder(e: Encoder[Int ~ String]): Unit = {
 
     test("int ~ varchar") {
-      val data = e.encode(123 ~ "abc")
+      val data = e.encode((123, "abc"))
       assertEqual("data", data, List(Some("123"), Some("abc")))
     }
 
     test("(int ~ varchar).opt (some)") {
-      val data = e.opt.encode(Some(123 ~ "abc"))
+      val data = e.opt.encode(Some((123, "abc")))
       assertEqual("data", data, List(Some("123"), Some("abc")))
     }
 

@@ -7,7 +7,7 @@ package example
 import cats.Monad
 import cats.effect.{ ExitCode, IO, IOApp, Resource }
 import cats.syntax.all._
-import skunk.Session
+import skunk._
 import skunk.implicits._
 import skunk.codec.numeric.{ int4, float8 }
 import org.typelevel.otel4s.trace.Tracer
@@ -45,7 +45,7 @@ object Math2 extends IOApp {
         pSqrt <- sess.prepare(Statements.sqrt)
       } yield
         new Math[F] {
-          def add(a: Int, b: Int) = pAdd.unique(a ~ b)
+          def add(a: Int, b: Int) = pAdd.unique((a, b))
           def sqrt(d: Double)     = pSqrt.unique(d)
         }
 

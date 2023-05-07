@@ -21,6 +21,7 @@ trait Twiddler[A] {
   def from(o: Out): A
 }
 
+@deprecated("Use twiddle tuples (*:) instead", "0.6")
 object Twiddler {
 
   def apply[H](implicit ev: Twiddler[H]): ev.type = ev

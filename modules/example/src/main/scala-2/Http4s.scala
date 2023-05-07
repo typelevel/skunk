@@ -75,7 +75,7 @@
 //   ): Resource[F, PooledCountries[F]] = {
 
 //     def countryQuery[A](where: Fragment[A]): Query[A, Country] =
-//       sql"SELECT code, name FROM country $where".query((bpchar(3) ~ varchar).gmap[Country])
+//       sql"SELECT code, name FROM country $where".query((bpchar(3) *: varchar).to[Country])
 
 //     for {
 //       psAll    <- sess.prepare(countryQuery(Fragment.empty))

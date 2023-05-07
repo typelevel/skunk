@@ -9,7 +9,8 @@ import skunk.codec.all._
 import skunk.implicits._
 import cats.Eq
 
-/** Test that we can round=trip for a 16 length Twiddle List in Scala 3. */
+/** Test that we can roundtrip for a 16 length Twiddle List in Scala 3. */
+@annotation.nowarn
 class LongTwiddleListTest extends CodecTest {
 
   roundtripTest((int4 ~ varchar ~ int4 ~ varchar ~ int4 ~ varchar ~ int4 ~ varchar ~ int4 ~ varchar ~ int4 ~ varchar ~

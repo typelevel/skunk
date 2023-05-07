@@ -21,7 +21,7 @@ private[protocol] trait StartupCompanionPlatform { this: Startup.type =>
     password:   Option[String],
     mechanisms: List[String]
   ): F[Unit] =
-    Tracer[F].span("authenticationSASL") {
+    Tracer[F].span("authenticationSASL").surround {
       if (mechanisms.contains(Scram.SaslMechanism)) {
         for {
           pw <- requirePassword[F](sm, password)

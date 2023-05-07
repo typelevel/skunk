@@ -8,6 +8,7 @@ import cats.ContravariantSemigroupal
 import cats.data.State
 import cats.syntax.all._
 import skunk.util.Origin
+import org.typelevel.twiddles.TwiddleSyntax
 
 /**
  * A composable, embeddable hunk of SQL and typed parameters (common precursor to `Command` and
@@ -75,7 +76,7 @@ final case class Fragment[A](
 }
 
 /** @group Companions */
-object Fragment {
+object Fragment extends TwiddleSyntax[Fragment] {
 
   implicit val FragmentContravariantSemigroupal: ContravariantSemigroupal[Fragment] =
     new ContravariantSemigroupal[Fragment] {

@@ -86,16 +86,15 @@ therefore also consume anything that we can _turn into an `A`_. We do this with 
 ```scala mdoc:nest
 case class Person(name: String, age: Int)
 
-val person = (varchar ~ int4).values.contramap((p: Person) => p.name ~ p.age)
+val person = (varchar *: int4).values.contramap((p: Person) => (p.name, p.age))
 
 sql"INSERT INTO person (name, age) VALUES $person"
 ```
 
-Because contramapping from case classes is so common, Skunk provides `gcontramap` which adapts
+Because contramapping from case classes is so common, Skunk provides `to` which adapts
 an encoder to a case class of the same structure.
 
 ```scala mdoc:invisible:reset
-// N.B. for some reason the gcontramap derivation crashes the compiler unless we reset and
 // do this at the top level.
 import skunk._
 import skunk.implicits._
@@ -105,7 +104,7 @@ import skunk.codec.all._
 ```scala mdoc
 case class Person(name: String, age: Int)
 
-val person = (varchar ~ int4).values.gcontramap[Person]
+val person = (varchar *: int4).values.to[Person]
 
 sql"INSERT INTO person (name, age) VALUES $person"
 ```

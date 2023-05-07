@@ -172,14 +172,16 @@ class PoolTest extends FTest {
   val PoolSize = 10
   val ConcurrentTasks = 500
 
+  val shortRandomDelay = IO((Random.nextInt() % 100).abs.milliseconds)
+
   test("progress and safety with many fibers") {
     ints.map(a => Pool.ofF({(_: Tracer[IO]) => a}, PoolSize)(Recycler.success)).flatMap { factory =>
       (1 to ConcurrentTasks).toList.parTraverse_{ _ =>
         factory.use { p =>
           p(noop).use { _ =>
             for {
-              t <- IO(Random.nextInt() % 100)
-              _ <- IO.sleep(t.milliseconds)
+              t <- shortRandomDelay
+              _ <- IO.sleep(t)
             } yield ()
           }
         }
@@ -192,9 +194,9 @@ class PoolTest extends FTest {
       factory.use { pool =>
         (1 to ConcurrentTasks).toList.parTraverse_{_ =>
           for {
-            t <- IO(Random.nextInt() % 100)
-            f <- pool(noop).use(_ => IO.sleep(t.milliseconds)).start
-            _ <- if (t > 50) f.join else f.cancel
+            t <- shortRandomDelay
+            f <- pool(noop).use(_ => IO.sleep(t)).start
+            _ <- if (t > 50.milliseconds) f.join else f.cancel
           } yield ()
         }
       }
@@ -207,9 +209,9 @@ class PoolTest extends FTest {
         (1 to ConcurrentTasks).toList.parTraverse_{ _ =>
           pool(noop).use { _ =>
             for {
-              t <- IO(Random.nextInt() % 100)
-              _ <- IO.sleep(t.milliseconds)
-              _ <- IO.raiseError(UserFailure()).whenA(t < 50)
+              t <- shortRandomDelay
+              _ <- IO.sleep(t)
+              _ <- IO.raiseError(UserFailure()).whenA(t < 50.milliseconds)
             } yield ()
           } .attempt // swallow errors so we don't fail fast
         }
