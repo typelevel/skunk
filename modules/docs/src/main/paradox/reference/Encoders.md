@@ -91,7 +91,7 @@ val person = (varchar *: int4).values.contramap((p: Person) => (p.name, p.age))
 sql"INSERT INTO person (name, age) VALUES $person"
 ```
 
-Because contramapping from case classes is so common, Skunk provides `as` which adapts
+Because contramapping from case classes is so common, Skunk provides `to` which adapts
 an encoder to a case class of the same structure.
 
 ```scala mdoc:invisible:reset
@@ -104,7 +104,7 @@ import skunk.codec.all._
 ```scala mdoc
 case class Person(name: String, age: Int)
 
-val person = (varchar *: int4).values.as[Person]
+val person = (varchar *: int4).values.to[Person]
 
 sql"INSERT INTO person (name, age) VALUES $person"
 ```

@@ -55,14 +55,14 @@ twiddle: String *: Int *: Boolean *: org.typelevel.twiddles.EmptyTuple = Bob :: 
 bob2: Person = Person("Bob", 42, true)
 ```
 
-`Decoder`s, `Encoder`s, and `Codec`s use this facility to provide `as`, which allows quick adaptation of a twiddle-list `Codec` (for instance) to one that maps to/from a case class.
+`Decoder`s, `Encoder`s, and `Codec`s use this facility to provide `to`, which allows quick adaptation of a twiddle-list `Codec` (for instance) to one that maps to/from a case class.
 
 ```scala
 @ val codec = varchar *: int4 *: bool
 codec: Codec[String *: Int *: Boolean *: EmptyTuple] = Codec(varchar, int4, bool)
 
-// Since `Person` has the same structure we can use `as` to create a `Codec[Person]`
-@ val personCode = codec.as[Person]
+// Since `Person` has the same structure we can use `to` to create a `Codec[Person]`
+@ val personCode = codec.to[Person]
 personCodec: Codec[Person] = Codec(varchar, int4, bool)
 ```
 
@@ -102,7 +102,7 @@ x match {
 }
 ```
 
-Skunk's `Codec`, `Decoder`, and `Encoder` types provided special methods for converting twiddle lists to case classes (`gimap`, `gmap`, `gcontramap` respectively). The `as` operation replaces all of these twiddle specific conversions.
+Skunk's `Codec`, `Decoder`, and `Encoder` types provided special methods for converting twiddle lists to case classes (`gimap`, `gmap`, `gcontramap` respectively). The `to` operation replaces all of these twiddle specific conversions.
 
 ### Legacy Command Syntax
 

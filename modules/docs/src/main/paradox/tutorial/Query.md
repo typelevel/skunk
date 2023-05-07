@@ -110,20 +110,20 @@ Because decoders are structural (i.e., they rely only on the position of column 
 
 ### Mapping Decoder Results Generically
 
-Because `Country` is a simple case class we can generate the mapping code mechanically. To do this, use `as` and specify the target data type.
+Because `Country` is a simple case class we can generate the mapping code mechanically. To do this, use `to` and specify the target data type.
 
 ```scala mdoc
 val country2: Decoder[Country] =
-  (varchar *: int4).as[Country]
+  (varchar *: int4).to[Country]
 ```
 
-Even better, instead of constructing a named decoder you can `as` the `Query` itself.
+Even better, instead of constructing a named decoder you can `to` the `Query` itself.
 
 ```scala mdoc
 val c2: Query[Void, Country] =
   sql"SELECT name, population FROM country"
     .query(varchar *: int4)
-    .as[Country]
+    .to[Country]
 ```
 
 ## Parameterized Query
@@ -281,7 +281,7 @@ object QueryExample extends IOApp {
       FROM   country
       WHERE  name like $text
     """.query(varchar *: bpchar(3) *: int4)
-       .as[Country]
+       .to[Country]
 
   // run our simple query
   def doSimple(s: Session[IO]): IO[Unit] =
@@ -356,7 +356,7 @@ object Service {
       FROM   country
       WHERE  name like $text
     """.query(varchar *: bpchar(3) *: int4)
-       .as[Country]
+       .to[Country]
 
   def fromSession[F[_]: Applicative](s: Session[F]): F[Service[F]] =
     s.prepare(countries).map { pq =>

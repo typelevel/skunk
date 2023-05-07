@@ -47,7 +47,7 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
     Codec(b => encode(g(b)), emap(f).decode(_, _), types)
 
   /** Adapt this `Codec` from twiddle-list type A to isomorphic case-class type `B`. */
-  @deprecated("Use (a *: b *: c).as[CaseClass] instead of (a ~ b ~ c).gimap[CaseClass]", "0.6")
+  @deprecated("Use (a *: b *: c).to[CaseClass] instead of (a ~ b ~ c).gimap[CaseClass]", "0.6")
   def gimap[B](implicit ev: Twiddler.Aux[B, A]): Codec[B] =
     imap(ev.from)(ev.to)
 

@@ -19,7 +19,7 @@ object Main extends IOApp {
   case class Country(name: String, code: String, indepyear: Option[Short], population: Int)
 
   val country: Codec[Country] =
-    (varchar *: bpchar(3) *: int2.opt *: int4).as[Country]
+    (varchar *: bpchar(3) *: int2.opt *: int4).to[Country]
 
   def anyLinesStdOut[F[_]: std.Console]: Pipe[F, Any, Unit] =
     _.map(_.toString).printlns

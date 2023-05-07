@@ -45,11 +45,11 @@ final case class Command[A](
   def contramap[B](f: B => A): Command[B] =
     Command(sql, origin, encoder.contramap(f))
 
-  @deprecated("Use .as[CaseClass] instead of .gcontramap[CaseClass]", "0.6")
+  @deprecated("Use .to[CaseClass] instead of .gcontramap[CaseClass]", "0.6")
   def gcontramap[B](implicit ev: Twiddler.Aux[B, A]): Command[B] =
     contramap(ev.to)
 
-  def as[B](implicit ev: Iso[A, B]): Command[B] =
+  def to[B](implicit ev: Iso[A, B]): Command[B] =
     contramap(ev.from)
 
   def cacheKey: Statement.CacheKey =
