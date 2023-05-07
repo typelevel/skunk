@@ -123,11 +123,15 @@ object StringContextOps {
       }
     }
 
+    val legacyCommandSyntax = Expr.summon[skunk.featureFlags.legacyCommandSyntax].isDefined
     partsEncoders.map { (parts, encoders) =>
       val finalEnc: Expr[Any] =
-        if (encoders.isEmpty) '{ Void.codec }
-        else encoders.reduceLeft {
+        if encoders.isEmpty then '{ Void.codec }
+        else if legacyCommandSyntax then encoders.reduceLeft {
           case ('{$a : Encoder[a]}, '{ $b : Encoder[b] }) => '{$a ~ $b}
+        } else encoders.reduceRight {
+          case ('{$a : Encoder[a]}, '{ $b : Encoder[bh *: bt] }) => '{$a *: $b}
+          case ('{$a : Encoder[a]}, '{ $b : Encoder[b] }) => '{$a *: $b}
         }
 
       finalEnc match {

@@ -18,7 +18,7 @@ class CommandTest extends SkunkTest {
   case class City(id: Int, name: String, code: String, district: String, pop: Int)
 
   val city: Codec[City] =
-    (int4 ~ varchar ~ bpchar(3) ~ varchar ~ int4).gimap[City]
+    (int4 *: varchar *: bpchar(3) *: varchar *: int4).to[City]
 
   val Garin = City(5000, "Garin", "ARG", "Escobar", 11405)
   val Garin2 = City(5001, "Garin2", "ARG", "Escobar", 11405)
@@ -36,8 +36,20 @@ class CommandTest extends SkunkTest {
         INSERT INTO city
         VALUES ($int4, $varchar, ${bpchar(3)}, $varchar, $int4)
       """.command.contramap {
-            case c => c.id ~ c.name ~ c.code ~ c.district ~ c.pop
+            c => (c.id, c.name, c.code, c.district, c.pop)
           }
+
+  {
+    import skunk.feature.legacyCommandSyntax
+    @annotation.nowarn
+    val insertCity2Legacy: Command[City] =
+      sql"""
+          INSERT INTO city
+          VALUES ($int4, $varchar, ${bpchar(3)}, $varchar, $int4)
+        """.command.contramap {
+              c => c.id ~ c.name ~ c.code ~ c.district ~ c.pop
+            }
+  }
 
   val insertCity2a: Command[City] =
     Contravariant[Command].contramap(
@@ -46,8 +58,22 @@ class CommandTest extends SkunkTest {
           VALUES ($int4, $varchar, ${bpchar(3)}, $varchar, $int4)
         """.command
     ) {
-      case c => c.id ~ c.name ~ c.code ~ c.district ~ c.pop
+      c => (c.id, c.name, c.code, c.district, c.pop)
     }
+
+  {
+    import skunk.feature.legacyCommandSyntax
+    @annotation.nowarn
+    val insertCity2b: Command[City] =
+      Contravariant[Command].contramap(
+        sql"""
+            INSERT INTO city
+            VALUES ($int4, $varchar, ${bpchar(3)}, $varchar, $int4)
+          """.command
+      ) {
+        c => c.id ~ c.name ~ c.code ~ c.district ~ c.pop
+      }
+  }
 
   val selectCity: Query[Int, City] =
     sql"""
@@ -55,7 +81,7 @@ class CommandTest extends SkunkTest {
           WHERE id = $int4
         """.query(city)
 
-  val updateCityPopulation: Command[Int ~ Int] =
+  val updateCityPopulation: Command[Int *: Int *: EmptyTuple] =
     sql"""
          UPDATE city
          SET population = $int4
@@ -246,6 +272,39 @@ class CommandTest extends SkunkTest {
         DROP MATERIALIZED VIEW my_foo_mv
        """.command
 
+  val createFunction: Command[Void] =
+    sql"""
+        CREATE OR REPLACE FUNCTION my_trigger_func() RETURNS TRIGGER
+            LANGUAGE PLPGSQL
+        AS
+        'BEGIN
+          RAISE NOTICE ''Triggered'';
+          RETURN NEW;
+        END;'
+    """.command
+
+  val dropFunction: Command[Void] =
+    sql"DROP FUNCTION my_trigger_func;".command
+
+  val createTrigger: Command[Void] =
+    sql"""
+        CREATE TRIGGER my_city_trigger
+        AFTER INSERT ON city
+        FOR EACH ROW EXECUTE FUNCTION my_trigger_func();
+       """.command
+
+  val alterTrigger: Command[Void] =
+    sql"""
+        ALTER TRIGGER my_city_trigger ON city
+        RENAME TO my_city_trigger_renamed;
+       """.command
+
+  val dropTrigger: Command[Void] =
+    sql"""
+        DROP TRIGGER my_city_trigger_renamed
+        ON city;
+       """.command
+
   sessionTest("create table, create index, drop index, alter table and drop table") { s =>
     for {
       c <- s.execute(createTable)
@@ -258,6 +317,22 @@ class CommandTest extends SkunkTest {
       _ <- assert("completion",  c == Completion.AlterTable)
       c <- s.execute(dropTable)
       _ <- assert("completion",  c == Completion.DropTable)
+      _ <- s.assertHealthy
+    } yield "ok"
+  }
+
+  sessionTest("create and drop trigger") { s =>
+    for {
+      c <- s.execute(createFunction)
+      _ <- assert("completion",  c == Completion.CreateFunction)
+      c <- s.execute(createTrigger)
+      _ <- assert("completion",  c == Completion.CreateTrigger)
+      c <- s.execute(alterTrigger)
+      _ <- assert("completion", c == Completion.AlterTrigger)
+      c <- s.execute(dropTrigger)
+      _ <- assert("completion",  c == Completion.DropTrigger)
+      c <- s.execute(dropFunction)
+      _ <- assert("completion",  c == Completion.DropFunction)
       _ <- s.assertHealthy
     } yield "ok"
   }
@@ -381,18 +456,27 @@ class CommandTest extends SkunkTest {
     } yield "ok"
   }
 
+  sessionTest("set constraints") { s =>
+    s.transaction.use { _ =>
+      for {
+        c <- s.execute(sql"set constraints all deferred".command)
+        _ <- assert("completion", c == Completion.SetConstraints)
+      } yield "ok"
+    } >> s.assertHealthy
+  }
+
   sessionTest("insert, update and delete record") { s =>
     for {
-      c <- s.execute(insertCity, Garin)
+      c <- s.execute(insertCity)(Garin)
       _ <- assert("completion",  c == Completion.Insert(1))
-      c <- s.unique(selectCity, Garin.id)
+      c <- s.unique(selectCity)(Garin.id)
       _ <- assert("read", c == Garin)
       p <- IO(Garin.pop + 1000)
-      c <- s.execute(updateCityPopulation, p ~ Garin.id)
+      c <- s.execute(updateCityPopulation)((p, Garin.id))
       _ <- assert("completion",  c == Completion.Update(1))
-      c <- s.unique(selectCity, Garin.id)
+      c <- s.unique(selectCity)(Garin.id)
       _ <- assert("read", c == Garin.copy(pop = p))
-      _ <- s.execute(deleteCity, Garin.id)
+      _ <- s.execute(deleteCity)(Garin.id)
       _ <- s.assertHealthy
     } yield "ok"
   }

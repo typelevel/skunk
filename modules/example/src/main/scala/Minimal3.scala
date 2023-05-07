@@ -30,8 +30,8 @@ object Minimal3 extends IOApp {
       select code, name, population
       from country
       WHERE name like $varchar
-    """.query(bpchar(3) ~ varchar ~ int4)
-       .gmap[Country]
+    """.query(bpchar(3) *: varchar *: int4)
+       .to[Country]
 
   def stream(pattern: String): Stream[IO, Country] =
     for {

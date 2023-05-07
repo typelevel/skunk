@@ -60,7 +60,7 @@ ThisBuild / mimaBinaryIssueFilters ++= List(
 )
 
 // This is used in a couple places
-lazy val fs2Version = "3.7.0-RC4"
+lazy val fs2Version = "3.7.0-RC5"
 lazy val natchezVersion = "0.3.1"
 
 // Global Settings
@@ -112,7 +112,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     scalacOptions ~= (_.filterNot(_ == "-source:3.0-migration")),
     libraryDependencies ++= Seq(
       "org.typelevel"          %%% "cats-core"               % "2.9.0",
-      "org.typelevel"          %%% "cats-effect"             % "3.4.8",
+      "org.typelevel"          %%% "cats-effect"             % "3.5.0-RC5",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
       "org.scodec"             %%% "scodec-bits"             % "1.1.37",
@@ -120,7 +120,8 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.scodec"             %%% "scodec-cats"             % "1.2.0",
       "org.tpolecat"           %%% "natchez-core"            % natchezVersion,
       "org.tpolecat"           %%% "sourcepos"               % "1.1.0",
-      "org.scala-lang.modules" %%% "scala-collection-compat" % "2.9.0",
+      "org.scala-lang.modules" %%% "scala-collection-compat" % "2.10.0",
+      "org.typelevel"          %%% "twiddles-core"           % "0.6.0",
     ) ++ Seq(
       "com.beachape"  %%% "enumeratum"   % "1.7.2",
     ).filterNot(_ => tlIsScala3.value)

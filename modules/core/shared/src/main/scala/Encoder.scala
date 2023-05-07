@@ -7,6 +7,7 @@ package skunk
 import cats._
 import cats.data.State
 import cats.syntax.all._
+import org.typelevel.twiddles.TwiddleSyntax
 import skunk.data.Type
 import skunk.util.Typer
 import skunk.util.Twiddler
@@ -53,6 +54,7 @@ trait Encoder[A] { outer =>
     }
 
   /** Adapt this `Encoder` from twiddle-list type A to isomorphic case-class type `B`. */
+  @deprecated("Use (a *: b *: c).to[CaseClass] instead of (a ~ b ~ c).gcontramap[CaseClass]", "0.6")
   def gcontramap[B](implicit ev: Twiddler.Aux[B, A]): Encoder[B] =
     contramap(ev.to)
 
@@ -118,7 +120,7 @@ trait Encoder[A] { outer =>
 }
 
 /** @group Companions */
-object Encoder {
+object Encoder extends TwiddleSyntax[Encoder] {
 
   implicit val ContravariantSemigroupalEncoder: ContravariantSemigroupal[Encoder] =
     new ContravariantSemigroupal[Encoder] {

@@ -6,7 +6,7 @@ package skunk.net.protocol
 
 import cats.syntax.all._
 import cats.effect.implicits._
-import cats.effect.std.Semaphore
+import cats.effect.std.Mutex
 import cats.effect.Concurrent
 
 trait Exchange[F[_]] {
@@ -15,10 +15,10 @@ trait Exchange[F[_]] {
 
 object Exchange {
   def apply[F[_]: Concurrent]: F[Exchange[F]] =
-    Semaphore[F](1).map { sem =>
+    Mutex[F].map { mut =>
       new Exchange[F] {
         override def apply[A](fa: F[A]): F[A] =
-        sem.permit.use(_ => fa).uncancelable
+          mut.lock.surround(fa).uncancelable
       }
     }
 }

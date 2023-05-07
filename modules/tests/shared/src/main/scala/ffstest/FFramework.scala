@@ -10,6 +10,7 @@ import cats.syntax.all._
 import scala.reflect.ClassTag
 import natchez.Fields
 import munit.CatsEffectSuite
+import org.typelevel.twiddles._
 
 trait FTest extends CatsEffectSuite with FTestPlatform {
 
@@ -40,4 +41,7 @@ trait FTest extends CatsEffectSuite with FTestPlatform {
       }
   }
 
+  implicit val eqEmptyTuple: Eq[EmptyTuple] = Eq.instance((_, _) => true)
+  implicit def eqTuple[A, B <: Tuple](implicit eqA: Eq[A], eqB: Eq[B]): Eq[A *: B] =
+    eqA.product(eqB).contramap { case a *: b => (a, b) }
 }
