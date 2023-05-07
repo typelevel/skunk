@@ -1,10 +1,8 @@
 ```scala mdoc:invisible
 import cats.effect._
-import cats.implicits._
 import skunk._
 import skunk.implicits._
 import skunk.codec.all._
-import natchez.Trace.Implicits.noop
 import fs2.Stream
 val s: Session[IO] = null
 ```
@@ -12,9 +10,9 @@ val s: Session[IO] = null
 
 This section explains how to construct and execute queries.
 
-@@@ note { title=Definition }
+@:callout(info)
 A *query* is a SQL statement that can return rows.
-@@@
+@:@
 
 ## Single-Column Query
 
@@ -27,28 +25,28 @@ val a: Query[Void, String] =
 
 Observe the following:
 
-- We are using the @ref:[sql interpolator](../reference/Fragments.md) to construct a @scaladoc[Fragment](skunk.Fragment), which we then turn into a @scaladoc[Query](skunk.Query) by calling the `query` method (fragments are also used to construct @ref[Commands](Command.md)).
-- The argument to `query` is a value called `varchar`, which has type `Decoder[String]` and defines the read relationship between the Postgres type `varchar` and the Scala type `String`. The relationship between Postgres types and Scala types is summarized in the reference section @ref:[Schema Types](../reference/SchemaTypes.md).
+- We are using the [sql interpolator](../reference/Fragments.md) to construct a @:api(skunk.Fragment), which we then turn into a @:api(skunk.Query) by calling the `query` method (fragments are also used to construct [Commands](Command.md)).
+- The argument to `query` is a value called `varchar`, which has type `Decoder[String]` and defines the read relationship between the Postgres type `varchar` and the Scala type `String`. The relationship between Postgres types and Scala types is summarized in the reference section [Schema Types](../reference/SchemaTypes.md).
 - The first type argument for our `Query` type is `Void`, which means this query has no parameters. The second type argument is `String`, which means we expect rows to be decoded as `String` values (via our `varchar` decoder).
 
-@@@ note
+@:callout(info)
 Query and Command types are usually inferrable, but specifying a type ensures that the chosen encoders and decoders are consistent with the expected input and output Scala types. For this reason (and for clarity) we will always use explicit type annotations in the documentation.
-@@@
+@:@
 
 The query above is a *simple query*.
 
-@@@ note { title=Definition }
+@:callout(info)
 A *simple query* is a query with no parameters.
-@@@
+@:@
 
-Postgres provides a [protocol](https://www.postgresql.org/docs/10/protocol-flow.html#id-1.10.5.7.4) for execution of simple queries, returning all rows at once (Skunk returns them as a list). Such queries can be passed directly to @scaladoc[Session#execute](skunk.Session#execute).
+Postgres provides a [protocol](https://www.postgresql.org/docs/10/protocol-flow.html#id-1.10.5.7.4) for execution of simple queries, returning all rows at once (Skunk returns them as a list). Such queries can be passed directly to @:api(skunk.Session#execute).
 
 ```scala mdoc:compile-only
 // assume s: Session[IO]
 s.execute(a) // IO[List[String]]
 ```
 
-@scaladoc[Session](skunk.Session) provides the following methods for direct execution of simple queries. See the Scaladoc for more information.
+@:api(skunk.Session) provides the following methods for direct execution of simple queries. See the Scaladoc for more information.
 
 | Method    | Return Type    | Notes                                             |
 |-----------|----------------|---------------------------------------------------|
@@ -65,7 +63,7 @@ val b: Query[Void, String ~ Int] =
   sql"SELECT name, population FROM country".query(varchar ~ int4)
 ```
 
-Observe that the argument to `query` is a pair of decoders conjoined with the `~` operator, yielding a `Decoder[String ~ Int]`. Executing this query will yield a `List[String ~ Int]`, which is an alias for `List[(String, Int)]`. See the section on @ref:[twiddle lists](../reference/TwiddleLists.md) for more information on this mechanism.
+Observe that the argument to `query` is a pair of decoders conjoined with the `~` operator, yielding a `Decoder[String ~ Int]`. Executing this query will yield a `List[String ~ Int]`, which is an alias for `List[(String, Int)]`. See the section on [twiddle lists](../reference/TwiddleLists.md) for more information on this mechanism.
 
 ### Mapping Query Results
 
@@ -104,9 +102,9 @@ Observe the following:
 - At ① we map the `varchar ~ int4` decoder directly to Scala type `Country`, yielding a `Decoder[Country]`.
 - At ② we use our `country` decoder directly, yielding a `Query[Void, Country]`.
 
-@@@ note { title=Tip }
+@:callout(info)
 Because decoders are structural (i.e., they rely only on the position of column values) it can become a maintenance issue when queries and their decoders become separated in code. Try to keep decoders close to the queries that use them.
-@@@
+@:@
 
 ### Mapping Decoder Results Generically
 
@@ -141,17 +139,17 @@ val e: Query[String, Country] =
 
 Observe that we have interpolated a value called `varchar`, which has type `Encoder[String]`.
 
-This means that Postgres will expect an argument of type `varchar`, which will have Scala type `String`. The relationship between Postgres types and Scala types is summarized in the reference section @ref:[Schema Types](../reference/SchemaTypes.md).
+This means that Postgres will expect an argument of type `varchar`, which will have Scala type `String`. The relationship between Postgres types and Scala types is summarized in the reference section [Schema Types](../reference/SchemaTypes.md).
 
-@@@ note
+@:callout(info)
 We have already seen `varchar` used as a row *decoder* for `String` and now we're using it as an *encoder* for `String`. We can do this because `varchar` actually has type `Codec[String]`, which extends both `Encoder[String]` and `Decoder[String]`. All type mappings provided by Skunk are codecs and can be used in both positions.
-@@@
+@:@
 
 The query above is an *extended query*.
 
-@@@ note { title=Definition }
+@:callout(info)
 An *extended query* is a query with parameters, or a simple query that is executed via the extended query protocol.
-@@@
+@:@
 
 Postgres provides a [protocol](https://www.postgresql.org/docs/10/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY) for executing extended queries which is more involved than simple query protocol. It provides for prepared statements that can be reused with different sets of arguments, and provides cursors which allow results to be paged and streamed.
 
@@ -167,7 +165,7 @@ s.prepare(e).flatMap { ps =>
 } // IO[Unit]
 ```
 
-Observe that `prepare` returns a `Resource` that prepares the statement before use and then frees it on completion. Here we use @scaladoc[PreparedQuery#stream](skunk.PreparedQuery#stream) to pass our parameter `"U%"` and then create an [fs2](http://fs2.io) stream that fetches rows in blocks of 64 and prints them to the console.
+Observe that `prepare` returns a `Resource` that prepares the statement before use and then frees it on completion. Here we use @:api(skunk.PreparedQuery)#stream to pass our parameter `"U%"` and then create an [fs2](http://fs2.io) stream that fetches rows in blocks of 64 and prints them to the console.
 
 Note that when using `Resource` and `Stream` together it is often convenient to express the entire program in terms of `Stream`.
 
@@ -185,7 +183,7 @@ stream.compile.drain // IO[Unit]
 
 This program does the same thing, but perhaps in a more convenient style.
 
-@scaladoc[PreparedQuery[A, B]](skunk.PreparedQuery) provides the following methods for execution. See the Scaladoc for more information.
+@:api(skunk.PreparedQuery) provides the following methods for execution. See the Scaladoc for more information.
 
 | Method    | Return Type                | Notes                                             |
 |-----------|----------------------------|---------------------------------------------------|
@@ -209,7 +207,7 @@ val f: Query[String *: Int *: EmptyTuple, Country] =
   """.query(country)
 ```
 
-Observe that we have two parameter encoders `varchar` and `int4` (in that order), whose corresponding Scala input type is `String *: Int *: EmptyTuple`. See the section on @ref:[twiddle lists](../reference/TwiddleLists.md) for more information.
+Observe that we have two parameter encoders `varchar` and `int4` (in that order), whose corresponding Scala input type is `String *: Int *: EmptyTuple`. See the section on [twiddle lists](../reference/TwiddleLists.md) for more information.
 
 ```scala mdoc:compile-only
 // assume s: Session[IO]
@@ -420,7 +418,7 @@ Here are some experiments you might want to try.
 
 - Add/remove/change encoders and decoders. Do various things to make the queries fail. Which kinds of errors are detected at compile-time vs. runtime?
 
-- Add more fields to `Country` and more colums to the query; or add more parameters. You will need to consult the @ref:[Schema Types](../reference/SchemaTypes.md) reference to find the encoders/decoders you need.
+- Add more fields to `Country` and more colums to the query; or add more parameters. You will need to consult the [Schema Types](../reference/SchemaTypes.md) reference to find the encoders/decoders you need.
 
 - Experiment with the treatment of nullable columns. You need to add `.opt` to encoders/decoders (`int4.opt` for example) to indicate nullability. Keep in mind that for interpolated encoders you'll need to write `${int4.opt}`.
 

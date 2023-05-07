@@ -1,11 +1,6 @@
 ```scala mdoc:invisible
 import cats.effect._
-import cats.implicits._
 import skunk._
-import skunk.implicits._
-import skunk.codec.all._
-import natchez.Trace.Implicits.noop
-import fs2.Stream
 val s: Session[IO] = null
 ```
 # Transactions
@@ -24,7 +19,7 @@ Postgres connections are always in one of three transaction states.
 | **Active**  | A transaction is in progress and can proceed. |
 | **Error**   | An error has occurred. The transaction must be rolled back to a savepoint to continue; or must be rolled back entirely to terminate. |
 
-Because transaction status is a property of the session itself, all operations on that session during a transaction's lifespan will take part in the transaction. For this reason it is recommended that sessions not be used concurrently in the presence of transactions. See the chapter on @ref:[Concurrency](../reference/Concurrency.md) for more details.
+Because transaction status is a property of the session itself, all operations on that session during a transaction's lifespan will take part in the transaction. For this reason it is recommended that sessions not be used concurrently in the presence of transactions. See the chapter on [Concurrency](../reference/Concurrency.md) for more details.
 
 `Session`'s transaction status is available via its `transactionStatus` member (an fs2 `Signal`). The example below takes advantage of this facility.
 
@@ -48,9 +43,9 @@ The basic usage pattern is as follows.
 
 The `xa` parameter provided by `use` is a reference to the transaction itself, which can be ignored for the basic usage pattern.
 
-@@@warning
+@:callout(warning)
 If you perform non-database actions wihin a transaction (such as writing to a file or making an http post) these actions cannot be rolled back if the transaction fails. Best practice is to factor these things out and only perform them if the `use` block completes normally.
-@@@
+@:@
 
 ## Advanced Usage Pattern
 
@@ -99,7 +94,6 @@ Here is a complete program listing that demonstrates our knowledge thus far.
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
 import cats.effect._
-import cats.effect.std.Console
 import cats.implicits._
 import natchez.Trace.Implicits.noop
 import skunk._
