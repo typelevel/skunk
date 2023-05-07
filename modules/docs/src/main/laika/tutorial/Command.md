@@ -5,7 +5,6 @@ import skunk._
 import skunk.implicits._
 import skunk.codec.all._
 import org.typelevel.otel4s.trace.Tracer
-import natchez.Trace.Implicits.noop
 import fs2.Stream
 val s: Session[IO] = null
 implicit val tracer: Tracer[IO] = Tracer.noop
@@ -15,9 +14,9 @@ implicit val tracer: Tracer[IO] = Tracer.noop
 
 This section explains how to construct and execute commands.
 
-@@@ note { title=Definition }
+@:callout(info)
 A *command* is a SQL statement that does not return rows.
-@@@
+@:@
 
 ## Simple Command
 
@@ -30,16 +29,16 @@ val a: Command[Void] =
 
 Observe the following:
 
-- We are using the @ref:[sql interpolator](../reference/Fragments.md) to construct a @scaladoc[Fragment](skunk.Fragment), which we then turn into a @scaladoc[Command](skunk.Command) by calling the `command` method.
+- We are using the [sql interpolator](../reference/Fragments.md) to construct a @:api(skunk.Fragment), which we then turn into a @:api(skunk.Command) by calling the `command` method.
 - `Command` is parameterized by its input type. Because this command has no parameters the input type is `Void`.
 
 The command above is a *simple command*.
 
-@@@ note { title=Definition }
+@:callout(info)
 A *simple command* is a command with no parameters.
-@@@
+@:@
 
-The same [protocol](https://www.postgresql.org/docs/10/protocol-flow.html#id-1.10.5.7.4) that executes simple queries also executes simple commands. Such commands can be passed directly to @scaladoc[Session.execute](skunk.Session#execute).
+The same [protocol](https://www.postgresql.org/docs/10/protocol-flow.html#id-1.10.5.7.4) that executes simple queries also executes simple commands. Such commands can be passed directly to @:api(skunk.Session)#execute.
 
 
 ```scala mdoc:compile-only
@@ -47,7 +46,7 @@ The same [protocol](https://www.postgresql.org/docs/10/protocol-flow.html#id-1.1
 s.execute(a) // IO[Completion]
 ```
 
-On success a command will yield a @scaladoc[Completion](skunk.data.Completion), which is an ADT that encodes responses from various commands. In this case our completion is simply the value `Completion.Set`.
+On success a command will yield a @:api(skunk.data.Completion), which is an ADT that encodes responses from various commands. In this case our completion is simply the value `Completion.Set`.
 
 ## Parameterized Command
 
@@ -62,9 +61,9 @@ Observe that we have interpolated a value called `varchar`, which has type `Enco
 
 The command above is an *extended command*.
 
-@@@ note { title=Definition }
+@:callout(warning)
 An *extended command* is a command with parameters, or a simple command that is executed via the extended query protocol.
-@@@
+@:@
 
 The same protocol Postgres provides for executing extended queries is also used for extended commands, but because the return value is always a single `Completion` the end-user API is more limited.
 

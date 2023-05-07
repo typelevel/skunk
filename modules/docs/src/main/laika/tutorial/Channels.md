@@ -1,10 +1,8 @@
 ```scala mdoc:invisible
 import cats.effect._
-import cats.implicits._
 import skunk._
 import skunk.implicits._
 import skunk.codec.all._
-import natchez.Trace.Implicits.noop
 val s: Session[IO] = null
 val ch: Channel[IO, String, String] = null
 ```
@@ -25,7 +23,7 @@ val ch = s.channel(id"my_channel") // Channel[IO, String, String]
 
 Observe the following:
 
-- The argument to `channel` is an `Identifier`. See @ref:[Identifiers](../reference/Identifiers.md) for more information.
+- The argument to `channel` is an `Identifier`. See [Identifiers](../reference/Identifiers.md) for more information.
 - `ch` is a `Channel` which consumes `String`s and emits `Notification[String]`s. A notification is a structure that includes the process ID and channel identifier as well as the payload.
 - `Channel` is a profunctor and thus can be contramapped to change the input type, and mapped to change the output type.
 
@@ -45,7 +43,7 @@ Observe the following:
 - While `nbs` is executing it will emit any messages received from `<channel>`.
 - When `nbs` terminates it will issue `UNLISTEN <channel>`.
 
-It is perfectly fine to run such a stream concurrently while the underlying session is being used for other things (modulo transaction and fiber lifetime concerns; see @ref:[Transactions](Transactions.md) and @ref:[Concurrency.md](../reference/Concurrency.md) for more information).
+It is perfectly fine to run such a stream concurrently while the underlying session is being used for other things (modulo transaction and fiber lifetime concerns; see [Transactions](Transactions.md) and [Concurrency.md](../reference/Concurrency.md) for more information).
 
 If you wish to listen to all notifications on all subscribed channels, use the `notifications` method on `Session`.
 
