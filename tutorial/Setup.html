@@ -1,301 +1,202 @@
 <!DOCTYPE html>
-<html class="no-js" lang="en">
+<html lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="Laika 0.18.1 + Helium Theme" />
+    <title>Setup</title>
+    
+      <meta name="author" content="Rob Norris"/>
+    
+    
+      <meta name="description" content="docs"/>
+    
+    
+      <link rel="icon" sizes="32x32" type="image/png" href="https://typelevel.org/img/favicon.png"/>
+    
+    
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700">
+    
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Fira+Mono:500">
+    
+    <link rel="stylesheet" type="text/css" href="../helium/icofont.min.css" />
+    <link rel="stylesheet" type="text/css" href="../helium/laika-helium.css" />
+    <link rel="stylesheet" type="text/css" href="../site/styles.css" />
+    <script src="../helium/laika-helium.js"></script>
+    
+    
+    <script> /* for avoiding page load transitions */ </script>
+  </head>
 
-<head>
-<title>Setup · Skunk</title>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<meta name="description" content='docs'/>
-<link rel="canonical" href="https://github.com/tpolecat/skunktutorial/Setup.html"/>
-<link href="https://fonts.googleapis.com/css?family=Roboto:100normal,100italic,300normal,300italic,400normal,400italic,500normal,500italic,700normal,700italic,900normal,900italicc" rel="stylesheet" type="text/css"/>
-<script type="text/javascript" src="../lib/jquery/jquery.min.js"></script>
-<script type="text/javascript" src="../js/page.js"></script>
-<script type="text/javascript" src="../js/warnOldVersion.js"></script>
-<script type="text/javascript" src="../js/groups.js"></script>
-<script type="text/javascript" src="../js/snippets.js"></script>
-<link rel="stylesheet" type="text/css" href="../lib/foundation/dist/foundation.min.css"/>
-<link rel="stylesheet" type="text/css" href="../css/page.css"/>
+  <body>
 
-<!--
-<link rel="shortcut icon" href="../images/favicon.ico" />
--->
-</head>
+    <header id="top-bar">
 
-<body>
-<div class="off-canvas-wrapper">
-<div class="off-canvas-wrapper-inner" data-off-canvas-wrapper>
+      <div class="row">
+        <a id="nav-icon">
+          <i class="icofont-laika" title="Navigation">&#xefa2;</i>
+        </a>
+        
+      </div>
 
-<div class="off-canvas position-left" id="off-canvas-menu" data-off-canvas>
-<nav class="off-canvas-nav">
-<div class="nav-home">
-<a href="../index.html" >
-<span class="home-icon">⌂</span>Skunk
-</a>
-<div class="version-number">
-0.5.1
-</div>
-</div>
-<div class="nav-toc">
-<ul>
-  <li><a href="../tutorial/Index.html" class="page">Tutorial</a>
-  <ul>
-    <li><a href="../tutorial/Setup.html" class="active page">Setup</a></li>
-    <li><a href="../tutorial/Query.html" class="page">Queries</a></li>
-    <li><a href="../tutorial/Command.html" class="page">Commands</a></li>
-    <li><a href="../tutorial/Transactions.html" class="page">Transactions</a></li>
-    <li><a href="../tutorial/Channels.html" class="page">Channels</a></li>
-    <li><a href="../tutorial/Tracing.html" class="page">Tracing</a></li>
-  </ul></li>
-  <li><a href="../reference/Index.html" class="page">Reference</a>
-  <ul>
-    <li><a href="../reference/Sessions.html" class="page">Sessions</a></li>
-    <li><a href="../reference/TwiddleLists.html" class="page">Twiddle Lists</a></li>
-    <li><a href="../reference/Encoders.html" class="page">Encoders</a></li>
-    <li><a href="../reference/Fragments.html" class="page">Fragments</a></li>
-    <li><a href="../reference/Identifiers.html" class="page">Identifiers</a></li>
-    <li><a href="../reference/Concurrency.html" class="page">Concurrency</a></li>
-    <li><a href="../reference/SchemaTypes.html" class="page">Schema Types</a></li>
-  </ul></li>
-</ul>
-</div>
+      <a class="image-link" href="https://typelevel.org"><img src="https://typelevel.org/img/logo.svg"></a>
 
-</nav>
-</div>
+      <span class="row links"><a class="icon-link svg-link" href="https://www.javadoc.io/doc/org.tpolecat/skunk-docs_2.13/0.6.0-RC2/"><span title="API"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  <g class="svg-shape">
+    <path d="M75,47.5c13.246,0 24,10.754 24,24c0,13.246 -10.754,24 -24,24c-13.246,0 -24,-10.754 -24,-24c0,-13.246 10.754,-24 24,-24Zm-50,-0c13.246,-0 24,10.754 24,24c0,13.246 -10.754,24 -24,24c-13.246,-0 -24,-10.754 -24,-24c0,-13.246 10.754,-24 24,-24Zm2.705,16.735l7.239,0l0.622,-4.904l-21.833,0l-0,4.904l7.589,0l0,22.067l6.383,0l-0,-22.067Zm58.076,7.265c-0,-8.757 -3.698,-14.166 -10.781,-14.166c-7.083,-0 -10.781,5.604 -10.781,14.166c0,8.757 3.698,14.166 10.781,14.166c7.083,0 10.781,-5.604 10.781,-14.166Zm-6.539,0c0,6.538 -1.128,9.496 -4.242,9.496c-2.997,0 -4.242,-2.88 -4.242,-9.496c-0,-6.616 1.206,-9.496 4.242,-9.496c3.036,-0 4.242,2.88 4.242,9.496Zm-29.242,-67c13.246,0 24,10.754 24,24c0,13.246 -10.754,24 -24,24c-13.246,0 -24,-10.754 -24,-24c0,-13.246 10.754,-24 24,-24Zm0.512,9.834c-7.122,-0 -12.609,5.098 -12.609,14.127c-0,9.263 5.215,14.205 12.532,14.205c4.164,0 7.083,-1.634 9.068,-3.658l-2.88,-3.697c-1.518,1.206 -3.153,2.413 -5.838,2.413c-3.697,-0 -6.266,-2.763 -6.266,-9.263c-0,-6.616 2.724,-9.379 6.149,-9.379c2.102,-0 3.892,0.778 5.371,1.984l3.113,-3.775c-2.257,-1.868 -4.748,-2.957 -8.64,-2.957Z"/>
+  </g>
+</svg></span></a><a class="icon-link svg-link" href="https://github.com/typelevel/skunk"><span title="Source Code"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  <g class="svg-shape">
+    <path d="M49.995,1c-27.609,-0 -49.995,22.386 -49.995,50.002c-0,22.09 14.325,40.83 34.194,47.444c2.501,0.458 3.413,-1.086 3.413,-2.412c0,-1.185 -0.043,-4.331 -0.067,-8.503c-13.908,3.021 -16.843,-6.704 -16.843,-6.704c-2.274,-5.773 -5.552,-7.311 -5.552,-7.311c-4.54,-3.103 0.344,-3.042 0.344,-3.042c5.018,0.356 7.658,5.154 7.658,5.154c4.46,7.64 11.704,5.433 14.552,4.156c0.454,-3.232 1.744,-5.436 3.174,-6.685c-11.102,-1.262 -22.775,-5.553 -22.775,-24.713c-0,-5.457 1.949,-9.92 5.147,-13.416c-0.516,-1.265 -2.231,-6.348 0.488,-13.233c0,0 4.199,-1.344 13.751,5.126c3.988,-1.108 8.266,-1.663 12.518,-1.682c4.245,0.019 8.523,0.574 12.517,1.682c9.546,-6.47 13.736,-5.126 13.736,-5.126c2.728,6.885 1.013,11.968 0.497,13.233c3.204,3.496 5.141,7.959 5.141,13.416c0,19.209 -11.691,23.436 -22.83,24.673c1.795,1.544 3.394,4.595 3.394,9.26c0,6.682 -0.061,12.076 -0.061,13.715c0,1.338 0.899,2.894 3.438,2.406c19.853,-6.627 34.166,-25.354 34.166,-47.438c-0,-27.616 -22.389,-50.002 -50.005,-50.002"/>
+  </g>
+</svg></span></a><a class="icon-link" href="https://discord.gg/XF3CXcMzqD"><i class="icofont-laika" title="Chat">&#xeed5;</i></a><a class="icon-link" href="https://fosstodon.org/@typelevel"><span class="mastodon" title="Mastodon"><svg class="svg-icon svg-link" width="100%" height="100%" viewBox="0 0 16 16" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  <g class="svg-shape">
+    <path d="M11.19 12.195c2.016-.24 3.77-1.475 3.99-2.603.348-1.778.32-4.339.32-4.339 0-3.47-2.286-4.488-2.286-4.488C12.062.238 10.083.017 8.027 0h-.05C5.92.017 3.942.238 2.79.765c0 0-2.285 1.017-2.285 4.488l-.002.662c-.004.64-.007 1.35.011 2.091.083 3.394.626 6.74 3.78 7.57 1.454.383 2.703.463 3.709.408 1.823-.1 2.847-.647 2.847-.647l-.06-1.317s-1.303.41-2.767.36c-1.45-.05-2.98-.156-3.215-1.928a3.614 3.614 0 0 1-.033-.496s1.424.346 3.228.428c1.103.05 2.137-.064 3.188-.189zm1.613-2.47H11.13v-4.08c0-.859-.364-1.295-1.091-1.295-.804 0-1.207.517-1.207 1.541v2.233H7.168V5.89c0-1.024-.403-1.541-1.207-1.541-.727 0-1.091.436-1.091 1.296v4.079H3.197V5.522c0-.859.22-1.541.66-2.046.456-.505 1.052-.764 1.793-.764.856 0 1.504.328 1.933.983L8 4.39l.417-.695c.429-.655 1.077-.983 1.934-.983.74 0 1.336.259 1.791.764.442.505.661 1.187.661 2.046v4.203z"/>
+  </g>
+</svg>
+</span></a></span>
 
-<div class="off-canvas-content" data-off-canvas-content>
+    </header>
 
-<header class="site-header expanded row">
-<div class="small-12 column">
-<a href="#" class="off-canvas-toggle hide-for-medium" data-toggle="off-canvas-menu"><svg class="svg-icon svg-icon-menu" version="1.1" id="Menu" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 20 20" enable-background="new 0 0 20 20" xml:space="preserve"> <path class="svg-icon-menu-path" fill="#53CDEC" d="M16.4,9H3.6C3.048,9,3,9.447,3,10c0,0.553,0.048,1,0.6,1H16.4c0.552,0,0.6-0.447,0.6-1C17,9.447,16.952,9,16.4,9z M16.4,13
-H3.6C3.048,13,3,13.447,3,14c0,0.553,0.048,1,0.6,1H16.4c0.552,0,0.6-0.447,0.6-1C17,13.447,16.952,13,16.4,13z M3.6,7H16.4
-C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.048,7,3.6,7z"/></svg>
-</a>
-<div class="title"><a href="../index.html">Skunk</a></div>
+    <nav id="sidebar">
 
-<!--
-<a href="https://www.example.com" class="logo show-for-medium">logo</a>
--->
-</div>
-</header>
+      <div class="row">
+        <a class="icon-link svg-link" href="https://www.javadoc.io/doc/org.tpolecat/skunk-docs_2.13/0.6.0-RC2/"><span title="API"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  <g class="svg-shape">
+    <path d="M75,47.5c13.246,0 24,10.754 24,24c0,13.246 -10.754,24 -24,24c-13.246,0 -24,-10.754 -24,-24c0,-13.246 10.754,-24 24,-24Zm-50,-0c13.246,-0 24,10.754 24,24c0,13.246 -10.754,24 -24,24c-13.246,-0 -24,-10.754 -24,-24c0,-13.246 10.754,-24 24,-24Zm2.705,16.735l7.239,0l0.622,-4.904l-21.833,0l-0,4.904l7.589,0l0,22.067l6.383,0l-0,-22.067Zm58.076,7.265c-0,-8.757 -3.698,-14.166 -10.781,-14.166c-7.083,-0 -10.781,5.604 -10.781,14.166c0,8.757 3.698,14.166 10.781,14.166c7.083,0 10.781,-5.604 10.781,-14.166Zm-6.539,0c0,6.538 -1.128,9.496 -4.242,9.496c-2.997,0 -4.242,-2.88 -4.242,-9.496c-0,-6.616 1.206,-9.496 4.242,-9.496c3.036,-0 4.242,2.88 4.242,9.496Zm-29.242,-67c13.246,0 24,10.754 24,24c0,13.246 -10.754,24 -24,24c-13.246,0 -24,-10.754 -24,-24c0,-13.246 10.754,-24 24,-24Zm0.512,9.834c-7.122,-0 -12.609,5.098 -12.609,14.127c-0,9.263 5.215,14.205 12.532,14.205c4.164,0 7.083,-1.634 9.068,-3.658l-2.88,-3.697c-1.518,1.206 -3.153,2.413 -5.838,2.413c-3.697,-0 -6.266,-2.763 -6.266,-9.263c-0,-6.616 2.724,-9.379 6.149,-9.379c2.102,-0 3.892,0.778 5.371,1.984l3.113,-3.775c-2.257,-1.868 -4.748,-2.957 -8.64,-2.957Z"/>
+  </g>
+</svg></span></a><a class="icon-link svg-link" href="https://github.com/typelevel/skunk"><span title="Source Code"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  <g class="svg-shape">
+    <path d="M49.995,1c-27.609,-0 -49.995,22.386 -49.995,50.002c-0,22.09 14.325,40.83 34.194,47.444c2.501,0.458 3.413,-1.086 3.413,-2.412c0,-1.185 -0.043,-4.331 -0.067,-8.503c-13.908,3.021 -16.843,-6.704 -16.843,-6.704c-2.274,-5.773 -5.552,-7.311 -5.552,-7.311c-4.54,-3.103 0.344,-3.042 0.344,-3.042c5.018,0.356 7.658,5.154 7.658,5.154c4.46,7.64 11.704,5.433 14.552,4.156c0.454,-3.232 1.744,-5.436 3.174,-6.685c-11.102,-1.262 -22.775,-5.553 -22.775,-24.713c-0,-5.457 1.949,-9.92 5.147,-13.416c-0.516,-1.265 -2.231,-6.348 0.488,-13.233c0,0 4.199,-1.344 13.751,5.126c3.988,-1.108 8.266,-1.663 12.518,-1.682c4.245,0.019 8.523,0.574 12.517,1.682c9.546,-6.47 13.736,-5.126 13.736,-5.126c2.728,6.885 1.013,11.968 0.497,13.233c3.204,3.496 5.141,7.959 5.141,13.416c0,19.209 -11.691,23.436 -22.83,24.673c1.795,1.544 3.394,4.595 3.394,9.26c0,6.682 -0.061,12.076 -0.061,13.715c0,1.338 0.899,2.894 3.438,2.406c19.853,-6.627 34.166,-25.354 34.166,-47.438c-0,-27.616 -22.389,-50.002 -50.005,-50.002"/>
+  </g>
+</svg></span></a><a class="icon-link" href="https://discord.gg/XF3CXcMzqD"><i class="icofont-laika" title="Chat">&#xeed5;</i></a><a class="icon-link" href="https://fosstodon.org/@typelevel"><span class="mastodon" title="Mastodon"><svg class="svg-icon svg-link" width="100%" height="100%" viewBox="0 0 16 16" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  <g class="svg-shape">
+    <path d="M11.19 12.195c2.016-.24 3.77-1.475 3.99-2.603.348-1.778.32-4.339.32-4.339 0-3.47-2.286-4.488-2.286-4.488C12.062.238 10.083.017 8.027 0h-.05C5.92.017 3.942.238 2.79.765c0 0-2.285 1.017-2.285 4.488l-.002.662c-.004.64-.007 1.35.011 2.091.083 3.394.626 6.74 3.78 7.57 1.454.383 2.703.463 3.709.408 1.823-.1 2.847-.647 2.847-.647l-.06-1.317s-1.303.41-2.767.36c-1.45-.05-2.98-.156-3.215-1.928a3.614 3.614 0 0 1-.033-.496s1.424.346 3.228.428c1.103.05 2.137-.064 3.188-.189zm1.613-2.47H11.13v-4.08c0-.859-.364-1.295-1.091-1.295-.804 0-1.207.517-1.207 1.541v2.233H7.168V5.89c0-1.024-.403-1.541-1.207-1.541-.727 0-1.091.436-1.091 1.296v4.079H3.197V5.522c0-.859.22-1.541.66-2.046.456-.505 1.052-.764 1.793-.764.856 0 1.504.328 1.933.983L8 4.39l.417-.695c.429-.655 1.077-.983 1.934-.983.74 0 1.336.259 1.791.764.442.505.661 1.187.661 2.046v4.203z"/>
+  </g>
+</svg>
+</span></a>
+      </div>
 
-<div class="expanded row">
+      <ul class="nav-list">
+        <li class="level1"><a href="../index.html">Skunk</a></li>
+        <li class="level1 nav-header">Tutorial</li>
+        <li class="level2"><a href="index.html">Intro</a></li>
+        <li class="level2 active"><a href="#">Setup</a></li>
+        <li class="level2"><a href="Query.html">Queries</a></li>
+        <li class="level2"><a href="Command.html">Commands</a></li>
+        <li class="level2"><a href="Transactions.html">Transactions</a></li>
+        <li class="level2"><a href="Channels.html">Channels</a></li>
+        <li class="level2"><a href="Tracing.html">Tracing</a></li>
+        <li class="level1 nav-header">Reference</li>
+        <li class="level2"><a href="../reference/index.html">Intro</a></li>
+        <li class="level2"><a href="../reference/Sessions.html">Sessions</a></li>
+        <li class="level2"><a href="../reference/TwiddleLists.html">Twiddle Lists</a></li>
+        <li class="level2"><a href="../reference/Encoders.html">Encoders</a></li>
+        <li class="level2"><a href="../reference/Fragments.html">Fragments</a></li>
+        <li class="level2"><a href="../reference/Identifiers.html">Identifiers</a></li>
+        <li class="level2"><a href="../reference/Concurrency.html">Concurrency</a></li>
+        <li class="level2"><a href="../reference/SchemaTypes.html">Schema Types</a></li>
+      </ul>
 
-<div class="medium-3 large-2 show-for-medium column">
-<nav class="site-nav">
-<div class="nav-home">
-<a href="../index.html" >
-<span class="home-icon">⌂</span>Skunk
-</a>
-<div class="version-number">
-0.5.1
-</div>
-</div>
-<div class="nav-toc">
-<ul>
-  <li><a href="../tutorial/Index.html" class="page">Tutorial</a>
-  <ul>
-    <li><a href="../tutorial/Setup.html" class="active page">Setup</a></li>
-    <li><a href="../tutorial/Query.html" class="page">Queries</a></li>
-    <li><a href="../tutorial/Command.html" class="page">Commands</a></li>
-    <li><a href="../tutorial/Transactions.html" class="page">Transactions</a></li>
-    <li><a href="../tutorial/Channels.html" class="page">Channels</a></li>
-    <li><a href="../tutorial/Tracing.html" class="page">Tracing</a></li>
-  </ul></li>
-  <li><a href="../reference/Index.html" class="page">Reference</a>
-  <ul>
-    <li><a href="../reference/Sessions.html" class="page">Sessions</a></li>
-    <li><a href="../reference/TwiddleLists.html" class="page">Twiddle Lists</a></li>
-    <li><a href="../reference/Encoders.html" class="page">Encoders</a></li>
-    <li><a href="../reference/Fragments.html" class="page">Fragments</a></li>
-    <li><a href="../reference/Identifiers.html" class="page">Identifiers</a></li>
-    <li><a href="../reference/Concurrency.html" class="page">Concurrency</a></li>
-    <li><a href="../reference/SchemaTypes.html" class="page">Schema Types</a></li>
-  </ul></li>
-</ul>
-</div>
+      <ul class="nav-list">
+        <li class="level1 nav-header">Related Projects</li>
+        
+          <li class="level2"><a href="https://typelevel.org/cats/">cats</a></li>
+        
+      </ul>
 
-</nav>
-</div>
+    </nav>
 
-<div class="small-12 medium-9 large-10 column">
-<section class="site-content">
+    <div id="container">
 
-<span id="version-warning"></span>
+      <nav id="page-nav">
+        <p class="header"><a href="#">Setup</a></p>
 
-<div class="page-header row">
-<div class="medium-12 show-for-medium column">
-<div class="nav-breadcrumbs">
-<ul>
-  <li><a href="../index.html">Skunk</a></li>
-  <li><a href="../tutorial/Index.html">Tutorial</a></li>
-  <li>Setup</li>
-</ul>
-</div>
-</div>
-</div>
+        <ul class="nav-list">
+          <li class="level1"><a href="#database-setup">Database Setup</a></li>
+          <li class="level1"><a href="#scala-setup">Scala Setup</a></li>
+          <li class="level1"><a href="#ide-setup">IDE Setup</a></li>
+          <li class="level1"><a href="#verify-your-setup">Verify Your Setup</a></li>
+          <li class="level1"><a href="#experiment">Experiment</a></li>
+        </ul>
 
-<div class="page-content row">
-<div class="small-12 large-9 column" id="docs">
-<h1><a href="#setup" name="setup" class="anchor"><span class="anchor-link"></span></a>Setup</h1>
-<p>Welcome to the Wonderful World of Skunk! This section will help you get everything set up.</p>
-<h2><a href="#database-setup" name="database-setup" class="anchor"><span class="anchor-link"></span></a>Database Setup</h2>
-<p>In order to run the tutorial examples you will need a Postgres server with the <code>world</code> database loaded up, writable by the <code>jimmy</code> user, who must be able to log in with password <code>banana</code>. Our <a href="http://docker.com">Docker</a> image does exactly that.</p>
-<pre><code>docker run -p5432:5432 -d tpolecat/skunk-world
-</code></pre>
-<p>If you wish to use your own Postgres server you can download <code>world/world.sql</code> from the Skunk repository and load it up yourself.</p>
-<h2><a href="#scala-setup" name="scala-setup" class="anchor"><span class="anchor-link"></span></a>Scala Setup</h2>
-<p>Create a new project with Skunk as a dependency.</p><dl class="dependency"><dt>sbt</dt><dd><pre class="prettyprint"><code class="language-scala">libraryDependencies += "org.tpolecat" %% "skunk-core" % "0.5.1"</code></pre></dd><dt>Maven</dt><dd><pre class="prettyprint"><code class="language-xml">&lt;dependencies&gt
-  &lt;dependency&gt;
-    &lt;groupId&gt;org.tpolecat&lt;/groupId&gt;
-    &lt;artifactId&gt;skunk-core_2.13&lt;/artifactId&gt;
-    &lt;version&gt;0.5.1&lt;/version&gt;
-  &lt;/dependency&gt
-&lt;/dependencies&gt;</code></pre></dd><dt>Gradle</dt><dd><pre class="prettyprint"><code class="language-gradle">dependencies {
-  implementation "org.tpolecat:skunk-core_2.13:0.5.1"
-}</code></pre></dd></dl>
-<h2><a href="#ide-setup" name="ide-setup" class="anchor"><span class="anchor-link"></span></a>IDE Setup</h2>
-<p>For metals, no additional steps are needed.</p>
-<p>For IntelliJ, add the <a href="https://github.com/trobert/skunk-intellij">skunk-intellij plugin</a> to have correct code highlighting support for statements.</p>
-<h2><a href="#verify-your-setup" name="verify-your-setup" class="anchor"><span class="anchor-link"></span></a>Verify Your Setup</h2>
-<p>Try out this minimal <a href="https://typelevel.org/cats-effect/datatypes/ioapp.html">IOApp</a> that connects to the database and selects the current date.</p>
-<pre class="prettyprint"><code class="language-scala">import cats.effect._
-import skunk._
-import skunk.implicits._
-import skunk.codec.all._
-import natchez.Trace.Implicits.noop                          // (1)                          // (1)
+        <p class="footer"></p>
+      </nav>
 
-object Hello extends IOApp {
+      <main class="content">
 
-  val session: Resource[IO, Session[IO]] =
-    Session.single(                                          // (2)
-      host     = &quot;localhost&quot;,
-      port     = 5432,
-      user     = &quot;jimmy&quot;,
-      database = &quot;world&quot;,
-      password = Some(&quot;banana&quot;)
+        <h1 id="setup" class="title">Setup</h1>
+        <p>Welcome to the Wonderful World of Skunk! This section will help you get everything set up.</p>
+        
+        <h2 id="database-setup" class="section">Database Setup<a class="anchor-link right" href="#database-setup"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <p>In order to run the tutorial examples you will need a Postgres server with the <code>world</code> database loaded up, writable by the <code>jimmy</code> user, who must be able to log in with password <code>banana</code>. Our <a href="http://docker.com">Docker</a> image does exactly that.</p>
+        <pre><code>docker run -p5432:5432 -d tpolecat/skunk-world</code></pre>
+        <p>If you wish to use your own Postgres server you can download <code>world/world.sql</code> from the Skunk repository and load it up yourself.</p>
+        
+        <h2 id="scala-setup" class="section">Scala Setup<a class="anchor-link right" href="#scala-setup"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <p>Create a new project with Skunk as a dependency.</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="identifier">libraryDependencies</span><span> += </span><span class="string-literal">&quot;org.tpolecat&quot;</span><span> %% </span><span class="string-literal">&quot;skunk-refined&quot;</span><span> % </span><span class="string-literal">&quot;0.6.0-RC2&quot;</span></code></pre>
+        
+        <h2 id="ide-setup" class="section">IDE Setup<a class="anchor-link right" href="#ide-setup"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <p>For metals, no additional steps are needed.</p>
+        <p>For IntelliJ, add the <a href="https://github.com/trobert/skunk-intellij">skunk-intellij plugin</a> to have correct code highlighting support for statements.</p>
+        
+        <h2 id="verify-your-setup" class="section">Verify Your Setup<a class="anchor-link right" href="#verify-your-setup"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <p>Try out this minimal <a href="https://typelevel.org/cats-effect/datatypes/ioapp.html">IOApp</a> that connects to the database and selects the current date.</p>
+        <pre><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="identifier">_</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">skunk</span><span>.</span><span class="identifier">_</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">skunk</span><span>.</span><span class="identifier">implicits</span><span>.</span><span class="identifier">_</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">skunk</span><span>.</span><span class="identifier">codec</span><span>.</span><span class="identifier">all</span><span>.</span><span class="identifier">_</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">natchez</span><span>.</span><span class="type-name">Trace</span><span>.</span><span class="type-name">Implicits</span><span>.</span><span class="identifier">noop</span><span>                          </span><span class="comment">// (1)                          // (1)
+</span><span>
+</span><span class="keyword">object</span><span> </span><span class="type-name">Hello</span><span> </span><span class="keyword">extends</span><span> </span><span class="type-name">IOApp</span><span> {
+
+  </span><span class="keyword">val</span><span> </span><span class="identifier">session</span><span>: </span><span class="type-name">Resource</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Session</span><span>[</span><span class="type-name">IO</span><span>]] =
+    </span><span class="type-name">Session</span><span>.</span><span class="identifier">single</span><span>(                                          </span><span class="comment">// (2)
+</span><span>      </span><span class="identifier">host</span><span>     = </span><span class="string-literal">&quot;localhost&quot;</span><span>,
+      </span><span class="identifier">port</span><span>     = </span><span class="number-literal">5432</span><span>,
+      </span><span class="identifier">user</span><span>     = </span><span class="string-literal">&quot;jimmy&quot;</span><span>,
+      </span><span class="identifier">database</span><span> = </span><span class="string-literal">&quot;world&quot;</span><span>,
+      </span><span class="identifier">password</span><span> = </span><span class="type-name">Some</span><span>(</span><span class="string-literal">&quot;banana&quot;</span><span>)
     )
 
-  def run(args: List[String]): IO[ExitCode] =
-    session.use { s =&gt;                                       // (3)
-      for {
-        d &lt;- s.unique(sql&quot;select current_date&quot;.query(date))  // (4)
-        _ &lt;- IO.println(s&quot;The current date is $d.&quot;)
-      } yield ExitCode.Success
+  </span><span class="keyword">def</span><span> </span><span class="declaration-name">run</span><span>(</span><span class="identifier">args</span><span>: </span><span class="type-name">List</span><span>[</span><span class="type-name">String</span><span>]): </span><span class="type-name">IO</span><span>[</span><span class="type-name">ExitCode</span><span>] =
+    </span><span class="identifier">session</span><span>.</span><span class="identifier">use</span><span> { </span><span class="identifier">s</span><span> =&gt;                                       </span><span class="comment">// (3)
+</span><span>      </span><span class="keyword">for</span><span> {
+        </span><span class="identifier">d</span><span> &lt;- </span><span class="identifier">s</span><span>.</span><span class="identifier">unique</span><span>(</span><span class="string-literal">sql&quot;select current_date&quot;</span><span>.</span><span class="identifier">query</span><span>(</span><span class="identifier">date</span><span>))  </span><span class="comment">// (4)
+</span><span>        </span><span class="identifier">_</span><span> &lt;- </span><span class="type-name">IO</span><span>.</span><span class="identifier">println</span><span>(</span><span class="string-literal">s&quot;The current date is </span><span class="substitution">$d</span><span class="string-literal">.&quot;</span><span>)
+      } </span><span class="keyword">yield</span><span> </span><span class="type-name">ExitCode</span><span>.</span><span class="type-name">Success</span><span>
     }
 
-}
-</code></pre>
-<p>Let&rsquo;s examine the code above.</p>
-<ul>
-  <li>At ① we import the no-op <code>Tracer</code>, which allows us to run Skunk programs with execution tracing disabled. We will revisit <a href="Tracing.html">Tracing</a> in a later section.</li>
-  <li>At ② we define a <a href="https://typelevel.org/cats-effect/datatypes/resource.html">Resource</a> that yields un-pooled <a href="../reference/Sessions.html">Session</a> values and ensures that they are closed after use. We specify the host, port, user, database, and password (see <a href="../reference/Sessions.html">Session</a> for information on ther connection options).</li>
-  <li>At ③ we <code>use</code> the resource, specifying a block to execute during the <code>Session</code>&rsquo;s lifetime. No matter how the block terminates (success, failure, cancellation) the <code>Session</code> will be closed properly.</li>
-  <li>At ④ we use the <a href="../reference/Fragments.html">sql interpolator</a> to construct a <code>Query</code> that selects a single column of schema type <code>date</code> (yielding <code>d</code>, a value of type <code>java.time.LocalDate</code>), then we ask the session to execute it, expecting a <em>unique</em> value back; i.e., exactly one row.</li>
-</ul>
-<p>When we run the program we see the current date.</p>
-<pre><code>The current date is 2023-01-22.
-</code></pre>
-<h2><a href="#experiment" name="experiment" class="anchor"><span class="anchor-link"></span></a>Experiment</h2>
-<p>Here are some modifications that will cause runtime failures. Give them a try and see how Skunk responds.</p>
-<ul>
-  <li>Try running with an invalid user, password, or database name.</li>
-  <li>Introduce a typo into the SQL string.</li>
-  <li>Change the decoder from <code>date</code> to another type like <code>timestamp</code>.</li>
-</ul>
-<p>We will see more examples later in the tutorial.</p>
-<script type="text/javascript" src="../js/link_fix.js"></script>
+}</span></code></pre>
+        <p>Let&#39;s examine the code above.</p>
+        <ul>
+          <li>At ① we import the no-op <code>Tracer</code>, which allows us to run Skunk programs with execution tracing disabled. We will revisit <a href="Tracing.html">Tracing</a> in a later section.</li>
+          <li>At ② we define a <a href="https://typelevel.org/cats-effect/datatypes/resource.html">Resource</a> that yields un-pooled <a href="../reference/Sessions.html">Session</a> values and ensures that they are closed after use. We specify the host, port, user, database, and password (see <a href="../reference/Sessions.html">Session</a> for information on ther connection options).</li>
+          <li>At ③ we <code>use</code> the resource, specifying a block to execute during the <code>Session</code>&#39;s lifetime. No matter how the block terminates (success, failure, cancellation) the <code>Session</code> will be closed properly.</li>
+          <li>At ④ we use the <a href="../reference/Fragments.html">sql interpolator</a> to construct a <code>Query</code> that selects a single column of schema type <code>date</code> (yielding <code>d</code>, a value of type <code>java.time.LocalDate</code>), then we ask the session to execute it, expecting a <em>unique</em> value back; i.e., exactly one row.</li>
+        </ul>
+        <p>When we run the program we see the current date.</p>
+        <pre><code>The current date is 2023-05-07.</code></pre>
+        
+        <h2 id="experiment" class="section">Experiment<a class="anchor-link right" href="#experiment"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <p>Here are some modifications that will cause runtime failures. Give them a try and see how Skunk responds.</p>
+        <ul>
+          <li>Try running with an invalid user, password, or database name.</li>
+          <li>Introduce a typo into the SQL string.</li>
+          <li>Change the decoder from <code>date</code> to another type like <code>timestamp</code>.</li>
+        </ul>
+        <p>We will see more examples later in the tutorial.</p>
 
-<div class="source-github">
-The source code for this page can be found <a id="source-link" href="https://github.com/tpolecat/skunk/tree/v0.5.1/modules/docs/target/mdoc/tutorial/Setup.md">here</a>.
-</div>
+        <hr style="margin-top: 30px"/>
+        <footer style="font-size: 90%; text-align: center">
+          skunk is a <a href="https://typelevel.org/">Typelevel</a> project distributed under the <a href="https://opensource.org/licenses/MIT">MIT</a> license.
+        </footer>
 
-<script type="text/javascript">jQuery(function(){sourceUrlFix('https://github.com/tpolecat/skunk/tree/v0.5.1/modules/docs/target/mdoc/tutorial/Setup.md')});</script>
+      </main>
 
-<div class="nav-next">
-<p><strong>Next:</strong> <a href="../tutorial/Query.html">Queries</a></p>
-</div>
-</div>
-<div class="large-3 show-for-large column" data-sticky-container>
-<nav class="sidebar sticky" data-sticky data-anchor="docs" data-sticky-on="large">
-<div class="page-nav">
-<div class="nav-title">On this page:</div>
-<div class="nav-toc">
-<ul>
-  <li><a href="../tutorial/Setup.html#setup" class="header">Setup</a>
-  <ul>
-    <li><a href="../tutorial/Setup.html#database-setup" class="header">Database Setup</a></li>
-    <li><a href="../tutorial/Setup.html#scala-setup" class="header">Scala Setup</a></li>
-    <li><a href="../tutorial/Setup.html#ide-setup" class="header">IDE Setup</a></li>
-    <li><a href="../tutorial/Setup.html#verify-your-setup" class="header">Verify Your Setup</a></li>
-    <li><a href="../tutorial/Setup.html#experiment" class="header">Experiment</a></li>
-  </ul></li>
-</ul>
-</div>
-</div>
-</nav>
-</div>
-</div>
+    </div>
 
-</section>
-</div>
-
-</div>
-
-<footer class="site-footer">
-
-<section class="site-footer-nav">
-<div class="expanded row">
-<div class="small-12 large-offset-2 large-10 column">
-<div class="row site-footer-content">
-
-<div class="small-12 medium-4 large-3 text-center column">
-<div class="nav-links">
-<ul>
-<!-- <li><a href="https://www.example.com/products/">Products</a> -->
-</ul>
-</div>
-</div>
-
-</div>
-</div>
-</div>
-</section>
-
-<section class="site-footer-base">
-<div class="expanded row">
-<div class="small-12 large-offset-2 large-10 column">
-<div class="row site-footer-content">
-
-<div class="small-12 text-center large-9 column">
-
-<!--
-<div class="copyright">
-<span class="text">&copy; 2023</span>
-<a href="https://www.example.com" class="logo">logo</a>
-</div>
--->
-</div>
-
-</div>
-</div>
-</div>
-</section>
-</footer>
-
-</div>
-</div>
-</div>
-</body>
-
-<script type="text/javascript" src="../lib/foundation/dist/foundation.min.js"></script>
-<script type="text/javascript">jQuery(document).foundation();</script>
-<script type="text/javascript" src="../js/magellan.js"></script>
-
-<style type="text/css">@import "../lib/prettify/prettify.css";</style>
-<script type="text/javascript" src="../lib/prettify/prettify.js"></script>
-<script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
-<script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
-<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.5.1', 'https://github.com/tpolecat/skunk')});</script>
-
-
+  </body>
 </html>

@@ -1,475 +1,492 @@
 <!DOCTYPE html>
-<html class="no-js" lang="en">
+<html lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="Laika 0.18.1 + Helium Theme" />
+    <title>Queries</title>
+    
+      <meta name="author" content="Rob Norris"/>
+    
+    
+      <meta name="description" content="docs"/>
+    
+    
+      <link rel="icon" sizes="32x32" type="image/png" href="https://typelevel.org/img/favicon.png"/>
+    
+    
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700">
+    
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Fira+Mono:500">
+    
+    <link rel="stylesheet" type="text/css" href="../helium/icofont.min.css" />
+    <link rel="stylesheet" type="text/css" href="../helium/laika-helium.css" />
+    <link rel="stylesheet" type="text/css" href="../site/styles.css" />
+    <script src="../helium/laika-helium.js"></script>
+    
+    
+    <script> /* for avoiding page load transitions */ </script>
+  </head>
 
-<head>
-<title>Queries · Skunk</title>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<meta name="description" content='docs'/>
-<link rel="canonical" href="https://github.com/tpolecat/skunktutorial/Query.html"/>
-<link href="https://fonts.googleapis.com/css?family=Roboto:100normal,100italic,300normal,300italic,400normal,400italic,500normal,500italic,700normal,700italic,900normal,900italicc" rel="stylesheet" type="text/css"/>
-<script type="text/javascript" src="../lib/jquery/jquery.min.js"></script>
-<script type="text/javascript" src="../js/page.js"></script>
-<script type="text/javascript" src="../js/warnOldVersion.js"></script>
-<script type="text/javascript" src="../js/groups.js"></script>
-<script type="text/javascript" src="../js/snippets.js"></script>
-<link rel="stylesheet" type="text/css" href="../lib/foundation/dist/foundation.min.css"/>
-<link rel="stylesheet" type="text/css" href="../css/page.css"/>
+  <body>
 
-<!--
-<link rel="shortcut icon" href="../images/favicon.ico" />
--->
-</head>
+    <header id="top-bar">
 
-<body>
-<div class="off-canvas-wrapper">
-<div class="off-canvas-wrapper-inner" data-off-canvas-wrapper>
+      <div class="row">
+        <a id="nav-icon">
+          <i class="icofont-laika" title="Navigation">&#xefa2;</i>
+        </a>
+        
+      </div>
 
-<div class="off-canvas position-left" id="off-canvas-menu" data-off-canvas>
-<nav class="off-canvas-nav">
-<div class="nav-home">
-<a href="../index.html" >
-<span class="home-icon">⌂</span>Skunk
-</a>
-<div class="version-number">
-0.5.1
-</div>
-</div>
-<div class="nav-toc">
-<ul>
-  <li><a href="../tutorial/Index.html" class="page">Tutorial</a>
-  <ul>
-    <li><a href="../tutorial/Setup.html" class="page">Setup</a></li>
-    <li><a href="../tutorial/Query.html" class="active page">Queries</a></li>
-    <li><a href="../tutorial/Command.html" class="page">Commands</a></li>
-    <li><a href="../tutorial/Transactions.html" class="page">Transactions</a></li>
-    <li><a href="../tutorial/Channels.html" class="page">Channels</a></li>
-    <li><a href="../tutorial/Tracing.html" class="page">Tracing</a></li>
-  </ul></li>
-  <li><a href="../reference/Index.html" class="page">Reference</a>
-  <ul>
-    <li><a href="../reference/Sessions.html" class="page">Sessions</a></li>
-    <li><a href="../reference/TwiddleLists.html" class="page">Twiddle Lists</a></li>
-    <li><a href="../reference/Encoders.html" class="page">Encoders</a></li>
-    <li><a href="../reference/Fragments.html" class="page">Fragments</a></li>
-    <li><a href="../reference/Identifiers.html" class="page">Identifiers</a></li>
-    <li><a href="../reference/Concurrency.html" class="page">Concurrency</a></li>
-    <li><a href="../reference/SchemaTypes.html" class="page">Schema Types</a></li>
-  </ul></li>
-</ul>
-</div>
+      <a class="image-link" href="https://typelevel.org"><img src="https://typelevel.org/img/logo.svg"></a>
 
-</nav>
-</div>
+      <span class="row links"><a class="icon-link svg-link" href="https://www.javadoc.io/doc/org.tpolecat/skunk-docs_2.13/0.6.0-RC2/"><span title="API"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  <g class="svg-shape">
+    <path d="M75,47.5c13.246,0 24,10.754 24,24c0,13.246 -10.754,24 -24,24c-13.246,0 -24,-10.754 -24,-24c0,-13.246 10.754,-24 24,-24Zm-50,-0c13.246,-0 24,10.754 24,24c0,13.246 -10.754,24 -24,24c-13.246,-0 -24,-10.754 -24,-24c0,-13.246 10.754,-24 24,-24Zm2.705,16.735l7.239,0l0.622,-4.904l-21.833,0l-0,4.904l7.589,0l0,22.067l6.383,0l-0,-22.067Zm58.076,7.265c-0,-8.757 -3.698,-14.166 -10.781,-14.166c-7.083,-0 -10.781,5.604 -10.781,14.166c0,8.757 3.698,14.166 10.781,14.166c7.083,0 10.781,-5.604 10.781,-14.166Zm-6.539,0c0,6.538 -1.128,9.496 -4.242,9.496c-2.997,0 -4.242,-2.88 -4.242,-9.496c-0,-6.616 1.206,-9.496 4.242,-9.496c3.036,-0 4.242,2.88 4.242,9.496Zm-29.242,-67c13.246,0 24,10.754 24,24c0,13.246 -10.754,24 -24,24c-13.246,0 -24,-10.754 -24,-24c0,-13.246 10.754,-24 24,-24Zm0.512,9.834c-7.122,-0 -12.609,5.098 -12.609,14.127c-0,9.263 5.215,14.205 12.532,14.205c4.164,0 7.083,-1.634 9.068,-3.658l-2.88,-3.697c-1.518,1.206 -3.153,2.413 -5.838,2.413c-3.697,-0 -6.266,-2.763 -6.266,-9.263c-0,-6.616 2.724,-9.379 6.149,-9.379c2.102,-0 3.892,0.778 5.371,1.984l3.113,-3.775c-2.257,-1.868 -4.748,-2.957 -8.64,-2.957Z"/>
+  </g>
+</svg></span></a><a class="icon-link svg-link" href="https://github.com/typelevel/skunk"><span title="Source Code"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  <g class="svg-shape">
+    <path d="M49.995,1c-27.609,-0 -49.995,22.386 -49.995,50.002c-0,22.09 14.325,40.83 34.194,47.444c2.501,0.458 3.413,-1.086 3.413,-2.412c0,-1.185 -0.043,-4.331 -0.067,-8.503c-13.908,3.021 -16.843,-6.704 -16.843,-6.704c-2.274,-5.773 -5.552,-7.311 -5.552,-7.311c-4.54,-3.103 0.344,-3.042 0.344,-3.042c5.018,0.356 7.658,5.154 7.658,5.154c4.46,7.64 11.704,5.433 14.552,4.156c0.454,-3.232 1.744,-5.436 3.174,-6.685c-11.102,-1.262 -22.775,-5.553 -22.775,-24.713c-0,-5.457 1.949,-9.92 5.147,-13.416c-0.516,-1.265 -2.231,-6.348 0.488,-13.233c0,0 4.199,-1.344 13.751,5.126c3.988,-1.108 8.266,-1.663 12.518,-1.682c4.245,0.019 8.523,0.574 12.517,1.682c9.546,-6.47 13.736,-5.126 13.736,-5.126c2.728,6.885 1.013,11.968 0.497,13.233c3.204,3.496 5.141,7.959 5.141,13.416c0,19.209 -11.691,23.436 -22.83,24.673c1.795,1.544 3.394,4.595 3.394,9.26c0,6.682 -0.061,12.076 -0.061,13.715c0,1.338 0.899,2.894 3.438,2.406c19.853,-6.627 34.166,-25.354 34.166,-47.438c-0,-27.616 -22.389,-50.002 -50.005,-50.002"/>
+  </g>
+</svg></span></a><a class="icon-link" href="https://discord.gg/XF3CXcMzqD"><i class="icofont-laika" title="Chat">&#xeed5;</i></a><a class="icon-link" href="https://fosstodon.org/@typelevel"><span class="mastodon" title="Mastodon"><svg class="svg-icon svg-link" width="100%" height="100%" viewBox="0 0 16 16" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  <g class="svg-shape">
+    <path d="M11.19 12.195c2.016-.24 3.77-1.475 3.99-2.603.348-1.778.32-4.339.32-4.339 0-3.47-2.286-4.488-2.286-4.488C12.062.238 10.083.017 8.027 0h-.05C5.92.017 3.942.238 2.79.765c0 0-2.285 1.017-2.285 4.488l-.002.662c-.004.64-.007 1.35.011 2.091.083 3.394.626 6.74 3.78 7.57 1.454.383 2.703.463 3.709.408 1.823-.1 2.847-.647 2.847-.647l-.06-1.317s-1.303.41-2.767.36c-1.45-.05-2.98-.156-3.215-1.928a3.614 3.614 0 0 1-.033-.496s1.424.346 3.228.428c1.103.05 2.137-.064 3.188-.189zm1.613-2.47H11.13v-4.08c0-.859-.364-1.295-1.091-1.295-.804 0-1.207.517-1.207 1.541v2.233H7.168V5.89c0-1.024-.403-1.541-1.207-1.541-.727 0-1.091.436-1.091 1.296v4.079H3.197V5.522c0-.859.22-1.541.66-2.046.456-.505 1.052-.764 1.793-.764.856 0 1.504.328 1.933.983L8 4.39l.417-.695c.429-.655 1.077-.983 1.934-.983.74 0 1.336.259 1.791.764.442.505.661 1.187.661 2.046v4.203z"/>
+  </g>
+</svg>
+</span></a></span>
 
-<div class="off-canvas-content" data-off-canvas-content>
+    </header>
 
-<header class="site-header expanded row">
-<div class="small-12 column">
-<a href="#" class="off-canvas-toggle hide-for-medium" data-toggle="off-canvas-menu"><svg class="svg-icon svg-icon-menu" version="1.1" id="Menu" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 20 20" enable-background="new 0 0 20 20" xml:space="preserve"> <path class="svg-icon-menu-path" fill="#53CDEC" d="M16.4,9H3.6C3.048,9,3,9.447,3,10c0,0.553,0.048,1,0.6,1H16.4c0.552,0,0.6-0.447,0.6-1C17,9.447,16.952,9,16.4,9z M16.4,13
-H3.6C3.048,13,3,13.447,3,14c0,0.553,0.048,1,0.6,1H16.4c0.552,0,0.6-0.447,0.6-1C17,13.447,16.952,13,16.4,13z M3.6,7H16.4
-C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.048,7,3.6,7z"/></svg>
-</a>
-<div class="title"><a href="../index.html">Skunk</a></div>
+    <nav id="sidebar">
 
-<!--
-<a href="https://www.example.com" class="logo show-for-medium">logo</a>
--->
-</div>
-</header>
+      <div class="row">
+        <a class="icon-link svg-link" href="https://www.javadoc.io/doc/org.tpolecat/skunk-docs_2.13/0.6.0-RC2/"><span title="API"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  <g class="svg-shape">
+    <path d="M75,47.5c13.246,0 24,10.754 24,24c0,13.246 -10.754,24 -24,24c-13.246,0 -24,-10.754 -24,-24c0,-13.246 10.754,-24 24,-24Zm-50,-0c13.246,-0 24,10.754 24,24c0,13.246 -10.754,24 -24,24c-13.246,-0 -24,-10.754 -24,-24c0,-13.246 10.754,-24 24,-24Zm2.705,16.735l7.239,0l0.622,-4.904l-21.833,0l-0,4.904l7.589,0l0,22.067l6.383,0l-0,-22.067Zm58.076,7.265c-0,-8.757 -3.698,-14.166 -10.781,-14.166c-7.083,-0 -10.781,5.604 -10.781,14.166c0,8.757 3.698,14.166 10.781,14.166c7.083,0 10.781,-5.604 10.781,-14.166Zm-6.539,0c0,6.538 -1.128,9.496 -4.242,9.496c-2.997,0 -4.242,-2.88 -4.242,-9.496c-0,-6.616 1.206,-9.496 4.242,-9.496c3.036,-0 4.242,2.88 4.242,9.496Zm-29.242,-67c13.246,0 24,10.754 24,24c0,13.246 -10.754,24 -24,24c-13.246,0 -24,-10.754 -24,-24c0,-13.246 10.754,-24 24,-24Zm0.512,9.834c-7.122,-0 -12.609,5.098 -12.609,14.127c-0,9.263 5.215,14.205 12.532,14.205c4.164,0 7.083,-1.634 9.068,-3.658l-2.88,-3.697c-1.518,1.206 -3.153,2.413 -5.838,2.413c-3.697,-0 -6.266,-2.763 -6.266,-9.263c-0,-6.616 2.724,-9.379 6.149,-9.379c2.102,-0 3.892,0.778 5.371,1.984l3.113,-3.775c-2.257,-1.868 -4.748,-2.957 -8.64,-2.957Z"/>
+  </g>
+</svg></span></a><a class="icon-link svg-link" href="https://github.com/typelevel/skunk"><span title="Source Code"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  <g class="svg-shape">
+    <path d="M49.995,1c-27.609,-0 -49.995,22.386 -49.995,50.002c-0,22.09 14.325,40.83 34.194,47.444c2.501,0.458 3.413,-1.086 3.413,-2.412c0,-1.185 -0.043,-4.331 -0.067,-8.503c-13.908,3.021 -16.843,-6.704 -16.843,-6.704c-2.274,-5.773 -5.552,-7.311 -5.552,-7.311c-4.54,-3.103 0.344,-3.042 0.344,-3.042c5.018,0.356 7.658,5.154 7.658,5.154c4.46,7.64 11.704,5.433 14.552,4.156c0.454,-3.232 1.744,-5.436 3.174,-6.685c-11.102,-1.262 -22.775,-5.553 -22.775,-24.713c-0,-5.457 1.949,-9.92 5.147,-13.416c-0.516,-1.265 -2.231,-6.348 0.488,-13.233c0,0 4.199,-1.344 13.751,5.126c3.988,-1.108 8.266,-1.663 12.518,-1.682c4.245,0.019 8.523,0.574 12.517,1.682c9.546,-6.47 13.736,-5.126 13.736,-5.126c2.728,6.885 1.013,11.968 0.497,13.233c3.204,3.496 5.141,7.959 5.141,13.416c0,19.209 -11.691,23.436 -22.83,24.673c1.795,1.544 3.394,4.595 3.394,9.26c0,6.682 -0.061,12.076 -0.061,13.715c0,1.338 0.899,2.894 3.438,2.406c19.853,-6.627 34.166,-25.354 34.166,-47.438c-0,-27.616 -22.389,-50.002 -50.005,-50.002"/>
+  </g>
+</svg></span></a><a class="icon-link" href="https://discord.gg/XF3CXcMzqD"><i class="icofont-laika" title="Chat">&#xeed5;</i></a><a class="icon-link" href="https://fosstodon.org/@typelevel"><span class="mastodon" title="Mastodon"><svg class="svg-icon svg-link" width="100%" height="100%" viewBox="0 0 16 16" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  <g class="svg-shape">
+    <path d="M11.19 12.195c2.016-.24 3.77-1.475 3.99-2.603.348-1.778.32-4.339.32-4.339 0-3.47-2.286-4.488-2.286-4.488C12.062.238 10.083.017 8.027 0h-.05C5.92.017 3.942.238 2.79.765c0 0-2.285 1.017-2.285 4.488l-.002.662c-.004.64-.007 1.35.011 2.091.083 3.394.626 6.74 3.78 7.57 1.454.383 2.703.463 3.709.408 1.823-.1 2.847-.647 2.847-.647l-.06-1.317s-1.303.41-2.767.36c-1.45-.05-2.98-.156-3.215-1.928a3.614 3.614 0 0 1-.033-.496s1.424.346 3.228.428c1.103.05 2.137-.064 3.188-.189zm1.613-2.47H11.13v-4.08c0-.859-.364-1.295-1.091-1.295-.804 0-1.207.517-1.207 1.541v2.233H7.168V5.89c0-1.024-.403-1.541-1.207-1.541-.727 0-1.091.436-1.091 1.296v4.079H3.197V5.522c0-.859.22-1.541.66-2.046.456-.505 1.052-.764 1.793-.764.856 0 1.504.328 1.933.983L8 4.39l.417-.695c.429-.655 1.077-.983 1.934-.983.74 0 1.336.259 1.791.764.442.505.661 1.187.661 2.046v4.203z"/>
+  </g>
+</svg>
+</span></a>
+      </div>
 
-<div class="expanded row">
+      <ul class="nav-list">
+        <li class="level1"><a href="../index.html">Skunk</a></li>
+        <li class="level1 nav-header">Tutorial</li>
+        <li class="level2"><a href="index.html">Intro</a></li>
+        <li class="level2"><a href="Setup.html">Setup</a></li>
+        <li class="level2 active"><a href="#">Queries</a></li>
+        <li class="level2"><a href="Command.html">Commands</a></li>
+        <li class="level2"><a href="Transactions.html">Transactions</a></li>
+        <li class="level2"><a href="Channels.html">Channels</a></li>
+        <li class="level2"><a href="Tracing.html">Tracing</a></li>
+        <li class="level1 nav-header">Reference</li>
+        <li class="level2"><a href="../reference/index.html">Intro</a></li>
+        <li class="level2"><a href="../reference/Sessions.html">Sessions</a></li>
+        <li class="level2"><a href="../reference/TwiddleLists.html">Twiddle Lists</a></li>
+        <li class="level2"><a href="../reference/Encoders.html">Encoders</a></li>
+        <li class="level2"><a href="../reference/Fragments.html">Fragments</a></li>
+        <li class="level2"><a href="../reference/Identifiers.html">Identifiers</a></li>
+        <li class="level2"><a href="../reference/Concurrency.html">Concurrency</a></li>
+        <li class="level2"><a href="../reference/SchemaTypes.html">Schema Types</a></li>
+      </ul>
 
-<div class="medium-3 large-2 show-for-medium column">
-<nav class="site-nav">
-<div class="nav-home">
-<a href="../index.html" >
-<span class="home-icon">⌂</span>Skunk
-</a>
-<div class="version-number">
-0.5.1
-</div>
-</div>
-<div class="nav-toc">
-<ul>
-  <li><a href="../tutorial/Index.html" class="page">Tutorial</a>
-  <ul>
-    <li><a href="../tutorial/Setup.html" class="page">Setup</a></li>
-    <li><a href="../tutorial/Query.html" class="active page">Queries</a></li>
-    <li><a href="../tutorial/Command.html" class="page">Commands</a></li>
-    <li><a href="../tutorial/Transactions.html" class="page">Transactions</a></li>
-    <li><a href="../tutorial/Channels.html" class="page">Channels</a></li>
-    <li><a href="../tutorial/Tracing.html" class="page">Tracing</a></li>
-  </ul></li>
-  <li><a href="../reference/Index.html" class="page">Reference</a>
-  <ul>
-    <li><a href="../reference/Sessions.html" class="page">Sessions</a></li>
-    <li><a href="../reference/TwiddleLists.html" class="page">Twiddle Lists</a></li>
-    <li><a href="../reference/Encoders.html" class="page">Encoders</a></li>
-    <li><a href="../reference/Fragments.html" class="page">Fragments</a></li>
-    <li><a href="../reference/Identifiers.html" class="page">Identifiers</a></li>
-    <li><a href="../reference/Concurrency.html" class="page">Concurrency</a></li>
-    <li><a href="../reference/SchemaTypes.html" class="page">Schema Types</a></li>
-  </ul></li>
-</ul>
-</div>
+      <ul class="nav-list">
+        <li class="level1 nav-header">Related Projects</li>
+        
+          <li class="level2"><a href="https://typelevel.org/cats/">cats</a></li>
+        
+      </ul>
 
-</nav>
-</div>
+    </nav>
 
-<div class="small-12 medium-9 large-10 column">
-<section class="site-content">
+    <div id="container">
 
-<span id="version-warning"></span>
+      <nav id="page-nav">
+        <p class="header"><a href="#">Queries</a></p>
 
-<div class="page-header row">
-<div class="medium-12 show-for-medium column">
-<div class="nav-breadcrumbs">
-<ul>
-  <li><a href="../index.html">Skunk</a></li>
-  <li><a href="../tutorial/Index.html">Tutorial</a></li>
-  <li>Queries</li>
-</ul>
-</div>
-</div>
-</div>
+        <ul class="nav-list">
+          <li class="level1"><a href="#single-column-query">Single-Column Query</a></li>
+          <li class="level1"><a href="#multi-column-query">Multi-Column Query</a></li>
+          <li class="level2"><a href="#mapping-query-results">Mapping Query Results</a></li>
+          <li class="level2"><a href="#mapping-decoder-results">Mapping Decoder Results</a></li>
+          <li class="level2"><a href="#mapping-decoder-results-generically">Mapping Decoder Results Generically</a></li>
+          <li class="level1"><a href="#parameterized-query">Parameterized Query</a></li>
+          <li class="level1"><a href="#multi-parameter-query">Multi-Parameter Query</a></li>
+          <li class="level1"><a href="#summary-of-query-types">Summary of Query Types</a></li>
+          <li class="level1"><a href="#full-example">Full Example</a></li>
+          <li class="level1"><a href="#service-oriented-example">Service-Oriented Example</a></li>
+          <li class="level1"><a href="#experiment">Experiment</a></li>
+        </ul>
 
-<div class="page-content row">
-<div class="small-12 large-9 column" id="docs">
-<h1><a href="#queries" name="queries" class="anchor"><span class="anchor-link"></span></a>Queries</h1>
-<p>This section explains how to construct and execute queries.</p><div class="callout note "><div class="callout-title">Definition</div>
-<p>A <em>query</em> is a SQL statement that can return rows.</p></div>
-<h2><a href="#single-column-query" name="single-column-query" class="anchor"><span class="anchor-link"></span></a>Single-Column Query</h2>
-<p>First let&rsquo;s look at a query that selects a single column and decodes rows as Scala strings.</p>
-<pre class="prettyprint"><code class="language-scala">val a: Query[Void, String] =
-  sql&quot;SELECT name FROM country&quot;.query(varchar)
-// a: Query[Void, String] = Query(
+        <p class="footer"></p>
+      </nav>
+
+      <main class="content">
+
+        <h1 id="queries" class="title">Queries</h1>
+        <p>This section explains how to construct and execute queries.</p>
+        <div class="callout info">
+          <i class="icofont-laika">&#xef4e;</i>
+          <p>A <em>query</em> is a SQL statement that can return rows.</p>
+        </div>
+        
+        <h2 id="single-column-query" class="section">Single-Column Query<a class="anchor-link right" href="#single-column-query"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <p>First let&#39;s look at a query that selects a single column and decodes rows as Scala strings.</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">a</span><span>: </span><span class="type-name">Query</span><span>[</span><span class="type-name">Void</span><span>, </span><span class="type-name">String</span><span>] =
+  </span><span class="string-literal">sql&quot;SELECT name FROM country&quot;</span><span>.</span><span class="identifier">query</span><span>(</span><span class="identifier">varchar</span><span>)
+</span><span class="comment">// a: Query[Void, String] = Query(
 //   sql = &quot;SELECT name FROM country&quot;,
-//   origin = Origin(file = &quot;Query.md&quot;, line = 36),
+//   origin = Origin(file = &quot;Query.md&quot;, line = 30),
 //   encoder = Codec(void),
 //   decoder = Codec(varchar),
 //   isDynamic = false
-// )
-</code></pre>
-<p>Observe the following:</p>
-<ul>
-  <li>We are using the <a href="../reference/Fragments.html">sql interpolator</a> to construct a <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.5.1/skunk/Fragment.html" title="skunk.Fragment"><code>Fragment</code></a>, which we then turn into a <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.5.1/skunk/Query.html" title="skunk.Query"><code>Query</code></a> by calling the <code>query</code> method (fragments are also used to construct <a href="Command.html">Commands</a>).</li>
-  <li>The argument to <code>query</code> is a value called <code>varchar</code>, which has type <code>Decoder[String]</code> and defines the read relationship between the Postgres type <code>varchar</code> and the Scala type <code>String</code>. The relationship between Postgres types and Scala types is summarized in the reference section <a href="../reference/SchemaTypes.html">Schema Types</a>.</li>
-  <li>The first type argument for our <code>Query</code> type is <code>Void</code>, which means this query has no parameters. The second type argument is <code>String</code>, which means we expect rows to be decoded as <code>String</code> values (via our <code>varchar</code> decoder).</li>
-</ul><div class="callout note "><div class="callout-title">Note</div>
-<p>Query and Command types are usually inferrable, but specifying a type ensures that the chosen encoders and decoders are consistent with the expected input and output Scala types. For this reason (and for clarity) we will always use explicit type annotations in the documentation.</p></div>
-<p>The query above is a <em>simple query</em>.</p><div class="callout note "><div class="callout-title">Definition</div>
-<p>A <em>simple query</em> is a query with no parameters.</p></div>
-<p>Postgres provides a <a href="https://www.postgresql.org/docs/10/protocol-flow.html#id-1.10.5.7.4">protocol</a> for execution of simple queries, returning all rows at once (Skunk returns them as a list). Such queries can be passed directly to <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.5.1/skunk/Session.html#execute" title="skunk.Session"><code>Session#execute</code></a>.</p>
-<pre class="prettyprint"><code class="language-scala">// assume s: Session[IO]
-s.execute(a) // IO[List[String]]
-</code></pre>
-<p><a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.5.1/skunk/Session.html" title="skunk.Session"><code>Session</code></a> provides the following methods for direct execution of simple queries. See the Scaladoc for more information.</p>
-<table>
-  <thead>
-    <tr>
-      <th>Method </th>
-      <th>Return Type </th>
-      <th>Notes </th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><code>execute</code> </td>
-      <td><code>F[List[A]]</code> </td>
-      <td>All results, as a list. </td>
-    </tr>
-    <tr>
-      <td><code>option</code> </td>
-      <td><code>F[Option[A]]</code> </td>
-      <td>Zero or one result, otherwise an error is raised. </td>
-    </tr>
-    <tr>
-      <td><code>unique</code> </td>
-      <td><code>F[A]</code> </td>
-      <td>Exactly one result, otherwise an error is raised. </td>
-    </tr>
-  </tbody>
-</table>
-<h2><a href="#multi-column-query" name="multi-column-query" class="anchor"><span class="anchor-link"></span></a>Multi-Column Query</h2>
-<p>Our next example selects two columns.</p>
-<pre class="prettyprint"><code class="language-scala">val b: Query[Void, String ~ Int] =
-  sql&quot;SELECT name, population FROM country&quot;.query(varchar ~ int4)
-// b: Query[Void, String ~ Int] = Query(
+// )</span></code></pre>
+        <p>Observe the following:</p>
+        <ul>
+          <li>We are using the <a href="../reference/Fragments.html">sql interpolator</a> to construct a <a href="https://www.javadoc.io/doc/org.tpolecat/skunk-docs_2.13/0.6.0-RC2/skunk/Fragment.html">Fragment</a>, which we then turn into a <a href="https://www.javadoc.io/doc/org.tpolecat/skunk-docs_2.13/0.6.0-RC2/skunk/Query.html">Query</a> by calling the <code>query</code> method (fragments are also used to construct <a href="Command.html">Commands</a>).</li>
+          <li>The argument to <code>query</code> is a value called <code>varchar</code>, which has type <code>Decoder[String]</code> and defines the read relationship between the Postgres type <code>varchar</code> and the Scala type <code>String</code>. The relationship between Postgres types and Scala types is summarized in the reference section <a href="../reference/SchemaTypes.html">Schema Types</a>.</li>
+          <li>The first type argument for our <code>Query</code> type is <code>Void</code>, which means this query has no parameters. The second type argument is <code>String</code>, which means we expect rows to be decoded as <code>String</code> values (via our <code>varchar</code> decoder).</li>
+        </ul>
+        <div class="callout info">
+          <i class="icofont-laika">&#xef4e;</i>
+          <p>Query and Command types are usually inferrable, but specifying a type ensures that the chosen encoders and decoders are consistent with the expected input and output Scala types. For this reason (and for clarity) we will always use explicit type annotations in the documentation.</p>
+        </div>
+        <p>The query above is a <em>simple query</em>.</p>
+        <div class="callout info">
+          <i class="icofont-laika">&#xef4e;</i>
+          <p>A <em>simple query</em> is a query with no parameters.</p>
+        </div>
+        <p>Postgres provides a <a href="https://www.postgresql.org/docs/10/protocol-flow.html#id-1.10.5.7.4">protocol</a> for execution of simple queries, returning all rows at once (Skunk returns them as a list). Such queries can be passed directly to <a href="https://www.javadoc.io/doc/org.tpolecat/skunk-docs_2.13/0.6.0-RC2/skunk/Session.html#execute">Session.execute</a>.</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="comment">// assume s: Session[IO]
+</span><span class="identifier">s</span><span>.</span><span class="identifier">execute</span><span>(</span><span class="identifier">a</span><span>) </span><span class="comment">// IO[List[String]]</span></code></pre>
+        <p><a href="https://www.javadoc.io/doc/org.tpolecat/skunk-docs_2.13/0.6.0-RC2/skunk/Session.html">Session</a> provides the following methods for direct execution of simple queries. See the Scaladoc for more information.</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>Return Type</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>execute</code></td>
+              <td><code>F[List[A]]</code></td>
+              <td>All results, as a list.</td>
+            </tr>
+            <tr>
+              <td><code>option</code></td>
+              <td><code>F[Option[A]]</code></td>
+              <td>Zero or one result, otherwise an error is raised.</td>
+            </tr>
+            <tr>
+              <td><code>unique</code></td>
+              <td><code>F[A]</code></td>
+              <td>Exactly one result, otherwise an error is raised.</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <h2 id="multi-column-query" class="section">Multi-Column Query<a class="anchor-link right" href="#multi-column-query"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <p>Our next example selects two columns.</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">b</span><span>: </span><span class="type-name">Query</span><span>[</span><span class="type-name">Void</span><span>, </span><span class="type-name">String</span><span> ~ </span><span class="type-name">Int</span><span>] =
+  </span><span class="string-literal">sql&quot;SELECT name, population FROM country&quot;</span><span>.</span><span class="identifier">query</span><span>(</span><span class="identifier">varchar</span><span> ~ </span><span class="identifier">int4</span><span>)
+</span><span class="comment">// b: Query[Void, String ~ Int] = Query(
 //   sql = &quot;SELECT name, population FROM country&quot;,
-//   origin = Origin(file = &quot;Query.md&quot;, line = 54),
+//   origin = Origin(file = &quot;Query.md&quot;, line = 48),
 //   encoder = Codec(void),
 //   decoder = Codec(varchar, int4),
 //   isDynamic = false
-// )
-</code></pre>
-<p>Observe that the argument to <code>query</code> is a pair of decoders conjoined with the <code>~</code> operator, yielding a <code>Decoder[String ~ Int]</code>. Executing this query will yield a <code>List[String ~ Int]</code>, which is an alias for <code>List[(String, Int)]</code>. See the section on <a href="../reference/TwiddleLists.html">twiddle lists</a> for more information on this mechanism.</p>
-<h3><a href="#mapping-query-results" name="mapping-query-results" class="anchor"><span class="anchor-link"></span></a>Mapping Query Results</h3>
-<p>Decoding into a twiddle list (i.e., nested pairs) isn&rsquo;t ideal, so let&rsquo;s define a <code>Country</code> data type. We can then call <code>map</code> on our query to adapt the row type.</p>
-<pre class="prettyprint"><code class="language-scala">case class Country(name: String, population: Int)
+// )</span></code></pre>
+        <p>Observe that the argument to <code>query</code> is a pair of decoders conjoined with the <code>~</code> operator, yielding a <code>Decoder[String ~ Int]</code>. Executing this query will yield a <code>List[String ~ Int]</code>, which is an alias for <code>List[(String, Int)]</code>. See the section on <a href="../reference/TwiddleLists.html">twiddle lists</a> for more information on this mechanism.</p>
+        
+        <h3 id="mapping-query-results" class="section">Mapping Query Results<a class="anchor-link right" href="#mapping-query-results"><i class="icofont-laika">&#xef71;</i></a></h3>
+        <p>Decoding into a twiddle list (i.e., nested pairs) isn&#39;t ideal, so let&#39;s define a <code>Country</code> data type. We can then call <code>map</code> on our query to adapt the row type.</p>
+        <pre><code class="nohighlight"><span class="keyword">case</span><span> </span><span class="keyword">class</span><span> </span><span class="type-name">Country</span><span>(</span><span class="identifier">name</span><span>: </span><span class="type-name">String</span><span>, </span><span class="identifier">population</span><span>: </span><span class="type-name">Int</span><span>)
 
-val c: Query[Void, Country] =
-  sql&quot;SELECT name, population FROM country&quot;
-    .query(varchar ~ int4)                // (1)
-    .map { case n ~ p =&gt; Country(n, p) }  // (2)
+</span><span class="keyword">val</span><span> </span><span class="identifier">c</span><span>: </span><span class="type-name">Query</span><span>[</span><span class="type-name">Void</span><span>, </span><span class="type-name">Country</span><span>] =
+  </span><span class="string-literal">sql&quot;SELECT name, population FROM country&quot;</span><span>
+    .</span><span class="identifier">query</span><span>(</span><span class="identifier">varchar</span><span> ~ </span><span class="identifier">int4</span><span>)                </span><span class="comment">// (1)
+</span><span>    .</span><span class="identifier">map</span><span> { </span><span class="keyword">case</span><span> </span><span class="identifier">n</span><span> ~ </span><span class="identifier">p</span><span> =&gt; </span><span class="type-name">Country</span><span>(</span><span class="identifier">n</span><span>, </span><span class="identifier">p</span><span>) }  </span><span class="comment">// (2)
 // c: Query[Void, Country] = Query(
 //   sql = &quot;SELECT name, population FROM country&quot;,
-//   origin = Origin(file = &quot;Query.md&quot;, line = 64),
+//   origin = Origin(file = &quot;Query.md&quot;, line = 58),
 //   encoder = Encoder(),
 //   decoder = Decoder(varchar, int4),
 //   isDynamic = false
-// )
-</code></pre>
-<p>Observe the following:</p>
-<ul>
-  <li>At ① we request that rows be decoded by <code>varchar ~ int4</code> into Scala type <code>String ~ Int</code>.</li>
-  <li>At ② we <code>map</code> to our <code>Country</code> data type, yielding a <code>Query[Void, Country]</code>.</li>
-</ul>
-<p>So that is one way to do it.</p>
-<h3><a href="#mapping-decoder-results" name="mapping-decoder-results" class="anchor"><span class="anchor-link"></span></a>Mapping Decoder Results</h3>
-<p>A more reusable way to do this is to define a <code>Decoder[Country]</code> based on the <code>varchar ~ int4</code> decoder. We can then decode directly into our <code>Country</code> data type.</p>
-<pre class="prettyprint"><code class="language-scala">val country: Decoder[Country] =
-  (varchar ~ int4).map { case (n, p) =&gt; Country(n, p) }     // (1)
+// )</span></code></pre>
+        <p>Observe the following:</p>
+        <ul>
+          <li>At ① we request that rows be decoded by <code>varchar ~ int4</code> into Scala type <code>String ~ Int</code>.</li>
+          <li>At ② we <code>map</code> to our <code>Country</code> data type, yielding a <code>Query[Void, Country]</code>.</li>
+        </ul>
+        <p>So that is one way to do it.</p>
+        
+        <h3 id="mapping-decoder-results" class="section">Mapping Decoder Results<a class="anchor-link right" href="#mapping-decoder-results"><i class="icofont-laika">&#xef71;</i></a></h3>
+        <p>A more reusable way to do this is to define a <code>Decoder[Country]</code> based on the <code>varchar ~ int4</code> decoder. We can then decode directly into our <code>Country</code> data type.</p>
+        <pre><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">country</span><span>: </span><span class="type-name">Decoder</span><span>[</span><span class="type-name">Country</span><span>] =
+  (</span><span class="identifier">varchar</span><span> ~ </span><span class="identifier">int4</span><span>).</span><span class="identifier">map</span><span> { </span><span class="keyword">case</span><span> (</span><span class="identifier">n</span><span>, </span><span class="identifier">p</span><span>) =&gt; </span><span class="type-name">Country</span><span>(</span><span class="identifier">n</span><span>, </span><span class="identifier">p</span><span>) }     </span><span class="comment">// (1)
 // country: Decoder[Country] = Decoder(varchar, int4)     // (1)
-
-val d: Query[Void, Country] =
-  sql&quot;SELECT name, population FROM country&quot;.query(country)  // (2)
+</span><span>
+</span><span class="keyword">val</span><span> </span><span class="identifier">d</span><span>: </span><span class="type-name">Query</span><span>[</span><span class="type-name">Void</span><span>, </span><span class="type-name">Country</span><span>] =
+  </span><span class="string-literal">sql&quot;SELECT name, population FROM country&quot;</span><span>.</span><span class="identifier">query</span><span>(</span><span class="identifier">country</span><span>)  </span><span class="comment">// (2)
 // d: Query[Void, Country] = Query(
 //   sql = &quot;SELECT name, population FROM country&quot;,
-//   origin = Origin(file = &quot;Query.md&quot;, line = 77),
+//   origin = Origin(file = &quot;Query.md&quot;, line = 71),
 //   encoder = Codec(void),
 //   decoder = Decoder(varchar, int4),
 //   isDynamic = false
-// )
-</code></pre>
-<p>Observe the following:</p>
-<ul>
-  <li>At ① we map the <code>varchar ~ int4</code> decoder directly to Scala type <code>Country</code>, yielding a <code>Decoder[Country]</code>.</li>
-  <li>At ② we use our <code>country</code> decoder directly, yielding a <code>Query[Void, Country]</code>.</li>
-</ul><div class="callout note "><div class="callout-title">Tip</div>
-<p>Because decoders are structural (i.e., they rely only on the position of column values) it can become a maintenance issue when queries and their decoders become separated in code. Try to keep decoders close to the queries that use them.</p></div>
-<h3><a href="#mapping-decoder-results-generically" name="mapping-decoder-results-generically" class="anchor"><span class="anchor-link"></span></a>Mapping Decoder Results Generically</h3>
-<p>Because <code>Country</code> is a simple case class we can generate the mapping code mechanically. To do this, use <code>gmap</code> and specify the target data type.</p>
-<pre class="prettyprint"><code class="language-scala">val country2: Decoder[Country] =
-  (varchar ~ int4).gmap[Country]
-// country2: Decoder[Country] = Decoder(varchar, int4)
-</code></pre>
-<p>Even better, instead of constructing a named decoder you can <code>gmap</code> the <code>Query</code> itself.</p>
-<pre class="prettyprint"><code class="language-scala">val c2: Query[Void, Country] =
-  sql&quot;SELECT name, population FROM country&quot;
-    .query(varchar ~ int4)
-    .gmap[Country]
-// c2: Query[Void, Country] = Query(
+// )</span></code></pre>
+        <p>Observe the following:</p>
+        <ul>
+          <li>At ① we map the <code>varchar ~ int4</code> decoder directly to Scala type <code>Country</code>, yielding a <code>Decoder[Country]</code>.</li>
+          <li>At ② we use our <code>country</code> decoder directly, yielding a <code>Query[Void, Country]</code>.</li>
+        </ul>
+        <div class="callout info">
+          <i class="icofont-laika">&#xef4e;</i>
+          <p>Because decoders are structural (i.e., they rely only on the position of column values) it can become a maintenance issue when queries and their decoders become separated in code. Try to keep decoders close to the queries that use them.</p>
+        </div>
+        
+        <h3 id="mapping-decoder-results-generically" class="section">Mapping Decoder Results Generically<a class="anchor-link right" href="#mapping-decoder-results-generically"><i class="icofont-laika">&#xef71;</i></a></h3>
+        <p>Because <code>Country</code> is a simple case class we can generate the mapping code mechanically. To do this, use <code>to</code> and specify the target data type.</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">country2</span><span>: </span><span class="type-name">Decoder</span><span>[</span><span class="type-name">Country</span><span>] =
+  (</span><span class="identifier">varchar</span><span> *: </span><span class="identifier">int4</span><span>).</span><span class="identifier">to</span><span>[</span><span class="type-name">Country</span><span>]
+</span><span class="comment">// country2: Decoder[Country] = Codec(varchar, int4)</span></code></pre>
+        <p>Even better, instead of constructing a named decoder you can <code>to</code> the <code>Query</code> itself.</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">c2</span><span>: </span><span class="type-name">Query</span><span>[</span><span class="type-name">Void</span><span>, </span><span class="type-name">Country</span><span>] =
+  </span><span class="string-literal">sql&quot;SELECT name, population FROM country&quot;</span><span>
+    .</span><span class="identifier">query</span><span>(</span><span class="identifier">varchar</span><span> *: </span><span class="identifier">int4</span><span>)
+    .</span><span class="identifier">to</span><span>[</span><span class="type-name">Country</span><span>]
+</span><span class="comment">// c2: Query[Void, Country] = Query(
 //   sql = &quot;SELECT name, population FROM country&quot;,
-//   origin = Origin(file = &quot;Query.md&quot;, line = 91),
+//   origin = Origin(file = &quot;Query.md&quot;, line = 85),
 //   encoder = Encoder(),
 //   decoder = Decoder(varchar, int4),
 //   isDynamic = false
-// )
-</code></pre>
-<h2><a href="#parameterized-query" name="parameterized-query" class="anchor"><span class="anchor-link"></span></a>Parameterized Query</h2>
-<p>Now let&rsquo;s add a parameter to the query.</p>
-<pre class="prettyprint"><code class="language-scala">val e: Query[String, Country] =
-  sql&quot;&quot;&quot;
+// )</span></code></pre>
+        
+        <h2 id="parameterized-query" class="section">Parameterized Query<a class="anchor-link right" href="#parameterized-query"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <p>Now let&#39;s add a parameter to the query.</p>
+        <pre><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">e</span><span>: </span><span class="type-name">Query</span><span>[</span><span class="type-name">String</span><span>, </span><span class="type-name">Country</span><span>] =
+  </span><span class="string-literal">sql&quot;&quot;&quot;
     SELECT name, population
     FROM   country
-    WHERE  name LIKE $varchar
-  &quot;&quot;&quot;.query(country)
-// e: Query[String, Country] = Query(
+    WHERE  name LIKE </span><span class="substitution">$varchar</span><span class="string-literal">
+  &quot;&quot;&quot;</span><span>.</span><span class="identifier">query</span><span>(</span><span class="identifier">country</span><span>)
+</span><span class="comment">// e: Query[String, Country] = Query(
 //   sql = &quot;&quot;&quot;
 //     SELECT name, population
 //     FROM   country
 //     WHERE  name LIKE $1
 //   &quot;&quot;&quot;,
-//   origin = Origin(file = &quot;Query.md&quot;, line = 100),
+//   origin = Origin(file = &quot;Query.md&quot;, line = 94),
 //   encoder = Codec(varchar),
 //   decoder = Decoder(varchar, int4),
 //   isDynamic = false
-// )
-</code></pre>
-<p>Observe that we have interpolated a value called <code>varchar</code>, which has type <code>Encoder[String]</code>.</p>
-<p>This means that Postgres will expect an argument of type <code>varchar</code>, which will have Scala type <code>String</code>. The relationship between Postgres types and Scala types is summarized in the reference section <a href="../reference/SchemaTypes.html">Schema Types</a>.</p><div class="callout note "><div class="callout-title">Note</div>
-<p>We have already seen <code>varchar</code> used as a row <em>decoder</em> for <code>String</code> and now we&rsquo;re using it as an <em>encoder</em> for <code>String</code>. We can do this because <code>varchar</code> actually has type <code>Codec[String]</code>, which extends both <code>Encoder[String]</code> and <code>Decoder[String]</code>. All type mappings provided by Skunk are codecs and can be used in both positions.</p></div>
-<p>The query above is an <em>extended query</em>.</p><div class="callout note "><div class="callout-title">Definition</div>
-<p>An <em>extended query</em> is a query with parameters, or a simple query that is executed via the extended query protocol.</p></div>
-<p>Postgres provides a <a href="https://www.postgresql.org/docs/10/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY">protocol</a> for executing extended queries which is more involved than simple query protocol. It provides for prepared statements that can be reused with different sets of arguments, and provides cursors which allow results to be paged and streamed.</p>
-<p>Here we use the extended query protocol to stream directly to the console using constant space.</p>
-<pre class="prettyprint"><code class="language-scala">// assume s: Session[IO]
-s.prepare(e).flatMap { ps =&gt;
-  ps.stream(&quot;U%&quot;, 64)
-    .evalMap(c =&gt; IO.println(c))
-    .compile
-    .drain
-} // IO[Unit]
-</code></pre>
-<p>Observe that <code>prepare</code> returns a <code>Resource</code> that prepares the statement before use and then frees it on completion. Here we use <a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.5.1/skunk/PreparedQuery.html#stream" title="skunk.PreparedQuery"><code>PreparedQuery#stream</code></a> to pass our parameter <code>&quot;U%&quot;</code> and then create an <a href="http://fs2.io">fs2</a> stream that fetches rows in blocks of 64 and prints them to the console.</p>
-<p>Note that when using <code>Resource</code> and <code>Stream</code> together it is often convenient to express the entire program in terms of <code>Stream</code>.</p>
-<pre class="prettyprint"><code class="language-scala">// assume s: Session[IO]
-val stream: Stream[IO, Unit] =
-  for {
-    ps &lt;- Stream.eval(s.prepare(e))
-    c  &lt;- ps.stream(&quot;U%&quot;, 64)
-    _  &lt;- Stream.eval(IO.println(c))
-  } yield ()
+// )</span></code></pre>
+        <p>Observe that we have interpolated a value called <code>varchar</code>, which has type <code>Encoder[String]</code>.</p>
+        <p>This means that Postgres will expect an argument of type <code>varchar</code>, which will have Scala type <code>String</code>. The relationship between Postgres types and Scala types is summarized in the reference section <a href="../reference/SchemaTypes.html">Schema Types</a>.</p>
+        <div class="callout info">
+          <i class="icofont-laika">&#xef4e;</i>
+          <p>We have already seen <code>varchar</code> used as a row <em>decoder</em> for <code>String</code> and now we&#39;re using it as an <em>encoder</em> for <code>String</code>. We can do this because <code>varchar</code> actually has type <code>Codec[String]</code>, which extends both <code>Encoder[String]</code> and <code>Decoder[String]</code>. All type mappings provided by Skunk are codecs and can be used in both positions.</p>
+        </div>
+        <p>The query above is an <em>extended query</em>.</p>
+        <div class="callout info">
+          <i class="icofont-laika">&#xef4e;</i>
+          <p>An <em>extended query</em> is a query with parameters, or a simple query that is executed via the extended query protocol.</p>
+        </div>
+        <p>Postgres provides a <a href="https://www.postgresql.org/docs/10/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY">protocol</a> for executing extended queries which is more involved than simple query protocol. It provides for prepared statements that can be reused with different sets of arguments, and provides cursors which allow results to be paged and streamed.</p>
+        <p>Here we use the extended query protocol to stream directly to the console using constant space.</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="comment">// assume s: Session[IO]
+</span><span class="identifier">s</span><span>.</span><span class="identifier">prepare</span><span>(</span><span class="identifier">e</span><span>).</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">ps</span><span> =&gt;
+  </span><span class="identifier">ps</span><span>.</span><span class="identifier">stream</span><span>(</span><span class="string-literal">&quot;U%&quot;</span><span>, </span><span class="number-literal">64</span><span>)
+    .</span><span class="identifier">evalMap</span><span>(</span><span class="identifier">c</span><span> =&gt; </span><span class="type-name">IO</span><span>.</span><span class="identifier">println</span><span>(</span><span class="identifier">c</span><span>))
+    .</span><span class="identifier">compile</span><span>
+    .</span><span class="identifier">drain</span><span>
+} </span><span class="comment">// IO[Unit]</span></code></pre>
+        <p>Observe that <code>prepare</code> returns a <code>Resource</code> that prepares the statement before use and then frees it on completion. Here we use <a href="https://www.javadoc.io/doc/org.tpolecat/skunk-docs_2.13/0.6.0-RC2/skunk/PreparedQuery.html">PreparedQuery</a>#stream to pass our parameter <code>&quot;U%&quot;</code> and then create an <a href="http://fs2.io">fs2</a> stream that fetches rows in blocks of 64 and prints them to the console.</p>
+        <p>Note that when using <code>Resource</code> and <code>Stream</code> together it is often convenient to express the entire program in terms of <code>Stream</code>.</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="comment">// assume s: Session[IO]
+</span><span class="keyword">val</span><span> </span><span class="identifier">stream</span><span>: </span><span class="type-name">Stream</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Unit</span><span>] =
+  </span><span class="keyword">for</span><span> {
+    </span><span class="identifier">ps</span><span> &lt;- </span><span class="type-name">Stream</span><span>.</span><span class="identifier">eval</span><span>(</span><span class="identifier">s</span><span>.</span><span class="identifier">prepare</span><span>(</span><span class="identifier">e</span><span>))
+    </span><span class="identifier">c</span><span>  &lt;- </span><span class="identifier">ps</span><span>.</span><span class="identifier">stream</span><span>(</span><span class="string-literal">&quot;U%&quot;</span><span>, </span><span class="number-literal">64</span><span>)
+    </span><span class="identifier">_</span><span>  &lt;- </span><span class="type-name">Stream</span><span>.</span><span class="identifier">eval</span><span>(</span><span class="type-name">IO</span><span>.</span><span class="identifier">println</span><span>(</span><span class="identifier">c</span><span>))
+  } </span><span class="keyword">yield</span><span> ()
 
-stream.compile.drain // IO[Unit]
-</code></pre>
-<p>This program does the same thing, but perhaps in a more convenient style.</p>
-<p><a href="https://static.javadoc.io/org.tpolecat/skunk-core_2.12/0.5.1/skunk/PreparedQuery.html" title="skunk.PreparedQuery"><code>PreparedQuery[A, B]</code></a> provides the following methods for execution. See the Scaladoc for more information.</p>
-<table>
-  <thead>
-    <tr>
-      <th>Method </th>
-      <th>Return Type </th>
-      <th>Notes </th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><code>stream</code> </td>
-      <td><code>Stream[F,B]</code> </td>
-      <td>All results, as a stream. </td>
-    </tr>
-    <tr>
-      <td><code>option</code> </td>
-      <td><code>F[Option[B]]</code> </td>
-      <td>Zero or one result, otherwise an error is raised. </td>
-    </tr>
-    <tr>
-      <td><code>unique</code> </td>
-      <td><code>F[B]</code> </td>
-      <td>Exactly one result, otherwise an error is raised. </td>
-    </tr>
-    <tr>
-      <td><code>cursor</code> </td>
-      <td><code>Resource[F,Cursor[F,B]]</code> </td>
-      <td>A cursor that returns pages of results. </td>
-    </tr>
-    <tr>
-      <td><code>pipe</code> </td>
-      <td><code>Pipe[F, A, B]</code> </td>
-      <td>A pipe that executes the query for each input value, concatenating the results. </td>
-    </tr>
-  </tbody>
-</table>
-<h2><a href="#multi-parameter-query" name="multi-parameter-query" class="anchor"><span class="anchor-link"></span></a>Multi-Parameter Query</h2>
-<p>Multiple parameters work analogously to multiple columns.</p>
-<pre class="prettyprint"><code class="language-scala">val f: Query[String ~ Int, Country] =
-  sql&quot;&quot;&quot;
+</span><span class="identifier">stream</span><span>.</span><span class="identifier">compile</span><span>.</span><span class="identifier">drain</span><span> </span><span class="comment">// IO[Unit]</span></code></pre>
+        <p>This program does the same thing, but perhaps in a more convenient style.</p>
+        <p><a href="https://www.javadoc.io/doc/org.tpolecat/skunk-docs_2.13/0.6.0-RC2/skunk/PreparedQuery.html">PreparedQuery</a> provides the following methods for execution. See the Scaladoc for more information.</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>Return Type</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>stream</code></td>
+              <td><code>Stream[F,B]</code></td>
+              <td>All results, as a stream.</td>
+            </tr>
+            <tr>
+              <td><code>option</code></td>
+              <td><code>F[Option[B]]</code></td>
+              <td>Zero or one result, otherwise an error is raised.</td>
+            </tr>
+            <tr>
+              <td><code>unique</code></td>
+              <td><code>F[B]</code></td>
+              <td>Exactly one result, otherwise an error is raised.</td>
+            </tr>
+            <tr>
+              <td><code>cursor</code></td>
+              <td><code>Resource[F,Cursor[F,B]]</code></td>
+              <td>A cursor that returns pages of results.</td>
+            </tr>
+            <tr>
+              <td><code>pipe</code></td>
+              <td><code>Pipe[F, A, B]</code></td>
+              <td>A pipe that executes the query for each input value, concatenating the results.</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <h2 id="multi-parameter-query" class="section">Multi-Parameter Query<a class="anchor-link right" href="#multi-parameter-query"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <p>Multiple parameters work analogously to multiple columns.</p>
+        <pre><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">f</span><span>: </span><span class="type-name">Query</span><span>[</span><span class="type-name">String</span><span> *: </span><span class="type-name">Int</span><span> *: </span><span class="type-name">EmptyTuple</span><span>, </span><span class="type-name">Country</span><span>] =
+  </span><span class="string-literal">sql&quot;&quot;&quot;
     SELECT name, population
     FROM   country
-    WHERE  name LIKE $varchar
-    AND    population &lt; $int4
-  &quot;&quot;&quot;.query(country)
-// f: Query[String ~ Int, Country] = Query(
+    WHERE  name LIKE </span><span class="substitution">$varchar</span><span class="string-literal">
+    AND    population &lt; </span><span class="substitution">$int4</span><span class="string-literal">
+  &quot;&quot;&quot;</span><span>.</span><span class="identifier">query</span><span>(</span><span class="identifier">country</span><span>)
+</span><span class="comment">// f: Query[String *: Int *: EmptyTuple, Country] = Query(
 //   sql = &quot;&quot;&quot;
 //     SELECT name, population
 //     FROM   country
 //     WHERE  name LIKE $1
 //     AND    population &lt; $2
 //   &quot;&quot;&quot;,
-//   origin = Origin(file = &quot;Query.md&quot;, line = 148),
+//   origin = Origin(file = &quot;Query.md&quot;, line = 142),
 //   encoder = Codec(varchar, int4),
 //   decoder = Decoder(varchar, int4),
 //   isDynamic = false
-// )
-</code></pre>
-<p>Observe that we have two parameter encoders <code>varchar</code> and <code>int4</code> (in that order), whose corresponding Scala input type is <code>String ~ Int</code>. See the section on <a href="../reference/TwiddleLists.html">twiddle lists</a> for more information.</p>
-<pre class="prettyprint"><code class="language-scala">// assume s: Session[IO]
-s.prepare(f).flatMap { ps =&gt;
-  ps.stream(&quot;U%&quot; ~ 2000000, 64)
-    .evalMap(c =&gt; IO.println(c))
-    .compile
-    .drain
-} // IO[Unit]
-</code></pre>
-<p>And we pass the value <code>&quot;U%&quot; ~ 2000000</code> as our statement argument.</p>
-<h2><a href="#summary-of-query-types" name="summary-of-query-types" class="anchor"><span class="anchor-link"></span></a>Summary of Query Types</h2>
-<p>The <em>simple query protocol</em> (i.e., <code>Session#execute</code>) is slightly more efficient in terms of message exchange, so use it if:</p>
-<ul>
-  <li>
-  <p>Your query has no parameters; and</p></li>
-  <li>
-  <p>you are querying for a small number of rows; and</p></li>
-  <li>
-  <p>you will be using the query only once per session.</p></li>
-</ul>
-<p>The <em>extend query protocol</em> (i.e., <code>Session#prepare</code>) is more powerful and more general, but requires additional network exchanges. Use it if:</p>
-<ul>
-  <li>
-  <p>Your query has parameters; and/or</p></li>
-  <li>
-  <p>you are querying for a large or unknown number of rows; and/or</p></li>
-  <li>
-  <p>you intend to stream the results; and/or</p></li>
-  <li>
-  <p>you will be using the query more than once per session.</p></li>
-</ul>
-<h2><a href="#full-example" name="full-example" class="anchor"><span class="anchor-link"></span></a>Full Example</h2>
-<p>Here is a complete program listing that demonstrates our knowledge thus far.</p>
-<pre class="prettyprint"><code class="language-scala">import cats.effect._
-import skunk._
-import skunk.implicits._
-import skunk.codec.all._
-import java.time.OffsetDateTime
-import natchez.Trace.Implicits.noop
+// )</span></code></pre>
+        <p>Observe that we have two parameter encoders <code>varchar</code> and <code>int4</code> (in that order), whose corresponding Scala input type is <code>String *: Int *: EmptyTuple</code>. See the section on <a href="../reference/TwiddleLists.html">twiddle lists</a> for more information.</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="comment">// assume s: Session[IO]
+</span><span class="identifier">s</span><span>.</span><span class="identifier">prepare</span><span>(</span><span class="identifier">f</span><span>).</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">ps</span><span> =&gt;
+  </span><span class="identifier">ps</span><span>.</span><span class="identifier">stream</span><span>((</span><span class="string-literal">&quot;U%&quot;</span><span>, </span><span class="number-literal">2000000</span><span>), </span><span class="number-literal">64</span><span>)
+    .</span><span class="identifier">evalMap</span><span>(</span><span class="identifier">c</span><span> =&gt; </span><span class="type-name">IO</span><span>.</span><span class="identifier">println</span><span>(</span><span class="identifier">c</span><span>))
+    .</span><span class="identifier">compile</span><span>
+    .</span><span class="identifier">drain</span><span>
+} </span><span class="comment">// IO[Unit]</span></code></pre>
+        <p>And we pass the value <code>(&quot;U%&quot;, 2000000)</code> as our statement argument.</p>
+        
+        <h2 id="summary-of-query-types" class="section">Summary of Query Types<a class="anchor-link right" href="#summary-of-query-types"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <p>The <em>simple query protocol</em> (i.e., <code>Session#execute</code>) is slightly more efficient in terms of message exchange, so use it if:</p>
+        <ul>
+          <li>
+            <p>Your query has no parameters; and</p>
+          </li>
+          <li>
+            <p>you are querying for a small number of rows; and</p>
+          </li>
+          <li>
+            <p>you will be using the query only once per session.</p>
+          </li>
+        </ul>
+        <p>The <em>extend query protocol</em> (i.e., <code>Session#prepare</code>) is more powerful and more general, but requires additional network exchanges. Use it if:</p>
+        <ul>
+          <li>
+            <p>Your query has parameters; and/or</p>
+          </li>
+          <li>
+            <p>you are querying for a large or unknown number of rows; and/or</p>
+          </li>
+          <li>
+            <p>you intend to stream the results; and/or</p>
+          </li>
+          <li>
+            <p>you will be using the query more than once per session.</p>
+          </li>
+        </ul>
+        
+        <h2 id="full-example" class="section">Full Example<a class="anchor-link right" href="#full-example"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <p>Here is a complete program listing that demonstrates our knowledge thus far.</p>
+        <pre><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="identifier">_</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">skunk</span><span>.</span><span class="identifier">_</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">skunk</span><span>.</span><span class="identifier">implicits</span><span>.</span><span class="identifier">_</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">skunk</span><span>.</span><span class="identifier">codec</span><span>.</span><span class="identifier">all</span><span>.</span><span class="identifier">_</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">java</span><span>.</span><span class="identifier">time</span><span>.</span><span class="type-name">OffsetDateTime</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">natchez</span><span>.</span><span class="type-name">Trace</span><span>.</span><span class="type-name">Implicits</span><span>.</span><span class="identifier">noop</span><span>
 
-object QueryExample extends IOApp {
+</span><span class="keyword">object</span><span> </span><span class="type-name">QueryExample</span><span> </span><span class="keyword">extends</span><span> </span><span class="type-name">IOApp</span><span> {
 
-  // a source of sessions
-  val session: Resource[IO, Session[IO]] =
-    Session.single(
-      host     = &quot;localhost&quot;,
-      user     = &quot;jimmy&quot;,
-      database = &quot;world&quot;,
-      password = Some(&quot;banana&quot;)
+  </span><span class="comment">// a source of sessions
+</span><span>  </span><span class="keyword">val</span><span> </span><span class="identifier">session</span><span>: </span><span class="type-name">Resource</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Session</span><span>[</span><span class="type-name">IO</span><span>]] =
+    </span><span class="type-name">Session</span><span>.</span><span class="identifier">single</span><span>(
+      </span><span class="identifier">host</span><span>     = </span><span class="string-literal">&quot;localhost&quot;</span><span>,
+      </span><span class="identifier">user</span><span>     = </span><span class="string-literal">&quot;jimmy&quot;</span><span>,
+      </span><span class="identifier">database</span><span> = </span><span class="string-literal">&quot;world&quot;</span><span>,
+      </span><span class="identifier">password</span><span> = </span><span class="type-name">Some</span><span>(</span><span class="string-literal">&quot;banana&quot;</span><span>)
     )
 
-  // a data model
-  case class Country(name: String, code: String, population: Int)
+  </span><span class="comment">// a data model
+</span><span>  </span><span class="keyword">case</span><span> </span><span class="keyword">class</span><span> </span><span class="type-name">Country</span><span>(</span><span class="identifier">name</span><span>: </span><span class="type-name">String</span><span>, </span><span class="identifier">code</span><span>: </span><span class="type-name">String</span><span>, </span><span class="identifier">population</span><span>: </span><span class="type-name">Int</span><span>)
 
-  // a simple query
-  val simple: Query[Void, OffsetDateTime] =
-    sql&quot;select current_timestamp&quot;.query(timestamptz)
+  </span><span class="comment">// a simple query
+</span><span>  </span><span class="keyword">val</span><span> </span><span class="identifier">simple</span><span>: </span><span class="type-name">Query</span><span>[</span><span class="type-name">Void</span><span>, </span><span class="type-name">OffsetDateTime</span><span>] =
+    </span><span class="string-literal">sql&quot;select current_timestamp&quot;</span><span>.</span><span class="identifier">query</span><span>(</span><span class="identifier">timestamptz</span><span>)
 
-  // an extended query
-  val extended: Query[String, Country] =
-    sql&quot;&quot;&quot;
+  </span><span class="comment">// an extended query
+</span><span>  </span><span class="keyword">val</span><span> </span><span class="identifier">extended</span><span>: </span><span class="type-name">Query</span><span>[</span><span class="type-name">String</span><span>, </span><span class="type-name">Country</span><span>] =
+    </span><span class="string-literal">sql&quot;&quot;&quot;
       SELECT name, code, population
       FROM   country
-      WHERE  name like $text
-    &quot;&quot;&quot;.query(varchar ~ bpchar(3) ~ int4)
-       .gmap[Country]
+      WHERE  name like </span><span class="substitution">$text</span><span class="string-literal">
+    &quot;&quot;&quot;</span><span>.</span><span class="identifier">query</span><span>(</span><span class="identifier">varchar</span><span> *: </span><span class="identifier">bpchar</span><span>(</span><span class="number-literal">3</span><span>) *: </span><span class="identifier">int4</span><span>)
+       .</span><span class="identifier">to</span><span>[</span><span class="type-name">Country</span><span>]
 
-  // run our simple query
-  def doSimple(s: Session[IO]): IO[Unit] =
-    for {
-      ts &lt;- s.unique(simple) // we expect exactly one row
-      _  &lt;- IO.println(s&quot;timestamp is $ts&quot;)
-    } yield ()
+  </span><span class="comment">// run our simple query
+</span><span>  </span><span class="keyword">def</span><span> </span><span class="declaration-name">doSimple</span><span>(</span><span class="identifier">s</span><span>: </span><span class="type-name">Session</span><span>[</span><span class="type-name">IO</span><span>]): </span><span class="type-name">IO</span><span>[</span><span class="type-name">Unit</span><span>] =
+    </span><span class="keyword">for</span><span> {
+      </span><span class="identifier">ts</span><span> &lt;- </span><span class="identifier">s</span><span>.</span><span class="identifier">unique</span><span>(</span><span class="identifier">simple</span><span>) </span><span class="comment">// we expect exactly one row
+</span><span>      </span><span class="identifier">_</span><span>  &lt;- </span><span class="type-name">IO</span><span>.</span><span class="identifier">println</span><span>(</span><span class="string-literal">s&quot;timestamp is </span><span class="substitution">$ts</span><span class="string-literal">&quot;</span><span>)
+    } </span><span class="keyword">yield</span><span> ()
 
-  // run our extended query
-  def doExtended(s: Session[IO]): IO[Unit] =
-    s.prepare(extended).flatMap { ps =&gt;
-      ps.stream(&quot;U%&quot;, 32)
-        .evalMap(c =&gt; IO.println(c))
-        .compile
-        .drain
+  </span><span class="comment">// run our extended query
+</span><span>  </span><span class="keyword">def</span><span> </span><span class="declaration-name">doExtended</span><span>(</span><span class="identifier">s</span><span>: </span><span class="type-name">Session</span><span>[</span><span class="type-name">IO</span><span>]): </span><span class="type-name">IO</span><span>[</span><span class="type-name">Unit</span><span>] =
+    </span><span class="identifier">s</span><span>.</span><span class="identifier">prepare</span><span>(</span><span class="identifier">extended</span><span>).</span><span class="identifier">flatMap</span><span> { </span><span class="identifier">ps</span><span> =&gt;
+      </span><span class="identifier">ps</span><span>.</span><span class="identifier">stream</span><span>(</span><span class="string-literal">&quot;U%&quot;</span><span>, </span><span class="number-literal">32</span><span>)
+        .</span><span class="identifier">evalMap</span><span>(</span><span class="identifier">c</span><span> =&gt; </span><span class="type-name">IO</span><span>.</span><span class="identifier">println</span><span>(</span><span class="identifier">c</span><span>))
+        .</span><span class="identifier">compile</span><span>
+        .</span><span class="identifier">drain</span><span>
     }
 
-  // our entry point
-  def run(args: List[String]): IO[ExitCode] =
-    session.use { s =&gt;
-      for {
-        _ &lt;- doSimple(s)
-        _ &lt;- doExtended(s)
-      } yield ExitCode.Success
+  </span><span class="comment">// our entry point
+</span><span>  </span><span class="keyword">def</span><span> </span><span class="declaration-name">run</span><span>(</span><span class="identifier">args</span><span>: </span><span class="type-name">List</span><span>[</span><span class="type-name">String</span><span>]): </span><span class="type-name">IO</span><span>[</span><span class="type-name">ExitCode</span><span>] =
+    </span><span class="identifier">session</span><span>.</span><span class="identifier">use</span><span> { </span><span class="identifier">s</span><span> =&gt;
+      </span><span class="keyword">for</span><span> {
+        </span><span class="identifier">_</span><span> &lt;- </span><span class="identifier">doSimple</span><span>(</span><span class="identifier">s</span><span>)
+        </span><span class="identifier">_</span><span> &lt;- </span><span class="identifier">doExtended</span><span>(</span><span class="identifier">s</span><span>)
+      } </span><span class="keyword">yield</span><span> </span><span class="type-name">ExitCode</span><span>.</span><span class="type-name">Success</span><span>
     }
 
-}
-</code></pre>
-<p>Running this program yields the following.</p>
-<pre><code>timestamp is 2023-01-22T14:21:59.654186Z
+}</span></code></pre>
+        <p>Running this program yields the following.</p>
+        <pre><code>timestamp is 2023-05-07T13:16:40.859964Z
 Country(United Arab Emirates,ARE,2441000)
 Country(United Kingdom,GBR,59623400)
 Country(Uganda,UGA,21778000)
@@ -477,89 +494,88 @@ Country(Ukraine,UKR,50456000)
 Country(Uruguay,URY,3337000)
 Country(Uzbekistan,UZB,24318000)
 Country(United States,USA,278357000)
-Country(United States Minor Outlying Islands,UMI,0)
-</code></pre>
-<h2><a href="#service-oriented-example" name="service-oriented-example" class="anchor"><span class="anchor-link"></span></a>Service-Oriented Example</h2>
-<p>In real life a program like <code>QueryExample</code> above will grow complicated an hard to maintain because the database abstractions are out in the open. It&rsquo;s better to define an interface that <em>uses</em> a database session and write your program in terms of that interface. Here is a rewritten version of the program above that demonstrates this pattern.</p>
-<pre class="prettyprint"><code class="language-scala">import cats.syntax.all._
-import cats.effect._
-import skunk._
-import skunk.implicits._
-import skunk.codec.all._
-import java.time.OffsetDateTime
-import natchez.Trace.Implicits.noop
-import fs2.Stream
-import cats.Applicative
+Country(United States Minor Outlying Islands,UMI,0)</code></pre>
+        
+        <h2 id="service-oriented-example" class="section">Service-Oriented Example<a class="anchor-link right" href="#service-oriented-example"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <p>In real life a program like <code>QueryExample</code> above will grow complicated an hard to maintain because the database abstractions are out in the open. It&#39;s better to define an interface that <em>uses</em> a database session and write your program in terms of that interface. Here is a rewritten version of the program above that demonstrates this pattern.</p>
+        <pre><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">syntax</span><span>.</span><span class="identifier">all</span><span>.</span><span class="identifier">_</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="identifier">_</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">skunk</span><span>.</span><span class="identifier">_</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">skunk</span><span>.</span><span class="identifier">implicits</span><span>.</span><span class="identifier">_</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">skunk</span><span>.</span><span class="identifier">codec</span><span>.</span><span class="identifier">all</span><span>.</span><span class="identifier">_</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">java</span><span>.</span><span class="identifier">time</span><span>.</span><span class="type-name">OffsetDateTime</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">natchez</span><span>.</span><span class="type-name">Trace</span><span>.</span><span class="type-name">Implicits</span><span>.</span><span class="identifier">noop</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.</span><span class="type-name">Stream</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="type-name">Applicative</span><span>
 
-// a data model
-case class Country(name: String, code: String, population: Int)
+</span><span class="comment">// a data model
+</span><span class="keyword">case</span><span> </span><span class="keyword">class</span><span> </span><span class="type-name">Country</span><span>(</span><span class="identifier">name</span><span>: </span><span class="type-name">String</span><span>, </span><span class="identifier">code</span><span>: </span><span class="type-name">String</span><span>, </span><span class="identifier">population</span><span>: </span><span class="type-name">Int</span><span>)
 
-// A service interface.
-trait Service[F[_]] {
-  def currentTimestamp: F[OffsetDateTime]
-  def countriesByName(pat: String): Stream[F, Country]
+</span><span class="comment">// A service interface.
+</span><span class="keyword">trait</span><span> </span><span class="type-name">Service</span><span>[</span><span class="type-name">F</span><span>[</span><span class="identifier">_</span><span>]] {
+  </span><span class="keyword">def</span><span> </span><span class="declaration-name">currentTimestamp</span><span>: </span><span class="type-name">F</span><span>[</span><span class="type-name">OffsetDateTime</span><span>]
+  </span><span class="keyword">def</span><span> </span><span class="declaration-name">countriesByName</span><span>(</span><span class="identifier">pat</span><span>: </span><span class="type-name">String</span><span>): </span><span class="type-name">Stream</span><span>[</span><span class="type-name">F</span><span>, </span><span class="type-name">Country</span><span>]
 }
 
-// A companion with a constructor.
-object Service {
+</span><span class="comment">// A companion with a constructor.
+</span><span class="keyword">object</span><span> </span><span class="type-name">Service</span><span> {
 
-  private val timestamp: Query[Void, OffsetDateTime] =
-    sql&quot;select current_timestamp&quot;.query(timestamptz)
+  </span><span class="keyword">private</span><span> </span><span class="keyword">val</span><span> </span><span class="identifier">timestamp</span><span>: </span><span class="type-name">Query</span><span>[</span><span class="type-name">Void</span><span>, </span><span class="type-name">OffsetDateTime</span><span>] =
+    </span><span class="string-literal">sql&quot;select current_timestamp&quot;</span><span>.</span><span class="identifier">query</span><span>(</span><span class="identifier">timestamptz</span><span>)
 
-  private val countries: Query[String, Country] =
-    sql&quot;&quot;&quot;
+  </span><span class="keyword">private</span><span> </span><span class="keyword">val</span><span> </span><span class="identifier">countries</span><span>: </span><span class="type-name">Query</span><span>[</span><span class="type-name">String</span><span>, </span><span class="type-name">Country</span><span>] =
+    </span><span class="string-literal">sql&quot;&quot;&quot;
       SELECT name, code, population
       FROM   country
-      WHERE  name like $text
-    &quot;&quot;&quot;.query(varchar ~ bpchar(3) ~ int4)
-       .gmap[Country]
+      WHERE  name like </span><span class="substitution">$text</span><span class="string-literal">
+    &quot;&quot;&quot;</span><span>.</span><span class="identifier">query</span><span>(</span><span class="identifier">varchar</span><span> *: </span><span class="identifier">bpchar</span><span>(</span><span class="number-literal">3</span><span>) *: </span><span class="identifier">int4</span><span>)
+       .</span><span class="identifier">to</span><span>[</span><span class="type-name">Country</span><span>]
 
-  def fromSession[F[_]: Applicative](s: Session[F]): F[Service[F]] =
-    s.prepare(countries).map { pq =&gt;
+  </span><span class="keyword">def</span><span> </span><span class="declaration-name">fromSession</span><span>[</span><span class="type-name">F</span><span>[</span><span class="identifier">_</span><span>]: </span><span class="type-name">Applicative</span><span>](</span><span class="identifier">s</span><span>: </span><span class="type-name">Session</span><span>[</span><span class="type-name">F</span><span>]): </span><span class="type-name">F</span><span>[</span><span class="type-name">Service</span><span>[</span><span class="type-name">F</span><span>]] =
+    </span><span class="identifier">s</span><span>.</span><span class="identifier">prepare</span><span>(</span><span class="identifier">countries</span><span>).</span><span class="identifier">map</span><span> { </span><span class="identifier">pq</span><span> =&gt;
 
-      // Our service implementation. Note that we are preparing the query on construction, so
-      // our service can run it many times without paying the planning cost again.
-      new Service[F] {
-        def currentTimestamp: F[OffsetDateTime] = s.unique(timestamp)
-        def countriesByName(pat: String): Stream[F,Country] = pq.stream(pat, 32)
+      </span><span class="comment">// Our service implementation. Note that we are preparing the query on construction, so
+</span><span>      </span><span class="comment">// our service can run it many times without paying the planning cost again.
+</span><span>      </span><span class="keyword">new</span><span> </span><span class="type-name">Service</span><span>[</span><span class="type-name">F</span><span>] {
+        </span><span class="keyword">def</span><span> </span><span class="declaration-name">currentTimestamp</span><span>: </span><span class="type-name">F</span><span>[</span><span class="type-name">OffsetDateTime</span><span>] = </span><span class="identifier">s</span><span>.</span><span class="identifier">unique</span><span>(</span><span class="identifier">timestamp</span><span>)
+        </span><span class="keyword">def</span><span> </span><span class="declaration-name">countriesByName</span><span>(</span><span class="identifier">pat</span><span>: </span><span class="type-name">String</span><span>): </span><span class="type-name">Stream</span><span>[</span><span class="type-name">F</span><span>,</span><span class="type-name">Country</span><span>] = </span><span class="identifier">pq</span><span>.</span><span class="identifier">stream</span><span>(</span><span class="identifier">pat</span><span>, </span><span class="number-literal">32</span><span>)
       }
 
     }
 }
 
 
-object QueryExample2 extends IOApp {
+</span><span class="keyword">object</span><span> </span><span class="type-name">QueryExample2</span><span> </span><span class="keyword">extends</span><span> </span><span class="type-name">IOApp</span><span> {
 
-  // a source of sessions
-  val session: Resource[IO, Session[IO]] =
-    Session.single(
-      host     = &quot;localhost&quot;,
-      user     = &quot;jimmy&quot;,
-      database = &quot;world&quot;,
-      password = Some(&quot;banana&quot;)
+  </span><span class="comment">// a source of sessions
+</span><span>  </span><span class="keyword">val</span><span> </span><span class="identifier">session</span><span>: </span><span class="type-name">Resource</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Session</span><span>[</span><span class="type-name">IO</span><span>]] =
+    </span><span class="type-name">Session</span><span>.</span><span class="identifier">single</span><span>(
+      </span><span class="identifier">host</span><span>     = </span><span class="string-literal">&quot;localhost&quot;</span><span>,
+      </span><span class="identifier">user</span><span>     = </span><span class="string-literal">&quot;jimmy&quot;</span><span>,
+      </span><span class="identifier">database</span><span> = </span><span class="string-literal">&quot;world&quot;</span><span>,
+      </span><span class="identifier">password</span><span> = </span><span class="type-name">Some</span><span>(</span><span class="string-literal">&quot;banana&quot;</span><span>)
     )
 
-  // A source of services
-  val service: Resource[IO, Service[IO]] =
-    session.evalMap(Service.fromSession(_))
+  </span><span class="comment">// A source of services
+</span><span>  </span><span class="keyword">val</span><span> </span><span class="identifier">service</span><span>: </span><span class="type-name">Resource</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Service</span><span>[</span><span class="type-name">IO</span><span>]] =
+    </span><span class="identifier">session</span><span>.</span><span class="identifier">evalMap</span><span>(</span><span class="type-name">Service</span><span>.</span><span class="identifier">fromSession</span><span>(</span><span class="identifier">_</span><span>))
 
-  // our entry point ... there is no indication that we&#39;re using a database at all!
-  def run(args: List[String]): IO[ExitCode] =
-    service.use { s =&gt;
-      for {
-        ts &lt;- s.currentTimestamp
-        _  &lt;- IO.println(s&quot;timestamp is $ts&quot;)
-        _  &lt;- s.countriesByName(&quot;U%&quot;)
-               .evalMap(c =&gt; IO.println(c))
-               .compile
-               .drain
-      } yield ExitCode.Success
+  </span><span class="comment">// our entry point ... there is no indication that we&#39;re using a database at all!
+</span><span>  </span><span class="keyword">def</span><span> </span><span class="declaration-name">run</span><span>(</span><span class="identifier">args</span><span>: </span><span class="type-name">List</span><span>[</span><span class="type-name">String</span><span>]): </span><span class="type-name">IO</span><span>[</span><span class="type-name">ExitCode</span><span>] =
+    </span><span class="identifier">service</span><span>.</span><span class="identifier">use</span><span> { </span><span class="identifier">s</span><span> =&gt;
+      </span><span class="keyword">for</span><span> {
+        </span><span class="identifier">ts</span><span> &lt;- </span><span class="identifier">s</span><span>.</span><span class="identifier">currentTimestamp</span><span>
+        </span><span class="identifier">_</span><span>  &lt;- </span><span class="type-name">IO</span><span>.</span><span class="identifier">println</span><span>(</span><span class="string-literal">s&quot;timestamp is </span><span class="substitution">$ts</span><span class="string-literal">&quot;</span><span>)
+        </span><span class="identifier">_</span><span>  &lt;- </span><span class="identifier">s</span><span>.</span><span class="identifier">countriesByName</span><span>(</span><span class="string-literal">&quot;U%&quot;</span><span>)
+               .</span><span class="identifier">evalMap</span><span>(</span><span class="identifier">c</span><span> =&gt; </span><span class="type-name">IO</span><span>.</span><span class="identifier">println</span><span>(</span><span class="identifier">c</span><span>))
+               .</span><span class="identifier">compile</span><span>
+               .</span><span class="identifier">drain</span><span>
+      } </span><span class="keyword">yield</span><span> </span><span class="type-name">ExitCode</span><span>.</span><span class="type-name">Success</span><span>
     }
 
-}
-</code></pre>
-<p>Running this program yields the same output as above.</p>
-<pre><code>timestamp is 2023-01-22T14:21:59.817447Z
+}</span></code></pre>
+        <p>Running this program yields the same output as above.</p>
+        <pre><code>timestamp is 2023-05-07T13:16:41.064236Z
 Country(United Arab Emirates,ARE,2441000)
 Country(United Kingdom,GBR,59623400)
 Country(Uganda,UGA,21778000)
@@ -567,203 +583,120 @@ Country(Ukraine,UKR,50456000)
 Country(Uruguay,URY,3337000)
 Country(Uzbekistan,UZB,24318000)
 Country(United States,USA,278357000)
-Country(United States Minor Outlying Islands,UMI,0)
-</code></pre>
-<h2><a href="#experiment" name="experiment" class="anchor"><span class="anchor-link"></span></a>Experiment</h2>
-<p>Here are some experiments you might want to try.</p>
-<ul>
-  <li>
-  <p>Try to run the <code>extended</code> query via <code>Session#execute</code>, or the <code>simple</code> query via <code>Session#prepare</code>. Note that in the latter case you will need to pass the value <code>Void</code> as an argument.</p></li>
-  <li>
-  <p>Add/remove/change encoders and decoders. Do various things to make the queries fail. Which kinds of errors are detected at compile-time vs. runtime?</p></li>
-  <li>
-  <p>Add more fields to <code>Country</code> and more colums to the query; or add more parameters. You will need to consult the <a href="../reference/SchemaTypes.html">Schema Types</a> reference to find the encoders/decoders you need.</p></li>
-  <li>
-  <p>Experiment with the treatment of nullable columns. You need to add <code>.opt</code> to encoders/decoders (<code>int4.opt</code> for example) to indicate nullability. Keep in mind that for interpolated encoders you&rsquo;ll need to write <code>${int4.opt}</code>.</p></li>
-</ul>
-<p>For reference, the <code>country</code> table looks like this.</p>
-<table>
-  <thead>
-    <tr>
-      <th>Column </th>
-      <th>Postgres Type </th>
-      <th>Modifiers </th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>code </td>
-      <td>character(3) </td>
-      <td>not null </td>
-    </tr>
-    <tr>
-      <td>name </td>
-      <td>character varying </td>
-      <td>not null </td>
-    </tr>
-    <tr>
-      <td>continent </td>
-      <td>character varying </td>
-      <td>not null </td>
-    </tr>
-    <tr>
-      <td>region </td>
-      <td>character varying </td>
-      <td>not null </td>
-    </tr>
-    <tr>
-      <td>surfacearea </td>
-      <td>real </td>
-      <td>not null </td>
-    </tr>
-    <tr>
-      <td>indepyear </td>
-      <td>smallint </td>
-      <td> </td>
-    </tr>
-    <tr>
-      <td>population </td>
-      <td>integer </td>
-      <td>not null </td>
-    </tr>
-    <tr>
-      <td>lifeexpectancy </td>
-      <td>real </td>
-      <td> </td>
-    </tr>
-    <tr>
-      <td>gnp </td>
-      <td>numeric(10,2) </td>
-      <td> </td>
-    </tr>
-    <tr>
-      <td>gnpold </td>
-      <td>numeric(10,2) </td>
-      <td> </td>
-    </tr>
-    <tr>
-      <td>localname </td>
-      <td>character varying </td>
-      <td>not null </td>
-    </tr>
-    <tr>
-      <td>governmentform </td>
-      <td>character varying </td>
-      <td>not null </td>
-    </tr>
-    <tr>
-      <td>headofstate </td>
-      <td>character varying </td>
-      <td> </td>
-    </tr>
-    <tr>
-      <td>capital </td>
-      <td>integer </td>
-      <td> </td>
-    </tr>
-    <tr>
-      <td>code2 </td>
-      <td>character(2) </td>
-      <td>not null </td>
-    </tr>
-  </tbody>
-</table>
-<script type="text/javascript" src="../js/link_fix.js"></script>
+Country(United States Minor Outlying Islands,UMI,0)</code></pre>
+        
+        <h2 id="experiment" class="section">Experiment<a class="anchor-link right" href="#experiment"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <p>Here are some experiments you might want to try.</p>
+        <ul>
+          <li>
+            <p>Try to run the <code>extended</code> query via <code>Session#execute</code>, or the <code>simple</code> query via <code>Session#prepare</code>. Note that in the latter case you will need to pass the value <code>Void</code> as an argument.</p>
+          </li>
+          <li>
+            <p>Add/remove/change encoders and decoders. Do various things to make the queries fail. Which kinds of errors are detected at compile-time vs. runtime?</p>
+          </li>
+          <li>
+            <p>Add more fields to <code>Country</code> and more colums to the query; or add more parameters. You will need to consult the <a href="../reference/SchemaTypes.html">Schema Types</a> reference to find the encoders/decoders you need.</p>
+          </li>
+          <li>
+            <p>Experiment with the treatment of nullable columns. You need to add <code>.opt</code> to encoders/decoders (<code>int4.opt</code> for example) to indicate nullability. Keep in mind that for interpolated encoders you&#39;ll need to write <code>${int4.opt}</code>.</p>
+          </li>
+        </ul>
+        <p>For reference, the <code>country</code> table looks like this.</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Column</th>
+              <th>Postgres Type</th>
+              <th>Modifiers</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>code</td>
+              <td>character(3)</td>
+              <td>not null</td>
+            </tr>
+            <tr>
+              <td>name</td>
+              <td>character varying</td>
+              <td>not null</td>
+            </tr>
+            <tr>
+              <td>continent</td>
+              <td>character varying</td>
+              <td>not null</td>
+            </tr>
+            <tr>
+              <td>region</td>
+              <td>character varying</td>
+              <td>not null</td>
+            </tr>
+            <tr>
+              <td>surfacearea</td>
+              <td>real</td>
+              <td>not null</td>
+            </tr>
+            <tr>
+              <td>indepyear</td>
+              <td>smallint</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>population</td>
+              <td>integer</td>
+              <td>not null</td>
+            </tr>
+            <tr>
+              <td>lifeexpectancy</td>
+              <td>real</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>gnp</td>
+              <td>numeric(10,2)</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>gnpold</td>
+              <td>numeric(10,2)</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>localname</td>
+              <td>character varying</td>
+              <td>not null</td>
+            </tr>
+            <tr>
+              <td>governmentform</td>
+              <td>character varying</td>
+              <td>not null</td>
+            </tr>
+            <tr>
+              <td>headofstate</td>
+              <td>character varying</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>capital</td>
+              <td>integer</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>code2</td>
+              <td>character(2)</td>
+              <td>not null</td>
+            </tr>
+          </tbody>
+        </table>
 
-<div class="source-github">
-The source code for this page can be found <a id="source-link" href="https://github.com/tpolecat/skunk/tree/v0.5.1/modules/docs/target/mdoc/tutorial/Query.md">here</a>.
-</div>
+        <hr style="margin-top: 30px"/>
+        <footer style="font-size: 90%; text-align: center">
+          skunk is a <a href="https://typelevel.org/">Typelevel</a> project distributed under the <a href="https://opensource.org/licenses/MIT">MIT</a> license.
+        </footer>
 
-<script type="text/javascript">jQuery(function(){sourceUrlFix('https://github.com/tpolecat/skunk/tree/v0.5.1/modules/docs/target/mdoc/tutorial/Query.md')});</script>
+      </main>
 
-<div class="nav-next">
-<p><strong>Next:</strong> <a href="../tutorial/Command.html">Commands</a></p>
-</div>
-</div>
-<div class="large-3 show-for-large column" data-sticky-container>
-<nav class="sidebar sticky" data-sticky data-anchor="docs" data-sticky-on="large">
-<div class="page-nav">
-<div class="nav-title">On this page:</div>
-<div class="nav-toc">
-<ul>
-  <li><a href="../tutorial/Query.html#queries" class="header">Queries</a>
-  <ul>
-    <li><a href="../tutorial/Query.html#single-column-query" class="header">Single-Column Query</a></li>
-    <li><a href="../tutorial/Query.html#multi-column-query" class="header">Multi-Column Query</a></li>
-    <li><a href="../tutorial/Query.html#parameterized-query" class="header">Parameterized Query</a></li>
-    <li><a href="../tutorial/Query.html#multi-parameter-query" class="header">Multi-Parameter Query</a></li>
-    <li><a href="../tutorial/Query.html#summary-of-query-types" class="header">Summary of Query Types</a></li>
-    <li><a href="../tutorial/Query.html#full-example" class="header">Full Example</a></li>
-    <li><a href="../tutorial/Query.html#service-oriented-example" class="header">Service-Oriented Example</a></li>
-    <li><a href="../tutorial/Query.html#experiment" class="header">Experiment</a></li>
-  </ul></li>
-</ul>
-</div>
-</div>
-</nav>
-</div>
-</div>
+    </div>
 
-</section>
-</div>
-
-</div>
-
-<footer class="site-footer">
-
-<section class="site-footer-nav">
-<div class="expanded row">
-<div class="small-12 large-offset-2 large-10 column">
-<div class="row site-footer-content">
-
-<div class="small-12 medium-4 large-3 text-center column">
-<div class="nav-links">
-<ul>
-<!-- <li><a href="https://www.example.com/products/">Products</a> -->
-</ul>
-</div>
-</div>
-
-</div>
-</div>
-</div>
-</section>
-
-<section class="site-footer-base">
-<div class="expanded row">
-<div class="small-12 large-offset-2 large-10 column">
-<div class="row site-footer-content">
-
-<div class="small-12 text-center large-9 column">
-
-<!--
-<div class="copyright">
-<span class="text">&copy; 2023</span>
-<a href="https://www.example.com" class="logo">logo</a>
-</div>
--->
-</div>
-
-</div>
-</div>
-</div>
-</section>
-</footer>
-
-</div>
-</div>
-</div>
-</body>
-
-<script type="text/javascript" src="../lib/foundation/dist/foundation.min.js"></script>
-<script type="text/javascript">jQuery(document).foundation();</script>
-<script type="text/javascript" src="../js/magellan.js"></script>
-
-<style type="text/css">@import "../lib/prettify/prettify.css";</style>
-<script type="text/javascript" src="../lib/prettify/prettify.js"></script>
-<script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
-<script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
-<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.5.1', 'https://github.com/tpolecat/skunk')});</script>
-
-
+  </body>
 </html>

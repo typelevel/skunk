@@ -1,501 +1,413 @@
 <!DOCTYPE html>
-<html class="no-js" lang="en">
+<html lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="Laika 0.18.1 + Helium Theme" />
+    <title>Transactions</title>
+    
+      <meta name="author" content="Rob Norris"/>
+    
+    
+      <meta name="description" content="docs"/>
+    
+    
+      <link rel="icon" sizes="32x32" type="image/png" href="https://typelevel.org/img/favicon.png"/>
+    
+    
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700">
+    
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Fira+Mono:500">
+    
+    <link rel="stylesheet" type="text/css" href="../helium/icofont.min.css" />
+    <link rel="stylesheet" type="text/css" href="../helium/laika-helium.css" />
+    <link rel="stylesheet" type="text/css" href="../site/styles.css" />
+    <script src="../helium/laika-helium.js"></script>
+    
+    
+    <script> /* for avoiding page load transitions */ </script>
+  </head>
 
-<head>
-<title>Transactions · Skunk</title>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<meta name="description" content='docs'/>
-<link rel="canonical" href="https://github.com/tpolecat/skunktutorial/Transactions.html"/>
-<link href="https://fonts.googleapis.com/css?family=Roboto:100normal,100italic,300normal,300italic,400normal,400italic,500normal,500italic,700normal,700italic,900normal,900italicc" rel="stylesheet" type="text/css"/>
-<script type="text/javascript" src="../lib/jquery/jquery.min.js"></script>
-<script type="text/javascript" src="../js/page.js"></script>
-<script type="text/javascript" src="../js/warnOldVersion.js"></script>
-<script type="text/javascript" src="../js/groups.js"></script>
-<script type="text/javascript" src="../js/snippets.js"></script>
-<link rel="stylesheet" type="text/css" href="../lib/foundation/dist/foundation.min.css"/>
-<link rel="stylesheet" type="text/css" href="../css/page.css"/>
+  <body>
 
-<!--
-<link rel="shortcut icon" href="../images/favicon.ico" />
--->
-</head>
+    <header id="top-bar">
 
-<body>
-<div class="off-canvas-wrapper">
-<div class="off-canvas-wrapper-inner" data-off-canvas-wrapper>
+      <div class="row">
+        <a id="nav-icon">
+          <i class="icofont-laika" title="Navigation">&#xefa2;</i>
+        </a>
+        
+      </div>
 
-<div class="off-canvas position-left" id="off-canvas-menu" data-off-canvas>
-<nav class="off-canvas-nav">
-<div class="nav-home">
-<a href="../index.html" >
-<span class="home-icon">⌂</span>Skunk
-</a>
-<div class="version-number">
-0.5.1
-</div>
-</div>
-<div class="nav-toc">
-<ul>
-  <li><a href="../tutorial/Index.html" class="page">Tutorial</a>
-  <ul>
-    <li><a href="../tutorial/Setup.html" class="page">Setup</a></li>
-    <li><a href="../tutorial/Query.html" class="page">Queries</a></li>
-    <li><a href="../tutorial/Command.html" class="page">Commands</a></li>
-    <li><a href="../tutorial/Transactions.html" class="active page">Transactions</a></li>
-    <li><a href="../tutorial/Channels.html" class="page">Channels</a></li>
-    <li><a href="../tutorial/Tracing.html" class="page">Tracing</a></li>
-  </ul></li>
-  <li><a href="../reference/Index.html" class="page">Reference</a>
-  <ul>
-    <li><a href="../reference/Sessions.html" class="page">Sessions</a></li>
-    <li><a href="../reference/TwiddleLists.html" class="page">Twiddle Lists</a></li>
-    <li><a href="../reference/Encoders.html" class="page">Encoders</a></li>
-    <li><a href="../reference/Fragments.html" class="page">Fragments</a></li>
-    <li><a href="../reference/Identifiers.html" class="page">Identifiers</a></li>
-    <li><a href="../reference/Concurrency.html" class="page">Concurrency</a></li>
-    <li><a href="../reference/SchemaTypes.html" class="page">Schema Types</a></li>
-  </ul></li>
-</ul>
-</div>
+      <a class="image-link" href="https://typelevel.org"><img src="https://typelevel.org/img/logo.svg"></a>
 
-</nav>
-</div>
+      <span class="row links"><a class="icon-link svg-link" href="https://www.javadoc.io/doc/org.tpolecat/skunk-docs_2.13/0.6.0-RC2/"><span title="API"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  <g class="svg-shape">
+    <path d="M75,47.5c13.246,0 24,10.754 24,24c0,13.246 -10.754,24 -24,24c-13.246,0 -24,-10.754 -24,-24c0,-13.246 10.754,-24 24,-24Zm-50,-0c13.246,-0 24,10.754 24,24c0,13.246 -10.754,24 -24,24c-13.246,-0 -24,-10.754 -24,-24c0,-13.246 10.754,-24 24,-24Zm2.705,16.735l7.239,0l0.622,-4.904l-21.833,0l-0,4.904l7.589,0l0,22.067l6.383,0l-0,-22.067Zm58.076,7.265c-0,-8.757 -3.698,-14.166 -10.781,-14.166c-7.083,-0 -10.781,5.604 -10.781,14.166c0,8.757 3.698,14.166 10.781,14.166c7.083,0 10.781,-5.604 10.781,-14.166Zm-6.539,0c0,6.538 -1.128,9.496 -4.242,9.496c-2.997,0 -4.242,-2.88 -4.242,-9.496c-0,-6.616 1.206,-9.496 4.242,-9.496c3.036,-0 4.242,2.88 4.242,9.496Zm-29.242,-67c13.246,0 24,10.754 24,24c0,13.246 -10.754,24 -24,24c-13.246,0 -24,-10.754 -24,-24c0,-13.246 10.754,-24 24,-24Zm0.512,9.834c-7.122,-0 -12.609,5.098 -12.609,14.127c-0,9.263 5.215,14.205 12.532,14.205c4.164,0 7.083,-1.634 9.068,-3.658l-2.88,-3.697c-1.518,1.206 -3.153,2.413 -5.838,2.413c-3.697,-0 -6.266,-2.763 -6.266,-9.263c-0,-6.616 2.724,-9.379 6.149,-9.379c2.102,-0 3.892,0.778 5.371,1.984l3.113,-3.775c-2.257,-1.868 -4.748,-2.957 -8.64,-2.957Z"/>
+  </g>
+</svg></span></a><a class="icon-link svg-link" href="https://github.com/typelevel/skunk"><span title="Source Code"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  <g class="svg-shape">
+    <path d="M49.995,1c-27.609,-0 -49.995,22.386 -49.995,50.002c-0,22.09 14.325,40.83 34.194,47.444c2.501,0.458 3.413,-1.086 3.413,-2.412c0,-1.185 -0.043,-4.331 -0.067,-8.503c-13.908,3.021 -16.843,-6.704 -16.843,-6.704c-2.274,-5.773 -5.552,-7.311 -5.552,-7.311c-4.54,-3.103 0.344,-3.042 0.344,-3.042c5.018,0.356 7.658,5.154 7.658,5.154c4.46,7.64 11.704,5.433 14.552,4.156c0.454,-3.232 1.744,-5.436 3.174,-6.685c-11.102,-1.262 -22.775,-5.553 -22.775,-24.713c-0,-5.457 1.949,-9.92 5.147,-13.416c-0.516,-1.265 -2.231,-6.348 0.488,-13.233c0,0 4.199,-1.344 13.751,5.126c3.988,-1.108 8.266,-1.663 12.518,-1.682c4.245,0.019 8.523,0.574 12.517,1.682c9.546,-6.47 13.736,-5.126 13.736,-5.126c2.728,6.885 1.013,11.968 0.497,13.233c3.204,3.496 5.141,7.959 5.141,13.416c0,19.209 -11.691,23.436 -22.83,24.673c1.795,1.544 3.394,4.595 3.394,9.26c0,6.682 -0.061,12.076 -0.061,13.715c0,1.338 0.899,2.894 3.438,2.406c19.853,-6.627 34.166,-25.354 34.166,-47.438c-0,-27.616 -22.389,-50.002 -50.005,-50.002"/>
+  </g>
+</svg></span></a><a class="icon-link" href="https://discord.gg/XF3CXcMzqD"><i class="icofont-laika" title="Chat">&#xeed5;</i></a><a class="icon-link" href="https://fosstodon.org/@typelevel"><span class="mastodon" title="Mastodon"><svg class="svg-icon svg-link" width="100%" height="100%" viewBox="0 0 16 16" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  <g class="svg-shape">
+    <path d="M11.19 12.195c2.016-.24 3.77-1.475 3.99-2.603.348-1.778.32-4.339.32-4.339 0-3.47-2.286-4.488-2.286-4.488C12.062.238 10.083.017 8.027 0h-.05C5.92.017 3.942.238 2.79.765c0 0-2.285 1.017-2.285 4.488l-.002.662c-.004.64-.007 1.35.011 2.091.083 3.394.626 6.74 3.78 7.57 1.454.383 2.703.463 3.709.408 1.823-.1 2.847-.647 2.847-.647l-.06-1.317s-1.303.41-2.767.36c-1.45-.05-2.98-.156-3.215-1.928a3.614 3.614 0 0 1-.033-.496s1.424.346 3.228.428c1.103.05 2.137-.064 3.188-.189zm1.613-2.47H11.13v-4.08c0-.859-.364-1.295-1.091-1.295-.804 0-1.207.517-1.207 1.541v2.233H7.168V5.89c0-1.024-.403-1.541-1.207-1.541-.727 0-1.091.436-1.091 1.296v4.079H3.197V5.522c0-.859.22-1.541.66-2.046.456-.505 1.052-.764 1.793-.764.856 0 1.504.328 1.933.983L8 4.39l.417-.695c.429-.655 1.077-.983 1.934-.983.74 0 1.336.259 1.791.764.442.505.661 1.187.661 2.046v4.203z"/>
+  </g>
+</svg>
+</span></a></span>
 
-<div class="off-canvas-content" data-off-canvas-content>
+    </header>
 
-<header class="site-header expanded row">
-<div class="small-12 column">
-<a href="#" class="off-canvas-toggle hide-for-medium" data-toggle="off-canvas-menu"><svg class="svg-icon svg-icon-menu" version="1.1" id="Menu" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 20 20" enable-background="new 0 0 20 20" xml:space="preserve"> <path class="svg-icon-menu-path" fill="#53CDEC" d="M16.4,9H3.6C3.048,9,3,9.447,3,10c0,0.553,0.048,1,0.6,1H16.4c0.552,0,0.6-0.447,0.6-1C17,9.447,16.952,9,16.4,9z M16.4,13
-H3.6C3.048,13,3,13.447,3,14c0,0.553,0.048,1,0.6,1H16.4c0.552,0,0.6-0.447,0.6-1C17,13.447,16.952,13,16.4,13z M3.6,7H16.4
-C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.048,7,3.6,7z"/></svg>
-</a>
-<div class="title"><a href="../index.html">Skunk</a></div>
+    <nav id="sidebar">
 
-<!--
-<a href="https://www.example.com" class="logo show-for-medium">logo</a>
--->
-</div>
-</header>
+      <div class="row">
+        <a class="icon-link svg-link" href="https://www.javadoc.io/doc/org.tpolecat/skunk-docs_2.13/0.6.0-RC2/"><span title="API"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  <g class="svg-shape">
+    <path d="M75,47.5c13.246,0 24,10.754 24,24c0,13.246 -10.754,24 -24,24c-13.246,0 -24,-10.754 -24,-24c0,-13.246 10.754,-24 24,-24Zm-50,-0c13.246,-0 24,10.754 24,24c0,13.246 -10.754,24 -24,24c-13.246,-0 -24,-10.754 -24,-24c0,-13.246 10.754,-24 24,-24Zm2.705,16.735l7.239,0l0.622,-4.904l-21.833,0l-0,4.904l7.589,0l0,22.067l6.383,0l-0,-22.067Zm58.076,7.265c-0,-8.757 -3.698,-14.166 -10.781,-14.166c-7.083,-0 -10.781,5.604 -10.781,14.166c0,8.757 3.698,14.166 10.781,14.166c7.083,0 10.781,-5.604 10.781,-14.166Zm-6.539,0c0,6.538 -1.128,9.496 -4.242,9.496c-2.997,0 -4.242,-2.88 -4.242,-9.496c-0,-6.616 1.206,-9.496 4.242,-9.496c3.036,-0 4.242,2.88 4.242,9.496Zm-29.242,-67c13.246,0 24,10.754 24,24c0,13.246 -10.754,24 -24,24c-13.246,0 -24,-10.754 -24,-24c0,-13.246 10.754,-24 24,-24Zm0.512,9.834c-7.122,-0 -12.609,5.098 -12.609,14.127c-0,9.263 5.215,14.205 12.532,14.205c4.164,0 7.083,-1.634 9.068,-3.658l-2.88,-3.697c-1.518,1.206 -3.153,2.413 -5.838,2.413c-3.697,-0 -6.266,-2.763 -6.266,-9.263c-0,-6.616 2.724,-9.379 6.149,-9.379c2.102,-0 3.892,0.778 5.371,1.984l3.113,-3.775c-2.257,-1.868 -4.748,-2.957 -8.64,-2.957Z"/>
+  </g>
+</svg></span></a><a class="icon-link svg-link" href="https://github.com/typelevel/skunk"><span title="Source Code"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  <g class="svg-shape">
+    <path d="M49.995,1c-27.609,-0 -49.995,22.386 -49.995,50.002c-0,22.09 14.325,40.83 34.194,47.444c2.501,0.458 3.413,-1.086 3.413,-2.412c0,-1.185 -0.043,-4.331 -0.067,-8.503c-13.908,3.021 -16.843,-6.704 -16.843,-6.704c-2.274,-5.773 -5.552,-7.311 -5.552,-7.311c-4.54,-3.103 0.344,-3.042 0.344,-3.042c5.018,0.356 7.658,5.154 7.658,5.154c4.46,7.64 11.704,5.433 14.552,4.156c0.454,-3.232 1.744,-5.436 3.174,-6.685c-11.102,-1.262 -22.775,-5.553 -22.775,-24.713c-0,-5.457 1.949,-9.92 5.147,-13.416c-0.516,-1.265 -2.231,-6.348 0.488,-13.233c0,0 4.199,-1.344 13.751,5.126c3.988,-1.108 8.266,-1.663 12.518,-1.682c4.245,0.019 8.523,0.574 12.517,1.682c9.546,-6.47 13.736,-5.126 13.736,-5.126c2.728,6.885 1.013,11.968 0.497,13.233c3.204,3.496 5.141,7.959 5.141,13.416c0,19.209 -11.691,23.436 -22.83,24.673c1.795,1.544 3.394,4.595 3.394,9.26c0,6.682 -0.061,12.076 -0.061,13.715c0,1.338 0.899,2.894 3.438,2.406c19.853,-6.627 34.166,-25.354 34.166,-47.438c-0,-27.616 -22.389,-50.002 -50.005,-50.002"/>
+  </g>
+</svg></span></a><a class="icon-link" href="https://discord.gg/XF3CXcMzqD"><i class="icofont-laika" title="Chat">&#xeed5;</i></a><a class="icon-link" href="https://fosstodon.org/@typelevel"><span class="mastodon" title="Mastodon"><svg class="svg-icon svg-link" width="100%" height="100%" viewBox="0 0 16 16" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  <g class="svg-shape">
+    <path d="M11.19 12.195c2.016-.24 3.77-1.475 3.99-2.603.348-1.778.32-4.339.32-4.339 0-3.47-2.286-4.488-2.286-4.488C12.062.238 10.083.017 8.027 0h-.05C5.92.017 3.942.238 2.79.765c0 0-2.285 1.017-2.285 4.488l-.002.662c-.004.64-.007 1.35.011 2.091.083 3.394.626 6.74 3.78 7.57 1.454.383 2.703.463 3.709.408 1.823-.1 2.847-.647 2.847-.647l-.06-1.317s-1.303.41-2.767.36c-1.45-.05-2.98-.156-3.215-1.928a3.614 3.614 0 0 1-.033-.496s1.424.346 3.228.428c1.103.05 2.137-.064 3.188-.189zm1.613-2.47H11.13v-4.08c0-.859-.364-1.295-1.091-1.295-.804 0-1.207.517-1.207 1.541v2.233H7.168V5.89c0-1.024-.403-1.541-1.207-1.541-.727 0-1.091.436-1.091 1.296v4.079H3.197V5.522c0-.859.22-1.541.66-2.046.456-.505 1.052-.764 1.793-.764.856 0 1.504.328 1.933.983L8 4.39l.417-.695c.429-.655 1.077-.983 1.934-.983.74 0 1.336.259 1.791.764.442.505.661 1.187.661 2.046v4.203z"/>
+  </g>
+</svg>
+</span></a>
+      </div>
 
-<div class="expanded row">
+      <ul class="nav-list">
+        <li class="level1"><a href="../index.html">Skunk</a></li>
+        <li class="level1 nav-header">Tutorial</li>
+        <li class="level2"><a href="index.html">Intro</a></li>
+        <li class="level2"><a href="Setup.html">Setup</a></li>
+        <li class="level2"><a href="Query.html">Queries</a></li>
+        <li class="level2"><a href="Command.html">Commands</a></li>
+        <li class="level2 active"><a href="#">Transactions</a></li>
+        <li class="level2"><a href="Channels.html">Channels</a></li>
+        <li class="level2"><a href="Tracing.html">Tracing</a></li>
+        <li class="level1 nav-header">Reference</li>
+        <li class="level2"><a href="../reference/index.html">Intro</a></li>
+        <li class="level2"><a href="../reference/Sessions.html">Sessions</a></li>
+        <li class="level2"><a href="../reference/TwiddleLists.html">Twiddle Lists</a></li>
+        <li class="level2"><a href="../reference/Encoders.html">Encoders</a></li>
+        <li class="level2"><a href="../reference/Fragments.html">Fragments</a></li>
+        <li class="level2"><a href="../reference/Identifiers.html">Identifiers</a></li>
+        <li class="level2"><a href="../reference/Concurrency.html">Concurrency</a></li>
+        <li class="level2"><a href="../reference/SchemaTypes.html">Schema Types</a></li>
+      </ul>
 
-<div class="medium-3 large-2 show-for-medium column">
-<nav class="site-nav">
-<div class="nav-home">
-<a href="../index.html" >
-<span class="home-icon">⌂</span>Skunk
-</a>
-<div class="version-number">
-0.5.1
-</div>
-</div>
-<div class="nav-toc">
-<ul>
-  <li><a href="../tutorial/Index.html" class="page">Tutorial</a>
-  <ul>
-    <li><a href="../tutorial/Setup.html" class="page">Setup</a></li>
-    <li><a href="../tutorial/Query.html" class="page">Queries</a></li>
-    <li><a href="../tutorial/Command.html" class="page">Commands</a></li>
-    <li><a href="../tutorial/Transactions.html" class="active page">Transactions</a></li>
-    <li><a href="../tutorial/Channels.html" class="page">Channels</a></li>
-    <li><a href="../tutorial/Tracing.html" class="page">Tracing</a></li>
-  </ul></li>
-  <li><a href="../reference/Index.html" class="page">Reference</a>
-  <ul>
-    <li><a href="../reference/Sessions.html" class="page">Sessions</a></li>
-    <li><a href="../reference/TwiddleLists.html" class="page">Twiddle Lists</a></li>
-    <li><a href="../reference/Encoders.html" class="page">Encoders</a></li>
-    <li><a href="../reference/Fragments.html" class="page">Fragments</a></li>
-    <li><a href="../reference/Identifiers.html" class="page">Identifiers</a></li>
-    <li><a href="../reference/Concurrency.html" class="page">Concurrency</a></li>
-    <li><a href="../reference/SchemaTypes.html" class="page">Schema Types</a></li>
-  </ul></li>
-</ul>
-</div>
+      <ul class="nav-list">
+        <li class="level1 nav-header">Related Projects</li>
+        
+          <li class="level2"><a href="https://typelevel.org/cats/">cats</a></li>
+        
+      </ul>
 
-</nav>
-</div>
+    </nav>
 
-<div class="small-12 medium-9 large-10 column">
-<section class="site-content">
+    <div id="container">
 
-<span id="version-warning"></span>
+      <nav id="page-nav">
+        <p class="header"><a href="#">Transactions</a></p>
 
-<div class="page-header row">
-<div class="medium-12 show-for-medium column">
-<div class="nav-breadcrumbs">
-<ul>
-  <li><a href="../index.html">Skunk</a></li>
-  <li><a href="../tutorial/Index.html">Tutorial</a></li>
-  <li>Transactions</li>
-</ul>
-</div>
-</div>
-</div>
+        <ul class="nav-list">
+          <li class="level1"><a href="#transaction-status">Transaction Status</a></li>
+          <li class="level1"><a href="#basic-usage-pattern">Basic Usage Pattern</a></li>
+          <li class="level1"><a href="#advanced-usage-pattern">Advanced Usage Pattern</a></li>
+          <li class="level1"><a href="#transaction-characteristics">Transaction Characteristics</a></li>
+          <li class="level1"><a href="#full-example">Full Example</a></li>
+          <li class="level1"><a href="#experiment">Experiment</a></li>
+        </ul>
 
-<div class="page-content row">
-<div class="small-12 large-9 column" id="docs">
-<h1><a href="#transactions" name="transactions" class="anchor"><span class="anchor-link"></span></a>Transactions</h1>
-<p>Skunk has pretty good support for transactions (and error-handling, which are closely related).</p>
-<p>See <a href="https://www.postgresql.org/docs/10/tutorial-transactions.html">§3.4</a> in the PostgreSQL documentation for an introduction to transactions. The text that follows assumes you have a working knowledge of the information in that section.</p>
-<h2><a href="#transaction-status" name="transaction-status" class="anchor"><span class="anchor-link"></span></a>Transaction Status</h2>
-<p>Postgres connections are always in one of three transaction states.</p>
-<table>
-  <thead>
-    <tr>
-      <th>Status </th>
-      <th>Comment </th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><strong>Idle</strong> </td>
-      <td>There is no transaction in progress. </td>
-    </tr>
-    <tr>
-      <td><strong>Active</strong> </td>
-      <td>A transaction is in progress and can proceed. </td>
-    </tr>
-    <tr>
-      <td><strong>Error</strong> </td>
-      <td>An error has occurred. The transaction must be rolled back to a savepoint to continue; or must be rolled back entirely to terminate. </td>
-    </tr>
-  </tbody>
-</table>
-<p>Because transaction status is a property of the session itself, all operations on that session during a transaction&rsquo;s lifespan will take part in the transaction. For this reason it is recommended that sessions not be used concurrently in the presence of transactions. See the chapter on <a href="../reference/Concurrency.html">Concurrency</a> for more details.</p>
-<p><code>Session</code>&rsquo;s transaction status is available via its <code>transactionStatus</code> member (an fs2 <code>Signal</code>). The example below takes advantage of this facility.</p>
-<h2><a href="#basic-usage-pattern" name="basic-usage-pattern" class="anchor"><span class="anchor-link"></span></a>Basic Usage Pattern</h2>
-<p>Each session has a <code>transaction</code> resource that you can <code>use</code> to execute an action within a transaction.</p>
-<pre class="prettyprint"><code class="language-scala">// assume s:Session[IO]
-s.transaction.use { xa =&gt;
-  // transactional action here
-}
-</code></pre>
-<p>The basic usage pattern is as follows.</p>
-<ul>
-  <li>Wrap an action with <code>transaction.use</code> to create a new action that runs transactionally.</li>
-  <li>If the action completes normally, the transaction will be committed.</li>
-  <li>If the action is cancelled (via <code>Fiber.cancel</code>) the transaction will be rolled back.</li>
-  <li>If the action raises an exception, the transaction will be rolled back and the exception will be re-raised.</li>
-</ul>
-<p>The <code>xa</code> parameter provided by <code>use</code> is a reference to the transaction itself, which can be ignored for the basic usage pattern.</p><div class="callout warning "><div class="callout-title">Warning</div>
-<p>If you perform non-database actions wihin a transaction (such as writing to a file or making an http post) these actions cannot be rolled back if the transaction fails. Best practice is to factor these things out and only perform them if the <code>use</code> block completes normally.</p></div>
-<h2><a href="#advanced-usage-pattern" name="advanced-usage-pattern" class="anchor"><span class="anchor-link"></span></a>Advanced Usage Pattern</h2>
-<p>The advanced pattern uses the transaction reference <code>xa</code>, which provides the following actions:</p>
-<table>
-  <thead>
-    <tr>
-      <th>Action </th>
-      <th>Meaning </th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><code>xa.status</code> </td>
-      <td>Yields the session&rsquo;s current <code>TransactionStatus</code>. </td>
-    </tr>
-    <tr>
-      <td><code>xa.commit</code> </td>
-      <td>Commits the transaction. </td>
-    </tr>
-    <tr>
-      <td><code>xa.rollback</code> </td>
-      <td>Rolls back the transaction in its entirety. </td>
-    </tr>
-    <tr>
-      <td><code>xa.savepoint</code> </td>
-      <td>Creates an <code>xa.Savepoint</code>. </td>
-    </tr>
-    <tr>
-      <td><code>xa.rollback(sp)</code> </td>
-      <td>Rolls back to a previously created <code>xa.Savepoint</code>, allowing the transaction to continue following an error. </td>
-    </tr>
-  </tbody>
-</table>
-<p>Transaction finalization is more complex in the advanced case because you are able to commit and roll back explicitly. For this reason the finalizer consults the transaction status as well as the action&rsquo;s exit case to figure out what to do,</p>
-<p>If the <code>use</code> block exits normally there are three cases to consider, based on the session&rsquo;s transaction status on exit.</p>
-<ul>
-  <li><strong>Active</strong> means all went well and the transaction will be committed. This is the typical success case.</li>
-  <li><strong>Error</strong> means the user encountered and handled an error, but left the transaction in a failed state. In this case the transaction will be rolled back.</li>
-  <li><strong>Idle</strong> means the user terminated the transaction explicitly inside the block and there is nothing to be done.</li>
-</ul>
-<p>If the block exits due to cancellation or an error and the session transaction status is <strong>Active</strong> or <strong>Error</strong> (the common failure case) then the transaction will be rolled back and any error will be re-raised.</p>
-<p>Transaction finalization is summarized in the following matrix.</p>
-<table>
-  <thead>
-    <tr>
-      <th>Status </th>
-      <th>Normal Exit </th>
-      <th>Cancellation </th>
-      <th>Error Raised </th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><strong>Idle</strong> </td>
-      <td>— </td>
-      <td>— </td>
-      <td>re-raise </td>
-    </tr>
-    <tr>
-      <td><strong>Active</strong> </td>
-      <td>commit </td>
-      <td>roll back </td>
-      <td>roll back, re-raise </td>
-    </tr>
-    <tr>
-      <td><strong>Error</strong> </td>
-      <td>roll back </td>
-      <td>roll back </td>
-      <td>roll back, re-raise </td>
-    </tr>
-  </tbody>
-</table>
-<h2><a href="#transaction-characteristics" name="transaction-characteristics" class="anchor"><span class="anchor-link"></span></a>Transaction Characteristics</h2>
-<p>Transaction characteristics can be changed by using the <code>transaction[A](isolationLevel: TransactionIsolationLevel, accessMode: TransactionAccessMode)</code> method to create the transaction resource. More details about the available isolation levels and access modes can be found <a href="https://www.postgresql.org/docs/10/transaction-iso.html">here</a> and <a href="https://www.postgresql.org/docs/9.3/sql-set-transaction.html">here</a>.</p>
-<p>There is an alternative way to switch to a non-default isolation level and access mode by executing the <a href="https://www.postgresql.org/docs/10/sql-set-transaction.html"><code>SET TRANSACTION</code></a> command as the first operation inside your transaction.</p>
-<h2><a href="#full-example" name="full-example" class="anchor"><span class="anchor-link"></span></a>Full Example</h2>
-<p>Here is a complete program listing that demonstrates our knowledge thus far.</p>
-<pre class="prettyprint"><code class="language-scala">// Copyright (c) 2018-2020 by Rob Norris
+        <p class="footer"></p>
+      </nav>
+
+      <main class="content">
+
+        <h1 id="transactions" class="title">Transactions</h1>
+        <p>Skunk has pretty good support for transactions (and error-handling, which are closely related).</p>
+        <p>See <a href="https://www.postgresql.org/docs/10/tutorial-transactions.html">§3.4</a> in the PostgreSQL documentation for an introduction to transactions. The text that follows assumes you have a working knowledge of the information in that section.</p>
+        
+        <h2 id="transaction-status" class="section">Transaction Status<a class="anchor-link right" href="#transaction-status"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <p>Postgres connections are always in one of three transaction states.</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Comment</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Idle</strong></td>
+              <td>There is no transaction in progress.</td>
+            </tr>
+            <tr>
+              <td><strong>Active</strong></td>
+              <td>A transaction is in progress and can proceed.</td>
+            </tr>
+            <tr>
+              <td><strong>Error</strong></td>
+              <td>An error has occurred. The transaction must be rolled back to a savepoint to continue; or must be rolled back entirely to terminate.</td>
+            </tr>
+          </tbody>
+        </table>
+        <p>Because transaction status is a property of the session itself, all operations on that session during a transaction&#39;s lifespan will take part in the transaction. For this reason it is recommended that sessions not be used concurrently in the presence of transactions. See the chapter on <a href="../reference/Concurrency.html">Concurrency</a> for more details.</p>
+        <p><code>Session</code>&#39;s transaction status is available via its <code>transactionStatus</code> member (an fs2 <code>Signal</code>). The example below takes advantage of this facility.</p>
+        
+        <h2 id="basic-usage-pattern" class="section">Basic Usage Pattern<a class="anchor-link right" href="#basic-usage-pattern"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <p>Each session has a <code>transaction</code> resource that you can <code>use</code> to execute an action within a transaction.</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="comment">// assume s:Session[IO]
+</span><span class="identifier">s</span><span>.</span><span class="identifier">transaction</span><span>.</span><span class="identifier">use</span><span> { </span><span class="identifier">xa</span><span> =&gt;
+  </span><span class="comment">// transactional action here
+</span><span>}</span></code></pre>
+        <p>The basic usage pattern is as follows.</p>
+        <ul>
+          <li>Wrap an action with <code>transaction.use</code> to create a new action that runs transactionally.</li>
+          <li>If the action completes normally, the transaction will be committed.</li>
+          <li>If the action is cancelled (via <code>Fiber.cancel</code>) the transaction will be rolled back.</li>
+          <li>If the action raises an exception, the transaction will be rolled back and the exception will be re-raised.</li>
+        </ul>
+        <p>The <code>xa</code> parameter provided by <code>use</code> is a reference to the transaction itself, which can be ignored for the basic usage pattern.</p>
+        <div class="callout warning">
+          <i class="icofont-laika">&#xf026;</i>
+          <p>If you perform non-database actions wihin a transaction (such as writing to a file or making an http post) these actions cannot be rolled back if the transaction fails. Best practice is to factor these things out and only perform them if the <code>use</code> block completes normally.</p>
+        </div>
+        
+        <h2 id="advanced-usage-pattern" class="section">Advanced Usage Pattern<a class="anchor-link right" href="#advanced-usage-pattern"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <p>The advanced pattern uses the transaction reference <code>xa</code>, which provides the following actions:</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Action</th>
+              <th>Meaning</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>xa.status</code></td>
+              <td>Yields the session&#39;s current <code>TransactionStatus</code>.</td>
+            </tr>
+            <tr>
+              <td><code>xa.commit</code></td>
+              <td>Commits the transaction.</td>
+            </tr>
+            <tr>
+              <td><code>xa.rollback</code></td>
+              <td>Rolls back the transaction in its entirety.</td>
+            </tr>
+            <tr>
+              <td><code>xa.savepoint</code></td>
+              <td>Creates an <code>xa.Savepoint</code>.</td>
+            </tr>
+            <tr>
+              <td><code>xa.rollback(sp)</code></td>
+              <td>Rolls back to a previously created <code>xa.Savepoint</code>, allowing the transaction to continue following an error.</td>
+            </tr>
+          </tbody>
+        </table>
+        <p>Transaction finalization is more complex in the advanced case because you are able to commit and roll back explicitly. For this reason the finalizer consults the transaction status as well as the action&#39;s exit case to figure out what to do,</p>
+        <p>If the <code>use</code> block exits normally there are three cases to consider, based on the session&#39;s transaction status on exit.</p>
+        <ul>
+          <li><strong>Active</strong> means all went well and the transaction will be committed. This is the typical success case.</li>
+          <li><strong>Error</strong> means the user encountered and handled an error, but left the transaction in a failed state. In this case the transaction will be rolled back.</li>
+          <li><strong>Idle</strong> means the user terminated the transaction explicitly inside the block and there is nothing to be done.</li>
+        </ul>
+        <p>If the block exits due to cancellation or an error and the session transaction status is <strong>Active</strong> or <strong>Error</strong> (the common failure case) then the transaction will be rolled back and any error will be re-raised.</p>
+        <p>Transaction finalization is summarized in the following matrix.</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Normal Exit</th>
+              <th>Cancellation</th>
+              <th>Error Raised</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Idle</strong></td>
+              <td>—</td>
+              <td>—</td>
+              <td>re-raise</td>
+            </tr>
+            <tr>
+              <td><strong>Active</strong></td>
+              <td>commit</td>
+              <td>roll back</td>
+              <td>roll back, re-raise</td>
+            </tr>
+            <tr>
+              <td><strong>Error</strong></td>
+              <td>roll back</td>
+              <td>roll back</td>
+              <td>roll back, re-raise</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <h2 id="transaction-characteristics" class="section">Transaction Characteristics<a class="anchor-link right" href="#transaction-characteristics"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <p>Transaction characteristics can be changed by using the <code>transaction[A](isolationLevel: TransactionIsolationLevel, accessMode: TransactionAccessMode)</code> method to create the transaction resource.
+        More details about the available isolation levels and access modes can be found <a href="https://www.postgresql.org/docs/10/transaction-iso.html">here</a> and <a href="https://www.postgresql.org/docs/9.3/sql-set-transaction.html">here</a>.</p>
+        <p>There is an alternative way to switch to a non-default isolation level and access mode by executing the <a href="https://www.postgresql.org/docs/10/sql-set-transaction.html"><code>SET TRANSACTION</code></a> command as the first operation inside your transaction.</p>
+        
+        <h2 id="full-example" class="section">Full Example<a class="anchor-link right" href="#full-example"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <p>Here is a complete program listing that demonstrates our knowledge thus far.</p>
+        <pre><code class="nohighlight"><span class="comment">// Copyright (c) 2018-2020 by Rob Norris
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
+</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="identifier">_</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">implicits</span><span>.</span><span class="identifier">_</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">natchez</span><span>.</span><span class="type-name">Trace</span><span>.</span><span class="type-name">Implicits</span><span>.</span><span class="identifier">noop</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">skunk</span><span>.</span><span class="identifier">_</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">skunk</span><span>.</span><span class="identifier">codec</span><span>.</span><span class="identifier">all</span><span>.</span><span class="identifier">_</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">skunk</span><span>.</span><span class="identifier">implicits</span><span>.</span><span class="identifier">_</span><span>
 
-import cats.effect._
-import cats.effect.std.Console
-import cats.implicits._
-import natchez.Trace.Implicits.noop
-import skunk._
-import skunk.codec.all._
-import skunk.implicits._
+</span><span class="comment">// a data type
+</span><span class="keyword">case</span><span> </span><span class="keyword">class</span><span> </span><span class="type-name">Pet</span><span>(</span><span class="identifier">name</span><span>: </span><span class="type-name">String</span><span>, </span><span class="identifier">age</span><span>: </span><span class="type-name">Short</span><span>)
 
-// a data type
-case class Pet(name: String, age: Short)
-
-// a service interface
-trait PetService[F[_]] {
-  def tryInsertAll(pets: List[Pet]): F[Unit]
-  def selectAll: F[List[Pet]]
+</span><span class="comment">// a service interface
+</span><span class="keyword">trait</span><span> </span><span class="type-name">PetService</span><span>[</span><span class="type-name">F</span><span>[</span><span class="identifier">_</span><span>]] {
+  </span><span class="keyword">def</span><span> </span><span class="declaration-name">tryInsertAll</span><span>(</span><span class="identifier">pets</span><span>: </span><span class="type-name">List</span><span>[</span><span class="type-name">Pet</span><span>]): </span><span class="type-name">F</span><span>[</span><span class="type-name">Unit</span><span>]
+  </span><span class="keyword">def</span><span> </span><span class="declaration-name">selectAll</span><span>: </span><span class="type-name">F</span><span>[</span><span class="type-name">List</span><span>[</span><span class="type-name">Pet</span><span>]]
 }
 
-// a companion with a constructor
-object PetService {
+</span><span class="comment">// a companion with a constructor
+</span><span class="keyword">object</span><span> </span><span class="type-name">PetService</span><span> {
 
-  // command to insert a pet
-  private val insertOne: Command[Pet] =
-    sql&quot;INSERT INTO pets VALUES ($varchar, $int2)&quot;
-      .command
-      .gcontramap[Pet]
+  </span><span class="comment">// command to insert a pet
+</span><span>  </span><span class="keyword">private</span><span> </span><span class="keyword">val</span><span> </span><span class="identifier">insertOne</span><span>: </span><span class="type-name">Command</span><span>[</span><span class="type-name">Pet</span><span>] =
+    </span><span class="string-literal">sql&quot;INSERT INTO pets VALUES (</span><span class="substitution">$varchar</span><span class="string-literal">, </span><span class="substitution">$int2</span><span class="string-literal">)&quot;</span><span>
+      .</span><span class="identifier">command</span><span>
+      .</span><span class="identifier">to</span><span>[</span><span class="type-name">Pet</span><span>]
 
-  // query to select all pets
-  private val all: Query[Void, Pet] =
-    sql&quot;SELECT name, age FROM pets&quot;
-      .query(varchar ~ int2)
-      .gmap[Pet]
+  </span><span class="comment">// query to select all pets
+</span><span>  </span><span class="keyword">private</span><span> </span><span class="keyword">val</span><span> </span><span class="identifier">all</span><span>: </span><span class="type-name">Query</span><span>[</span><span class="type-name">Void</span><span>, </span><span class="type-name">Pet</span><span>] =
+    </span><span class="string-literal">sql&quot;SELECT name, age FROM pets&quot;</span><span>
+      .</span><span class="identifier">query</span><span>(</span><span class="identifier">varchar</span><span> *: </span><span class="identifier">int2</span><span>)
+      .</span><span class="identifier">to</span><span>[</span><span class="type-name">Pet</span><span>]
 
-  // construct a PetService, preparing our statement once on construction
-  def fromSession(s: Session[IO]): IO[PetService[IO]] =
-    s.prepare(insertOne).map { pc =&gt;
-      new PetService[IO] {
+  </span><span class="comment">// construct a PetService, preparing our statement once on construction
+</span><span>  </span><span class="keyword">def</span><span> </span><span class="declaration-name">fromSession</span><span>(</span><span class="identifier">s</span><span>: </span><span class="type-name">Session</span><span>[</span><span class="type-name">IO</span><span>]): </span><span class="type-name">IO</span><span>[</span><span class="type-name">PetService</span><span>[</span><span class="type-name">IO</span><span>]] =
+    </span><span class="identifier">s</span><span>.</span><span class="identifier">prepare</span><span>(</span><span class="identifier">insertOne</span><span>).</span><span class="identifier">map</span><span> { </span><span class="identifier">pc</span><span> =&gt;
+      </span><span class="keyword">new</span><span> </span><span class="type-name">PetService</span><span>[</span><span class="type-name">IO</span><span>] {
 
-        // Attempt to insert all pets, in a single transaction, handling each in turn and rolling
-        // back to a savepoint if a unique violation is encountered. Note that a bulk insert with an
-        // ON CONFLICT clause would be much more efficient, this is just for demonstration.
-        def tryInsertAll(pets: List[Pet]): IO[Unit] =
-          s.transaction.use { xa =&gt;
-            pets.traverse_ { p =&gt;
-              for {
-                _  &lt;- IO.println(s&quot;Trying to insert $p&quot;)
-                sp &lt;- xa.savepoint
-                _  &lt;- pc.execute(p).recoverWith {
-                        case SqlState.UniqueViolation(ex) =&gt;
-                         IO.println(s&quot;Unique violation: ${ex.constraintName.getOrElse(&quot;&lt;unknown&gt;&quot;)}, rolling back...&quot;) *&gt;
-                          xa.rollback(sp)
+        </span><span class="comment">// Attempt to insert all pets, in a single transaction, handling each in turn and rolling
+</span><span>        </span><span class="comment">// back to a savepoint if a unique violation is encountered. Note that a bulk insert with an
+</span><span>        </span><span class="comment">// ON CONFLICT clause would be much more efficient, this is just for demonstration.
+</span><span>        </span><span class="keyword">def</span><span> </span><span class="declaration-name">tryInsertAll</span><span>(</span><span class="identifier">pets</span><span>: </span><span class="type-name">List</span><span>[</span><span class="type-name">Pet</span><span>]): </span><span class="type-name">IO</span><span>[</span><span class="type-name">Unit</span><span>] =
+          </span><span class="identifier">s</span><span>.</span><span class="identifier">transaction</span><span>.</span><span class="identifier">use</span><span> { </span><span class="identifier">xa</span><span> =&gt;
+            </span><span class="identifier">pets</span><span>.</span><span class="identifier">traverse_</span><span> { </span><span class="identifier">p</span><span> =&gt;
+              </span><span class="keyword">for</span><span> {
+                </span><span class="identifier">_</span><span>  &lt;- </span><span class="type-name">IO</span><span>.</span><span class="identifier">println</span><span>(</span><span class="string-literal">s&quot;Trying to insert </span><span class="substitution">$p</span><span class="string-literal">&quot;</span><span>)
+                </span><span class="identifier">sp</span><span> &lt;- </span><span class="identifier">xa</span><span>.</span><span class="identifier">savepoint</span><span>
+                </span><span class="identifier">_</span><span>  &lt;- </span><span class="identifier">pc</span><span>.</span><span class="identifier">execute</span><span>(</span><span class="identifier">p</span><span>).</span><span class="identifier">recoverWith</span><span> {
+                        </span><span class="keyword">case</span><span> </span><span class="type-name">SqlState</span><span>.</span><span class="type-name">UniqueViolation</span><span>(</span><span class="identifier">ex</span><span>) =&gt;
+                         </span><span class="type-name">IO</span><span>.</span><span class="identifier">println</span><span>(</span><span class="string-literal">s&quot;Unique violation: </span><span class="substitution">${ex.constraintName.getOrElse(&quot;&lt;unknown&gt;&quot;)}</span><span class="string-literal">, rolling back...&quot;</span><span>) *&gt;
+                          </span><span class="identifier">xa</span><span>.</span><span class="identifier">rollback</span><span>(</span><span class="identifier">sp</span><span>)
                       }
-              } yield ()
+              } </span><span class="keyword">yield</span><span> ()
             }
           }
 
-        def selectAll: IO[List[Pet]] = s.execute(all)
+        </span><span class="keyword">def</span><span> </span><span class="declaration-name">selectAll</span><span>: </span><span class="type-name">IO</span><span>[</span><span class="type-name">List</span><span>[</span><span class="type-name">Pet</span><span>]] = </span><span class="identifier">s</span><span>.</span><span class="identifier">execute</span><span>(</span><span class="identifier">all</span><span>)
       }
     }
 
 }
 
-object TransactionExample extends IOApp {
+</span><span class="keyword">object</span><span> </span><span class="type-name">TransactionExample</span><span> </span><span class="keyword">extends</span><span> </span><span class="type-name">IOApp</span><span> {
 
-  // a source of sessions
-  val session: Resource[IO, Session[IO]] =
-    Session.single(
-      host     = &quot;localhost&quot;,
-      user     = &quot;jimmy&quot;,
-      database = &quot;world&quot;,
-      password = Some(&quot;banana&quot;)
+  </span><span class="comment">// a source of sessions
+</span><span>  </span><span class="keyword">val</span><span> </span><span class="identifier">session</span><span>: </span><span class="type-name">Resource</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Session</span><span>[</span><span class="type-name">IO</span><span>]] =
+    </span><span class="type-name">Session</span><span>.</span><span class="identifier">single</span><span>(
+      </span><span class="identifier">host</span><span>     = </span><span class="string-literal">&quot;localhost&quot;</span><span>,
+      </span><span class="identifier">user</span><span>     = </span><span class="string-literal">&quot;jimmy&quot;</span><span>,
+      </span><span class="identifier">database</span><span> = </span><span class="string-literal">&quot;world&quot;</span><span>,
+      </span><span class="identifier">password</span><span> = </span><span class="type-name">Some</span><span>(</span><span class="string-literal">&quot;banana&quot;</span><span>)
     )
 
-  // a resource that creates and drops a temporary table
-  def withPetsTable(s: Session[IO]): Resource[IO, Unit] = {
-    val alloc = s.execute(sql&quot;CREATE TEMP TABLE pets (name varchar unique, age int2)&quot;.command).void
-    val free  = s.execute(sql&quot;DROP TABLE pets&quot;.command).void
-    Resource.make(alloc)(_ =&gt; free)
+  </span><span class="comment">// a resource that creates and drops a temporary table
+</span><span>  </span><span class="keyword">def</span><span> </span><span class="declaration-name">withPetsTable</span><span>(</span><span class="identifier">s</span><span>: </span><span class="type-name">Session</span><span>[</span><span class="type-name">IO</span><span>]): </span><span class="type-name">Resource</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Unit</span><span>] = {
+    </span><span class="keyword">val</span><span> </span><span class="identifier">alloc</span><span> = </span><span class="identifier">s</span><span>.</span><span class="identifier">execute</span><span>(</span><span class="string-literal">sql&quot;CREATE TEMP TABLE pets (name varchar unique, age int2)&quot;</span><span>.</span><span class="identifier">command</span><span>).</span><span class="identifier">void</span><span>
+    </span><span class="keyword">val</span><span> </span><span class="identifier">free</span><span>  = </span><span class="identifier">s</span><span>.</span><span class="identifier">execute</span><span>(</span><span class="string-literal">sql&quot;DROP TABLE pets&quot;</span><span>.</span><span class="identifier">command</span><span>).</span><span class="identifier">void</span><span>
+    </span><span class="type-name">Resource</span><span>.</span><span class="identifier">make</span><span>(</span><span class="identifier">alloc</span><span>)(</span><span class="identifier">_</span><span> =&gt; </span><span class="identifier">free</span><span>)
   }
 
-  // We can monitor the changing transaction status by tapping into the provided `fs2.Signal`
-  def withTransactionStatusLogger[A](ss: Session[IO]): Resource[IO, Unit] = {
-    val alloc: IO[Fiber[IO, Throwable, Unit]] =
-      ss.transactionStatus
-        .discrete
-        .changes
-        .evalMap(s =&gt; IO.println(s&quot;xa status: $s&quot;))
-        .compile
-        .drain
-        .start
-    Resource.make(alloc)(_.cancel).void
+  </span><span class="comment">// We can monitor the changing transaction status by tapping into the provided `fs2.Signal`
+</span><span>  </span><span class="keyword">def</span><span> </span><span class="declaration-name">withTransactionStatusLogger</span><span>[</span><span class="type-name">A</span><span>](</span><span class="identifier">ss</span><span>: </span><span class="type-name">Session</span><span>[</span><span class="type-name">IO</span><span>]): </span><span class="type-name">Resource</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Unit</span><span>] = {
+    </span><span class="keyword">val</span><span> </span><span class="identifier">alloc</span><span>: </span><span class="type-name">IO</span><span>[</span><span class="type-name">Fiber</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Throwable</span><span>, </span><span class="type-name">Unit</span><span>]] =
+      </span><span class="identifier">ss</span><span>.</span><span class="identifier">transactionStatus</span><span>
+        .</span><span class="identifier">discrete</span><span>
+        .</span><span class="identifier">changes</span><span>
+        .</span><span class="identifier">evalMap</span><span>(</span><span class="identifier">s</span><span> =&gt; </span><span class="type-name">IO</span><span>.</span><span class="identifier">println</span><span>(</span><span class="string-literal">s&quot;xa status: </span><span class="substitution">$s</span><span class="string-literal">&quot;</span><span>))
+        .</span><span class="identifier">compile</span><span>
+        .</span><span class="identifier">drain</span><span>
+        .</span><span class="identifier">start</span><span>
+    </span><span class="type-name">Resource</span><span>.</span><span class="identifier">make</span><span>(</span><span class="identifier">alloc</span><span>)(</span><span class="identifier">_</span><span>.</span><span class="identifier">cancel</span><span>).</span><span class="identifier">void</span><span>
   }
 
-  // A resource that puts it all together.
-  val resource: Resource[IO, PetService[IO]] =
-    for {
-      s  &lt;- session
-      _  &lt;- withPetsTable(s)
-      _  &lt;- withTransactionStatusLogger(s)
-      ps &lt;- Resource.eval(PetService.fromSession(s))
-    } yield ps
+  </span><span class="comment">// A resource that puts it all together.
+</span><span>  </span><span class="keyword">val</span><span> </span><span class="identifier">resource</span><span>: </span><span class="type-name">Resource</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">PetService</span><span>[</span><span class="type-name">IO</span><span>]] =
+    </span><span class="keyword">for</span><span> {
+      </span><span class="identifier">s</span><span>  &lt;- </span><span class="identifier">session</span><span>
+      </span><span class="identifier">_</span><span>  &lt;- </span><span class="identifier">withPetsTable</span><span>(</span><span class="identifier">s</span><span>)
+      </span><span class="identifier">_</span><span>  &lt;- </span><span class="identifier">withTransactionStatusLogger</span><span>(</span><span class="identifier">s</span><span>)
+      </span><span class="identifier">ps</span><span> &lt;- </span><span class="type-name">Resource</span><span>.</span><span class="identifier">eval</span><span>(</span><span class="type-name">PetService</span><span>.</span><span class="identifier">fromSession</span><span>(</span><span class="identifier">s</span><span>))
+    } </span><span class="keyword">yield</span><span> </span><span class="identifier">ps</span><span>
 
-  // Some test data
-  val pets = List(
-    Pet(&quot;Alice&quot;, 3),
-    Pet(&quot;Bob&quot;,  42),
-    Pet(&quot;Bob&quot;,  21),
-    Pet(&quot;Steve&quot;, 9)
+  </span><span class="comment">// Some test data
+</span><span>  </span><span class="keyword">val</span><span> </span><span class="identifier">pets</span><span> = </span><span class="type-name">List</span><span>(
+    </span><span class="type-name">Pet</span><span>(</span><span class="string-literal">&quot;Alice&quot;</span><span>, </span><span class="number-literal">3</span><span>),
+    </span><span class="type-name">Pet</span><span>(</span><span class="string-literal">&quot;Bob&quot;</span><span>,  </span><span class="number-literal">42</span><span>),
+    </span><span class="type-name">Pet</span><span>(</span><span class="string-literal">&quot;Bob&quot;</span><span>,  </span><span class="number-literal">21</span><span>),
+    </span><span class="type-name">Pet</span><span>(</span><span class="string-literal">&quot;Steve&quot;</span><span>, </span><span class="number-literal">9</span><span>)
   )
 
-  // Our entry point
-  def run(args: List[String]): IO[ExitCode] =
-    resource.use { ps =&gt;
-      for {
-        _   &lt;- ps.tryInsertAll(pets)
-        all &lt;- ps.selectAll
-        _   &lt;- all.traverse_(p =&gt; IO.println(p))
-      } yield ExitCode.Success
+  </span><span class="comment">// Our entry point
+</span><span>  </span><span class="keyword">def</span><span> </span><span class="declaration-name">run</span><span>(</span><span class="identifier">args</span><span>: </span><span class="type-name">List</span><span>[</span><span class="type-name">String</span><span>]): </span><span class="type-name">IO</span><span>[</span><span class="type-name">ExitCode</span><span>] =
+    </span><span class="identifier">resource</span><span>.</span><span class="identifier">use</span><span> { </span><span class="identifier">ps</span><span> =&gt;
+      </span><span class="keyword">for</span><span> {
+        </span><span class="identifier">_</span><span>   &lt;- </span><span class="identifier">ps</span><span>.</span><span class="identifier">tryInsertAll</span><span>(</span><span class="identifier">pets</span><span>)
+        </span><span class="identifier">all</span><span> &lt;- </span><span class="identifier">ps</span><span>.</span><span class="identifier">selectAll</span><span>
+        </span><span class="identifier">_</span><span>   &lt;- </span><span class="identifier">all</span><span>.</span><span class="identifier">traverse_</span><span>(</span><span class="identifier">p</span><span> =&gt; </span><span class="type-name">IO</span><span>.</span><span class="identifier">println</span><span>(</span><span class="identifier">p</span><span>))
+      } </span><span class="keyword">yield</span><span> </span><span class="type-name">ExitCode</span><span>.</span><span class="type-name">Success</span><span>
     }
 
-}
-</code></pre>
-<p>Running this program yields the following.</p>
-<pre><code>xa status: Idle
+}</span></code></pre>
+        <p>Running this program yields the following.</p>
+        <pre><code>xa status: Idle
 xa status: Active
 Trying to insert Pet(Alice,3)
 Trying to insert Pet(Bob,42)
 Trying to insert Pet(Bob,21)
 xa status: Failed
 Unique violation: pets_name_key, rolling back...
-Trying to insert Pet(Steve,9)
 xa status: Active
+Trying to insert Pet(Steve,9)
 xa status: Idle
 Pet(Alice,3)
 Pet(Bob,42)
-Pet(Steve,9)
-</code></pre>
-<h2><a href="#experiment" name="experiment" class="anchor"><span class="anchor-link"></span></a>Experiment</h2>
-<ul>
-  <li>PostgreSQL does not permit nested transactions. What happens if you try?</li>
-  <li>What happens if you remove the error handler in <code>tryInsertAll</code>?</li>
-</ul>
-<script type="text/javascript" src="../js/link_fix.js"></script>
+Pet(Steve,9)</code></pre>
+        
+        <h2 id="experiment" class="section">Experiment<a class="anchor-link right" href="#experiment"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <ul>
+          <li>PostgreSQL does not permit nested transactions. What happens if you try?</li>
+          <li>What happens if you remove the error handler in <code>tryInsertAll</code>?</li>
+        </ul>
 
-<div class="source-github">
-The source code for this page can be found <a id="source-link" href="https://github.com/tpolecat/skunk/tree/v0.5.1/modules/docs/target/mdoc/tutorial/Transactions.md">here</a>.
-</div>
+        <hr style="margin-top: 30px"/>
+        <footer style="font-size: 90%; text-align: center">
+          skunk is a <a href="https://typelevel.org/">Typelevel</a> project distributed under the <a href="https://opensource.org/licenses/MIT">MIT</a> license.
+        </footer>
 
-<script type="text/javascript">jQuery(function(){sourceUrlFix('https://github.com/tpolecat/skunk/tree/v0.5.1/modules/docs/target/mdoc/tutorial/Transactions.md')});</script>
+      </main>
 
-<div class="nav-next">
-<p><strong>Next:</strong> <a href="../tutorial/Channels.html">Channels</a></p>
-</div>
-</div>
-<div class="large-3 show-for-large column" data-sticky-container>
-<nav class="sidebar sticky" data-sticky data-anchor="docs" data-sticky-on="large">
-<div class="page-nav">
-<div class="nav-title">On this page:</div>
-<div class="nav-toc">
-<ul>
-  <li><a href="../tutorial/Transactions.html#transactions" class="header">Transactions</a>
-  <ul>
-    <li><a href="../tutorial/Transactions.html#transaction-status" class="header">Transaction Status</a></li>
-    <li><a href="../tutorial/Transactions.html#basic-usage-pattern" class="header">Basic Usage Pattern</a></li>
-    <li><a href="../tutorial/Transactions.html#advanced-usage-pattern" class="header">Advanced Usage Pattern</a></li>
-    <li><a href="../tutorial/Transactions.html#transaction-characteristics" class="header">Transaction Characteristics</a></li>
-    <li><a href="../tutorial/Transactions.html#full-example" class="header">Full Example</a></li>
-    <li><a href="../tutorial/Transactions.html#experiment" class="header">Experiment</a></li>
-  </ul></li>
-</ul>
-</div>
-</div>
-</nav>
-</div>
-</div>
+    </div>
 
-</section>
-</div>
-
-</div>
-
-<footer class="site-footer">
-
-<section class="site-footer-nav">
-<div class="expanded row">
-<div class="small-12 large-offset-2 large-10 column">
-<div class="row site-footer-content">
-
-<div class="small-12 medium-4 large-3 text-center column">
-<div class="nav-links">
-<ul>
-<!-- <li><a href="https://www.example.com/products/">Products</a> -->
-</ul>
-</div>
-</div>
-
-</div>
-</div>
-</div>
-</section>
-
-<section class="site-footer-base">
-<div class="expanded row">
-<div class="small-12 large-offset-2 large-10 column">
-<div class="row site-footer-content">
-
-<div class="small-12 text-center large-9 column">
-
-<!--
-<div class="copyright">
-<span class="text">&copy; 2023</span>
-<a href="https://www.example.com" class="logo">logo</a>
-</div>
--->
-</div>
-
-</div>
-</div>
-</div>
-</section>
-</footer>
-
-</div>
-</div>
-</div>
-</body>
-
-<script type="text/javascript" src="../lib/foundation/dist/foundation.min.js"></script>
-<script type="text/javascript">jQuery(document).foundation();</script>
-<script type="text/javascript" src="../js/magellan.js"></script>
-
-<style type="text/css">@import "../lib/prettify/prettify.css";</style>
-<script type="text/javascript" src="../lib/prettify/prettify.js"></script>
-<script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
-<script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
-<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.5.1', 'https://github.com/tpolecat/skunk')});</script>
-
-
+  </body>
 </html>

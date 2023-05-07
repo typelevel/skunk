@@ -1,301 +1,229 @@
 <!DOCTYPE html>
-<html class="no-js" lang="en">
+<html lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="Laika 0.18.1 + Helium Theme" />
+    <title>Twiddle Lists</title>
+    
+      <meta name="author" content="Rob Norris"/>
+    
+    
+      <meta name="description" content="docs"/>
+    
+    
+      <link rel="icon" sizes="32x32" type="image/png" href="https://typelevel.org/img/favicon.png"/>
+    
+    
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700">
+    
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Fira+Mono:500">
+    
+    <link rel="stylesheet" type="text/css" href="../helium/icofont.min.css" />
+    <link rel="stylesheet" type="text/css" href="../helium/laika-helium.css" />
+    <link rel="stylesheet" type="text/css" href="../site/styles.css" />
+    <script src="../helium/laika-helium.js"></script>
+    
+    
+    <script> /* for avoiding page load transitions */ </script>
+  </head>
 
-<head>
-<title>Twiddle Lists · Skunk</title>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<meta name="description" content='docs'/>
-<link rel="canonical" href="https://github.com/tpolecat/skunkreference/TwiddleLists.html"/>
-<link href="https://fonts.googleapis.com/css?family=Roboto:100normal,100italic,300normal,300italic,400normal,400italic,500normal,500italic,700normal,700italic,900normal,900italicc" rel="stylesheet" type="text/css"/>
-<script type="text/javascript" src="../lib/jquery/jquery.min.js"></script>
-<script type="text/javascript" src="../js/page.js"></script>
-<script type="text/javascript" src="../js/warnOldVersion.js"></script>
-<script type="text/javascript" src="../js/groups.js"></script>
-<script type="text/javascript" src="../js/snippets.js"></script>
-<link rel="stylesheet" type="text/css" href="../lib/foundation/dist/foundation.min.css"/>
-<link rel="stylesheet" type="text/css" href="../css/page.css"/>
+  <body>
 
-<!--
-<link rel="shortcut icon" href="../images/favicon.ico" />
--->
-</head>
+    <header id="top-bar">
 
-<body>
-<div class="off-canvas-wrapper">
-<div class="off-canvas-wrapper-inner" data-off-canvas-wrapper>
+      <div class="row">
+        <a id="nav-icon">
+          <i class="icofont-laika" title="Navigation">&#xefa2;</i>
+        </a>
+        
+      </div>
 
-<div class="off-canvas position-left" id="off-canvas-menu" data-off-canvas>
-<nav class="off-canvas-nav">
-<div class="nav-home">
-<a href="../index.html" >
-<span class="home-icon">⌂</span>Skunk
-</a>
-<div class="version-number">
-0.5.1
-</div>
-</div>
-<div class="nav-toc">
-<ul>
-  <li><a href="../tutorial/Index.html" class="page">Tutorial</a>
-  <ul>
-    <li><a href="../tutorial/Setup.html" class="page">Setup</a></li>
-    <li><a href="../tutorial/Query.html" class="page">Queries</a></li>
-    <li><a href="../tutorial/Command.html" class="page">Commands</a></li>
-    <li><a href="../tutorial/Transactions.html" class="page">Transactions</a></li>
-    <li><a href="../tutorial/Channels.html" class="page">Channels</a></li>
-    <li><a href="../tutorial/Tracing.html" class="page">Tracing</a></li>
-  </ul></li>
-  <li><a href="../reference/Index.html" class="page">Reference</a>
-  <ul>
-    <li><a href="../reference/Sessions.html" class="page">Sessions</a></li>
-    <li><a href="../reference/TwiddleLists.html" class="active page">Twiddle Lists</a></li>
-    <li><a href="../reference/Encoders.html" class="page">Encoders</a></li>
-    <li><a href="../reference/Fragments.html" class="page">Fragments</a></li>
-    <li><a href="../reference/Identifiers.html" class="page">Identifiers</a></li>
-    <li><a href="../reference/Concurrency.html" class="page">Concurrency</a></li>
-    <li><a href="../reference/SchemaTypes.html" class="page">Schema Types</a></li>
-  </ul></li>
-</ul>
-</div>
+      <a class="image-link" href="https://typelevel.org"><img src="https://typelevel.org/img/logo.svg"></a>
 
-</nav>
-</div>
+      <span class="row links"><a class="icon-link svg-link" href="https://www.javadoc.io/doc/org.tpolecat/skunk-docs_2.13/0.6.0-RC2/"><span title="API"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  <g class="svg-shape">
+    <path d="M75,47.5c13.246,0 24,10.754 24,24c0,13.246 -10.754,24 -24,24c-13.246,0 -24,-10.754 -24,-24c0,-13.246 10.754,-24 24,-24Zm-50,-0c13.246,-0 24,10.754 24,24c0,13.246 -10.754,24 -24,24c-13.246,-0 -24,-10.754 -24,-24c0,-13.246 10.754,-24 24,-24Zm2.705,16.735l7.239,0l0.622,-4.904l-21.833,0l-0,4.904l7.589,0l0,22.067l6.383,0l-0,-22.067Zm58.076,7.265c-0,-8.757 -3.698,-14.166 -10.781,-14.166c-7.083,-0 -10.781,5.604 -10.781,14.166c0,8.757 3.698,14.166 10.781,14.166c7.083,0 10.781,-5.604 10.781,-14.166Zm-6.539,0c0,6.538 -1.128,9.496 -4.242,9.496c-2.997,0 -4.242,-2.88 -4.242,-9.496c-0,-6.616 1.206,-9.496 4.242,-9.496c3.036,-0 4.242,2.88 4.242,9.496Zm-29.242,-67c13.246,0 24,10.754 24,24c0,13.246 -10.754,24 -24,24c-13.246,0 -24,-10.754 -24,-24c0,-13.246 10.754,-24 24,-24Zm0.512,9.834c-7.122,-0 -12.609,5.098 -12.609,14.127c-0,9.263 5.215,14.205 12.532,14.205c4.164,0 7.083,-1.634 9.068,-3.658l-2.88,-3.697c-1.518,1.206 -3.153,2.413 -5.838,2.413c-3.697,-0 -6.266,-2.763 -6.266,-9.263c-0,-6.616 2.724,-9.379 6.149,-9.379c2.102,-0 3.892,0.778 5.371,1.984l3.113,-3.775c-2.257,-1.868 -4.748,-2.957 -8.64,-2.957Z"/>
+  </g>
+</svg></span></a><a class="icon-link svg-link" href="https://github.com/typelevel/skunk"><span title="Source Code"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  <g class="svg-shape">
+    <path d="M49.995,1c-27.609,-0 -49.995,22.386 -49.995,50.002c-0,22.09 14.325,40.83 34.194,47.444c2.501,0.458 3.413,-1.086 3.413,-2.412c0,-1.185 -0.043,-4.331 -0.067,-8.503c-13.908,3.021 -16.843,-6.704 -16.843,-6.704c-2.274,-5.773 -5.552,-7.311 -5.552,-7.311c-4.54,-3.103 0.344,-3.042 0.344,-3.042c5.018,0.356 7.658,5.154 7.658,5.154c4.46,7.64 11.704,5.433 14.552,4.156c0.454,-3.232 1.744,-5.436 3.174,-6.685c-11.102,-1.262 -22.775,-5.553 -22.775,-24.713c-0,-5.457 1.949,-9.92 5.147,-13.416c-0.516,-1.265 -2.231,-6.348 0.488,-13.233c0,0 4.199,-1.344 13.751,5.126c3.988,-1.108 8.266,-1.663 12.518,-1.682c4.245,0.019 8.523,0.574 12.517,1.682c9.546,-6.47 13.736,-5.126 13.736,-5.126c2.728,6.885 1.013,11.968 0.497,13.233c3.204,3.496 5.141,7.959 5.141,13.416c0,19.209 -11.691,23.436 -22.83,24.673c1.795,1.544 3.394,4.595 3.394,9.26c0,6.682 -0.061,12.076 -0.061,13.715c0,1.338 0.899,2.894 3.438,2.406c19.853,-6.627 34.166,-25.354 34.166,-47.438c-0,-27.616 -22.389,-50.002 -50.005,-50.002"/>
+  </g>
+</svg></span></a><a class="icon-link" href="https://discord.gg/XF3CXcMzqD"><i class="icofont-laika" title="Chat">&#xeed5;</i></a><a class="icon-link" href="https://fosstodon.org/@typelevel"><span class="mastodon" title="Mastodon"><svg class="svg-icon svg-link" width="100%" height="100%" viewBox="0 0 16 16" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  <g class="svg-shape">
+    <path d="M11.19 12.195c2.016-.24 3.77-1.475 3.99-2.603.348-1.778.32-4.339.32-4.339 0-3.47-2.286-4.488-2.286-4.488C12.062.238 10.083.017 8.027 0h-.05C5.92.017 3.942.238 2.79.765c0 0-2.285 1.017-2.285 4.488l-.002.662c-.004.64-.007 1.35.011 2.091.083 3.394.626 6.74 3.78 7.57 1.454.383 2.703.463 3.709.408 1.823-.1 2.847-.647 2.847-.647l-.06-1.317s-1.303.41-2.767.36c-1.45-.05-2.98-.156-3.215-1.928a3.614 3.614 0 0 1-.033-.496s1.424.346 3.228.428c1.103.05 2.137-.064 3.188-.189zm1.613-2.47H11.13v-4.08c0-.859-.364-1.295-1.091-1.295-.804 0-1.207.517-1.207 1.541v2.233H7.168V5.89c0-1.024-.403-1.541-1.207-1.541-.727 0-1.091.436-1.091 1.296v4.079H3.197V5.522c0-.859.22-1.541.66-2.046.456-.505 1.052-.764 1.793-.764.856 0 1.504.328 1.933.983L8 4.39l.417-.695c.429-.655 1.077-.983 1.934-.983.74 0 1.336.259 1.791.764.442.505.661 1.187.661 2.046v4.203z"/>
+  </g>
+</svg>
+</span></a></span>
 
-<div class="off-canvas-content" data-off-canvas-content>
+    </header>
 
-<header class="site-header expanded row">
-<div class="small-12 column">
-<a href="#" class="off-canvas-toggle hide-for-medium" data-toggle="off-canvas-menu"><svg class="svg-icon svg-icon-menu" version="1.1" id="Menu" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 20 20" enable-background="new 0 0 20 20" xml:space="preserve"> <path class="svg-icon-menu-path" fill="#53CDEC" d="M16.4,9H3.6C3.048,9,3,9.447,3,10c0,0.553,0.048,1,0.6,1H16.4c0.552,0,0.6-0.447,0.6-1C17,9.447,16.952,9,16.4,9z M16.4,13
-H3.6C3.048,13,3,13.447,3,14c0,0.553,0.048,1,0.6,1H16.4c0.552,0,0.6-0.447,0.6-1C17,13.447,16.952,13,16.4,13z M3.6,7H16.4
-C16.952,7,17,6.553,17,6c0-0.553-0.048-1-0.6-1H3.6C3.048,5,3,5.447,3,6C3,6.553,3.048,7,3.6,7z"/></svg>
-</a>
-<div class="title"><a href="../index.html">Skunk</a></div>
+    <nav id="sidebar">
 
-<!--
-<a href="https://www.example.com" class="logo show-for-medium">logo</a>
--->
-</div>
-</header>
+      <div class="row">
+        <a class="icon-link svg-link" href="https://www.javadoc.io/doc/org.tpolecat/skunk-docs_2.13/0.6.0-RC2/"><span title="API"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  <g class="svg-shape">
+    <path d="M75,47.5c13.246,0 24,10.754 24,24c0,13.246 -10.754,24 -24,24c-13.246,0 -24,-10.754 -24,-24c0,-13.246 10.754,-24 24,-24Zm-50,-0c13.246,-0 24,10.754 24,24c0,13.246 -10.754,24 -24,24c-13.246,-0 -24,-10.754 -24,-24c0,-13.246 10.754,-24 24,-24Zm2.705,16.735l7.239,0l0.622,-4.904l-21.833,0l-0,4.904l7.589,0l0,22.067l6.383,0l-0,-22.067Zm58.076,7.265c-0,-8.757 -3.698,-14.166 -10.781,-14.166c-7.083,-0 -10.781,5.604 -10.781,14.166c0,8.757 3.698,14.166 10.781,14.166c7.083,0 10.781,-5.604 10.781,-14.166Zm-6.539,0c0,6.538 -1.128,9.496 -4.242,9.496c-2.997,0 -4.242,-2.88 -4.242,-9.496c-0,-6.616 1.206,-9.496 4.242,-9.496c3.036,-0 4.242,2.88 4.242,9.496Zm-29.242,-67c13.246,0 24,10.754 24,24c0,13.246 -10.754,24 -24,24c-13.246,0 -24,-10.754 -24,-24c0,-13.246 10.754,-24 24,-24Zm0.512,9.834c-7.122,-0 -12.609,5.098 -12.609,14.127c-0,9.263 5.215,14.205 12.532,14.205c4.164,0 7.083,-1.634 9.068,-3.658l-2.88,-3.697c-1.518,1.206 -3.153,2.413 -5.838,2.413c-3.697,-0 -6.266,-2.763 -6.266,-9.263c-0,-6.616 2.724,-9.379 6.149,-9.379c2.102,-0 3.892,0.778 5.371,1.984l3.113,-3.775c-2.257,-1.868 -4.748,-2.957 -8.64,-2.957Z"/>
+  </g>
+</svg></span></a><a class="icon-link svg-link" href="https://github.com/typelevel/skunk"><span title="Source Code"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  <g class="svg-shape">
+    <path d="M49.995,1c-27.609,-0 -49.995,22.386 -49.995,50.002c-0,22.09 14.325,40.83 34.194,47.444c2.501,0.458 3.413,-1.086 3.413,-2.412c0,-1.185 -0.043,-4.331 -0.067,-8.503c-13.908,3.021 -16.843,-6.704 -16.843,-6.704c-2.274,-5.773 -5.552,-7.311 -5.552,-7.311c-4.54,-3.103 0.344,-3.042 0.344,-3.042c5.018,0.356 7.658,5.154 7.658,5.154c4.46,7.64 11.704,5.433 14.552,4.156c0.454,-3.232 1.744,-5.436 3.174,-6.685c-11.102,-1.262 -22.775,-5.553 -22.775,-24.713c-0,-5.457 1.949,-9.92 5.147,-13.416c-0.516,-1.265 -2.231,-6.348 0.488,-13.233c0,0 4.199,-1.344 13.751,5.126c3.988,-1.108 8.266,-1.663 12.518,-1.682c4.245,0.019 8.523,0.574 12.517,1.682c9.546,-6.47 13.736,-5.126 13.736,-5.126c2.728,6.885 1.013,11.968 0.497,13.233c3.204,3.496 5.141,7.959 5.141,13.416c0,19.209 -11.691,23.436 -22.83,24.673c1.795,1.544 3.394,4.595 3.394,9.26c0,6.682 -0.061,12.076 -0.061,13.715c0,1.338 0.899,2.894 3.438,2.406c19.853,-6.627 34.166,-25.354 34.166,-47.438c-0,-27.616 -22.389,-50.002 -50.005,-50.002"/>
+  </g>
+</svg></span></a><a class="icon-link" href="https://discord.gg/XF3CXcMzqD"><i class="icofont-laika" title="Chat">&#xeed5;</i></a><a class="icon-link" href="https://fosstodon.org/@typelevel"><span class="mastodon" title="Mastodon"><svg class="svg-icon svg-link" width="100%" height="100%" viewBox="0 0 16 16" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  <g class="svg-shape">
+    <path d="M11.19 12.195c2.016-.24 3.77-1.475 3.99-2.603.348-1.778.32-4.339.32-4.339 0-3.47-2.286-4.488-2.286-4.488C12.062.238 10.083.017 8.027 0h-.05C5.92.017 3.942.238 2.79.765c0 0-2.285 1.017-2.285 4.488l-.002.662c-.004.64-.007 1.35.011 2.091.083 3.394.626 6.74 3.78 7.57 1.454.383 2.703.463 3.709.408 1.823-.1 2.847-.647 2.847-.647l-.06-1.317s-1.303.41-2.767.36c-1.45-.05-2.98-.156-3.215-1.928a3.614 3.614 0 0 1-.033-.496s1.424.346 3.228.428c1.103.05 2.137-.064 3.188-.189zm1.613-2.47H11.13v-4.08c0-.859-.364-1.295-1.091-1.295-.804 0-1.207.517-1.207 1.541v2.233H7.168V5.89c0-1.024-.403-1.541-1.207-1.541-.727 0-1.091.436-1.091 1.296v4.079H3.197V5.522c0-.859.22-1.541.66-2.046.456-.505 1.052-.764 1.793-.764.856 0 1.504.328 1.933.983L8 4.39l.417-.695c.429-.655 1.077-.983 1.934-.983.74 0 1.336.259 1.791.764.442.505.661 1.187.661 2.046v4.203z"/>
+  </g>
+</svg>
+</span></a>
+      </div>
 
-<div class="expanded row">
+      <ul class="nav-list">
+        <li class="level1"><a href="../index.html">Skunk</a></li>
+        <li class="level1 nav-header">Tutorial</li>
+        <li class="level2"><a href="../tutorial/index.html">Intro</a></li>
+        <li class="level2"><a href="../tutorial/Setup.html">Setup</a></li>
+        <li class="level2"><a href="../tutorial/Query.html">Queries</a></li>
+        <li class="level2"><a href="../tutorial/Command.html">Commands</a></li>
+        <li class="level2"><a href="../tutorial/Transactions.html">Transactions</a></li>
+        <li class="level2"><a href="../tutorial/Channels.html">Channels</a></li>
+        <li class="level2"><a href="../tutorial/Tracing.html">Tracing</a></li>
+        <li class="level1 nav-header">Reference</li>
+        <li class="level2"><a href="index.html">Intro</a></li>
+        <li class="level2"><a href="Sessions.html">Sessions</a></li>
+        <li class="level2 active"><a href="#">Twiddle Lists</a></li>
+        <li class="level2"><a href="Encoders.html">Encoders</a></li>
+        <li class="level2"><a href="Fragments.html">Fragments</a></li>
+        <li class="level2"><a href="Identifiers.html">Identifiers</a></li>
+        <li class="level2"><a href="Concurrency.html">Concurrency</a></li>
+        <li class="level2"><a href="SchemaTypes.html">Schema Types</a></li>
+      </ul>
 
-<div class="medium-3 large-2 show-for-medium column">
-<nav class="site-nav">
-<div class="nav-home">
-<a href="../index.html" >
-<span class="home-icon">⌂</span>Skunk
-</a>
-<div class="version-number">
-0.5.1
-</div>
-</div>
-<div class="nav-toc">
-<ul>
-  <li><a href="../tutorial/Index.html" class="page">Tutorial</a>
-  <ul>
-    <li><a href="../tutorial/Setup.html" class="page">Setup</a></li>
-    <li><a href="../tutorial/Query.html" class="page">Queries</a></li>
-    <li><a href="../tutorial/Command.html" class="page">Commands</a></li>
-    <li><a href="../tutorial/Transactions.html" class="page">Transactions</a></li>
-    <li><a href="../tutorial/Channels.html" class="page">Channels</a></li>
-    <li><a href="../tutorial/Tracing.html" class="page">Tracing</a></li>
-  </ul></li>
-  <li><a href="../reference/Index.html" class="page">Reference</a>
-  <ul>
-    <li><a href="../reference/Sessions.html" class="page">Sessions</a></li>
-    <li><a href="../reference/TwiddleLists.html" class="active page">Twiddle Lists</a></li>
-    <li><a href="../reference/Encoders.html" class="page">Encoders</a></li>
-    <li><a href="../reference/Fragments.html" class="page">Fragments</a></li>
-    <li><a href="../reference/Identifiers.html" class="page">Identifiers</a></li>
-    <li><a href="../reference/Concurrency.html" class="page">Concurrency</a></li>
-    <li><a href="../reference/SchemaTypes.html" class="page">Schema Types</a></li>
-  </ul></li>
-</ul>
-</div>
+      <ul class="nav-list">
+        <li class="level1 nav-header">Related Projects</li>
+        
+          <li class="level2"><a href="https://typelevel.org/cats/">cats</a></li>
+        
+      </ul>
 
-</nav>
-</div>
+    </nav>
 
-<div class="small-12 medium-9 large-10 column">
-<section class="site-content">
+    <div id="container">
 
-<span id="version-warning"></span>
+      <nav id="page-nav">
+        <p class="header"><a href="#">Twiddle Lists</a></p>
 
-<div class="page-header row">
-<div class="medium-12 show-for-medium column">
-<div class="nav-breadcrumbs">
-<ul>
-  <li><a href="../index.html">Skunk</a></li>
-  <li><a href="../reference/Index.html">Reference</a></li>
-  <li>Twiddle Lists</li>
-</ul>
-</div>
-</div>
-</div>
+        <ul class="nav-list">
+          <li class="level1"><a href="#isomorphism-with-case-classes">Isomorphism with Case Classes</a></li>
+          <li class="level1"><a href="#legacy-twiddle-lists">Legacy Twiddle Lists</a></li>
+          <li class="level2"><a href="#legacy-command-syntax">Legacy Command Syntax</a></li>
+        </ul>
 
-<div class="page-content row">
-<div class="small-12 large-9 column" id="docs">
-<h1><a href="#twiddle-lists" name="twiddle-lists" class="anchor"><span class="anchor-link"></span></a>Twiddle Lists</h1>
-<p>A twiddle list is a left-associated chain of pairs. It can be arbitrarily long, and the type grows to track the elements.</p>
-<pre class="prettyprint"><code class="language-scala">val x: (((Int, String), Boolean), Double) =
-  (((42, &quot;hi&quot;), true), 1.23)
-</code></pre>
-<p>The reason it is useful is that (when combined with a single value as the dengenerate case) it lets us represent non-empty heterogeneous lists. It is sometimes called the &ldquo;poor-man&rsquo;s <code>HList</code>&rdquo; and it is not unique to Skunk (<a href="">scodec</a> also uses it).</p>
-<p>By providing a bit of syntax we can write twiddle lists much more succinctly.</p>
-<pre class="prettyprint"><code class="language-scala">type ~[+A, +B] = (A, B)
+        <p class="footer"></p>
+      </nav>
 
-final class IdOps[A](a: A) {
-  def ~[B](b: B): A ~ B = (a, b)
-}
+      <main class="content">
 
-// ~ is left-associative so this is exactly the same as `x` above.
-val x: Int ~ String ~ Boolean ~ Double =
-  42 ~ &quot;hi&quot; ~ true ~ 1.23
-</code></pre>
-<p>And with the following definition we can also pattern-match.</p>
-<pre class="prettyprint"><code class="language-scala">object ~ {
-  def unapply[A, B](t: A ~ B): Some[A ~ B] = Some(t)
-}
-
-// Deconstruct `x`
-x match {
-  case n ~ s ~ b ~ d =&gt; ...
-}
-</code></pre>
-<p>Skunk uses twiddle-lists for parameter encoders and row decoders, and via this mechanism twiddle list types appear as type arguments for <code>Query</code> and <code>Command</code>.</p>
-<pre class="prettyprint"><code class="language-scala">val q: Query[Short ~ String, String ~ Int] =
-  sql&quot;&quot;&quot;
+        <h1 id="twiddle-lists" class="title">Twiddle Lists</h1>
+        <p>Twiddle lists are tuples that are built incrementally, element by element, via the <code>*:</code> operation. Skunk uses the <a href="https://github.com/typelevel/twiddles">Typelevel Twiddles</a> library for parameter encoders and row decoders, and via this mechanism twiddle list types appear as type arguments for <code>Query</code> and <code>Command</code>.</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">q</span><span>: </span><span class="type-name">Query</span><span>[</span><span class="type-name">Short</span><span> *: </span><span class="type-name">String</span><span> *: </span><span class="type-name">String</span><span> *: </span><span class="type-name">Int</span><span> *: </span><span class="type-name">EmptyTuple</span><span>] =
+  </span><span class="string-literal">sql&quot;&quot;&quot;
     SELECT name, age
     FROM   person
-    WHERE  age &lt; $int2
+    WHERE  age &lt; </span><span class="substitution">$int2</span><span class="string-literal">
     AND    status = $
-  &quot;&quot;&quot;.query(varchar ~ int4)
-</code></pre>
-<h2><a href="#isomorphism-with-case-classes" name="isomorphism-with-case-classes" class="anchor"><span class="anchor-link"></span></a>Isomorphism with Case Classes</h2>
-<p>A twiddle list of type <code>A ~ B ~ C</code> has the same structure as a case class with fields of type <code>A</code>, <code>B</code>, and <code>C</code>, and we can trivially map back and forth.</p>
-<pre class="prettyprint"><code class="language-scala">case class Person(name: String, age: Int, active: Boolean)
+  &quot;&quot;&quot;</span><span>.</span><span class="identifier">query</span><span>(</span><span class="identifier">varchar</span><span> *: </span><span class="identifier">int4</span><span>)</span></code></pre>
+        <p>On Scala 3, <code>*:</code> and <code>EmptyTuple</code> come from the standard library and are exactly the same as a n-argument tuple. For example, we could equivalently write the type of <code>q</code> as <code>Query[(Short, String, String, Int)]</code> (though not on Scala 2, more on that in a moment). Similarly, we can construct a 4-tuple using <code>*:</code> and <code>EmptyTuple</code>.</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">t1</span><span>: (</span><span class="type-name">Short</span><span>, </span><span class="type-name">String</span><span>, </span><span class="type-name">String</span><span>, </span><span class="type-name">Int</span><span>) = (</span><span class="number-literal">42</span><span>.</span><span class="identifier">toShort</span><span>, </span><span class="string-literal">&quot;Edgar&quot;</span><span>, </span><span class="string-literal">&quot;Dijkstra&quot;</span><span>, </span><span class="number-literal">100</span><span>)
+</span><span class="keyword">val</span><span> </span><span class="identifier">t2</span><span>: (</span><span class="type-name">Short</span><span>, </span><span class="type-name">String</span><span>, </span><span class="type-name">String</span><span>, </span><span class="type-name">Int</span><span>) = </span><span class="number-literal">42</span><span>.</span><span class="identifier">toShort</span><span> *: </span><span class="string-literal">&quot;Edgar&quot;</span><span> *: </span><span class="string-literal">&quot;Dijkstra&quot;</span><span> *: </span><span class="number-literal">100</span><span> *: </span><span class="type-name">EmptyTuple</span><span>
+</span><span class="keyword">val</span><span> </span><span class="identifier">t3</span><span>: </span><span class="type-name">Short</span><span> *: </span><span class="type-name">String</span><span> *: </span><span class="type-name">String</span><span> *: </span><span class="type-name">Int</span><span> *: </span><span class="type-name">EmptyTuple</span><span> = </span><span class="number-literal">42</span><span>.</span><span class="identifier">toShort</span><span> *: </span><span class="string-literal">&quot;Edgar&quot;</span><span> *: </span><span class="string-literal">&quot;Dijkstra&quot;</span><span> *: </span><span class="number-literal">100</span><span> *: </span><span class="type-name">EmptyTuple</span><span>
+</span><span class="keyword">val</span><span> </span><span class="identifier">t4</span><span>: </span><span class="type-name">Short</span><span> *: </span><span class="type-name">String</span><span> *: </span><span class="type-name">String</span><span> *: </span><span class="type-name">Int</span><span> *: </span><span class="type-name">EmptyTuple</span><span> = (</span><span class="number-literal">42</span><span>.</span><span class="identifier">toShort</span><span>, </span><span class="string-literal">&quot;Edgar&quot;</span><span>, </span><span class="string-literal">&quot;Dijkstra&quot;</span><span>, </span><span class="number-literal">100</span><span>)</span></code></pre>
+        <p>On Scala 2, the Twiddles library defines <code>*:</code> and <code>EmptyTuple</code> as aliases for Shapeless <code>HList</code>s. Those polyfills allow the previous examples to compile on Scala 2 (including <code>t1</code> through <code>t4</code>). Twiddles includes implicit conversions between twiddle lists (i.e., <code>HList</code>s) and regular tuples.</p>
+        
+        <h2 id="isomorphism-with-case-classes" class="section">Isomorphism with Case Classes<a class="anchor-link right" href="#isomorphism-with-case-classes"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <p>A twiddle list of type <code>(A, B, C)</code> has the same structure as a case class with fields of type <code>A</code>, <code>B</code>, and <code>C</code>, and we can trivially map back and forth.</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">case</span><span> </span><span class="keyword">class</span><span> </span><span class="type-name">Person</span><span>(</span><span class="identifier">name</span><span>: </span><span class="type-name">String</span><span>, </span><span class="identifier">age</span><span>: </span><span class="type-name">Int</span><span>, </span><span class="identifier">active</span><span>: </span><span class="type-name">Boolean</span><span>)
 
-def fromTwiddle(t: String ~ Int ~ Boolean): Person =
-  t match {
-    case s ~ n ~ b =&gt; Person(s, n, v)
+</span><span class="keyword">def</span><span> </span><span class="declaration-name">fromTwiddle</span><span>(</span><span class="identifier">t</span><span>: </span><span class="type-name">String</span><span> *: </span><span class="type-name">Int</span><span> *: </span><span class="type-name">Boolean</span><span> *: </span><span class="type-name">EmptyTuple</span><span>): </span><span class="type-name">Person</span><span> =
+  </span><span class="identifier">t</span><span> </span><span class="keyword">match</span><span> {
+    </span><span class="keyword">case</span><span> </span><span class="identifier">s</span><span> *: </span><span class="identifier">n</span><span> *: </span><span class="identifier">b</span><span> *: </span><span class="type-name">EmptyTuple</span><span> =&gt; </span><span class="type-name">Person</span><span>(</span><span class="identifier">s</span><span>, </span><span class="identifier">n</span><span>, </span><span class="identifier">v</span><span>)
   }
 
-def toTwiddle(p: Person): String ~ Int ~ Boolean =
-  p.name ~ p.age ~ p.active
-</code></pre>
-<p>Because this mapping is useful and entirely mechanical Skunk provides a typeclass that does it for you.</p>
-<pre class="prettyprint"><code class="language-scala">@ val bob = Person(&quot;Bob&quot;, 42, true)
-bob: Person = Person(&quot;Bob&quot;, 42, true)
+</span><span class="keyword">def</span><span> </span><span class="declaration-name">toTwiddle</span><span>(</span><span class="identifier">p</span><span>: </span><span class="type-name">Person</span><span>): </span><span class="type-name">String</span><span> *: </span><span class="type-name">Int</span><span> *: </span><span class="type-name">Boolean</span><span> *: </span><span class="type-name">EmptyTuple</span><span> =
+  </span><span class="identifier">p</span><span>.</span><span class="identifier">name</span><span> *: </span><span class="identifier">p</span><span>.</span><span class="identifier">age</span><span> *: </span><span class="identifier">p</span><span>.</span><span class="identifier">active</span><span> *: </span><span class="type-name">EmptyTuple</span></code></pre>
+        <p>Because this mapping is useful and entirely mechanical, the Twiddles library provides a typeclass that does it for you.</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span>@ </span><span class="keyword">val</span><span> </span><span class="identifier">bob</span><span> = </span><span class="type-name">Person</span><span>(</span><span class="string-literal">&quot;Bob&quot;</span><span>, </span><span class="number-literal">42</span><span>, </span><span class="boolean-literal">true</span><span>)
+</span><span class="identifier">bob</span><span>: </span><span class="type-name">Person</span><span> = </span><span class="type-name">Person</span><span>(</span><span class="string-literal">&quot;Bob&quot;</span><span>, </span><span class="number-literal">42</span><span>, </span><span class="boolean-literal">true</span><span>)
 
-@ val tw = skunk.util.Twiddler[Person]
-tw: util.Twiddler.Aux[Person, ((String, Int), Boolean)] = skunk.util.Twiddler$$anon$3@41d1bcbd
+@ </span><span class="keyword">val</span><span> </span><span class="identifier">iso</span><span> = </span><span class="type-name">Iso</span><span>.</span><span class="identifier">product</span><span>[</span><span class="type-name">Person</span><span>]
+</span><span class="identifier">iso</span><span>: </span><span class="identifier">org</span><span>.</span><span class="identifier">typelevel</span><span>.</span><span class="identifier">twiddles</span><span>.</span><span class="type-name">Iso</span><span>[</span><span class="type-name">Person</span><span>,</span><span class="type-name">String</span><span> *: </span><span class="type-name">Int</span><span> *: </span><span class="type-name">Boolean</span><span> *: </span><span class="identifier">org</span><span>.</span><span class="identifier">typelevel</span><span>.</span><span class="identifier">twiddles</span><span>.</span><span class="type-name">EmptyTuple</span><span>] = </span><span class="identifier">org</span><span>.</span><span class="identifier">typelevel</span><span>.</span><span class="identifier">twiddles</span><span>.</span><span class="type-name">Iso$$anon$1</span><span>@</span><span class="number-literal">84d9646</span><span>
 
-@ tw.to(bob)
-res5: ((String, Int), Boolean) = ((&quot;Bob&quot;, 42), true)
+@ </span><span class="keyword">val</span><span> </span><span class="identifier">twiddle</span><span> = </span><span class="identifier">iso</span><span>.</span><span class="identifier">to</span><span>(</span><span class="identifier">bob</span><span>)
+</span><span class="identifier">twiddle</span><span>: </span><span class="type-name">String</span><span> *: </span><span class="type-name">Int</span><span> *: </span><span class="type-name">Boolean</span><span> *: </span><span class="identifier">org</span><span>.</span><span class="identifier">typelevel</span><span>.</span><span class="identifier">twiddles</span><span>.</span><span class="type-name">EmptyTuple</span><span> = </span><span class="type-name">Bob</span><span> :: </span><span class="number-literal">42</span><span> :: </span><span class="boolean-literal">true</span><span> :: </span><span class="type-name">HNil</span><span>
 
-@ tw.from(res5)
-res6: Person = Person(&quot;Bob&quot;, 42, true)
-</code></pre>
-<p><code>Decoder</code>s, <code>Encoder</code>s, and <code>Codec</code>s use this facility to provide <code>gmap</code>, <code>gcontramap</code>, and <code>gimap</code>, respectively, which allow quick adaptation of a twiddle-list <code>Codec</code> (for instance) to one that maps to/from a case class. The <code>g</code> stands for &ldquo;generic&rdquo;.</p>
-<pre class="prettyprint"><code class="language-scala">// Note that the ~ method on Codec is an alias for Apply.product,
-// so Codec[A] ~ Codec[B] yields Codec[A ~ B].
-@ val codec = varchar ~ int4 ~ bool
-codec: Codec[((String, Int), Boolean)] = Codec(varchar, int4, bool)
+@ </span><span class="keyword">val</span><span> </span><span class="identifier">bob2</span><span> = </span><span class="identifier">iso</span><span>.</span><span class="identifier">from</span><span>(</span><span class="identifier">twiddle</span><span>)
+</span><span class="identifier">bob2</span><span>: </span><span class="type-name">Person</span><span> = </span><span class="type-name">Person</span><span>(</span><span class="string-literal">&quot;Bob&quot;</span><span>, </span><span class="number-literal">42</span><span>, </span><span class="boolean-literal">true</span><span>)</span></code></pre>
+        <p><code>Decoder</code>s, <code>Encoder</code>s, and <code>Codec</code>s use this facility to provide <code>to</code>, which allows quick adaptation of a twiddle-list <code>Codec</code> (for instance) to one that maps to/from a case class.</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span>@ </span><span class="keyword">val</span><span> </span><span class="identifier">codec</span><span> = </span><span class="identifier">varchar</span><span> *: </span><span class="identifier">int4</span><span> *: </span><span class="identifier">bool</span><span>
+</span><span class="identifier">codec</span><span>: </span><span class="type-name">Codec</span><span>[</span><span class="type-name">String</span><span> *: </span><span class="type-name">Int</span><span> *: </span><span class="type-name">Boolean</span><span> *: </span><span class="type-name">EmptyTuple</span><span>] = </span><span class="type-name">Codec</span><span>(</span><span class="identifier">varchar</span><span>, </span><span class="identifier">int4</span><span>, </span><span class="identifier">bool</span><span>)
 
-// Since `Person` has the same structure we can gimap to it.
-@ codec.gimap[Person]
-res7: Codec[Person] = Codec(varchar, int4, bool)
-</code></pre>
-<script type="text/javascript" src="../js/link_fix.js"></script>
+</span><span class="comment">// Since `Person` has the same structure we can use `to` to create a `Codec[Person]`
+</span><span>@ </span><span class="keyword">val</span><span> </span><span class="identifier">personCode</span><span> = </span><span class="identifier">codec</span><span>.</span><span class="identifier">to</span><span>[</span><span class="type-name">Person</span><span>]
+</span><span class="identifier">personCodec</span><span>: </span><span class="type-name">Codec</span><span>[</span><span class="type-name">Person</span><span>] = </span><span class="type-name">Codec</span><span>(</span><span class="identifier">varchar</span><span>, </span><span class="identifier">int4</span><span>, </span><span class="identifier">bool</span><span>)</span></code></pre>
+        
+        <h2 id="legacy-twiddle-lists" class="section">Legacy Twiddle Lists<a class="anchor-link right" href="#legacy-twiddle-lists"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <p>Prior to Skunk 0.6, a twiddle list was defined as a left-associated chain of pairs.</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">x</span><span>: (((</span><span class="type-name">Int</span><span>, </span><span class="type-name">String</span><span>), </span><span class="type-name">Boolean</span><span>), </span><span class="type-name">Double</span><span>) =
+  (((</span><span class="number-literal">42</span><span>, </span><span class="string-literal">&quot;hi&quot;</span><span>), </span><span class="boolean-literal">true</span><span>), </span><span class="number-literal">1.23</span><span>)</span></code></pre>
+        <p>Twiddle lists were built using the <code>~</code> operator.</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">type</span><span> ~[+</span><span class="type-name">A</span><span>, +</span><span class="type-name">B</span><span>] = (</span><span class="type-name">A</span><span>, </span><span class="type-name">B</span><span>)
 
-<div class="source-github">
-The source code for this page can be found <a id="source-link" href="https://github.com/tpolecat/skunk/tree/v0.5.1/modules/docs/target/mdoc/reference/TwiddleLists.md">here</a>.
-</div>
+</span><span class="keyword">final</span><span> </span><span class="keyword">class</span><span> </span><span class="type-name">IdOps</span><span>[</span><span class="type-name">A</span><span>](</span><span class="identifier">a</span><span>: </span><span class="type-name">A</span><span>) {
+  </span><span class="keyword">def</span><span> ~[</span><span class="type-name">B</span><span>](</span><span class="identifier">b</span><span>: </span><span class="type-name">B</span><span>): </span><span class="type-name">A</span><span> ~ </span><span class="type-name">B</span><span> = (</span><span class="identifier">a</span><span>, </span><span class="identifier">b</span><span>)
+}
 
-<script type="text/javascript">jQuery(function(){sourceUrlFix('https://github.com/tpolecat/skunk/tree/v0.5.1/modules/docs/target/mdoc/reference/TwiddleLists.md')});</script>
+</span><span class="comment">// ~ is left-associative so this is exactly the same as `x` above.
+</span><span class="keyword">val</span><span> </span><span class="identifier">x</span><span>: </span><span class="type-name">Int</span><span> ~ </span><span class="type-name">String</span><span> ~ </span><span class="type-name">Boolean</span><span> ~ </span><span class="type-name">Double</span><span> =
+  </span><span class="number-literal">42</span><span> ~ </span><span class="string-literal">&quot;hi&quot;</span><span> ~ </span><span class="boolean-literal">true</span><span> ~ </span><span class="number-literal">1.23</span></code></pre>
+        <p>And thanks to the following definition, we could also pattern-match.</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">object</span><span> ~ {
+  </span><span class="keyword">def</span><span> </span><span class="declaration-name">unapply</span><span>[</span><span class="type-name">A</span><span>, </span><span class="type-name">B</span><span>](</span><span class="identifier">t</span><span>: </span><span class="type-name">A</span><span> ~ </span><span class="type-name">B</span><span>): </span><span class="type-name">Some</span><span>[</span><span class="type-name">A</span><span> ~ </span><span class="type-name">B</span><span>] = </span><span class="type-name">Some</span><span>(</span><span class="identifier">t</span><span>)
+}
 
-<div class="nav-next">
-<p><strong>Next:</strong> <a href="../reference/Encoders.html">Encoders</a></p>
-</div>
-</div>
-<div class="large-3 show-for-large column" data-sticky-container>
-<nav class="sidebar sticky" data-sticky data-anchor="docs" data-sticky-on="large">
-<div class="page-nav">
-<div class="nav-title">On this page:</div>
-<div class="nav-toc">
-<ul>
-  <li><a href="../reference/TwiddleLists.html#twiddle-lists" class="header">Twiddle Lists</a>
-  <ul>
-    <li><a href="../reference/TwiddleLists.html#isomorphism-with-case-classes" class="header">Isomorphism with Case Classes</a></li>
-  </ul></li>
-</ul>
-</div>
-</div>
-</nav>
-</div>
-</div>
+</span><span class="comment">// Deconstruct `x`
+</span><span class="identifier">x</span><span> </span><span class="keyword">match</span><span> {
+  </span><span class="keyword">case</span><span> </span><span class="identifier">n</span><span> ~ </span><span class="identifier">s</span><span> ~ </span><span class="identifier">b</span><span> ~ </span><span class="identifier">d</span><span> =&gt; ...
+}</span></code></pre>
+        <p>Skunk&#39;s <code>Codec</code>, <code>Decoder</code>, and <code>Encoder</code> types provided special methods for converting twiddle lists to case classes (<code>gimap</code>, <code>gmap</code>, <code>gcontramap</code> respectively). The <code>to</code> operation replaces all of these twiddle specific conversions.</p>
+        
+        <h3 id="legacy-command-syntax" class="section">Legacy Command Syntax<a class="anchor-link right" href="#legacy-command-syntax"><i class="icofont-laika">&#xef71;</i></a></h3>
+        <p>Prior to Skunk 0.6, parameterized commands used (left-nested) twiddle lists. Upon upgrading to Skunk 0.6, such commands use the new style twiddle lists. To ease migration, you can add an import to restore the old behavior until it&#39;s convenient to upgrade to new style twiddles.</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">skunk</span><span>.</span><span class="identifier">feature</span><span>.</span><span class="identifier">legacyCommandSyntax</span><span>
 
-</section>
-</div>
+</span><span class="keyword">val</span><span> </span><span class="identifier">insertCityLegacy</span><span>: </span><span class="type-name">Command</span><span>[</span><span class="type-name">City</span><span>] =
+  </span><span class="string-literal">sql&quot;&quot;&quot;
+      INSERT INTO city
+      VALUES (</span><span class="substitution">$int4</span><span class="string-literal">, </span><span class="substitution">$varchar</span><span class="string-literal">, </span><span class="substitution">${bpchar(3)}</span><span class="string-literal">, </span><span class="substitution">$varchar</span><span class="string-literal">, </span><span class="substitution">$int4</span><span class="string-literal">)
+    &quot;&quot;&quot;</span><span>.</span><span class="identifier">command</span><span>.</span><span class="identifier">contramap</span><span> {
+          </span><span class="identifier">c</span><span> =&gt; </span><span class="identifier">c</span><span>.</span><span class="identifier">id</span><span> ~ </span><span class="identifier">c</span><span>.</span><span class="identifier">name</span><span> ~ </span><span class="identifier">c</span><span>.</span><span class="identifier">code</span><span> ~ </span><span class="identifier">c</span><span>.</span><span class="identifier">district</span><span> ~ </span><span class="identifier">c</span><span>.</span><span class="identifier">pop</span><span>
+        }</span></code></pre>
+        <p>The <code>skunk.feature.legacyCommandSyntax</code> import ensures the command returned by the <code>sql</code> interpolator uses legacy twiddles. Without the import, the type of the command is <code>Command[Int *: String *: String *: String *: Int *: EmptyTuple]</code> and the function passed to <code>contramap</code> would need to be adjusted to account for the new style twiddle.</p>
+        <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">insertCity2</span><span>: </span><span class="type-name">Command</span><span>[</span><span class="type-name">City</span><span>] =
+  </span><span class="string-literal">sql&quot;&quot;&quot;
+      INSERT INTO city
+      VALUES (</span><span class="substitution">$int4</span><span class="string-literal">, </span><span class="substitution">$varchar</span><span class="string-literal">, </span><span class="substitution">${bpchar(3)}</span><span class="string-literal">, </span><span class="substitution">$varchar</span><span class="string-literal">, </span><span class="substitution">$int4</span><span class="string-literal">)
+    &quot;&quot;&quot;</span><span>.</span><span class="identifier">command</span><span>.</span><span class="identifier">contramap</span><span> {
+          </span><span class="identifier">c</span><span> =&gt; (</span><span class="identifier">c</span><span>.</span><span class="identifier">id</span><span>, </span><span class="identifier">c</span><span>.</span><span class="identifier">name</span><span>, </span><span class="identifier">c</span><span>.</span><span class="identifier">code</span><span>, </span><span class="identifier">c</span><span>.</span><span class="identifier">district</span><span>, </span><span class="identifier">c</span><span>.</span><span class="identifier">pop</span><span>)
+        }</span></code></pre>
 
-</div>
+        <hr style="margin-top: 30px"/>
+        <footer style="font-size: 90%; text-align: center">
+          skunk is a <a href="https://typelevel.org/">Typelevel</a> project distributed under the <a href="https://opensource.org/licenses/MIT">MIT</a> license.
+        </footer>
 
-<footer class="site-footer">
+      </main>
 
-<section class="site-footer-nav">
-<div class="expanded row">
-<div class="small-12 large-offset-2 large-10 column">
-<div class="row site-footer-content">
+    </div>
 
-<div class="small-12 medium-4 large-3 text-center column">
-<div class="nav-links">
-<ul>
-<!-- <li><a href="https://www.example.com/products/">Products</a> -->
-</ul>
-</div>
-</div>
-
-</div>
-</div>
-</div>
-</section>
-
-<section class="site-footer-base">
-<div class="expanded row">
-<div class="small-12 large-offset-2 large-10 column">
-<div class="row site-footer-content">
-
-<div class="small-12 text-center large-9 column">
-
-<!--
-<div class="copyright">
-<span class="text">&copy; 2023</span>
-<a href="https://www.example.com" class="logo">logo</a>
-</div>
--->
-</div>
-
-</div>
-</div>
-</div>
-</section>
-</footer>
-
-</div>
-</div>
-</div>
-</body>
-
-<script type="text/javascript" src="../lib/foundation/dist/foundation.min.js"></script>
-<script type="text/javascript">jQuery(document).foundation();</script>
-<script type="text/javascript" src="../js/magellan.js"></script>
-
-<style type="text/css">@import "../lib/prettify/prettify.css";</style>
-<script type="text/javascript" src="../lib/prettify/prettify.js"></script>
-<script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
-<script type="text/javascript">jQuery(function(){window.prettyPrint && prettyPrint()});</script>
-<script type="text/javascript">jQuery(function(jq){initOldVersionWarnings(jq, '0.5.1', 'https://github.com/tpolecat/skunk')});</script>
-
-
+  </body>
 </html>
