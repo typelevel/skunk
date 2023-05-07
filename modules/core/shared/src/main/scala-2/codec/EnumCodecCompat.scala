@@ -8,7 +8,7 @@ package codec
 import enumeratum.{ Enum, EnumEntry }
 import skunk.data.Type
 
-trait EnumCodecPlatform {
+private[codec] trait EnumCodecCompat {
 
   def `enum`[A <: EnumEntry](`enum`: Enum[A], tpe: Type): Codec[A] =
     Codec.simple[A](

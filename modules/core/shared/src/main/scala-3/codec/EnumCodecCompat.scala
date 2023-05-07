@@ -5,4 +5,4 @@
 package skunk
 package codec
 
-trait EnumCodecPlatform
+private[codec] trait EnumCodecCompat
