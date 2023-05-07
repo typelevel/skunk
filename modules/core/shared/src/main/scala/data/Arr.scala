@@ -6,6 +6,7 @@ package skunk.data
 
 import cats._
 import cats.syntax.all._
+import scala.collection.Factory
 import scala.collection.mutable.ArrayBuffer
 
 /**
@@ -16,7 +17,7 @@ import scala.collection.mutable.ArrayBuffer
 final class Arr[A] private (
   protected val data:   ArrayBuffer[A],
   private   val extent: Array[Int]
-) extends ArrPlatform[A] {
+) {
 
   // Data and extent must be consistent. Should be guaranteed but let's check anyway.
   assert((data.isEmpty && extent.isEmpty) || (data.length  == extent.product))
@@ -59,6 +60,13 @@ final class Arr[A] private (
    */
   def dimensions: List[Int] =
     extent.toList
+
+  /**
+   * Construct this `Arr`'s elements as a collection `C`, as if first reshaped to be
+   * single-dimensional.
+   */
+  def flattenTo[C](fact: Factory[A, C]): C =
+    data.to(fact)
 
   /**
    * Retrieve the element at the specified location, if the ordinates are in range (i.e., between

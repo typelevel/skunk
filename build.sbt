@@ -1,13 +1,11 @@
-ThisBuild / tlBaseVersion := "0.5"
+ThisBuild / tlBaseVersion := "1.0"
 
 // Our Scala versions.
-lazy val `scala-2.12` = "2.12.17"
 lazy val `scala-2.13` = "2.13.10"
-lazy val `scala-3.0`  = "3.2.2"
+lazy val `scala-3`  = "3.2.2"
 
 ThisBuild / scalaVersion       := `scala-2.13`
-ThisBuild / crossScalaVersions :=
-  Seq(`scala-2.12`, `scala-2.13`, `scala-3.0`)
+ThisBuild / crossScalaVersions := Seq(`scala-2.13`, `scala-3`)
 
 ThisBuild / organization := "org.tpolecat"
 ThisBuild / licenses     := Seq(License.MIT)
@@ -136,7 +134,6 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.scodec"             %%% "scodec-cats"             % "1.2.0",
       "org.typelevel"          %%% "otel4s-core-trace"       % otel4sVersion,
       "org.tpolecat"           %%% "sourcepos"               % "1.1.0",
-      "org.scala-lang.modules" %%% "scala-collection-compat" % "2.10.0",
       "org.typelevel"          %%% "twiddles-core"           % "0.6.0",
     ) ++ Seq(
       "com.beachape"  %%% "enumeratum"   % "1.7.2",
@@ -257,8 +254,8 @@ lazy val docs = project
       "core-dep"                -> s"${(core.jvm / name).value}_2.${CrossVersion.partialVersion(scalaVersion.value).get._2}",
       "circe-dep"               -> s"${(circe.jvm / name).value}_2.${CrossVersion.partialVersion(scalaVersion.value).get._2}",
       "version"                 -> version.value,
-      "scaladoc.skunk.base_url" -> s"https://static.javadoc.io/org.tpolecat/skunk-core_2.12/${version.value}",
-      "scaladoc.fs2.io.base_url"-> s"https://static.javadoc.io/co.fs2/fs2-io_2.12/${fs2Version}",
+      "scaladoc.skunk.base_url" -> s"https://static.javadoc.io/org.tpolecat/skunk-core_2.13/${version.value}",
+      "scaladoc.fs2.io.base_url"-> s"https://static.javadoc.io/co.fs2/fs2-io_2.13/${fs2Version}",
     ),
     mdocIn := (baseDirectory.value) / "src" / "main" / "paradox",
     Compile / paradox / sourceDirectory := mdocOut.value,
