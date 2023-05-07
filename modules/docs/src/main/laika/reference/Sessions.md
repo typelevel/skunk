@@ -1,5 +1,5 @@
 ```scala mdoc:invisible
-import cats.effect._, skunk._, skunk.net.message.StartupMessage
+import cats.effect._, skunk._
 implicit def dummyTrace: natchez.Trace[IO] = ???
 ```
 
@@ -49,7 +49,7 @@ In addition to these options, the `SSL` values themselves allow the following mo
 | Property                | Default                 | Comment |
 |-------------------------|-------------------------|---------|
 | `.withFallback(…)`      | `false`                 | If true, allow fallback to a non-encrypted connection if SSL is unavailable. |
-| `.withTLSParameters(…)` | `TLSParameters.Default` | Allows for custom @scaladoc[TLSParameters](fs2.io.tls.TLSParameters).
+| `.withTLSParameters(…)` | `TLSParameters.Default` | Allows for custom @:api(fs2.io.tls.TLSParameters).
 
 
 ## Session Parameters

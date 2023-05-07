@@ -8,17 +8,17 @@ import skunk.codec.all._
 An encoder is needed any time you want to send a value to Postgres; i.e., any time a statement has
 parameters. Although it is possible to implement the `Encoder` interface directly, this requires
 knowledge of Postgres data formats and is not something you typically do as an end user. Instead
-you will use one or more existing encoders (see @ref:[Schema Types](../reference/SchemaTypes.md))
+you will use one or more existing encoders (see [Schema Types](../reference/SchemaTypes.md))
 composed or transformed as desired.
 
 ## Base Encoders
 
-Base encoders are provided for many Postgres types (see @ref:[Schema Types](../reference/SchemaTypes.md)).
+Base encoders are provided for many Postgres types (see [Schema Types](../reference/SchemaTypes.md)).
 These encoders translate to a single placeholders in your SQL statement.
 
-@@@ note { title=Definition }
+@:callout(info)
 A **base encoder** maps a Scala type to a *single* Postgres schema type.
-@@@
+@:@
 
 Here is a statement with an interpolated base encoder.
 
@@ -39,9 +39,9 @@ sql"SELECT name FROM country WHERE code = $varchar AND population < $int8"
 Given two encoders `a: Encoder[A]` and `b: Encoder[B]` we can create a composite encoder `a ~ b` of
 type `Encoder[(A, B)]`. Such an encoder expands to a sequence of placholders separated by commas.
 
-@@@ note { title=Definition }
+@:callout(info)
 A **composite encoder** maps a Scala type to a *sequence* of Postgres schema types.
-@@@
+@:@
 
 Here is a statement with a composite encoder constructed from two base encoders.
 

@@ -1,12 +1,5 @@
 # Skunk
 
-@@@index
-
-* [Tutorial](tutorial/Index.md)
-* [Reference](reference/Index.md)
-
-@@@
-
 ## Overview
 
 - Skunk is a [Postgres](https://www.postgresql.org) library for [Scala](https://www.scala-lang.org).
@@ -16,15 +9,11 @@
 - Skunk embraces the [Scala Code of Conduct](http://scala-lang.org/conduct.html).
 - **Skunk is pre-release software!** Code and documentation are under active development!
 
-Skunk is published for Scala $scala-versions$ and can be included in your project thus:
+Skunk is published for Scala 2.12, 2.13, and 3 on JVM, Node.js, and Native. It can be included in your project thus:
 
-@@dependency[sbt,Maven,Gradle] {
-  group="$org$"
-  artifact="$core-dep$"
-  version="$version$"
-}
-
-@@dependencies { projectId="core" }
+```scala
+libraryDependencies += "org.tpolecat" %% "skunk-core" % "@VERSION@"
+```
 
 ## How to Learn
 
@@ -36,8 +25,8 @@ Prerequisites:
 
 To learn about Skunk:
 
-- Read the @ref:[Tutorial](tutorial/Index.md).
-- Peruse the @ref:[Reference](tutorial/Index.md) material.
+- Read the [Tutorial](tutorial/index.md).
+- Peruse the [Reference](tutorial/index.md) material.
 
 Other resources:
 

@@ -15,7 +15,7 @@ ThisBuild / developers   := List(
 
 ThisBuild / tlCiReleaseBranches := Seq("main") // publish snapshits on `main`
 ThisBuild / tlSonatypeUseLegacyHost := false
-ThisBuild / githubWorkflowOSes := Seq("ubuntu-22.04")
+ThisBuild / githubWorkflowOSes := Seq("ubuntu-latest")
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("11"))
 ThisBuild / tlJdkRelease := Some(8)
 
@@ -29,29 +29,15 @@ lazy val setupCertAndDocker = Seq(
   )
 )
 
-ThisBuild / githubWorkflowBuildPreamble ++= setupCertAndDocker
-ThisBuild / githubWorkflowBuild ~= { steps =>
-  WorkflowStep.Sbt(
-    commands = List("headerCheckAll"),
-    name = Some("Check Headers"),
-  ) +: steps
-}
-ThisBuild / githubWorkflowBuildPostamble ++= Seq(
-  WorkflowStep.Sbt(
-    commands = List("docs/makeSite"),
-    name = Some(s"Check Doc Site (${`scala-2.13`} JVM only)"),
-    cond = Some(s"matrix.scala == '${`scala-2.13`}' && matrix.project == 'rootJVM'"),
-  )
-)
+ThisBuild / githubWorkflowJobSetup ++= setupCertAndDocker
+ThisBuild / tlCiHeaderCheck := true
+
 ThisBuild / githubWorkflowAddedJobs +=
   WorkflowJob(
     id = "coverage",
     name = s"Generate coverage report (${`scala-2.13`} JVM only)",
     scalas = List(`scala-2.13`),
-    steps = List(WorkflowStep.CheckoutFull) ++
-      WorkflowStep.SetupJava(githubWorkflowJavaVersions.value.toList) ++
-      githubWorkflowGeneratedCacheSteps.value ++ 
-      setupCertAndDocker ++
+    steps = githubWorkflowJobSetup.value.toList ++
       List(
         WorkflowStep.Sbt(List("coverage", "rootJVM/test", "coverageReport")),
         WorkflowStep.Run(
@@ -110,7 +96,7 @@ lazy val commonSettings = Seq(
 
 lazy val skunk = tlCrossRootProject
   .settings(name := "skunk")
-  .aggregate(core, tests, circe, refined, example)
+  .aggregate(core, tests, circe, refined, example, unidocs)
   .settings(commonSettings)
 
 lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
@@ -226,40 +212,47 @@ lazy val example = project
     // ).filterNot(_ => scalaVersion.value.startsWith("3."))
   )
 
+lazy val unidocs = project
+  .in(file("unidocs"))
+  .enablePlugins(TypelevelUnidocPlugin)
+  .settings(
+    name := "skunk-docs",
+    ScalaUnidoc / unidoc / unidocProjectFilter := inProjects(core.jvm, refined.jvm, circe.jvm)
+  )
+  .settings(commonSettings)
+
 lazy val docs = project
   .in(file("modules/docs"))
   .dependsOn(core.jvm)
   .enablePlugins(AutomateHeaderPlugin)
-  .enablePlugins(ParadoxPlugin)
-  .enablePlugins(ParadoxSitePlugin)
-  .enablePlugins(GhpagesPlugin)
-  .enablePlugins(MdocPlugin)
+  .enablePlugins(TypelevelSitePlugin)
   .settings(commonSettings)
   .settings(
-    scalacOptions      := Nil,
-    git.remoteRepo     := "git@github.com:tpolecat/skunk.git",
-    ghpagesNoJekyll    := true,
-    publish / skip     := true,
-    paradoxTheme       := Some(builtinParadoxTheme("generic")),
-    version            := version.value.takeWhile(_ != '-'), // strip off the -3-f22dca22+20191110-1520-SNAPSHOT business
-    paradoxProperties ++= Map(
-      "scala-versions"          -> (core.jvm / crossScalaVersions).value.map(CrossVersion.partialVersion).flatten.map { case (a, b) => s"$a.$b" } .mkString("/"),
-      "org"                     -> organization.value,
-      "scala.binary.version"    -> s"2.${CrossVersion.partialVersion(scalaVersion.value).get._2}",
-      "core-dep"                -> s"${(core.jvm / name).value}_2.${CrossVersion.partialVersion(scalaVersion.value).get._2}",
-      "circe-dep"               -> s"${(circe.jvm / name).value}_2.${CrossVersion.partialVersion(scalaVersion.value).get._2}",
-      "version"                 -> version.value,
-      "scaladoc.skunk.base_url" -> s"https://static.javadoc.io/org.tpolecat/skunk-core_2.13/${version.value}",
-      "scaladoc.fs2.io.base_url"-> s"https://static.javadoc.io/co.fs2/fs2-io_2.13/${fs2Version}",
-    ),
-    mdocIn := (baseDirectory.value) / "src" / "main" / "paradox",
-    Compile / paradox / sourceDirectory := mdocOut.value,
-    makeSite := makeSite.dependsOn(mdoc.toTask("")).value,
-    mdocExtraArguments := Seq("--no-link-hygiene"), // paradox handles this
+    mdocIn := (Compile / sourceDirectory).value / "laika",
     libraryDependencies ++= Seq(
       "org.tpolecat"  %%% "natchez-jaeger" % natchezVersion,
-    )
-)
+    ),
+    laikaConfig := {
+      import laika.rewrite.link._
+
+      laikaConfig.value.withRawContent
+        .withConfigValue("version", mdocVariables.value("VERSION"))
+        .withConfigValue(
+          LinkConfig(apiLinks =
+            List(
+              ApiLinks(
+                baseUri = s"https://www.javadoc.io/doc/org.tpolecat/skunk-docs_${scalaBinaryVersion.value}/${mdocVariables.value("VERSION")}/",
+                packagePrefix = "skunk"
+              ),
+              ApiLinks(
+                baseUri = s"https://www.javadoc.io/doc/co.fs2/fs2-docs_${scalaBinaryVersion.value}/$fs2Version/",
+                packagePrefix = "fs2"
+              ),
+            )
+          )
+        )
+    }
+  )
 
 // ci
 
