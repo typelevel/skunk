@@ -59,7 +59,6 @@ ThisBuild / mimaBinaryIssueFilters ++= List(
 
 // This is used in a couple places
 lazy val fs2Version = "3.7.0-RC5"
-lazy val natchezVersion = "0.3.1"
 lazy val openTelemetryVersion = "1.25.0"
 lazy val otel4sVersion = "0.2.1"
 
@@ -90,7 +89,7 @@ lazy val commonSettings = Seq(
   ),
 
   // Coverage Exclusions
-  coverageExcludedPackages := "ffstest.*;tests.*;example.*;natchez.http4s.*",
+  coverageExcludedPackages := "ffstest.*;tests.*;example.*",
 
   // uncomment in case of emergency
   // scalacOptions ++= { if (scalaVersion.value.startsWith("3.")) Seq("-source:3.0-migration") else Nil },
@@ -234,9 +233,6 @@ lazy val docs = project
   .settings(commonSettings)
   .settings(
     mdocIn := (Compile / sourceDirectory).value / "laika",
-    libraryDependencies ++= Seq(
-      "org.tpolecat"  %%% "natchez-jaeger" % natchezVersion,
-    ),
     laikaConfig := {
       import laika.rewrite.link._
 
