@@ -14,7 +14,9 @@ import skunk.net.message.{ Describe => DescribeMessage, _ }
 import skunk.util.{ StatementCache, Typer }
 import skunk.exception.UnknownOidException
 import skunk.data.TypedRowDescription
-import natchez.Trace
+import org.typelevel.otel4s.Attribute
+import org.typelevel.otel4s.trace.Span
+import org.typelevel.otel4s.trace.Tracer
 import cats.data.OptionT
 
 trait Describe[F[_]] {
@@ -24,16 +26,16 @@ trait Describe[F[_]] {
 
 object Describe {
 
-  def apply[F[_]: Exchange: MessageSocket: Trace](cache: Cache[F])(
+  def apply[F[_]: Exchange: MessageSocket: Tracer](cache: Cache[F])(
     implicit ev: MonadError[F, Throwable]
   ): Describe[F] =
     new Describe[F] {
 
       override def apply(cmd: skunk.Command[_], id: StatementId, ty: Typer): F[Unit] =
-        exchange("describe") {
+        exchange("describe") { (span: Span[F]) =>
           OptionT(cache.commandCache.get(cmd)).getOrElseF {
             for {
-              _  <- Trace[F].put("statement-id" -> id.value)
+              _  <- span.addAttribute(Attribute("statement-id", id.value))
               _  <- send(DescribeMessage.statement(id.value))
               _  <- send(Flush)
               _  <- expect { case ParameterDescription(_) => } // always ok
@@ -58,9 +60,9 @@ object Describe {
 
       override def apply[A](query: skunk.Query[_, A], id: StatementId, ty: Typer): F[TypedRowDescription] =
         OptionT(cache.queryCache.get(query)).getOrElseF {
-          exchange("describe") {
+          exchange("describe") { (span: Span[F]) =>
             for {
-              _  <- Trace[F].put("statement-id" -> id.value)
+              _  <- span.addAttribute(Attribute("statement-id", id.value))
               _  <- send(DescribeMessage.statement(id.value))
               _  <- send(Flush)
               _  <- expect { case ParameterDescription(_) => } // always ok
@@ -71,7 +73,7 @@ object Describe {
               td <- rd.typed(ty) match {
                       case Left(err) => UnknownOidException(query, err, ty.strategy).raiseError[F, TypedRowDescription]
                       case Right(td) =>
-                        Trace[F].put("column-types" -> td.fields.map(_.tpe).mkString("[", ", ", "]")).as(td)
+                        span.addAttribute(Attribute("column-types", td.fields.map(_.tpe).mkString("[", ", ", "]"))).as(td)
                     }
               _  <- ColumnAlignmentException(query, td).raiseError[F, Unit].unlessA(query.isDynamic || query.decoder.types === td.types)
               _  <- cache.queryCache.put(query, td) // on success

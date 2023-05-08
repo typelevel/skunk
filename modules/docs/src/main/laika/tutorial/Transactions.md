@@ -95,7 +95,7 @@ Here is a complete program listing that demonstrates our knowledge thus far.
 
 import cats.effect._
 import cats.implicits._
-import natchez.Trace.Implicits.noop
+import org.typelevel.otel4s.trace.Tracer
 import skunk._
 import skunk.codec.all._
 import skunk.implicits._
@@ -154,6 +154,8 @@ object PetService {
 }
 
 object TransactionExample extends IOApp {
+
+  implicit val tracer: Tracer[IO] = Tracer.noop
 
   // a source of sessions
   val session: Resource[IO, Session[IO]] =

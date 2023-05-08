@@ -5,7 +5,7 @@
 package skunk.exception
 
 import cats.syntax.all._
-import natchez.TraceValue
+import org.typelevel.otel4s.Attribute
 import skunk.SqlState
 import skunk.data.Type
 import skunk.util.Origin
@@ -33,26 +33,26 @@ class PostgresErrorException (
   argumentsOrigin = argumentsOrigin,
 ) {
 
-  override def fields: Map[String, TraceValue] = {
-    var map = super.fields
+  override def fields: List[Attribute[_]] = {
+    val builder = List.newBuilder[Attribute[_]]
 
-    map += "error.postgres.message"  -> message
-    map += "error.postgres.severity" -> severity
-    map += "error.postgres.code"     -> code
+    builder += Attribute("error.postgres.message"  , message)
+    builder += Attribute("error.postgres.severity" , severity)
+    builder += Attribute("error.postgres.code"     , code)
 
-    internalPosition.foreach(a => map += "error.postgres.internalPosition" -> a)
-    internalQuery   .foreach(a => map += "error.postgres.internalQuery"    -> a)
-    where           .foreach(a => map += "error.postgres.where"            -> a)
-    schemaName      .foreach(a => map += "error.postgres.schemaName"       -> a)
-    tableName       .foreach(a => map += "error.postgres.tableName"        -> a)
-    columnName      .foreach(a => map += "error.postgres.columnName"       -> a)
-    dataTypeName    .foreach(a => map += "error.postgres.dataTypeName"     -> a)
-    constraintName  .foreach(a => map += "error.postgres.constraintName"   -> a)
-    fileName        .foreach(a => map += "error.postgres.fileName"         -> a)
-    line            .foreach(a => map += "error.postgres.line"             -> a)
-    routine         .foreach(a => map += "error.postgres.routine"          -> a)
+    internalPosition.foreach(a => builder += Attribute("error.postgres.internalPosition" , a.toLong))
+    internalQuery   .foreach(a => builder += Attribute("error.postgres.internalQuery"      , a.toLong))
+    where           .foreach(a => builder += Attribute("error.postgres.where"            , a))
+    schemaName      .foreach(a => builder += Attribute("error.postgres.schemaName"       , a))
+    tableName       .foreach(a => builder += Attribute("error.postgres.tableName"        , a))
+    columnName      .foreach(a => builder += Attribute("error.postgres.columnName"       , a))
+    dataTypeName    .foreach(a => builder += Attribute("error.postgres.dataTypeName"     , a))
+    constraintName  .foreach(a => builder += Attribute("error.postgres.constraintName"   , a))
+    fileName        .foreach(a => builder += Attribute("error.postgres.fileName"         , a))
+    line            .foreach(a => builder += Attribute("error.postgres.line"               , a.toLong))
+    routine         .foreach(a => builder += Attribute("error.postgres.routine"          , a))
 
-    map
+    builder.result()
   }
 
   /**

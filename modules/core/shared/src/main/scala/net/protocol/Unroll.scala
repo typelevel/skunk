@@ -13,7 +13,8 @@ import skunk.net.MessageSocket
 import skunk.net.Protocol.QueryPortal
 import skunk.util.Origin
 import skunk.data.TypedRowDescription
-import natchez.Trace
+import org.typelevel.otel4s.Attribute
+import org.typelevel.otel4s.trace.Tracer
 import skunk.exception.PostgresErrorException
 import scala.util.control.NonFatal
 
@@ -21,7 +22,7 @@ import scala.util.control.NonFatal
  * Superclass for `Query` and `Execute` sub-protocols, both of which need a way to accumulate
  * results in a `List` and report errors when decoding fails.
  */
-private[protocol] class Unroll[F[_]: MessageSocket: Trace](
+private[protocol] class Unroll[F[_]: MessageSocket: Tracer](
   implicit ev: MonadError[F, Throwable]
 ) {
 
@@ -81,17 +82,17 @@ private[protocol] class Unroll[F[_]: MessageSocket: Trace](
       }
 
     val rows: F[(List[List[Option[String]]], Boolean)] =
-      Trace[F].span("read") {
+      Tracer[F].span("read").use { span =>
         accumulate(Nil).flatTap { case (rows, bool) =>
-          Trace[F].put(
-            "row-count" -> rows.length,
-            "more-rows" -> bool
+          span.addAttributes(
+            Attribute("row-count", rows.length.toLong),
+            Attribute("more-rows", bool)
           )
         }
       }
 
     rows.flatMap { case (rows, bool) =>
-      Trace[F].span("decode") {
+      Tracer[F].span("decode").surround {
         rows.traverse { data =>
 
           // https://github.com/tpolecat/skunk/issues/129

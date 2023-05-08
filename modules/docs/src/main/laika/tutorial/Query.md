@@ -252,7 +252,7 @@ import skunk._
 import skunk.implicits._
 import skunk.codec.all._
 import java.time.OffsetDateTime
-import natchez.Trace.Implicits.noop
+implicit def dummyTrace: org.typelevel.otel4s.trace.Tracer[IO] = org.typelevel.otel4s.trace.Tracer.noop
 
 object QueryExample extends IOApp {
 
@@ -329,7 +329,7 @@ import skunk._
 import skunk.implicits._
 import skunk.codec.all._
 import java.time.OffsetDateTime
-import natchez.Trace.Implicits.noop
+import org.typelevel.otel4s.trace.Tracer
 import fs2.Stream
 import cats.Applicative
 
@@ -371,6 +371,8 @@ object Service {
 
 
 object QueryExample2 extends IOApp {
+
+  implicit val tracer: Tracer[IO] = Tracer.noop
 
   // a source of sessions
   val session: Resource[IO, Session[IO]] =

@@ -59,7 +59,8 @@ ThisBuild / mimaBinaryIssueFilters ++= List(
 
 // This is used in a couple places
 lazy val fs2Version = "3.7.0-RC5"
-lazy val natchezVersion = "0.3.1"
+lazy val openTelemetryVersion = "1.25.0"
+lazy val otel4sVersion = "0.2.1"
 
 // Global Settings
 lazy val commonSettings = Seq(
@@ -88,7 +89,7 @@ lazy val commonSettings = Seq(
   ),
 
   // Coverage Exclusions
-  coverageExcludedPackages := "ffstest.*;tests.*;example.*;natchez.http4s.*",
+  coverageExcludedPackages := "ffstest.*;tests.*;example.*",
 
   // uncomment in case of emergency
   // scalacOptions ++= { if (scalaVersion.value.startsWith("3.")) Seq("-source:3.0-migration") else Nil },
@@ -116,7 +117,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.scodec"             %%% "scodec-bits"             % "1.1.37",
       "org.scodec"             %%% "scodec-core"             % (if (tlIsScala3.value) "2.2.1" else "1.11.10"),
       "org.scodec"             %%% "scodec-cats"             % "1.2.0",
-      "org.tpolecat"           %%% "natchez-core"            % natchezVersion,
+      "org.typelevel"          %%% "otel4s-core-trace"       % otel4sVersion,
       "org.tpolecat"           %%% "sourcepos"               % "1.1.0",
       "org.typelevel"          %%% "twiddles-core"           % "0.6.0",
     ) ++ Seq(
@@ -201,9 +202,12 @@ lazy val example = project
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "org.tpolecat"  %%% "natchez-honeycomb"   % natchezVersion,
-      "org.tpolecat"  %%% "natchez-jaeger"      % natchezVersion,
-    )
+      "org.typelevel"    %% "otel4s-java" % otel4sVersion,
+      "io.opentelemetry" % "opentelemetry-exporter-otlp" % openTelemetryVersion % Runtime,
+      "io.opentelemetry" % "opentelemetry-sdk-extension-autoconfigure" % s"${openTelemetryVersion}-alpha" % Runtime,
+    ),
+    run / fork := true,
+    javaOptions += "-Dotel.java.global-autoconfigure.enabled=true"
     // ) ++ Seq(
     //   "org.http4s"    %%% "http4s-dsl"          % "0.21.22",
     //   "org.http4s"    %%% "http4s-blaze-server" % "0.21.22",
@@ -229,9 +233,6 @@ lazy val docs = project
   .settings(commonSettings)
   .settings(
     mdocIn := (Compile / sourceDirectory).value / "laika",
-    libraryDependencies ++= Seq(
-      "org.tpolecat"  %%% "natchez-jaeger" % natchezVersion,
-    ),
     laikaConfig := {
       import laika.rewrite.link._
 

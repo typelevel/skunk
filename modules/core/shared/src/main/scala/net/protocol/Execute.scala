@@ -12,7 +12,9 @@ import skunk.exception.PostgresErrorException
 import skunk.net.{ Protocol, MessageSocket }
 import skunk.net.message.{ Execute => ExecuteMessage, _ }
 import skunk.util.Typer
-import natchez.Trace
+import org.typelevel.otel4s.Attribute
+import org.typelevel.otel4s.trace.Span
+import org.typelevel.otel4s.trace.Tracer
 import skunk.exception.CopyNotSupportedException
 import skunk.exception.EmptyStatementException
 
@@ -23,13 +25,13 @@ trait Execute[F[_]] {
 
 object Execute {
 
-  def apply[F[_]: Exchange: MessageSocket: Trace](
+  def apply[F[_]: Exchange: MessageSocket: Tracer](
     implicit ev: MonadError[F, Throwable]
   ): Execute[F] =
     new Unroll[F] with Execute[F] {
 
       override def apply[A](portal: Protocol.CommandPortal[F, A]): F[Completion] =
-        exchange("execute") {
+        exchange("execute") { (_: Span[F]) =>
           for {
             _  <- send(ExecuteMessage(portal.id.value, 0))
             _  <- send(Flush)
@@ -74,11 +76,11 @@ object Execute {
         }
 
       override def apply[A, B](portal: Protocol.QueryPortal[F, A, B], maxRows: Int, ty: Typer): F[List[B] ~ Boolean] =
-        exchange("execute") {
+        exchange("execute") { (span: Span[F]) =>
           for {
-            _  <- Trace[F].put(
-                    "max-rows"  -> maxRows,
-                    "portal-id" -> portal.id.value
+            _  <- span.addAttributes(
+                    Attribute("max-rows",    maxRows.toLong),
+                    Attribute("portal-id", portal.id.value)
                   )
             _  <- send(ExecuteMessage(portal.id.value, maxRows))
             _  <- send(Flush)

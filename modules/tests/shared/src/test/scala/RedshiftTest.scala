@@ -7,9 +7,12 @@ package tests
 import cats.effect._
 import skunk._
 import skunk.exception.StartupException
-import natchez.Trace.Implicits.noop
+import org.typelevel.otel4s.trace.Tracer
 
 class RedshiftTest extends ffstest.FTest {
+
+  implicit val tracer: Tracer[IO] = Tracer.noop
+
   object X86ArchOnly extends munit.Tag("X86ArchOnly")
 
   test("redshift - successfully connect".tag(X86ArchOnly)) {

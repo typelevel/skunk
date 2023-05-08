@@ -9,7 +9,7 @@ import com.ongres.scram.common.stringprep.StringPreparations
 
 import cats.MonadError
 import cats.syntax.all._
-import natchez.Trace
+import org.typelevel.otel4s.trace.Tracer
 import scala.util.control.NonFatal
 import skunk.net.MessageSocket
 import skunk.net.message._
@@ -20,14 +20,14 @@ import skunk.exception.{
 
 private[protocol] trait StartupCompanionPlatform { this: Startup.type =>
   
-  private[protocol] def authenticationSASL[F[_]: MessageSocket: Trace](
+  private[protocol] def authenticationSASL[F[_]: MessageSocket: Tracer](
     sm:         StartupMessage,
     password:   Option[String],
     mechanisms: List[String]
   )(
     implicit ev: MonadError[F, Throwable]
   ): F[Unit] =
-    Trace[F].span("authenticationSASL") {
+    Tracer[F].span("authenticationSASL").surround {
         for {
           client <- {
             try ScramClient.

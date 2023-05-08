@@ -6,7 +6,7 @@ package skunk.net.protocol
 
 import cats.MonadThrow
 import cats.syntax.all._
-import natchez.Trace
+import org.typelevel.otel4s.trace.Tracer
 import skunk.net.MessageSocket
 import skunk.net.message._
 import skunk.exception.{ 
@@ -16,12 +16,12 @@ import skunk.exception.{
 
 private[protocol] trait StartupCompanionPlatform { this: Startup.type =>
   
-  private[protocol] def authenticationSASL[F[_]: MonadThrow: MessageSocket: Trace](
+  private[protocol] def authenticationSASL[F[_]: MonadThrow: MessageSocket: Tracer](
     sm:         StartupMessage,
     password:   Option[String],
     mechanisms: List[String]
   ): F[Unit] =
-    Trace[F].span("authenticationSASL") {
+    Tracer[F].span("authenticationSASL").surround {
       if (mechanisms.contains(Scram.SaslMechanism)) {
         for {
           pw <- requirePassword[F](sm, password)

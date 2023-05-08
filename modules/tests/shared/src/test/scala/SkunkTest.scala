@@ -11,11 +11,13 @@ import skunk.data._
 import skunk.codec.all._
 import skunk.implicits._
 import skunk.util.Typer
-import natchez.Trace.Implicits.noop
+import org.typelevel.otel4s.trace.Tracer
 import munit.Location
 import scala.concurrent.duration.Duration
 
 abstract class SkunkTest(debug: Boolean = false, strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly) extends ffstest.FTest {
+
+  implicit val trace: Tracer[IO] = Tracer.noop
 
   def session: Resource[IO, Session[IO]] = session(Duration.Inf)
 

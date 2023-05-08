@@ -9,9 +9,11 @@ import cats.syntax.all._
 import skunk._
 import skunk.implicits._
 import skunk.codec.numeric.{ int4, float8 }
-import natchez.Trace.Implicits.noop
+import org.typelevel.otel4s.trace.Tracer
 
 object Math1 extends IOApp {
+
+  implicit val tracer: Tracer[IO] = Tracer.noop
 
   val session: Resource[IO, Session[IO]] =
     Session.single(
