@@ -124,7 +124,6 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        scala: [2.13.10]
         java: [temurin@11]
     runs-on: ${{ matrix.os }}
     steps:
@@ -239,7 +238,7 @@ jobs:
           (echo "$PGP_PASSPHRASE"; echo; echo) | gpg --command-fd 0 --pinentry-mode loopback --change-passphrase $(gpg --list-secret-keys --with-colons 2> /dev/null | grep '^sec:' | cut --delimiter ':' --fields 5 | tail -n 1)
 
       - name: Publish
-        run: sbt '++ ${{ matrix.scala }}' tlCiRelease
+        run: sbt tlCiRelease
 
   coverage:
     name: Generate coverage report (2.13.10 JVM only)
@@ -299,7 +298,6 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        scala: [2.13.10]
         java: [temurin@11]
     runs-on: ${{ matrix.os }}
     steps:
@@ -343,7 +341,7 @@ jobs:
           docker-compose up -d
 
       - name: Generate site
-        run: sbt '++ ${{ matrix.scala }}' docs/tlSite
+        run: sbt docs/tlSite
 
       - name: Publish site
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
