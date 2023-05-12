@@ -6,13 +6,15 @@ package example
 
 import cats.effect._
 import cats.syntax.all._
+import org.typelevel.otel4s.trace.Tracer
 import skunk._
 import skunk.implicits._
 import skunk.codec.all._
-import natchez.Trace.Implicits.noop
 
 /** Round-trip a list of values. You can use this pattern to do bulk-inserts. */
 object Values extends IOApp {
+
+  implicit val tracer: Tracer[IO] = Tracer.noop
 
   val session: Resource[IO, Session[IO]] =
     Session.single(
@@ -25,7 +27,7 @@ object Values extends IOApp {
   case class Data(n: Int, s: String, b: Boolean)
 
   val data: Codec[Data] =
-    (int4 ~ bpchar ~ bool).gimap[Data]
+    (int4 *: bpchar *: bool).to[Data]
 
   // SQL depends on the number of `Data` elements we wish to "insert"
   def query(len: Int): Query[List[Data], Data] =

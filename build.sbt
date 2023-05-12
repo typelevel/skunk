@@ -1,13 +1,11 @@
-ThisBuild / tlBaseVersion := "0.5"
+ThisBuild / tlBaseVersion := "1.0"
 
 // Our Scala versions.
-lazy val `scala-2.12` = "2.12.17"
 lazy val `scala-2.13` = "2.13.10"
-lazy val `scala-3.0`  = "3.2.2"
+lazy val `scala-3`  = "3.2.2"
 
 ThisBuild / scalaVersion       := `scala-2.13`
-ThisBuild / crossScalaVersions :=
-  Seq(`scala-2.12`, `scala-2.13`, `scala-3.0`)
+ThisBuild / crossScalaVersions := Seq(`scala-2.13`, `scala-3`)
 
 ThisBuild / organization := "org.tpolecat"
 ThisBuild / licenses     := Seq(License.MIT)
@@ -17,7 +15,7 @@ ThisBuild / developers   := List(
 
 ThisBuild / tlCiReleaseBranches := Seq("main") // publish snapshits on `main`
 ThisBuild / tlSonatypeUseLegacyHost := false
-ThisBuild / githubWorkflowOSes := Seq("ubuntu-22.04")
+ThisBuild / githubWorkflowOSes := Seq("ubuntu-latest")
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("11"))
 ThisBuild / tlJdkRelease := Some(8)
 
@@ -31,29 +29,15 @@ lazy val setupCertAndDocker = Seq(
   )
 )
 
-ThisBuild / githubWorkflowBuildPreamble ++= setupCertAndDocker
-ThisBuild / githubWorkflowBuild ~= { steps =>
-  WorkflowStep.Sbt(
-    commands = List("headerCheckAll"),
-    name = Some("Check Headers"),
-  ) +: steps
-}
-ThisBuild / githubWorkflowBuildPostamble ++= Seq(
-  WorkflowStep.Sbt(
-    commands = List("docs/makeSite"),
-    name = Some(s"Check Doc Site (${`scala-2.13`} JVM only)"),
-    cond = Some(s"matrix.scala == '${`scala-2.13`}' && matrix.project == 'rootJVM'"),
-  )
-)
+ThisBuild / githubWorkflowJobSetup ++= setupCertAndDocker
+ThisBuild / tlCiHeaderCheck := true
+
 ThisBuild / githubWorkflowAddedJobs +=
   WorkflowJob(
     id = "coverage",
     name = s"Generate coverage report (${`scala-2.13`} JVM only)",
     scalas = List(`scala-2.13`),
-    steps = List(WorkflowStep.CheckoutFull) ++
-      WorkflowStep.SetupJava(githubWorkflowJavaVersions.value.toList) ++
-      githubWorkflowGeneratedCacheSteps.value ++ 
-      setupCertAndDocker ++
+    steps = githubWorkflowJobSetup.value.toList ++
       List(
         WorkflowStep.Sbt(List("coverage", "rootJVM/test", "coverageReport")),
         WorkflowStep.Run(
@@ -74,8 +58,9 @@ ThisBuild / mimaBinaryIssueFilters ++= List(
 )
 
 // This is used in a couple places
-lazy val fs2Version = "3.7.0-RC4"
-lazy val natchezVersion = "0.3.1"
+lazy val fs2Version = "3.7.0-RC5"
+lazy val openTelemetryVersion = "1.26.0"
+lazy val otel4sVersion = "0.2.1"
 
 // Global Settings
 lazy val commonSettings = Seq(
@@ -104,7 +89,7 @@ lazy val commonSettings = Seq(
   ),
 
   // Coverage Exclusions
-  coverageExcludedPackages := "ffstest.*;tests.*;example.*;natchez.http4s.*",
+  coverageExcludedPackages := "ffstest.*;tests.*;example.*",
 
   // uncomment in case of emergency
   // scalacOptions ++= { if (scalaVersion.value.startsWith("3.")) Seq("-source:3.0-migration") else Nil },
@@ -112,7 +97,7 @@ lazy val commonSettings = Seq(
 
 lazy val skunk = tlCrossRootProject
   .settings(name := "skunk")
-  .aggregate(core, tests, circe, refined, example)
+  .aggregate(core, tests, circe, refined, example, unidocs)
   .settings(commonSettings)
 
 lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
@@ -126,15 +111,15 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     scalacOptions ~= (_.filterNot(_ == "-source:3.0-migration")),
     libraryDependencies ++= Seq(
       "org.typelevel"          %%% "cats-core"               % "2.9.0",
-      "org.typelevel"          %%% "cats-effect"             % "3.4.8",
+      "org.typelevel"          %%% "cats-effect"             % "3.5.0",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
       "org.scodec"             %%% "scodec-bits"             % "1.1.37",
       "org.scodec"             %%% "scodec-core"             % (if (tlIsScala3.value) "2.2.1" else "1.11.10"),
       "org.scodec"             %%% "scodec-cats"             % "1.2.0",
-      "org.tpolecat"           %%% "natchez-core"            % natchezVersion,
+      "org.typelevel"          %%% "otel4s-core-trace"       % otel4sVersion,
       "org.tpolecat"           %%% "sourcepos"               % "1.1.0",
-      "org.scala-lang.modules" %%% "scala-collection-compat" % "2.9.0",
+      "org.typelevel"          %%% "twiddles-core"           % "0.6.0",
     ) ++ Seq(
       "com.beachape"  %%% "enumeratum"   % "1.7.2",
     ).filterNot(_ => tlIsScala3.value)
@@ -217,9 +202,12 @@ lazy val example = project
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "org.tpolecat"  %%% "natchez-honeycomb"   % natchezVersion,
-      "org.tpolecat"  %%% "natchez-jaeger"      % natchezVersion,
-    )
+      "org.typelevel"    %% "otel4s-java" % otel4sVersion,
+      "io.opentelemetry" % "opentelemetry-exporter-otlp" % openTelemetryVersion % Runtime,
+      "io.opentelemetry" % "opentelemetry-sdk-extension-autoconfigure" % s"${openTelemetryVersion}-alpha" % Runtime,
+    ),
+    run / fork := true,
+    javaOptions += "-Dotel.java.global-autoconfigure.enabled=true"
     // ) ++ Seq(
     //   "org.http4s"    %%% "http4s-dsl"          % "0.21.22",
     //   "org.http4s"    %%% "http4s-blaze-server" % "0.21.22",
@@ -228,40 +216,44 @@ lazy val example = project
     // ).filterNot(_ => scalaVersion.value.startsWith("3."))
   )
 
+lazy val unidocs = project
+  .in(file("unidocs"))
+  .enablePlugins(TypelevelUnidocPlugin)
+  .settings(
+    name := "skunk-docs",
+    ScalaUnidoc / unidoc / unidocProjectFilter := inProjects(core.jvm, refined.jvm, circe.jvm)
+  )
+  .settings(commonSettings)
+
 lazy val docs = project
   .in(file("modules/docs"))
   .dependsOn(core.jvm)
   .enablePlugins(AutomateHeaderPlugin)
-  .enablePlugins(ParadoxPlugin)
-  .enablePlugins(ParadoxSitePlugin)
-  .enablePlugins(GhpagesPlugin)
-  .enablePlugins(MdocPlugin)
+  .enablePlugins(TypelevelSitePlugin)
   .settings(commonSettings)
   .settings(
-    scalacOptions      := Nil,
-    git.remoteRepo     := "git@github.com:tpolecat/skunk.git",
-    ghpagesNoJekyll    := true,
-    publish / skip     := true,
-    paradoxTheme       := Some(builtinParadoxTheme("generic")),
-    version            := version.value.takeWhile(_ != '-'), // strip off the -3-f22dca22+20191110-1520-SNAPSHOT business
-    paradoxProperties ++= Map(
-      "scala-versions"          -> (core.jvm / crossScalaVersions).value.map(CrossVersion.partialVersion).flatten.map { case (a, b) => s"$a.$b" } .mkString("/"),
-      "org"                     -> organization.value,
-      "scala.binary.version"    -> s"2.${CrossVersion.partialVersion(scalaVersion.value).get._2}",
-      "core-dep"                -> s"${(core.jvm / name).value}_2.${CrossVersion.partialVersion(scalaVersion.value).get._2}",
-      "circe-dep"               -> s"${(circe.jvm / name).value}_2.${CrossVersion.partialVersion(scalaVersion.value).get._2}",
-      "version"                 -> version.value,
-      "scaladoc.skunk.base_url" -> s"https://static.javadoc.io/org.tpolecat/skunk-core_2.12/${version.value}",
-      "scaladoc.fs2.io.base_url"-> s"https://static.javadoc.io/co.fs2/fs2-io_2.12/${fs2Version}",
-    ),
-    mdocIn := (baseDirectory.value) / "src" / "main" / "paradox",
-    Compile / paradox / sourceDirectory := mdocOut.value,
-    makeSite := makeSite.dependsOn(mdoc.toTask("")).value,
-    mdocExtraArguments := Seq("--no-link-hygiene"), // paradox handles this
-    libraryDependencies ++= Seq(
-      "org.tpolecat"  %%% "natchez-jaeger" % natchezVersion,
-    )
-)
+    mdocIn := (Compile / sourceDirectory).value / "laika",
+    laikaConfig := {
+      import laika.rewrite.link._
+
+      laikaConfig.value.withRawContent
+        .withConfigValue("version", mdocVariables.value("VERSION"))
+        .withConfigValue(
+          LinkConfig(apiLinks =
+            List(
+              ApiLinks(
+                baseUri = s"https://www.javadoc.io/doc/org.tpolecat/skunk-docs_${scalaBinaryVersion.value}/${mdocVariables.value("VERSION")}/",
+                packagePrefix = "skunk"
+              ),
+              ApiLinks(
+                baseUri = s"https://www.javadoc.io/doc/co.fs2/fs2-docs_${scalaBinaryVersion.value}/$fs2Version/",
+                packagePrefix = "fs2"
+              ),
+            )
+          )
+        )
+    }
+  )
 
 // ci
 

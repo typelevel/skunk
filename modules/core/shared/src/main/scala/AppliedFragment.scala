@@ -5,7 +5,6 @@
 package skunk
 
 import cats._
-import skunk.implicits._
 
 /**
  * A fragment applied to its argument, yielding an existentially-typed fragment + argument pair
@@ -20,7 +19,7 @@ sealed trait AppliedFragment { outer =>
 
   /** Concatenate this `AppliedFragment` with `other`, pairwise. */
   def |+|(other: AppliedFragment): AppliedFragment =
-    AppliedFragment(fragment ~ other.fragment, argument ~ other.argument)
+    AppliedFragment(fragment *: other.fragment, argument *: other.argument *: EmptyTuple)
 
   override def toString =
     s"AppledFragment($fragment, $argument)"

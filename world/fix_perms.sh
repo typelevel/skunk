@@ -1,5 +1,4 @@
-#!/bin/bash 
-
+#!/bin/bash
 # Loads cert/key into container as environment variable so
 # we can write it as postgres user in the container
 #

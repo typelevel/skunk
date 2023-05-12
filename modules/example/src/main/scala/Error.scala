@@ -9,9 +9,11 @@ import cats.syntax.all._
 import skunk._
 import skunk.implicits._
 import skunk.codec.all._
-import natchez.Trace.Implicits.noop
+import org.typelevel.otel4s.trace.Tracer
 
 object Error extends IOApp {
+
+  implicit val trace: Tracer[IO] = Tracer.noop
 
   val session: Resource[IO, Session[IO]] =
     Session.single(
@@ -28,10 +30,10 @@ object Error extends IOApp {
       FROM   country
       WHERE  popsulation > $varchar
       AND    population  < $int4
-    """.query(varchar ~ int4)
+    """.query(varchar *: int4)
 
   def prog[F[_]](s: Session[F])(implicit ev: MonadCancel[F, Throwable]): F[ExitCode] =
-    s.prepare(query).flatMap(_.unique("foo" ~ 1000000)).as(ExitCode.Success)
+    s.prepare(query).flatMap(_.unique(("foo", 1000000))).as(ExitCode.Success)
 
   def run(args: List[String]): IO[ExitCode] =
     session.use(prog(_))

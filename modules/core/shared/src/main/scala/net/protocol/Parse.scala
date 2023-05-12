@@ -16,7 +16,9 @@ import skunk.Statement
 import skunk.util.Namer
 import skunk.util.Typer
 import skunk.exception.{ UnknownTypeException, TooManyParametersException }
-import natchez.Trace
+import org.typelevel.otel4s.Attribute
+import org.typelevel.otel4s.trace.Span
+import org.typelevel.otel4s.trace.Tracer
 import cats.data.OptionT
 
 trait Parse[F[_]] {
@@ -25,7 +27,7 @@ trait Parse[F[_]] {
 
 object Parse {
 
-  def apply[F[_]: Exchange: MessageSocket: Namer: Trace](cache: Cache[F])(
+  def apply[F[_]: Exchange: MessageSocket: Namer: Tracer](cache: Cache[F])(
     implicit ev: MonadError[F, Throwable]
   ): Parse[F] =
     new Parse[F] {
@@ -37,13 +39,13 @@ object Parse {
 
           case Right(os) =>
             OptionT(cache.value.get(statement)).getOrElseF {
-              exchange("parse") {
+              exchange("parse") { (span: Span[F]) =>
                 for {
                   id <- nextName("statement").map(StatementId(_))
-                  _  <- Trace[F].put(
-                          "statement-name"            -> id.value,
-                          "statement-sql"             -> statement.sql,
-                          "statement-parameter-types" -> os.map(n => ty.typeForOid(n, -1).getOrElse(n)).mkString("[", ", ", "]")
+                  _  <- span.addAttributes(
+                          Attribute("statement-name", id.value),
+                          Attribute("statement-sql",  statement.sql),
+                          Attribute("statement-parameter-types", os.map(n => ty.typeForOid(n, -1).getOrElse(n)).mkString("[", ", ", "]"))
                         )
                   _  <- send(ParseMessage(id.value, statement.sql, os))
                   _  <- send(Flush)

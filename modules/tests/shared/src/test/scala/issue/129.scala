@@ -17,6 +17,7 @@ class Test129 extends SkunkTest {
   case class Country(name: String, code: String)
   case class City(name: String, district: String)
 
+  @annotation.nowarn
   val q: Query[Void, (Country, Option[City])] =
     sql"""
       SELECT c.name, c.code, k.name, k.district

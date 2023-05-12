@@ -4,18 +4,19 @@ import cats.implicits._
 import skunk._
 import skunk.implicits._
 import skunk.codec.all._
-import natchez.Trace.Implicits.noop
+import org.typelevel.otel4s.trace.Tracer
 import fs2.Stream
 val s: Session[IO] = null
+implicit val tracer: Tracer[IO] = Tracer.noop
 ```
 
 # Commands
 
 This section explains how to construct and execute commands.
 
-@@@ note { title=Definition }
+@:callout(info)
 A *command* is a SQL statement that does not return rows.
-@@@
+@:@
 
 ## Simple Command
 
@@ -28,16 +29,16 @@ val a: Command[Void] =
 
 Observe the following:
 
-- We are using the @ref:[sql interpolator](../reference/Fragments.md) to construct a @scaladoc[Fragment](skunk.Fragment), which we then turn into a @scaladoc[Command](skunk.Command) by calling the `command` method.
+- We are using the [sql interpolator](../reference/Fragments.md) to construct a @:api(skunk.Fragment), which we then turn into a @:api(skunk.Command) by calling the `command` method.
 - `Command` is parameterized by its input type. Because this command has no parameters the input type is `Void`.
 
 The command above is a *simple command*.
 
-@@@ note { title=Definition }
+@:callout(info)
 A *simple command* is a command with no parameters.
-@@@
+@:@
 
-The same [protocol](https://www.postgresql.org/docs/10/protocol-flow.html#id-1.10.5.7.4) that executes simple queries also executes simple commands. Such commands can be passed directly to @scaladoc[Session.execute](skunk.Session#execute).
+The same [protocol](https://www.postgresql.org/docs/10/protocol-flow.html#id-1.10.5.7.4) that executes simple queries also executes simple commands. Such commands can be passed directly to @:api(skunk.Session)#execute.
 
 
 ```scala mdoc:compile-only
@@ -45,7 +46,7 @@ The same [protocol](https://www.postgresql.org/docs/10/protocol-flow.html#id-1.1
 s.execute(a) // IO[Completion]
 ```
 
-On success a command will yield a @scaladoc[Completion](skunk.data.Completion), which is an ADT that encodes responses from various commands. In this case our completion is simply the value `Completion.Set`.
+On success a command will yield a @:api(skunk.data.Completion), which is an ADT that encodes responses from various commands. In this case our completion is simply the value `Completion.Set`.
 
 ## Parameterized Command
 
@@ -60,9 +61,9 @@ Observe that we have interpolated a value called `varchar`, which has type `Enco
 
 The command above is an *extended command*.
 
-@@@ note { title=Definition }
+@:callout(warning)
 An *extended command* is a command with parameters, or a simple command that is executed via the extended query protocol.
-@@@
+@:@
 
 The same protocol Postgres provides for executing extended queries is also used for extended commands, but because the return value is always a single `Completion` the end-user API is more limited.
 
@@ -107,11 +108,11 @@ val update2: Command[Info] =
     UPDATE country
     SET    headofstate = $varchar
     WHERE  code = ${bpchar(3)}
-  """.command                                          // Command[String ~ String]
-     .contramap { case Info(code, hos) => code ~ hos } // Command[Info]
+  """.command                                                         // Command[String *: String *: EmptyTuple]
+     .contramap { case Info(code, hos) => code *: hos *: EmptyTuple } // Command[Info]
 ```
 
-However in this case the mapping is entirely mechanical. Similar to `gmap` on query results, we can skip the boilerplate and `gcontramap` directly to an isomosphic case class.
+However in this case the mapping is entirely mechanical. Similar to `to` on query results, we can skip the boilerplate and `to` directly to an isomosphic case class.
 
 ```scala mdoc
 val update3: Command[Info] =
@@ -119,8 +120,8 @@ val update3: Command[Info] =
     UPDATE country
     SET    headofstate = $varchar
     WHERE  code = ${bpchar(3)}
-  """.command          // Command[String ~ String]
-     .gcontramap[Info] // Command[Info]
+  """.command  // Command[String *: String *: EmptyTuple]
+     .to[Info] // Command[Info]
 ```
 
 ## List Parameters
@@ -195,7 +196,7 @@ Here is a complete program listing that demonstrates our knowledge thus far, usi
 import cats.Monad
 import cats.effect._
 import cats.syntax.all._
-import natchez.Trace.Implicits.noop
+import org.typelevel.otel4s.trace.Tracer
 import skunk._
 import skunk.codec.all._
 import skunk.implicits._
@@ -217,19 +218,19 @@ object PetService {
   private val insertOne: Command[Pet] =
     sql"INSERT INTO pets VALUES ($varchar, $int2)"
       .command
-      .gcontramap[Pet]
+      .to[Pet]
 
   // command to insert a specific list of pets
   private def insertMany(ps: List[Pet]): Command[ps.type] = {
-    val enc = (varchar ~ int2).gcontramap[Pet].values.list(ps)
+    val enc = (varchar *: int2).to[Pet].values.list(ps)
     sql"INSERT INTO pets VALUES $enc".command
   }
 
   // query to select all pets
   private val all: Query[Void, Pet] =
     sql"SELECT name, age FROM pets"
-      .query(varchar ~ int2)
-      .gmap[Pet]
+      .query(varchar *: int2)
+      .to[Pet]
 
   // construct a PetService
   def fromSession[F[_]: Monad](s: Session[F]): PetService[F] =
@@ -242,6 +243,8 @@ object PetService {
 }
 
 object CommandExample extends IOApp {
+
+  implicit val tracer: Tracer[IO] = Tracer.noop
 
   // a source of sessions
   val session: Resource[IO, Session[IO]] =

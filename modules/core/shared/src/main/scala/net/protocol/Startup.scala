@@ -6,7 +6,9 @@ package skunk.net.protocol
 
 import cats.{ApplicativeError, MonadError}
 import cats.syntax.all._
-import natchez.Trace
+import org.typelevel.otel4s.Attribute
+import org.typelevel.otel4s.trace.Span
+import org.typelevel.otel4s.trace.Tracer
 import scala.util.control.NonFatal
 import scodec.bits.ByteVector
 import skunk.net.MessageSocket
@@ -25,18 +27,18 @@ trait Startup[F[_]] {
 
 object Startup extends StartupCompanionPlatform {
 
-  def apply[F[_]: Exchange: MessageSocket: Trace](
+  def apply[F[_]: Exchange: MessageSocket: Tracer](
     implicit ev: MonadError[F, Throwable]
   ): Startup[F] =
     new Startup[F] {
       override def apply(user: String, database: String, password: Option[String], parameters: Map[String, String]): F[Unit] =
-        exchange("startup") {
+        exchange("startup") { (span: Span[F]) =>
           val sm = StartupMessage(user, database, parameters)
           for {
-            _ <- Trace[F].put(
-                   "user"     -> user,
-                   "database" -> database
-                 )
+            _ <- span.addAttributes(
+              Attribute("user", user),
+              Attribute("database", database)
+            )
             _ <- send(sm)
             _ <- flatExpectStartup(sm) {
                     case AuthenticationOk                => ().pure[F]
@@ -58,13 +60,13 @@ object Startup extends StartupCompanionPlatform {
     }
 
   // already inside an exchange
-  private def authenticationCleartextPassword[F[_]: MessageSocket: Trace](
+  private def authenticationCleartextPassword[F[_]: MessageSocket: Tracer](
     sm:       StartupMessage,
     password: Option[String]
   )(
     implicit ev: MonadError[F, Throwable]
   ): F[Unit] =
-    Trace[F].span("authenticationCleartextPassword") {
+    Tracer[F].span("authenticationCleartextPassword").surround {
       requirePassword[F](sm, password).flatMap { pw =>
         for {
           _ <- send(PasswordMessage.cleartext(pw))
@@ -73,14 +75,14 @@ object Startup extends StartupCompanionPlatform {
       }
     }
 
-  private def authenticationMD5Password[F[_]: MessageSocket: Trace](
+  private def authenticationMD5Password[F[_]: MessageSocket: Tracer](
     sm:       StartupMessage,
     password: Option[String],
     salt:     Array[Byte]
   )(
     implicit ev: MonadError[F, Throwable]
   ): F[Unit] =
-    Trace[F].span("authenticationMD5Password") {
+    Tracer[F].span("authenticationMD5Password").surround {
       requirePassword[F](sm, password).flatMap { pw =>
         for {
           _ <- send(PasswordMessage.md5(sm.user, pw, salt))

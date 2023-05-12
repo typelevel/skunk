@@ -6,12 +6,14 @@ package example
 
 import cats.effect._
 import cats.implicits._
+import org.typelevel.otel4s.trace.Tracer
 import skunk._
 import skunk.implicits._
 import skunk.codec.all._
-import natchez.Trace.Implicits.noop
 
 object AppliedFragments extends IOApp {
+
+  implicit val tracer: Tracer[IO] = Tracer.noop
 
   val session: Resource[IO, Session[IO]] =
     Session.single(
@@ -52,14 +54,14 @@ object AppliedFragments extends IOApp {
   }
 
   case class Country(name: String, pop: Int, capital: Option[Int])
-  val country = (varchar ~ int4 ~ int4.opt).gimap[Country]
+  val country = (varchar *: int4 *: int4.opt).to[Country]
 
   def topFive(s: Session[IO], name: Option[String], pop: Option[Int], capital: Option[Option[String]]): IO[Unit] =
     for {
-      _  <- IO(println(s"\nargs: $name, $pop, $capital"))
+      _  <- IO.println(s"\nargs: $name, $pop, $capital")
       af  = countryQuery(name, pop, capital)
-      _ <- IO(println(af.fragment.sql))
-      _ <- s.prepare(af.fragment.query(country)).flatMap(_.stream(af.argument, 64).take(5).evalMap(c => IO(println(c))).compile.drain)
+      _ <- IO.println(af.fragment.sql)
+      _ <- s.prepare(af.fragment.query(country)).flatMap(_.stream(af.argument, 64).take(5).evalMap(c => IO.println(c)).compile.drain)
     } yield ()
 
   def run(args: List[String]): IO[ExitCode] =

@@ -12,7 +12,9 @@ import skunk.net.message.{ Bind => BindMessage, Close => _, _ }
 import skunk.net.MessageSocket
 import skunk.net.Protocol.{ PreparedStatement, PortalId }
 import skunk.util.{ Origin, Namer }
-import natchez.Trace
+import org.typelevel.otel4s.Attribute
+import org.typelevel.otel4s.trace.Span
+import org.typelevel.otel4s.trace.Tracer
 
 trait Bind[F[_]] {
 
@@ -26,7 +28,7 @@ trait Bind[F[_]] {
 
 object Bind {
 
-  def apply[F[_]: Exchange: MessageSocket: Namer: Trace](
+  def apply[F[_]: Exchange: MessageSocket: Namer: Tracer](
     implicit ev: MonadError[F, Throwable]
   ): Bind[F] =
     new Bind[F] {
@@ -37,14 +39,14 @@ object Bind {
         argsOrigin: Origin
       ): Resource[F, PortalId] =
         Resource.make {
-          exchange("bind") {
+          exchange("bind") { (span: Span[F]) =>
             for {
               pn <- nextName("portal").map(PortalId(_))
               ea  = statement.statement.encoder.encode(args) // encoded args
-              _  <- Trace[F].put(
-                      "arguments" -> ea.map(_.orNull).mkString(","),
-                      "portal-id" -> pn.value
-                    )
+              _  <- span.addAttributes(
+                Attribute("arguments", ea.map(_.orNull).mkString(",")),
+                Attribute("portal-id", pn.value)
+              )
               _  <- send(BindMessage(pn.value, statement.id.value, ea))
               _  <- send(Flush)
               _  <- flatExpect {

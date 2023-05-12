@@ -6,9 +6,12 @@ package tests.issue
 
 import cats.effect._
 import skunk._
-import natchez.Trace.Implicits.noop
+import org.typelevel.otel4s.trace.Tracer
 
 class Test238 extends ffstest.FTest {
+
+  implicit val tracer: Tracer[IO] = Tracer.noop
+
 
   test("see (https://github.com/functional-streams-for-scala/fs2/pull/1989)") {
     Session.single[IO](

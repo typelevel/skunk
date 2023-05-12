@@ -5,6 +5,7 @@
 package skunk
 
 import cats.Contravariant
+import org.typelevel.twiddles.Iso
 import skunk.util.Origin
 import skunk.util.Twiddler
 
@@ -18,7 +19,7 @@ import skunk.util.Twiddler
  * interpolator.
  *
  * {{{
- * sql"INSERT INTO foo VALUES ($int2, $varchar)".command // Command[Short ~ String]
+ * sql"INSERT INTO foo VALUES ($int2, $varchar)".command // Command[(Short, String)]
  * }}}
  *
  * @param sql A SQL statement returning no rows.
@@ -44,8 +45,12 @@ final case class Command[A](
   def contramap[B](f: B => A): Command[B] =
     Command(sql, origin, encoder.contramap(f))
 
+  @deprecated("Use .to[CaseClass] instead of .gcontramap[CaseClass]", "0.6")
   def gcontramap[B](implicit ev: Twiddler.Aux[B, A]): Command[B] =
     contramap(ev.to)
+
+  def to[B](implicit ev: Iso[A, B]): Command[B] =
+    contramap(ev.from)
 
   def cacheKey: Statement.CacheKey =
     Statement.CacheKey(sql, encoder.types, Nil)

@@ -13,7 +13,7 @@ import skunk.{ Command, Query, Statement, ~, Void }
 import skunk.data._
 import skunk.util.{ Namer, Origin }
 import skunk.util.Typer
-import natchez.Trace
+import org.typelevel.otel4s.trace.Tracer
 import fs2.io.net.{ SocketGroup, SocketOption }
 import skunk.net.protocol.Describe
 import scala.concurrent.duration.Duration
@@ -196,7 +196,7 @@ object Protocol {
    * @param host  Postgres server host
    * @param port  Postgres port, default 5432
    */
-  def apply[F[_]: Temporal: Trace: Console](
+  def apply[F[_]: Temporal: Tracer: Console](
     host:         String,
     port:         Int,
     debug:        Boolean,
@@ -213,7 +213,7 @@ object Protocol {
       p   <- Resource.eval(fromMessageSocket(bms, nam, describeCache, parseCache))
     } yield p
 
-  def fromMessageSocket[F[_]: Concurrent: Trace](
+  def fromMessageSocket[F[_]: Concurrent: Tracer](
     bms: BufferedMessageSocket[F],
     nam: Namer[F],
     dc:  Describe.Cache[F],

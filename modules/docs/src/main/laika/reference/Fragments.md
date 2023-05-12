@@ -1,4 +1,4 @@
-```scala mdoc:nest:invisible
+```scala mdoc:invisible
 import cats.syntax.all._
 import cats.effect._
 import skunk._
@@ -36,17 +36,17 @@ extended query protocol. **Skunk never interpolates statement arguments.**
 Some encoder combinators have an effect on the SQL that is generated when they are interpolated. In
 the examples below we will use `Fragment`'s `sql` member for clarity.
 
-Interpolating an encoder **product** (as constructed with `~` for instance) yields a
+Interpolating an encoder **product** (as constructed with `*:` for instance) yields a
 comma-separated sequence of parameters in the resulting SQL.
 
 ```scala mdoc
-sql"foo ${int4 ~ varchar} bar".sql
+sql"foo ${int4 *: varchar} bar".sql
 ```
 
 The `values` combinator wraps an encoder's SQL in parentheses.
 
 ```scala mdoc
-sql"foo ${(int4 ~ varchar).values} bar".sql
+sql"foo ${(int4 *: varchar).values} bar".sql
 ```
 
 The `list` combinator yields a sequence of parameters, one per element (this is why we must know
@@ -59,7 +59,7 @@ sql"foo ${int4.list(4)} bar".sql
 When used in combination these can be quite useful.
 
 ```scala mdoc
-sql"INSERT ... VALUES ${(int4 ~ varchar).values.list(3)}".sql
+sql"INSERT ... VALUES ${(int4 *: varchar).values.list(3)}".sql
 ```
 
 
@@ -69,10 +69,10 @@ Parameters can only appear in syntactic positions where values can appear (you c
 parameter in place of a table name for instance). In these cases you can interpolate a literal
 strings, by escaping it with `#$`.
 
-@@@warning
+@:callout(warning)
 Interpolating a literal string into a `Fragment` is a SQL injection risk. Never interpolate values
 that have been supplied by the user.
-@@@
+@:@
 
 Here is an example with an iterpolated literal string, as well as a normal parameter.
 
@@ -96,7 +96,7 @@ val f4 = sql"SELECT $int4, foo FROM blah WHERE "
 
 val f5 = sql"bar = $varchar"
 
-val f6 = f4 ~ f5
+val f6 = f4 *: f5
 ```
 
 Alternatively we can interpolate fragments inside one another.
@@ -112,7 +112,7 @@ Note how the output type is computed, and parameters are renumbered as necessary
 
 ## Contramapping Fragments
 
-Fragments form a contravariant semigroupal functor, and this can be tupled (with `~` as above) and
+Fragments form a contravariant semigroupal functor, and this can be tupled (with `*:` as above) and
 can be contramapped to change their input type.
 
 ```scala mdoc
@@ -122,6 +122,9 @@ val f9 = sql"INSERT ... VALUES ($varchar, $int4)"
 
 // note the return type
 val f10 = f9.contramap[Person](p => (p.name, p.age))
+
+// alternatively
+val f11 = f9.to[Person]
 ```
 
 

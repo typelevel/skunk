@@ -5,11 +5,10 @@
 package skunk.exception
 
 import cats.syntax.all._
+import org.typelevel.otel4s.Attribute
 import skunk.data.Type
 import skunk.Query
 import skunk.util.{ CallSite, Origin, Pretty }
-import natchez.Fields
-import natchez.TraceValue
 
 class SkunkException protected[skunk](
   val sql:             Option[String],
@@ -22,41 +21,41 @@ class SkunkException protected[skunk](
   val sqlOrigin:       Option[Origin]               = None,
   val argumentsOrigin: Option[Origin]               = None,
   val callSite:        Option[CallSite]             = None
-) extends Exception(message) with Fields {
+) extends Exception(message)  {
 
-  override def fields: Map[String, TraceValue] = {
+  def fields: List[Attribute[_]] = {
 
-    var map: Map[String, TraceValue] = Map.empty
+    val builder = List.newBuilder[Attribute[_]]
 
-    map += "error.message" -> message
+    builder += Attribute("error.message", message)
 
-    sql     .foreach(a => map += "error.sql"      -> a)
-    position.foreach(a => map += "error.position" -> a)
-    detail  .foreach(a => map += "error.detail"   -> a)
-    hint    .foreach(a => map += "error.hint"     -> a)
+    sql     .foreach(a => builder += Attribute("error.sql"      , a))
+    position.foreach(a => builder += Attribute("error.position"   , a.toLong))
+    detail  .foreach(a => builder += Attribute("error.detail"   , a))
+    hint    .foreach(a => builder += Attribute("error.hint"     , a))
 
     (arguments.zipWithIndex).foreach { case ((typ, os), n) =>
-      map += s"error.argument.${n + 1}.type"  -> typ.name
-      map += s"error.argument.${n + 1}.value" -> os.getOrElse[String]("NULL")
+      builder += Attribute(s"error.argument.${n + 1}.type"  , typ.name)
+      builder += Attribute(s"error.argument.${n + 1}.value" , os.getOrElse[String]("NULL"))
     }
 
     sqlOrigin.foreach { o =>
-      map += "error.sqlOrigin.file" -> o.file
-      map += "error.sqlOrigin.line" -> o.line
+      builder += Attribute("error.sqlOrigin.file" , o.file)
+      builder += Attribute("error.sqlOrigin.line" , o.line.toLong)
     }
 
     argumentsOrigin.foreach { o =>
-      map += "error.argumentsOrigin.file" -> o.file
-      map += "error.argumentsOrigin.line" -> o.line
+      builder += Attribute("error.argumentsOrigin.file" , o.file)
+      builder += Attribute("error.argumentsOrigin.line" , o.line.toLong)
     }
 
     callSite.foreach { cs =>
-      map += "error.callSite.origin.file"   -> cs.origin.file
-      map += "error.callSite.origin.line"   -> cs.origin.line
-      map += "error.callSite.origin.method" -> cs.methodName
+      builder += Attribute("error.callSite.origin.file"   , cs.origin.file)
+      builder += Attribute("error.callSite.origin.line"   , cs.origin.line.toLong)
+      builder += Attribute("error.callSite.origin.method" , cs.methodName)
     }
 
-    map
+    builder.result()
   }
 
   protected def title: String =
