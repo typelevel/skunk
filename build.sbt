@@ -142,6 +142,7 @@ lazy val refined = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(commonSettings)
   .settings(
+    name := "skunk-refined",
     libraryDependencies ++= Seq(
       "eu.timepit" %%% "refined" % "0.10.3",
     )
