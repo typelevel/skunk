@@ -17,7 +17,7 @@ If you wish to use your own Postgres server you can download `world/world.sql` f
 Create a new project with Skunk as a dependency.
 
 ```scala
-libraryDependencies += "org.tpolecat" %% "skunk-refined" % "@VERSION@"
+libraryDependencies += "org.tpolecat" %% "skunk-core" % "@VERSION@"
 ```
 
 ## IDE Setup
@@ -36,10 +36,9 @@ import skunk._
 import skunk.implicits._
 import skunk.codec.all._
 import org.typelevel.otel4s.trace.Tracer
+import natchez.Trace.Implicits.noop                          // (1)
 
 object Hello extends IOApp {
-
-  implicit val tracer: Tracer[IO] = Tracer.noop              // (1)
 
   val session: Resource[IO, Session[IO]] =
     Session.single(                                          // (2)
@@ -63,7 +62,7 @@ object Hello extends IOApp {
 
 Let's examine the code above.
 
-- At ① we define the no-op `Tracer`, which allows us to run Skunk programs with execution tracing disabled. We will revisit [Tracing](Tracing.md) in a later section.
+- At ① we import the no-op `Tracer`, which allows us to run Skunk programs with execution tracing disabled. We will revisit [Tracing](Tracing.md) in a later section.
 - At ② we define a [Resource](https://typelevel.org/cats-effect/datatypes/resource.html) that yields un-pooled [Session](../reference/Sessions.md) values and ensures that they are closed after use. We specify the host, port, user, database, and password (see [Session](../reference/Sessions.md) for information on ther connection options).
 - At ③ we `use` the resource, specifying a block to execute during the `Session`'s lifetime. No matter how the block terminates (success, failure, cancellation) the `Session` will be closed properly.
 - At ④ we use the [sql interpolator](../reference/Fragments.md) to construct a `Query` that selects a single column of schema type `date` (yielding `d`, a value of type `java.time.LocalDate`), then we ask the session to execute it, expecting a *unique* value back; i.e., exactly one row.
