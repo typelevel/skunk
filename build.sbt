@@ -13,7 +13,8 @@ ThisBuild / developers   := List(
   Developer("tpolecat", "Rob Norris", "rob_norris@mac.com", url("http://www.tpolecat.org"))
 )
 
-ThisBuild / tlCiReleaseBranches := Seq("main") // publish snapshits on `main`
+ThisBuild / tlCiReleaseBranches += "series/0.6.x"
+ThisBuild / tlSitePublishBranch := Some("series/0.6.x")
 ThisBuild / tlSonatypeUseLegacyHost := false
 ThisBuild / githubWorkflowOSes := Seq("ubuntu-latest")
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("11"))
@@ -140,6 +141,7 @@ lazy val refined = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .enablePlugins(AutomateHeaderPlugin)
   .settings(commonSettings)
   .settings(
+    name := "skunk-refined",
     libraryDependencies ++= Seq(
       "eu.timepit" %%% "refined" % "0.10.3",
     )
