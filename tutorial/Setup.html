@@ -148,10 +148,12 @@
 </span><span class="keyword">import</span><span> </span><span class="identifier">skunk</span><span>.</span><span class="identifier">_</span><span>
 </span><span class="keyword">import</span><span> </span><span class="identifier">skunk</span><span>.</span><span class="identifier">implicits</span><span>.</span><span class="identifier">_</span><span>
 </span><span class="keyword">import</span><span> </span><span class="identifier">skunk</span><span>.</span><span class="identifier">codec</span><span>.</span><span class="identifier">all</span><span>.</span><span class="identifier">_</span><span>
-</span><span class="keyword">import</span><span> </span><span class="identifier">natchez</span><span>.</span><span class="type-name">Trace</span><span>.</span><span class="type-name">Implicits</span><span>.</span><span class="identifier">noop</span><span>                          </span><span class="comment">// (1)                          // (1)
-</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">org</span><span>.</span><span class="identifier">typelevel</span><span>.</span><span class="identifier">otel4s</span><span>.</span><span class="identifier">trace</span><span>.</span><span class="type-name">Tracer</span><span>
+
 </span><span class="keyword">object</span><span> </span><span class="type-name">Hello</span><span> </span><span class="keyword">extends</span><span> </span><span class="type-name">IOApp</span><span> {
 
+  </span><span class="keyword">implicit</span><span> </span><span class="keyword">val</span><span> </span><span class="identifier">tracer</span><span>: </span><span class="type-name">Tracer</span><span>[</span><span class="type-name">IO</span><span>] = </span><span class="type-name">Tracer</span><span>.</span><span class="identifier">noop</span><span>              </span><span class="comment">// (1)
+</span><span>
   </span><span class="keyword">val</span><span> </span><span class="identifier">session</span><span>: </span><span class="type-name">Resource</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Session</span><span>[</span><span class="type-name">IO</span><span>]] =
     </span><span class="type-name">Session</span><span>.</span><span class="identifier">single</span><span>(                                          </span><span class="comment">// (2)
 </span><span>      </span><span class="identifier">host</span><span>     = </span><span class="string-literal">&quot;localhost&quot;</span><span>,
@@ -172,7 +174,7 @@
 }</span></code></pre>
         <p>Let&#39;s examine the code above.</p>
         <ul>
-          <li>At ① we import the no-op <code>Tracer</code>, which allows us to run Skunk programs with execution tracing disabled. We will revisit <a href="Tracing.html">Tracing</a> in a later section.</li>
+          <li>At ① we define the no-op <code>Tracer</code>, which allows us to run Skunk programs with execution tracing disabled. We will revisit <a href="Tracing.html">Tracing</a> in a later section.</li>
           <li>At ② we define a <a href="https://typelevel.org/cats-effect/datatypes/resource.html">Resource</a> that yields un-pooled <a href="../reference/Sessions.html">Session</a> values and ensures that they are closed after use. We specify the host, port, user, database, and password (see <a href="../reference/Sessions.html">Session</a> for information on ther connection options).</li>
           <li>At ③ we <code>use</code> the resource, specifying a block to execute during the <code>Session</code>&#39;s lifetime. No matter how the block terminates (success, failure, cancellation) the <code>Session</code> will be closed properly.</li>
           <li>At ④ we use the <a href="../reference/Fragments.html">sql interpolator</a> to construct a <code>Query</code> that selects a single column of schema type <code>date</code> (yielding <code>d</code>, a value of type <code>java.time.LocalDate</code>), then we ask the session to execute it, expecting a <em>unique</em> value back; i.e., exactly one row.</li>

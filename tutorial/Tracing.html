@@ -125,12 +125,12 @@
       <main class="content">
 
         <h1 id="tracing" class="title">Tracing</h1>
-        <p>Skunk uses structured tracing instead of logging, using the <a href="https://github.com/tpolecat/natchez">Natchez Trace</a> tracing library.</p>
+        <p>Skunk uses structured tracing instead of logging, using the <a href="https://github.com/typelevel/otel4s">otel4s</a> tracing library.</p>
         
         <h2 id="i-don-t-care" class="section">I Don&#39;t Care<a class="anchor-link right" href="#i-don-t-care"><i class="icofont-laika">&#xef71;</i></a></h2>
         <p>If you don&#39;t care about tracing you have two choices:</p>
         <ul>
-          <li>Use the <strong>no-op tracer</strong> to disable tracing entirely.</li>
+          <li>Use the <strong>no-op tracer</strong> to disable tracing entirely (<code>org.typelevel.otel4s.Tracer.noop</code>).</li>
           <li>Use the <strong>log tracer</strong> to log completed traces to a <a href="https://typelevel.org/log4cats/">log4cats</a> logger.</li>
         </ul>
         
