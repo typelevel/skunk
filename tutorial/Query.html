@@ -430,7 +430,7 @@
 </span><span class="keyword">import</span><span> </span><span class="identifier">skunk</span><span>.</span><span class="identifier">implicits</span><span>.</span><span class="identifier">_</span><span>
 </span><span class="keyword">import</span><span> </span><span class="identifier">skunk</span><span>.</span><span class="identifier">codec</span><span>.</span><span class="identifier">all</span><span>.</span><span class="identifier">_</span><span>
 </span><span class="keyword">import</span><span> </span><span class="identifier">java</span><span>.</span><span class="identifier">time</span><span>.</span><span class="type-name">OffsetDateTime</span><span>
-</span><span class="keyword">implicit</span><span> </span><span class="keyword">def</span><span> </span><span class="declaration-name">dummyTrace</span><span>: </span><span class="identifier">org</span><span>.</span><span class="identifier">typelevel</span><span>.</span><span class="identifier">otel4s</span><span>.</span><span class="identifier">trace</span><span>.</span><span class="type-name">Tracer</span><span>[</span><span class="type-name">IO</span><span>] = </span><span class="identifier">org</span><span>.</span><span class="identifier">typelevel</span><span>.</span><span class="identifier">otel4s</span><span>.</span><span class="identifier">trace</span><span>.</span><span class="type-name">Tracer</span><span>.</span><span class="identifier">noop</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">natchez</span><span>.</span><span class="type-name">Trace</span><span>.</span><span class="type-name">Implicits</span><span>.</span><span class="identifier">noop</span><span>
 
 </span><span class="keyword">object</span><span> </span><span class="type-name">QueryExample</span><span> </span><span class="keyword">extends</span><span> </span><span class="type-name">IOApp</span><span> {
 
@@ -486,7 +486,7 @@
 
 }</span></code></pre>
         <p>Running this program yields the following.</p>
-        <pre><code>timestamp is 2023-05-12T11:37:35.992111Z
+        <pre><code>timestamp is 2023-05-23T11:24:14.816826Z
 Country(United Arab Emirates,ARE,2441000)
 Country(United Kingdom,GBR,59623400)
 Country(Uganda,UGA,21778000)
@@ -504,7 +504,7 @@ Country(United States Minor Outlying Islands,UMI,0)</code></pre>
 </span><span class="keyword">import</span><span> </span><span class="identifier">skunk</span><span>.</span><span class="identifier">implicits</span><span>.</span><span class="identifier">_</span><span>
 </span><span class="keyword">import</span><span> </span><span class="identifier">skunk</span><span>.</span><span class="identifier">codec</span><span>.</span><span class="identifier">all</span><span>.</span><span class="identifier">_</span><span>
 </span><span class="keyword">import</span><span> </span><span class="identifier">java</span><span>.</span><span class="identifier">time</span><span>.</span><span class="type-name">OffsetDateTime</span><span>
-</span><span class="keyword">import</span><span> </span><span class="identifier">org</span><span>.</span><span class="identifier">typelevel</span><span>.</span><span class="identifier">otel4s</span><span>.</span><span class="identifier">trace</span><span>.</span><span class="type-name">Tracer</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">natchez</span><span>.</span><span class="type-name">Trace</span><span>.</span><span class="type-name">Implicits</span><span>.</span><span class="identifier">noop</span><span>
 </span><span class="keyword">import</span><span> </span><span class="identifier">fs2</span><span>.</span><span class="type-name">Stream</span><span>
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="type-name">Applicative</span><span>
 
@@ -547,8 +547,6 @@ Country(United States Minor Outlying Islands,UMI,0)</code></pre>
 
 </span><span class="keyword">object</span><span> </span><span class="type-name">QueryExample2</span><span> </span><span class="keyword">extends</span><span> </span><span class="type-name">IOApp</span><span> {
 
-  </span><span class="keyword">implicit</span><span> </span><span class="keyword">val</span><span> </span><span class="identifier">tracer</span><span>: </span><span class="type-name">Tracer</span><span>[</span><span class="type-name">IO</span><span>] = </span><span class="type-name">Tracer</span><span>.</span><span class="identifier">noop</span><span>
-
   </span><span class="comment">// a source of sessions
 </span><span>  </span><span class="keyword">val</span><span> </span><span class="identifier">session</span><span>: </span><span class="type-name">Resource</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Session</span><span>[</span><span class="type-name">IO</span><span>]] =
     </span><span class="type-name">Session</span><span>.</span><span class="identifier">single</span><span>(
@@ -577,7 +575,7 @@ Country(United States Minor Outlying Islands,UMI,0)</code></pre>
 
 }</span></code></pre>
         <p>Running this program yields the same output as above.</p>
-        <pre><code>timestamp is 2023-05-12T11:37:36.158636Z
+        <pre><code>timestamp is 2023-05-23T11:24:14.972302Z
 Country(United Arab Emirates,ARE,2441000)
 Country(United Kingdom,GBR,59623400)
 Country(Uganda,UGA,21778000)

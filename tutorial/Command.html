@@ -141,7 +141,7 @@
   </span><span class="string-literal">sql&quot;SET SEED TO 0.123&quot;</span><span>.</span><span class="identifier">command</span><span>
 </span><span class="comment">// a: Command[Void] = Command(
 //   sql = &quot;SET SEED TO 0.123&quot;,
-//   origin = Origin(file = &quot;Command.md&quot;, line = 39),
+//   origin = Origin(file = &quot;Command.md&quot;, line = 33),
 //   encoder = Codec(void)
 // )</span></code></pre>
         <p>Observe the following:</p>
@@ -165,7 +165,7 @@
   </span><span class="string-literal">sql&quot;DELETE FROM country WHERE name = </span><span class="substitution">$varchar</span><span class="string-literal">&quot;</span><span>.</span><span class="identifier">command</span><span>
 </span><span class="comment">// c: Command[String] = Command(
 //   sql = &quot;DELETE FROM country WHERE name = $1&quot;,
-//   origin = Origin(file = &quot;Command.md&quot;, line = 57),
+//   origin = Origin(file = &quot;Command.md&quot;, line = 51),
 //   encoder = Codec(varchar)
 // )</span></code></pre>
         <p>Observe that we have interpolated a value called <code>varchar</code>, which has type <code>Encoder[String]</code>. This works the same way as with queries. See the previous chapter for more information about statement parameters.</p>
@@ -210,7 +210,7 @@
 //     SET    headofstate = $1
 //     WHERE  code = $2
 //   &quot;&quot;&quot;,
-//   origin = Origin(file = &quot;Command.md&quot;, line = 108),
+//   origin = Origin(file = &quot;Command.md&quot;, line = 102),
 //   encoder = Encoder(varchar, bpchar(3))
 // )</span></code></pre>
         <p>However in this case the mapping is entirely mechanical. Similar to <code>to</code> on query results, we can skip the boilerplate and <code>to</code> directly to an isomosphic case class.</p>
@@ -227,7 +227,7 @@
 //     SET    headofstate = $1
 //     WHERE  code = $2
 //   &quot;&quot;&quot;,
-//   origin = Origin(file = &quot;Command.md&quot;, line = 120),
+//   origin = Origin(file = &quot;Command.md&quot;, line = 114),
 //   encoder = Encoder(varchar, bpchar(3))
 // )</span></code></pre>
         
@@ -239,7 +239,7 @@
 </span><span class="keyword">val</span><span> </span><span class="identifier">delete3</span><span> = </span><span class="identifier">deleteMany</span><span>(</span><span class="number-literal">3</span><span>) </span><span class="comment">// takes a list of size 3
 // delete3: Command[List[String]] = Command(
 //   sql = &quot;DELETE FROM country WHERE name IN ($1, $2, $3)&quot;,
-//   origin = Origin(file = &quot;Command.md&quot;, line = 132),
+//   origin = Origin(file = &quot;Command.md&quot;, line = 126),
 //   encoder = Encoder(varchar, varchar, varchar)
 // )</span></code></pre>
         <p>Sometimes we want to repeat a <em>group</em> of parameters, for instance if we&#39;re doing a bulk <code>INSERT</code>. To do this we take advantage of two combinators, first <code>.values</code> which takes an encoder and returns a new encoder that wraps its generated SQL in parens, and then <code>.list</code> as above.</p>
@@ -251,7 +251,7 @@
 </span><span class="keyword">val</span><span> </span><span class="identifier">insert3</span><span> = </span><span class="identifier">insertMany</span><span>(</span><span class="number-literal">3</span><span>)
 </span><span class="comment">// insert3: Command[List[(String, Short)]] = Command(
 //   sql = &quot;INSERT INTO pets VALUES ($1, $2), ($3, $4), ($5, $6)&quot;,
-//   origin = Origin(file = &quot;Command.md&quot;, line = 143),
+//   origin = Origin(file = &quot;Command.md&quot;, line = 137),
 //   encoder = Encoder(varchar, int2, varchar, int2, varchar, int2)
 // )</span></code></pre>
         <p>You have no doubt noticed that there is a lack of safety with list parameters because the required length of the list is not represented in the type. In practice this is usually unavoidable because the length of the list is typically not known statically. However it is <em>also</em> typically the case that the command will be prepared with a specific list in mind, and in this case we can improve safety by passing the list itself (i.e., not just its length) to <code>.list</code>, and we get back an encoder that only works with that specific list.</p>
@@ -267,7 +267,7 @@
 </span><span class="keyword">val</span><span> </span><span class="identifier">insertPairs</span><span> = </span><span class="identifier">insertExactly</span><span>(</span><span class="identifier">pairs</span><span>)
 </span><span class="comment">// insertPairs: Command[pairs.type] = Command(
 //   sql = &quot;INSERT INTO pets VALUES ($1, $2), ($3, $4)&quot;,
-//   origin = Origin(file = &quot;Command.md&quot;, line = 155),
+//   origin = Origin(file = &quot;Command.md&quot;, line = 149),
 //   encoder = Encoder(varchar, int2, varchar, int2)
 // )</span></code></pre>
         <p>We can pass <code>pairs</code> to <code>execute</code>.</p>
@@ -300,7 +300,7 @@
         <pre><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="type-name">Monad</span><span>
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="identifier">_</span><span>
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">syntax</span><span>.</span><span class="identifier">all</span><span>.</span><span class="identifier">_</span><span>
-</span><span class="keyword">import</span><span> </span><span class="identifier">org</span><span>.</span><span class="identifier">typelevel</span><span>.</span><span class="identifier">otel4s</span><span>.</span><span class="identifier">trace</span><span>.</span><span class="type-name">Tracer</span><span>
+</span><span class="keyword">import</span><span> </span><span class="identifier">natchez</span><span>.</span><span class="type-name">Trace</span><span>.</span><span class="type-name">Implicits</span><span>.</span><span class="identifier">noop</span><span>
 </span><span class="keyword">import</span><span> </span><span class="identifier">skunk</span><span>.</span><span class="identifier">_</span><span>
 </span><span class="keyword">import</span><span> </span><span class="identifier">skunk</span><span>.</span><span class="identifier">codec</span><span>.</span><span class="identifier">all</span><span>.</span><span class="identifier">_</span><span>
 </span><span class="keyword">import</span><span> </span><span class="identifier">skunk</span><span>.</span><span class="identifier">implicits</span><span>.</span><span class="identifier">_</span><span>
@@ -347,8 +347,6 @@
 }
 
 </span><span class="keyword">object</span><span> </span><span class="type-name">CommandExample</span><span> </span><span class="keyword">extends</span><span> </span><span class="type-name">IOApp</span><span> {
-
-  </span><span class="keyword">implicit</span><span> </span><span class="keyword">val</span><span> </span><span class="identifier">tracer</span><span>: </span><span class="type-name">Tracer</span><span>[</span><span class="type-name">IO</span><span>] = </span><span class="type-name">Tracer</span><span>.</span><span class="identifier">noop</span><span>
 
   </span><span class="comment">// a source of sessions
 </span><span>  </span><span class="keyword">val</span><span> </span><span class="identifier">session</span><span>: </span><span class="type-name">Resource</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Session</span><span>[</span><span class="type-name">IO</span><span>]] =
