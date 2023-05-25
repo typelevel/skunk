@@ -3,11 +3,6 @@ services:
   # main instance for testing
   postgres:
     image: postgres:11
-    volumes:
-      - ./world/fix_perms.sh:/docker-entrypoint-initdb.d/fix_perms.sh
-      - ./world/world.sql:/docker-entrypoint-initdb.d/world.sql
-      - ./world/ltree.sql:/docker-entrypoint-initdb.d/ltree.sql
-      - ./world/config.sql:/docker-entrypoint-initdb.d/config.sql
     ports:
       - 5432:5432
     environment:
