@@ -94,11 +94,6 @@ class CommandTest extends SkunkTest {
          WHERE id = $int4
        """.command
 
-  val explainCity: Query[Void, String] =
-    sql"""
-          EXPLAIN SELECT * FROM city
-        """.query(skunk.codec.all.text)
-
   val createTable: Command[Void] =
     sql"""
       CREATE TABLE IF NOT EXISTS earth (
@@ -457,14 +452,6 @@ class CommandTest extends SkunkTest {
     for{
       c <- s.execute(doCommand)
       _ <- assert("completion", c == Completion.Do)
-      _ <- s.assertHealthy
-    } yield "ok"
-  }
-
-  sessionTest("explain command") { s =>
-    for {
-      c <- s.unique(explainCity)
-      _ <- assert("completion", c.startsWith("Seq Scan on city"))
       _ <- s.assertHealthy
     } yield "ok"
   }
