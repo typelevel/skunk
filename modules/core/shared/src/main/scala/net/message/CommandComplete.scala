@@ -100,6 +100,7 @@ object CommandComplete {
     case "SET CONSTRAINTS"            => apply(Completion.SetConstraints)
     case "EXPLAIN"                    => apply(Completion.Explain)
     case "GRANT"                      => apply(Completion.Grant)
+    case "REVOKE"                     => apply(Completion.Revoke)
     // more .. fill in as we hit them
 
     case s                  => apply(Completion.Unknown(s))

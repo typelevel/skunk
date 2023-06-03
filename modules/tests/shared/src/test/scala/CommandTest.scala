@@ -312,6 +312,13 @@ class CommandTest extends SkunkTest {
         TO skunk_role
        """.command
 
+  val revoke: Command[Void] =
+    sql"""
+        REVOKE ALL PRIVILEGES
+        ON ALL TABLES IN SCHEMA public
+        FROM skunk_role
+       """.command
+
   sessionTest("create table, create index, drop index, alter table and drop table") { s =>
     for {
       c <- s.execute(createTable)
@@ -535,11 +542,13 @@ class CommandTest extends SkunkTest {
       .as("ok")
   }
 
-  sessionTest("grant") { s =>
+  sessionTest("grant, revoke") { s =>
     for{
       _ <- s.execute(createRole)
       c <- s.execute(grant)
       _ <- assert("completion", c == Completion.Grant)
+      c <- s.execute(revoke)
+      _ <- assert("completion", c == Completion.Revoke)
       _ <- s.execute(dropRole)
       _ <- s.assertHealthy
     } yield "ok"
