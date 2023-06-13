@@ -143,7 +143,7 @@ object SkunkException {
       sqlOrigin       = Some(query.origin),
       callSite        = callSite,
       hint            = hint,
-      arguments       = query.encoder.types zip query.encoder.encode(args),
+      arguments       = query.encoder.types zip query.encoder.encodeWithRedaction(args),
       argumentsOrigin = argsOrigin
     )
 

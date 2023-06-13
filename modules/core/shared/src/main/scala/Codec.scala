@@ -29,6 +29,7 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
       private val pe = outer.asEncoder product fb.asEncoder
       private val pd = outer.asDecoder product fb.asDecoder
       override def encode(ab: (A, B)): List[Option[String]] = pe.encode(ab)
+      override def encodeWithRedaction(ab: (A, B)): List[Option[String]] = pe.encodeWithRedaction(ab)
       override def decode(offset: Int, ss: List[Option[String]]):Either[Decoder.Error, (A, B)] = pd.decode(offset, ss)
       override val sql: State[Int, String]   = (outer.sql, fb.sql).mapN((a, b) => s"$a, $b")
       override val types: List[Type]         = outer.types ++ fb.types
@@ -55,6 +56,7 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
   override def opt: Codec[Option[A]] =
     new Codec[Option[A]] {
       override def encode(oa: Option[A]): List[Option[String]] = oa.fold(empty)(outer.encode)
+      override def encodeWithRedaction(oa: Option[A]): List[Option[String]] = oa.fold(empty)(outer.encodeWithRedaction)
       override def decode(offset: Int, ss: List[Option[String]]): Either[Decoder.Error, Option[A]] =
         if (ss.forall(_.isEmpty)) Right(None)
         else outer.decode(offset, ss).map(Some(_))
@@ -78,6 +80,7 @@ object Codec extends TwiddleSyntax[Codec] {
   ): Codec[A] =
     new Codec[A] {
       override def encode(a: A): List[Option[String]] = encode0(a)
+      override def encodeWithRedaction(a: A): List[Option[String]] = encode0(a)
       override def decode(offset: Int, ss: List[Option[String]]): Either[Decoder.Error, A] = decode0(offset, ss)
       override val types: List[Type] = oids0
       override val sql: State[Int, String] = State { (n: Int) =>
