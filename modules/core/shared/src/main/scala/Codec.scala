@@ -64,6 +64,17 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
       override val types: List[Type]         = outer.types
     }
 
+  override def redacted: Codec[A] = {
+    val red0 = outer.redacted
+    new Codec[A] {
+      override def encode(a: A): List[Option[String]] = outer.encode(a)
+      override def encodeWithRedaction(a: A): List[Option[String]] = red0.encodeWithRedaction(a)
+      override def decode(offset: Int, ss: List[Option[String]]): Either[Decoder.Error, A] = outer.decode(offset, ss)
+      override val sql: State[Int, String] = outer.sql
+      override val types: List[Type] = outer.types
+    }
+  }
+
   override def toString: String =
     s"Codec(${types.mkString(", ")})"
 
