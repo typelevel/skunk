@@ -61,7 +61,7 @@ ThisBuild / mimaBinaryIssueFilters ++= List(
 )
 
 // This is used in a couple places
-lazy val fs2Version = "3.7.0"
+lazy val fs2Version = "3.8-1580d81"
 lazy val natchezVersion = "0.3.1"
 
 // Global Settings
@@ -194,7 +194,6 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   )
   .nativeEnablePlugins(ScalaNativeBrewedConfigPlugin)
   .nativeSettings(
-    libraryDependencies += "com.armanbilge" %%% "epollcat" % "0.1.4",
     Test / nativeBrewFormulas ++= Set("s2n", "utf8proc"),
     Test / envVars ++= Map("S2N_DONT_MLOCK" -> "1")
   )

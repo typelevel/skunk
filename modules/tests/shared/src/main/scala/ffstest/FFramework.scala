@@ -12,7 +12,7 @@ import natchez.Fields
 import munit.CatsEffectSuite
 import org.typelevel.twiddles._
 
-trait FTest extends CatsEffectSuite with FTestPlatform {
+trait FTest extends CatsEffectSuite {
 
   def pureTest(name: String)(f: => Boolean): Unit = test(name)(assert(name, f))
   def fail[A](msg: String): IO[A] = IO.raiseError(new AssertionError(msg))
