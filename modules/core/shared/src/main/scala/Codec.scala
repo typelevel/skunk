@@ -33,7 +33,6 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
       override def decode(offset: Int, ss: List[Option[String]]):Either[Decoder.Error, (A, B)] = pd.decode(offset, ss)
       override val sql: State[Int, String]   = (outer.sql, fb.sql).mapN((a, b) => s"$a, $b")
       override val types: List[Type]         = outer.types ++ fb.types
-      override val redact: Boolean           = false
     }
 
   /** Shorthand for `product`. Note: consider using `a *: b *: c` instead of `a ~ b ~ c`. */
@@ -47,7 +46,6 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
     override def decode(offset: Int, ss: List[Option[String]]): Either[Decoder.Error, B] = outer.decode(offset, ss).map(f)
     override val sql: State[Int, String]   = outer.sql
     override val types: List[Type]         = outer.types
-    override val redact: Boolean           = outer.redact
   }
 
   /** Contramap inputs from, and map decoded results to a new type `B` or an error, yielding a `Codec[B]`. */
@@ -58,7 +56,6 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
       outer.decode(offset, ss).flatMap(a => f(a).leftMap(Decoder.Error(offset, length, _)))
     override val sql: State[Int, String]   = outer.sql
     override val types: List[Type]         = outer.types
-    override val redact: Boolean           = outer.redact
   }
 
   /** Adapt this `Codec` from twiddle-list type A to isomorphic case-class type `B`. */
@@ -76,7 +73,6 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
         else outer.decode(offset, ss).map(Some(_))
       override val sql: State[Int, String]   = outer.sql
       override val types: List[Type]         = outer.types
-      override val redact: Boolean           = false
     }
 
   override def redacted: Codec[A] = {
@@ -87,7 +83,6 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
       override def decode(offset: Int, ss: List[Option[String]]): Either[Decoder.Error, A] = outer.decode(offset, ss)
       override val sql: State[Int, String] = outer.sql
       override val types: List[Type] = outer.types
-      override val redact: Boolean = true
     }
   }
 
@@ -103,8 +98,7 @@ object Codec extends TwiddleSyntax[Codec] {
   def apply[A](
     encode0: A => List[Option[String]],
     decode0: (Int, List[Option[String]]) => Either[Decoder.Error, A],
-    oids0:   List[Type],
-    redact0: Boolean
+    oids0:   List[Type]
   ): Codec[A] =
     new Codec[A] {
       override def encode(a: A): List[Option[String]] = encode0(a)
@@ -115,7 +109,6 @@ object Codec extends TwiddleSyntax[Codec] {
         val len = types.length
         (n + len, (n until n + len).map(i => s"$$$i").mkString(", "))
       }
-      override val redact: Boolean = redact0
     }
 
   /** @group Constructors */
@@ -127,8 +120,7 @@ object Codec extends TwiddleSyntax[Codec] {
         case None    :: Nil => Left(Decoder.Error(n, 1, s"Unexpected NULL value in non-optional column."))
         case _              => Left(Decoder.Error(n, 1, s"Expected one input value to decode, got ${ss.length}."))
       },
-      List(oid),
-      false
+      List(oid)
     )
 
   /** @group Constructors */
