@@ -37,12 +37,15 @@ trait Encoder[A] { outer =>
     * Like [[encode]] but redacts values that have been marked sensitive with the [[redacted]] method.
     * Suitable for logging / telemetry.
     */
-  def encodeWithRedaction(a: A): List[Option[String]]
+  def encodeWithRedaction(a: A): List[Option[String]] =
+    if (redact) encode(a).as(Some("<redacted>")) else encode(a)
+
+  def redact: Boolean
 
   def redacted: Encoder[A] =
     new Encoder[A] {
       override def encode(a: A): List[Option[String]] = outer.encode(a)
-      override def encodeWithRedaction(a: A): List[Option[String]] = outer.encodeWithRedaction(a).as(Some("<redacted>"))
+      override def redact: Boolean = true
       override val types: List[Type] = outer.types
       override val sql: State[Int, String] = outer.sql
     }
@@ -63,9 +66,9 @@ trait Encoder[A] { outer =>
   def contramap[B](f: B => A): Encoder[B] =
     new Encoder[B] {
       override def encode(b: B): List[Option[String]] = outer.encode(f(b))
-      override def encodeWithRedaction(b: B): List[Option[String]] = outer.encodeWithRedaction(f(b))
       override val types: List[Type] = outer.types
       override val sql: State[Int, String] = outer.sql
+      override def redact: Boolean = outer.redact
     }
 
   /** Adapt this `Encoder` from twiddle-list type A to isomorphic case-class type `B`. */
@@ -77,9 +80,11 @@ trait Encoder[A] { outer =>
   def product[B](fb: Encoder[B]): Encoder[(A, B)] =
     new Encoder[(A, B)] {
       override def encode(ab: (A, B)): List[Option[String]] = outer.encode(ab._1) ++ fb.encode(ab._2)
-      override def encodeWithRedaction(ab: (A, B)): List[Option[String]] = outer.encodeWithRedaction(ab._1) ++ fb.encodeWithRedaction(ab._2)
+      override def encodeWithRedaction(ab: (A, B)): List[Option[String]] =
+        outer.encodeWithRedaction(ab._1) ++ fb.encodeWithRedaction(ab._2)
       override val types: List[Type] = outer.types ++ fb.types
       override val sql: State[Int, String] = (outer.sql, fb.sql).mapN((a, b) => s"$a, $b")
+      override def redact: Boolean = false
     }
 
   /** Shorthand for `product`. */
@@ -91,9 +96,9 @@ trait Encoder[A] { outer =>
   def opt: Encoder[Option[A]] =
     new Encoder[Option[A]] {
       override def encode(a: Option[A]): List[Option[String]] = a.fold(empty)(outer.encode)
-      override def encodeWithRedaction(a: Option[A]): List[Option[String]] = a.fold(empty)(outer.encodeWithRedaction)
       override val types: List[Type] = outer.types
       override val sql: State[Int, String]   = outer.sql
+      override def redact: Boolean = outer.redact
     }
 
   /**
@@ -105,10 +110,10 @@ trait Encoder[A] { outer =>
       // N.B. this is error-prone because we have no static checking on the length. It should be a
       // well-explained runtime error to encode a list of the wrong length. This means we need to
       // encode into Either, as we do with decoding.
-      def encode(as: List[A]) = as.flatMap(outer.encode)
-      def encodeWithRedaction(as: List[A]) = as.flatMap(outer.encodeWithRedaction)
-      val types = (0 until n).toList.flatMap(_ => outer.types)
-      val sql   = outer.sql.replicateA(n).map(_.mkString(", "))
+      override def encode(as: List[A]) = as.flatMap(outer.encode)
+      override val types = (0 until n).toList.flatMap(_ => outer.types)
+      override val sql   = outer.sql.replicateA(n).map(_.mkString(", "))
+      override def redact: Boolean = outer.redact
     }
 
   /**
@@ -125,10 +130,10 @@ trait Encoder[A] { outer =>
    */
   def values: Encoder[A] =
     new Encoder[A] {
-      def encode(a: A): List[Option[String]] = outer.encode(a)
-      def encodeWithRedaction(a: A): List[Option[String]] = outer.encodeWithRedaction(a)
-      val types: List[Type] = outer.types
-      val sql: State[Int,String] = outer.sql.map(s => s"($s)")
+      override def encode(a: A): List[Option[String]] = outer.encode(a)
+      override val types: List[Type] = outer.types
+      override val sql: State[Int,String] = outer.sql.map(s => s"($s)")
+      override def redact: Boolean = outer.redact
     }
 
   // now we can say (int4 ~ varchar ~ bool).values.list(2) to get ($1, $2, $3), ($4, $5, $6)

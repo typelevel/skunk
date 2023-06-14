@@ -24,7 +24,6 @@ case object Void extends Void {
   val codec: Codec[Void] =
     new Codec[Void] {
       override def encode(a: Void): List[Option[String]] = Nil
-      override def encodeWithRedaction(a: Void): List[Option[String]] = Nil
       override def decode(index: Int, ss: List[Option[String]]): Either[Decoder.Error, Void.type ] =
         ss match {
           case Nil => Void.asRight
@@ -32,6 +31,7 @@ case object Void extends Void {
         }
       override val types: List[Type] = Nil
       override val sql: State[Int, String]   = "".pure[State[Int, *]]
+      override val redact: Boolean = false
       override def toString: String = "Codec(void)"
     }
 
