@@ -38,4 +38,41 @@ class EncoderTest extends SkunkTest {
     assertEqual("data", data, Nil)
   }
 
+  val Redacted = Some(Encoder.RedactedText)
+
+  test("redaction - unredacted") {
+    val data = int4.encodeWithRedaction(42)
+    assertEquals(data, List(Some("42")))
+  }
+
+  test("redaction - redacted") {
+    val data = int4.redacted.encodeWithRedaction(42)
+    assertEquals(data, List(Redacted))
+  }
+
+  test("redaction - redacted product") {
+    val data = (int4 ~ int4).redacted.encodeWithRedaction((1, 2))
+    assertEquals(data, List(Redacted, Redacted))
+  }
+
+  test("redaction - product of redacted") {
+    val data = (int4 ~ int4.redacted).encodeWithRedaction((1, 2))
+    assertEquals(data, List(Some("1"), Redacted))
+  }
+
+  test("redaction - contramap") {
+    val data = (int4 ~ int4.redacted).contramap(identity[(Int, Int)]).encodeWithRedaction((1, 2))
+    assertEquals(data, List(Some("1"), Redacted))
+  }
+
+  test("redaction - imap") {
+    val data = (int4 ~ int4.redacted).imap(identity)(identity).encodeWithRedaction((1, 2))
+    assertEquals(data, List(Some("1"), Redacted))
+  }
+
+  test("redaction - to") {
+    case class Point(x: Int, y: Int)
+    val data = (int4 *: int4.redacted).to[Point].encodeWithRedaction(Point(1, 2))
+    assertEquals(data, List(Some("1"), Redacted))
+  }
 }

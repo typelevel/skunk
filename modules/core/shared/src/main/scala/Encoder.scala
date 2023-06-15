@@ -42,7 +42,7 @@ trait Encoder[A] { outer =>
   def redacted: Encoder[A] =
     new Encoder[A] {
       override def encode(a: A): List[Option[String]] = outer.encode(a)
-      override def encodeWithRedaction(a: A): List[Option[String]] = outer.encode(a).as(Some("<redacted>"))
+      override def encodeWithRedaction(a: A): List[Option[String]] = outer.encode(a).as(Some(Encoder.RedactedText))
       override val types: List[Type] = outer.types
       override val sql: State[Int, String] = outer.sql
     }
@@ -141,6 +141,8 @@ trait Encoder[A] { outer =>
 
 /** @group Companions */
 object Encoder extends TwiddleSyntax[Encoder] {
+
+  final val RedactedText: String = "<redacted>"
 
   implicit val ContravariantSemigroupalEncoder: ContravariantSemigroupal[Encoder] =
     new ContravariantSemigroupal[Encoder] {
