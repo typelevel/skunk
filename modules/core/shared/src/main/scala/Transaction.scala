@@ -192,7 +192,7 @@ object Transaction {
         case Failed =>
           ec match {
             // This is the normal failure case
-            case Errored(t)  => doRollback
+            case Errored(_)  => doRollback.void
             // This is possible if you swallow an error
             case Succeeded => doRollback.void
             // This is possible if you swallow an error and the someone cancels the fiber
@@ -205,7 +205,7 @@ object Transaction {
             // If someone cancels the fiber we roll back
             case Canceled  => doRollback.void
             // If an error escapes we roll back
-            case Errored(t)  => doRollback
+            case Errored(_)  => doRollback.void
           }
       }
 
