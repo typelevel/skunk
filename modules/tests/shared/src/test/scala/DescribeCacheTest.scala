@@ -128,6 +128,21 @@ class DescribeCacheTest extends SkunkTest(true) {
       }.flatMap(identity)
     }
   }
+  
+  // This will fail if run enough 
+  pooledTest("portal4 - concurrent portal with flatten *outside tx*") { pool =>
+    import scala.concurrent.duration._
+    def cmd(idx: Int): Command[String *: Int *: EmptyTuple] = sql"INSERT INTO scalars VALUES (${text.varchar}, ${int4}) -- #${idx.toString}".command
+    1.to(runs).toList.parTraverse{ idx =>
+      pool.use { s =>
+        s.transaction.use { _ =>
+          s.prepare(cmd(idx)).flatMap(_.execute((s"name$idx", idx))).map (_ => 
+            IO.sleep(1.second) >> s.prepare(cmd(idx)).flatMap(_.execute((s"name$idx", idx))).void
+          )
+        }
+      }.flatten
+    }
+  }
 
   sessionTest("command should not be cached after cache is cleared") { s =>
     val cmd = sql"commit".command
