@@ -3,6 +3,8 @@
 Twiddle lists are tuples that are built incrementally, element by element, via the `*:` operation. Skunk uses the [Typelevel Twiddles](https://github.com/typelevel/twiddles) library for parameter encoders and row decoders, and via this mechanism twiddle list types appear as type arguments for `Query` and `Command`.
 
 ```scala
+import org.typelevel.twiddles._ // required for Scala 2
+
 val q: Query[Short *: String *: String *: Int *: EmptyTuple] =
   sql"""
     SELECT name, age
