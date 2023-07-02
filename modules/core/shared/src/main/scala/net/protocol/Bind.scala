@@ -43,8 +43,9 @@ object Bind {
             for {
               pn <- nextName("portal").map(PortalId(_))
               ea  = statement.statement.encoder.encode(args) // encoded args
+              ear  = statement.statement.encoder.encodeWithRedaction(args)
               _  <- span.addAttributes(
-                Attribute("arguments", ea.map(_.orNull).mkString(",")),
+                Attribute("arguments", ear.map(_.orNull).mkString(",")),
                 Attribute("portal-id", pn.value)
               )
               _  <- send(BindMessage(pn.value, statement.id.value, ea))
