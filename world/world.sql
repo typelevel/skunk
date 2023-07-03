@@ -7,6 +7,11 @@
 
 CREATE TYPE myenum AS ENUM ('foo', 'bar');
 
+CREATE TABLE IF NOT EXISTS scalars(
+    a_string varchar not null,
+    a_int integer not null
+);
+
 CREATE TABLE IF NOT EXISTS city (
     id integer NOT NULL,
     name varchar NOT NULL,
