@@ -54,7 +54,7 @@ services:
 
   # Jaeger, for tracing
   jaeger:
-    image: jaegertracing/all-in-one:1.8
+    image: jaegertracing/all-in-one:1.35
     ports:
       - 5775:5775/udp
       - 6831:6831/udp
@@ -62,6 +62,7 @@ services:
       - 5778:5778
       - 16686:16686
       - 14268:14268
-      - 9411:9411
+      - 4317:4317
+      - 4318:4318
     environment:
-      COLLECTOR_ZIPKIN_HTTP_PORT: 9411
+      COLLECTOR_OTLP_ENABLED: true

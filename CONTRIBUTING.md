@@ -23,3 +23,5 @@ To run a specific test:
 > sbt
 > test:testOnly tests.simulation.StartupSimTest
 ```
+
+To view spans emitted during test execution, open a browser to http://localhost:16686 and search traces by `Service = SkunkTests`. Alterntively, use http://localhost:16686/search?limit=100&lookback=15m&service=SkunkTests.

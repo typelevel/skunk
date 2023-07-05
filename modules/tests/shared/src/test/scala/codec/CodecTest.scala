@@ -31,10 +31,10 @@ abstract class CodecTest(
   def roundtripTest[A: Eq](codec: Codec[A])(as: A*): Unit = {
 
     // required for parametrized types
-    val sqlString: Fragment[A] = (codec.types match {
+    val sqlString: Fragment[A] = codec.types match {
       case head :: Nil => sql"select $codec::#${head.name}"
       case _           => sql"select $codec"
-    }).asInstanceOf[Fragment[A]] // macro doesn't quite work in dotty yet
+    }
 
     sessionTest(s"${codec.types.mkString(", ")}") { s =>
       s.prepare(sqlString.query(codec)).flatMap { ps =>
