@@ -65,7 +65,7 @@ class Test210 extends SkunkTest {
       } yield ()
     }
 
-  test("issue/210") {
+  tracedTest("issue/210") {
     for {
       ready <- Deferred[IO, Unit]
       done  <- Deferred[IO, Unit]

@@ -25,7 +25,7 @@ class DescribeCacheTest extends SkunkTest {
     }
   }
 
-  test("describe cache should be not shared across sessions from different pools") {
+  tracedTest("describe cache should be not shared across sessions from different pools") {
     (pooled(), pooled()).tupled.use { case (p1, p2) =>
       p1.use { s1 =>
         p2.use { s2 =>

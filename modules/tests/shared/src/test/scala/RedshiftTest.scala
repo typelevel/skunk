@@ -11,11 +11,9 @@ import org.typelevel.otel4s.trace.Tracer
 
 class RedshiftTest extends ffstest.FTest {
 
-  implicit val tracer: Tracer[IO] = Tracer.noop
-
   object X86ArchOnly extends munit.Tag("X86ArchOnly")
 
-  test("redshift - successfully connect".tag(X86ArchOnly)) {
+  tracedTest("redshift - successfully connect".tag(X86ArchOnly)) {
     Session.single[IO](
       host = "localhost",
       user = "postgres",
@@ -26,7 +24,7 @@ class RedshiftTest extends ffstest.FTest {
     ).use(_ => IO.unit)
   }
 
-  test("redshift - cannot connect with default params".tag(X86ArchOnly)) {
+  tracedTest("redshift - cannot connect with default params".tag(X86ArchOnly)) {
     Session.single[IO](
       host = "localhost",
       user = "postgres",

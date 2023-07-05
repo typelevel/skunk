@@ -6,12 +6,9 @@ package tests
 
 import cats.effect._
 import fs2.io.net.tls.SSLException
-import org.typelevel.otel4s.trace.Tracer
 import skunk._
 
 class SslTest extends ffstest.FTest {
-
-  implicit val tracer: Tracer[IO] = Tracer.noop
 
   object Port {
     val Invalid = 5431
@@ -19,7 +16,7 @@ class SslTest extends ffstest.FTest {
     val Trust   = 5433
   }
 
-  test("successful login with SSL.Trusted (ssl available)") {
+  tracedTest("successful login with SSL.Trusted (ssl available)") {
     Session.single[IO](
       host     = "localhost",
       user     = "jimmy",
@@ -29,7 +26,7 @@ class SslTest extends ffstest.FTest {
     ).use(_ => IO.unit)
   }
 
-  test("successful login with SSL.None (ssl available)") {
+  tracedTest("successful login with SSL.None (ssl available)") {
     Session.single[IO](
       host     = "localhost",
       user     = "jimmy",
@@ -39,7 +36,7 @@ class SslTest extends ffstest.FTest {
     ).use(_ => IO.unit)
   }
 
-  test("failed login with SSL.System (ssl available)") {
+  tracedTest("failed login with SSL.System (ssl available)") {
     Session.single[IO](
       host     = "localhost",
       user     = "jimmy",
@@ -50,7 +47,7 @@ class SslTest extends ffstest.FTest {
     ).use(_ => IO.unit).assertFailsWith[SSLException].as("sigh") // TODO! Better failure!
   }
 
-  test("failed login with SSL.Trusted (ssl not available)") {
+  tracedTest("failed login with SSL.Trusted (ssl not available)") {
     Session.single[IO](
       host     = "localhost",
       user     = "postgres",
@@ -60,7 +57,7 @@ class SslTest extends ffstest.FTest {
     ).use(_ => IO.unit).assertFailsWith[Exception].as("ok") // TODO! Better failure!
   }
 
-  test("successful login with SSL.Trusted.withFallback(true) (ssl not available)") {
+  tracedTest("successful login with SSL.Trusted.withFallback(true) (ssl not available)") {
     Session.single[IO](
       host     = "localhost",
       user     = "postgres",
@@ -70,7 +67,7 @@ class SslTest extends ffstest.FTest {
     ).use(_ => IO.unit)
   }
 
-  test("successful login with SSL.None (ssl not available)") {
+  tracedTest("successful login with SSL.None (ssl not available)") {
     Session.single[IO](
       host     = "localhost",
       user     = "postgres",
@@ -80,7 +77,7 @@ class SslTest extends ffstest.FTest {
     ).use(_ => IO.unit)
   }
 
-  test("SSL.None cannot produce an SSLContext") {
+  tracedTest("SSL.None cannot produce an SSLContext") {
     for {
       ex <- SSL.None.tlsContext[IO].use_.assertFailsWith[Exception]
       _  <- assertEqual("failure message", ex.getMessage, "SSL.None: cannot create a TLSContext.")
