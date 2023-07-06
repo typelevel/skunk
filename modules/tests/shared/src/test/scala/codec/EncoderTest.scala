@@ -7,6 +7,7 @@ package codec
 
 import cats._
 import skunk._
+import skunk.data.Encoded
 import skunk.codec.all._
 
 class EncoderTest extends SkunkTest {
@@ -18,12 +19,12 @@ class EncoderTest extends SkunkTest {
 
     test("int ~ varchar") {
       val data = e.encode((123, "abc"))
-      assertEqual("data", data, List(Some("123"), Some("abc")))
+      assertEqual("data", data, List(Some(Encoded("123")), Some(Encoded("abc"))))
     }
 
     test("(int ~ varchar).opt (some)") {
       val data = e.opt.encode(Some((123, "abc")))
-      assertEqual("data", data, List(Some("123"), Some("abc")))
+      assertEqual("data", data, List(Some(Encoded("123")), Some(Encoded("abc"))))
     }
 
     test("(int ~ varchar).opt (none)") {
@@ -38,41 +39,39 @@ class EncoderTest extends SkunkTest {
     assertEqual("data", data, Nil)
   }
 
-  val Redacted = Some(Encoder.RedactedText)
-
   test("redaction - unredacted") {
-    val data = int4.encodeWithRedaction(42)
-    assertEquals(data, List(Some("42")))
+    val data = int4.encode(42)
+    assertEquals(data, List(Some(Encoded("42"))))
   }
 
   test("redaction - redacted") {
-    val data = int4.redacted.encodeWithRedaction(42)
-    assertEquals(data, List(Redacted))
+    val data = int4.redacted.encode(42)
+    assertEquals(data, List(Some(Encoded("42", true))))
   }
 
   test("redaction - redacted product") {
-    val data = (int4 ~ int4).redacted.encodeWithRedaction((1, 2))
-    assertEquals(data, List(Redacted, Redacted))
+    val data = (int4 ~ int4).redacted.encode((1, 2))
+    assertEquals(data, List(Some(Encoded("1", true)), Some(Encoded("2", true))))
   }
 
   test("redaction - product of redacted") {
-    val data = (int4 ~ int4.redacted).encodeWithRedaction((1, 2))
-    assertEquals(data, List(Some("1"), Redacted))
+    val data = (int4 ~ int4.redacted).encode((1, 2))
+    assertEquals(data, List(Some(Encoded("1", false)), Some(Encoded("2", true))))
   }
 
   test("redaction - contramap") {
-    val data = (int4 ~ int4.redacted).contramap(identity[(Int, Int)]).encodeWithRedaction((1, 2))
-    assertEquals(data, List(Some("1"), Redacted))
+    val data = (int4 ~ int4.redacted).contramap(identity[(Int, Int)]).encode((1, 2))
+    assertEquals(data, List(Some(Encoded("1", false)), Some(Encoded("2", true))))
   }
 
   test("redaction - imap") {
-    val data = (int4 ~ int4.redacted).imap(identity)(identity).encodeWithRedaction((1, 2))
-    assertEquals(data, List(Some("1"), Redacted))
+    val data = (int4 ~ int4.redacted).imap(identity)(identity).encode((1, 2))
+    assertEquals(data, List(Some(Encoded("1", false)), Some(Encoded("2", true))))
   }
 
   test("redaction - to") {
     case class Point(x: Int, y: Int)
-    val data = (int4 *: int4.redacted).to[Point].encodeWithRedaction(Point(1, 2))
-    assertEquals(data, List(Some("1"), Redacted))
+    val data = (int4 *: int4.redacted).to[Point].encode(Point(1, 2))
+    assertEquals(data, List(Some(Encoded("1", false)), Some(Encoded("2", true))))
   }
 }

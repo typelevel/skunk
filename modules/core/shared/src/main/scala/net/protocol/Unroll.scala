@@ -63,7 +63,7 @@ private[protocol] class Unroll[F[_]: MessageSocket: Tracer](
           sqlOrigin       = Some(sqlOrigin),
           info            = info,
           history         = hi,
-          arguments       = encoder.types.zip(encoder.encodeWithRedaction(args)),
+          arguments       = encoder.types.zip(encoder.encode(args)),
           argumentsOrigin = argsOrigin
         ).raiseError[F, (List[List[Option[String]]], Boolean)]
       }

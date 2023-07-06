@@ -7,7 +7,7 @@ package skunk.exception
 import cats.syntax.all._
 import org.typelevel.otel4s.Attribute
 import skunk.SqlState
-import skunk.data.Type
+import skunk.data.{Encoded, Type}
 import skunk.util.Origin
 
 // TODO: turn this into an ADT of structured error types
@@ -16,7 +16,7 @@ class PostgresErrorException (
   sqlOrigin:       Option[Origin],
   info:            Map[Char, String],
   history:         List[Either[Any, Any]],
-  arguments:       List[(Type, Option[String])] = Nil,
+  arguments:       List[(Type, Option[Encoded])] = Nil,
   argumentsOrigin: Option[Origin]               = None
 ) extends SkunkException(
   sql       = Some(sql),
@@ -176,7 +176,7 @@ object PostgresErrorException {
     sqlOrigin:       Option[Origin],
     info:            Map[Char, String],
     history:         List[Either[Any, Any]],
-    arguments:       List[(Type, Option[String])] = Nil,
+    arguments:       List[(Type, Option[Encoded])] = Nil,
     argumentsOrigin: Option[Origin]               = None
   )(
     implicit ev: cats.MonadError[F, Throwable]

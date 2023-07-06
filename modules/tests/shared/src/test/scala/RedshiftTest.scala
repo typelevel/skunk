@@ -7,7 +7,6 @@ package tests
 import cats.effect._
 import skunk._
 import skunk.exception.StartupException
-import org.typelevel.otel4s.trace.Tracer
 
 class RedshiftTest extends ffstest.FTest {
 

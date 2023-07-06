@@ -6,21 +6,21 @@ package skunk.exception
 
 import cats.syntax.all._
 import org.typelevel.otel4s.Attribute
-import skunk.data.Type
+import skunk.data.{Encoded, Type}
 import skunk.Query
 import skunk.util.{ CallSite, Origin, Pretty }
 
 class SkunkException protected[skunk](
   val sql:             Option[String],
   val message:         String,
-  val position:        Option[Int]                  = None,
-  val detail:          Option[String]               = None,
-  val hint:            Option[String]               = None,
-  val history:         List[Either[Any, Any]]       = Nil,
-  val arguments:       List[(Type, Option[String])] = Nil,
-  val sqlOrigin:       Option[Origin]               = None,
-  val argumentsOrigin: Option[Origin]               = None,
-  val callSite:        Option[CallSite]             = None
+  val position:        Option[Int]                   = None,
+  val detail:          Option[String]                = None,
+  val hint:            Option[String]                = None,
+  val history:         List[Either[Any, Any]]        = Nil,
+  val arguments:       List[(Type, Option[Encoded])] = Nil,
+  val sqlOrigin:       Option[Origin]                = None,
+  val argumentsOrigin: Option[Origin]                = None,
+  val callSite:        Option[CallSite]              = None
 ) extends Exception(message)  {
 
   def fields: List[Attribute[_]] = {
@@ -36,7 +36,7 @@ class SkunkException protected[skunk](
 
     (arguments.zipWithIndex).foreach { case ((typ, os), n) =>
       builder += Attribute(s"error.argument.${n + 1}.type"  , typ.name)
-      builder += Attribute(s"error.argument.${n + 1}.value" , os.getOrElse[String]("NULL"))
+      builder += Attribute(s"error.argument.${n + 1}.value" , os.map(_.toString).getOrElse[String]("NULL"))
     }
 
     sqlOrigin.foreach { o =>
@@ -103,7 +103,7 @@ class SkunkException protected[skunk](
 
   protected def args: String = {
 
-    def formatValue(s: String) =
+    def formatValue(s: Encoded) =
       s"${Console.GREEN}$s${Console.RESET}"
 
     if (arguments.isEmpty) "" else
@@ -143,7 +143,7 @@ object SkunkException {
       sqlOrigin       = Some(query.origin),
       callSite        = callSite,
       hint            = hint,
-      arguments       = query.encoder.types zip query.encoder.encodeWithRedaction(args),
+      arguments       = query.encoder.types zip query.encoder.encode(args),
       argumentsOrigin = argsOrigin
     )
 

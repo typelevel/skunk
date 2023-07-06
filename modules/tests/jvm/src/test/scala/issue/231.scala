@@ -33,7 +33,7 @@ class Test231 extends FTest {
 
   test("timestamptz formatter is independent of Locale") {
     inColombia {
-      assertEqual("timestamptz", timestamptz.encode(ts).head.get, "2020-01-01 12:30:00+06 AD")
+      assertEqual("timestamptz", timestamptz.encode(ts).head.get.value, "2020-01-01 12:30:00+06 AD")
     }
   }
 

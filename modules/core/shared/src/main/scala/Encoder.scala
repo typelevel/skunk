@@ -8,7 +8,7 @@ import cats._
 import cats.data.State
 import cats.syntax.all._
 import org.typelevel.twiddles.TwiddleSyntax
-import skunk.data.Type
+import skunk.data.{Encoded, Type}
 import skunk.util.Typer
 import skunk.util.Twiddler
 
@@ -18,8 +18,7 @@ import skunk.util.Twiddler
  */
 trait Encoder[A] { outer =>
 
-  protected lazy val empty: List[Option[String]] =
-    types.map(_ => None)
+  protected lazy val empty: List[Option[Encoded]] = types.as(None)
 
   /**
    * Given an initial parameter index, yield a hunk of sql containing placeholders, and a new
@@ -31,18 +30,11 @@ trait Encoder[A] { outer =>
    * Encode a value of type `A`, yielding a list of Postgres text-formatted strings, lifted to
    * `Option` to handle `NULL` values. Encoding failures raise unrecoverable errors.
    */
-  def encode(a: A): List[Option[String]]
-
-  /**
-    * Like [[encode]] but redacts values that have been marked sensitive with the [[redacted]] method.
-    * Suitable for logging / telemetry.
-    */
-  def encodeWithRedaction(a: A): List[Option[String]]
+  def encode(a: A): List[Option[Encoded]]
 
   def redacted: Encoder[A] =
     new Encoder[A] {
-      override def encode(a: A): List[Option[String]] = outer.encode(a)
-      override def encodeWithRedaction(a: A): List[Option[String]] = outer.encode(a).as(Some(Encoder.RedactedText))
+      override def encode(a: A): List[Option[Encoded]] = outer.encode(a).map(_.map(_.redact))
       override val types: List[Type] = outer.types
       override val sql: State[Int, String] = outer.sql
     }
@@ -62,8 +54,7 @@ trait Encoder[A] { outer =>
   /** Contramap inputs from a new type `B`, yielding an `Encoder[B]`. */
   def contramap[B](f: B => A): Encoder[B] =
     new Encoder[B] {
-      override def encode(b: B): List[Option[String]] = outer.encode(f(b))
-      override def encodeWithRedaction(b: B): List[Option[String]] = outer.encodeWithRedaction(f(b))
+      override def encode(b: B): List[Option[Encoded]] = outer.encode(f(b))
       override val types: List[Type] = outer.types
       override val sql: State[Int, String] = outer.sql
     }
@@ -76,9 +67,7 @@ trait Encoder[A] { outer =>
   /** `Encoder` is semigroupal: a pair of encoders make a encoder for a pair. */
   def product[B](fb: Encoder[B]): Encoder[(A, B)] =
     new Encoder[(A, B)] {
-      override def encode(ab: (A, B)): List[Option[String]] = outer.encode(ab._1) ++ fb.encode(ab._2)
-      override def encodeWithRedaction(ab: (A, B)): List[Option[String]] =
-        outer.encodeWithRedaction(ab._1) ++ fb.encodeWithRedaction(ab._2)
+      override def encode(ab: (A, B)): List[Option[Encoded]] = outer.encode(ab._1) ++ fb.encode(ab._2)
       override val types: List[Type] = outer.types ++ fb.types
       override val sql: State[Int, String] = (outer.sql, fb.sql).mapN((a, b) => s"$a, $b")
     }
@@ -91,8 +80,7 @@ trait Encoder[A] { outer =>
   // dumb errors
   def opt: Encoder[Option[A]] =
     new Encoder[Option[A]] {
-      override def encode(a: Option[A]): List[Option[String]] = a.fold(empty)(outer.encode)
-      override def encodeWithRedaction(a: Option[A]): List[Option[String]] = a.fold(empty)(outer.encodeWithRedaction)
+      override def encode(a: Option[A]): List[Option[Encoded]] = a.fold(empty)(outer.encode)
       override val types: List[Type] = outer.types
       override val sql: State[Int, String]   = outer.sql
     }
@@ -107,7 +95,6 @@ trait Encoder[A] { outer =>
       // well-explained runtime error to encode a list of the wrong length. This means we need to
       // encode into Either, as we do with decoding.
       override def encode(as: List[A]) = as.flatMap(outer.encode)
-      override def encodeWithRedaction(as: List[A]) = as.flatMap(outer.encodeWithRedaction)
       override val types = (0 until n).toList.flatMap(_ => outer.types)
       override val sql   = outer.sql.replicateA(n).map(_.mkString(", "))
     }
@@ -126,8 +113,7 @@ trait Encoder[A] { outer =>
    */
   def values: Encoder[A] =
     new Encoder[A] {
-      override def encode(a: A): List[Option[String]] = outer.encode(a)
-      override def encodeWithRedaction(a: A): List[Option[String]] = outer.encodeWithRedaction(a)
+      override def encode(a: A): List[Option[Encoded]] = outer.encode(a)
       override val types: List[Type] = outer.types
       override val sql: State[Int,String] = outer.sql.map(s => s"($s)")
     }
@@ -141,8 +127,6 @@ trait Encoder[A] { outer =>
 
 /** @group Companions */
 object Encoder extends TwiddleSyntax[Encoder] {
-
-  final val RedactedText: String = "<redacted>"
 
   implicit val ContravariantSemigroupalEncoder: ContravariantSemigroupal[Encoder] =
     new ContravariantSemigroupal[Encoder] {

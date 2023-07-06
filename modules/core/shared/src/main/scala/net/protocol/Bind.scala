@@ -43,12 +43,11 @@ object Bind {
             for {
               pn <- nextName("portal").map(PortalId(_))
               ea  = statement.statement.encoder.encode(args) // encoded args
-              ear = statement.statement.encoder.encodeWithRedaction(args)
               _  <- span.addAttributes(
-                Attribute("arguments", ear.map(_.orNull).mkString(",")),
+                Attribute("arguments", ea.map(_.orNull).mkString(",")),
                 Attribute("portal-id", pn.value)
               )
-              _  <- send(BindMessage(pn.value, statement.id.value, ea))
+              _  <- send(BindMessage(pn.value, statement.id.value, ea.map(_.map(_.value))))
               _  <- send(Flush)
               _  <- flatExpect {
                       case BindComplete        => ().pure[F]
@@ -62,7 +61,7 @@ object Bind {
                                   sqlOrigin       = Some(statement.statement.origin),
                                   info            = info,
                                   history         = hi,
-                                  arguments       = statement.statement.encoder.types.zip(ear),
+                                  arguments       = statement.statement.encoder.types.zip(ea),
                                   argumentsOrigin = Some(argsOrigin)
                                 )
                         } yield a

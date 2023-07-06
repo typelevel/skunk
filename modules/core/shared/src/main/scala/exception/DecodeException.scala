@@ -28,7 +28,7 @@ class DecodeException[F[_], A, B](
   sql             = Some(sql),
   message         = "Decoding error.",
   detail          = Some("This query's decoder was unable to decode a row of data."),
-  arguments       = encoder.types.zip(encoder.encodeWithRedaction(arguments)),
+  arguments       = encoder.types.zip(encoder.encode(arguments)),
   argumentsOrigin = argumentsOrigin,
   sqlOrigin       = sqlOrigin
 ) {

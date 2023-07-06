@@ -67,7 +67,7 @@ object Execute {
                           sqlOrigin       = Some(portal.preparedCommand.command.origin),
                           info            = info,
                           history         = hi,
-                          arguments       = portal.preparedCommand.command.encoder.types.zip(portal.preparedCommand.command.encoder.encodeWithRedaction(portal.arguments)),
+                          arguments       = portal.preparedCommand.command.encoder.types.zip(portal.preparedCommand.command.encoder.encode(portal.arguments)),
                           argumentsOrigin = Some(portal.argumentsOrigin)
                         ).raiseError[F, Completion]
                 } yield a
