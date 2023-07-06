@@ -62,7 +62,7 @@ object Bind {
                                   sqlOrigin       = Some(statement.statement.origin),
                                   info            = info,
                                   history         = hi,
-                                  arguments       = statement.statement.encoder.types.zip(statement.statement.encoder.encodeWithRedaction(args)),
+                                  arguments       = statement.statement.encoder.types.zip(ear),
                                   argumentsOrigin = Some(argsOrigin)
                                 )
                         } yield a
