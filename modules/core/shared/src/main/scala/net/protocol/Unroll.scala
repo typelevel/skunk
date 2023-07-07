@@ -6,7 +6,7 @@ package skunk.net.protocol
 
 import cats.syntax.all._
 import cats.MonadError
-import skunk.{ Encoder, Decoder }
+import skunk.{ Encoder, Decoder, RedactionStrategy }
 import skunk.exception.DecodeException
 import skunk.net.message._
 import skunk.net.MessageSocket
@@ -39,6 +39,7 @@ private[protocol] class Unroll[F[_]: MessageSocket: Tracer](
       encoder        = portal.preparedQuery.query.encoder,
       rowDescription = portal.preparedQuery.rowDescription,
       decoder        = portal.preparedQuery.query.decoder,
+      redactionStrategy = portal.redactionStrategy
     )
 
   // When we do a quick query there's no statement to hang onto all the error-reporting context
@@ -52,6 +53,7 @@ private[protocol] class Unroll[F[_]: MessageSocket: Tracer](
     encoder:        Encoder[A],
     rowDescription: TypedRowDescription,
     decoder:        Decoder[B],
+    redactionStrategy: RedactionStrategy,
   ): F[(List[B], Boolean)] = {
 
     def syncAndFail(info: Map[Char, String]): F[(List[List[Option[String]]], Boolean)]  =
@@ -63,7 +65,7 @@ private[protocol] class Unroll[F[_]: MessageSocket: Tracer](
           sqlOrigin       = Some(sqlOrigin),
           info            = info,
           history         = hi,
-          arguments       = encoder.types.zip(encoder.encode(args)),
+          arguments       = encoder.types.zip(redactionStrategy.redactArguments(encoder.encode(args))),
           argumentsOrigin = argsOrigin
         ).raiseError[F, (List[List[Option[String]]], Boolean)]
       }
@@ -118,6 +120,7 @@ private[protocol] class Unroll[F[_]: MessageSocket: Tracer](
                 encoder,
                 rowDescription,
                 e.cause,
+                redactionStrategy,
               ).raiseError[F, B]
           }
         } .map(a => (a, bool))

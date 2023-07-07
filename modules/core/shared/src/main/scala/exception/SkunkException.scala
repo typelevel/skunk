@@ -6,8 +6,8 @@ package skunk.exception
 
 import cats.syntax.all._
 import org.typelevel.otel4s.Attribute
+import skunk.{Query, RedactionStrategy}
 import skunk.data.{Encoded, Type}
-import skunk.Query
 import skunk.util.{ CallSite, Origin, Pretty }
 
 class SkunkException protected[skunk](
@@ -30,7 +30,7 @@ class SkunkException protected[skunk](
     builder += Attribute("error.message", message)
 
     sql     .foreach(a => builder += Attribute("error.sql"      , a))
-    position.foreach(a => builder += Attribute("error.position"   , a.toLong))
+    position.foreach(a => builder += Attribute("error.position" , a.toLong))
     detail  .foreach(a => builder += Attribute("error.detail"   , a))
     hint    .foreach(a => builder += Attribute("error.hint"     , a))
 
@@ -134,8 +134,9 @@ object SkunkException {
     query:      Query[A, _],
     args:       A,
     callSite:   Option[CallSite],
-    hint:       Option[String] = None,
-    argsOrigin: Option[Origin] = None
+    hint:       Option[String],
+    argsOrigin: Option[Origin],
+    redactionStrategy: RedactionStrategy,
   ) =
     new SkunkException(
       Some(query.sql),
@@ -143,7 +144,7 @@ object SkunkException {
       sqlOrigin       = Some(query.origin),
       callSite        = callSite,
       hint            = hint,
-      arguments       = query.encoder.types zip query.encoder.encode(args),
+      arguments       = query.encoder.types zip redactionStrategy.redactArguments(query.encoder.encode(args)),
       argumentsOrigin = argsOrigin
     )
 

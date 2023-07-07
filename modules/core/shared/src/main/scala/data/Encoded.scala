@@ -8,6 +8,7 @@ import cats.kernel.Eq
 
 final case class Encoded(value: String, redacted: Boolean) {
   def redact: Encoded = if (redacted) this else Encoded(value, true)
+  def unredact: Encoded = if (!redacted) this else Encoded(value, false)
   override def toString: String = if (redacted) Encoded.RedactedText else value
 }
 

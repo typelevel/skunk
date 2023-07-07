@@ -6,7 +6,7 @@ package skunk.net.protocol
 
 import cats.MonadError
 import cats.syntax.all._
-import skunk.{ Command, Void }
+import skunk.{ Command, Void, RedactionStrategy }
 import skunk.data.Completion
 import skunk.exception._
 import skunk.net.message.{ Query => QueryMessage, _ }
@@ -27,7 +27,7 @@ trait Query[F[_]] {
 
 object Query {
 
-  def apply[F[_]: Exchange: MessageSocket: Tracer](
+  def apply[F[_]: Exchange: MessageSocket: Tracer](redactionStrategy: RedactionStrategy)(
     implicit ev: MonadError[F, Throwable]
   ): Query[F] =
     new Unroll[F] with Query[F] {
@@ -97,6 +97,7 @@ object Query {
                       encoder        = Void.codec,
                       rowDescription = td,
                       decoder        = query.decoder,
+                      redactionStrategy = redactionStrategy
                     ).map(_._1) <* finishUp(query)
                   } else {
                     discard(query) *> ColumnAlignmentException(query, td).raiseError[F, List[B]]

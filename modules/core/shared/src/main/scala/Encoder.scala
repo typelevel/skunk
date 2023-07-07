@@ -32,9 +32,19 @@ trait Encoder[A] { outer =>
    */
   def encode(a: A): List[Option[Encoded]]
 
+  /**
+    * Returns an encoder that redacts encoded values.
+    */
   def redacted: Encoder[A] =
     new Encoder[A] {
       override def encode(a: A): List[Option[Encoded]] = outer.encode(a).map(_.map(_.redact))
+      override val types: List[Type] = outer.types
+      override val sql: State[Int, String] = outer.sql
+    }
+
+  def unredacted: Encoder[A] =
+    new Encoder[A] {
+      override def encode(a: A): List[Option[Encoded]] = outer.encode(a).map(_.map(_.unredact))
       override val types: List[Type] = outer.types
       override val sql: State[Int, String] = outer.sql
     }

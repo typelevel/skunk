@@ -9,6 +9,7 @@ import cats.MonadError
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import skunk.~
+import skunk.RedactionStrategy
 import skunk.data.Completion
 import skunk.net.MessageSocket
 import skunk.net.Protocol.{ PreparedCommand, PreparedQuery, CommandPortal, QueryPortal }
@@ -23,7 +24,7 @@ trait Prepare[F[_]] {
 
 object Prepare {
 
-  def apply[F[_]: Exchange: MessageSocket: Namer: Tracer](describeCache: Describe.Cache[F], parseCache: Parse.Cache[F])(
+  def apply[F[_]: Exchange: MessageSocket: Namer: Tracer](describeCache: Describe.Cache[F], parseCache: Parse.Cache[F], redactionStrategy: RedactionStrategy)(
     implicit ev: MonadError[F, Throwable]
   ): Prepare[F] =
     new Prepare[F] {
@@ -34,10 +35,10 @@ object Prepare {
           _  <- Describe[F](describeCache).apply(command, id, ty)
         } yield new PreparedCommand[F, A](id, command) { pc =>
           def bind(args: A, origin: Origin): Resource[F, CommandPortal[F, A]] =
-            Bind[F].apply(this, args, origin).map {
+            Bind[F].apply(this, args, origin, redactionStrategy).map {
               new CommandPortal[F, A](_, pc, args, origin) {
                 val execute: F[Completion] =
-                  Execute[F].apply(this)
+                  Execute[F](redactionStrategy).apply(this)
               }
             }
         }
@@ -48,10 +49,10 @@ object Prepare {
           rd <- Describe[F](describeCache).apply(query, id, ty)
         } yield new PreparedQuery[F, A, B](id, query, rd) { pq =>
           def bind(args: A, origin: Origin): Resource[F, QueryPortal[F, A, B]] =
-            Bind[F].apply(this, args, origin).map {
-              new QueryPortal[F, A, B](_, pq, args, origin) {
+            Bind[F].apply(this, args, origin, redactionStrategy).map {
+              new QueryPortal[F, A, B](_, pq, args, origin, redactionStrategy) {
                 def execute(maxRows: Int): F[List[B] ~ Boolean] =
-                  Execute[F].apply(this, maxRows, ty)
+                  Execute[F](redactionStrategy).apply(this, maxRows, ty)
               }
             }
         }

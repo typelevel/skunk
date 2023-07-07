@@ -6,7 +6,7 @@ package skunk.net.protocol
 
 import cats.syntax.all._
 import cats.MonadError
-import skunk.~
+import skunk.{~, RedactionStrategy}
 import skunk.data.Completion
 import skunk.exception.PostgresErrorException
 import skunk.net.{ Protocol, MessageSocket }
@@ -25,7 +25,7 @@ trait Execute[F[_]] {
 
 object Execute {
 
-  def apply[F[_]: Exchange: MessageSocket: Tracer](
+  def apply[F[_]: Exchange: MessageSocket: Tracer](redactionStrategy: RedactionStrategy)(
     implicit ev: MonadError[F, Throwable]
   ): Execute[F] =
     new Unroll[F] with Execute[F] {
@@ -62,12 +62,14 @@ object Execute {
                   hi <- history(Int.MaxValue)
                   _  <- send(Sync)
                   _  <- expect { case ReadyForQuery(_) => }
+                  redactedArgs = portal.preparedCommand.command.encoder.types.zip(
+                    redactionStrategy.redactArguments(portal.preparedCommand.command.encoder.encode(portal.arguments)))
                   a  <- new PostgresErrorException(
                           sql             = portal.preparedCommand.command.sql,
                           sqlOrigin       = Some(portal.preparedCommand.command.origin),
                           info            = info,
                           history         = hi,
-                          arguments       = portal.preparedCommand.command.encoder.types.zip(portal.preparedCommand.command.encoder.encode(portal.arguments)),
+                          arguments       = redactedArgs,
                           argumentsOrigin = Some(portal.argumentsOrigin)
                         ).raiseError[F, Completion]
                 } yield a

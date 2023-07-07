@@ -73,7 +73,7 @@ object BitVectorSocket {
     sg:            SocketGroup[F],
     socketOptions: List[SocketOption],
     sslOptions:    Option[SSLNegotiation.Options[F]],
-    readTimeout:  Duration
+    readTimeout:   Duration
   )(implicit ev: Temporal[F]): Resource[F, BitVectorSocket[F]] = {
 
     def fail[A](msg: String): Resource[F, A] =
