@@ -15,7 +15,7 @@ final case class Encoded(value: String, redacted: Boolean) {
 object Encoded {
   def apply(value: String): Encoded = Encoded(value, false)
 
-  final val RedactedText: String = "<redacted>"
+  final val RedactedText: String = "?"
 
   implicit val eqInstance: Eq[Encoded] = Eq.fromUniversalEquals[Encoded]
 }
