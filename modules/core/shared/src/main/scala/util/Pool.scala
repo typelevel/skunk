@@ -160,13 +160,10 @@ object Pool {
         // hygiene (via fibers typically). Then finalize any remaining pooled elements. Failure of
         // pool finalization may result in unfinalized resources. To be improved.
         case (os, ds) =>
-          ds.traverse(_.complete(Left(ShutdownException))) *>
-          ResourceLeak(size, os.length, ds.length).raiseError[F, Unit].whenA(os.length != size) *>
-          os.traverse_ {
-            case Some((_, free)) => free
-            case None            => ().pure[F]
+          ds.traverse_(_.complete(Left(ShutdownException))) >> {
+            if (os.length == size) os.traverse_(_.traverse_(_._2))
+            else ResourceLeak(size, os.length, ds.length).raiseError[F, Unit]
           }
-
       }
 
     Resource.make(alloc)(free).map(a => {implicit T: Tracer[F] => poolImpl(a)})
