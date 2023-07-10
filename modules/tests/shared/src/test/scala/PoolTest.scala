@@ -18,6 +18,7 @@ import skunk.util.Pool.ShutdownException
 import natchez.Trace
 import natchez.Trace.Implicits.noop
 import skunk.util.Recycler
+import cats.effect.testkit.TestControl
 
 class PoolTest extends FTest {
 
@@ -266,6 +267,17 @@ class PoolTest extends FTest {
           case ResetFailure() => IO.unit
         }
       }
+    }
+  }
+
+  test("cancel while waiting") {
+    TestControl.executeEmbed {
+      Pool.of(Resource.unit[IO], 1)(Recycler.success).use { pool =>
+        pool.useForever.background.surround { // take away the resource ...
+          // ... to force this one to wait
+          pool.use_.timeoutTo(1.millis, IO.unit) // it should not hang on cancelation
+        }
+      } // we should also not get a ResourceLeak error
     }
   }
 

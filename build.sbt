@@ -178,6 +178,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.typelevel"     %%% "munit-cats-effect"       % "2.0.0-M3",
       "org.typelevel"     %%% "cats-free"               % "2.9.0",
       "org.typelevel"     %%% "cats-laws"               % "2.9.0",
+      "org.typelevel"     %%% "cats-effect-testkit"     % "3.5.0",
       "org.typelevel"     %%% "discipline-munit"        % "2.0.0-M3",
       "org.typelevel"     %%% "cats-time"               % "0.5.1",
     ),
