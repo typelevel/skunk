@@ -127,7 +127,7 @@ object Pool {
       // cannot be canceled, so we don't need to worry about that case here.
       def take(a: Alloc): F[Unit] =
         Trace[F].span("pool.free") {
-          recycler(a._1).onError { _ => dispose(a) } flatMap {
+          recycler(a._1).onError { case _ => dispose(a) } flatMap {
             case true  => recycle(a)
             case false => dispose(a)
           }
