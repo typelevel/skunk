@@ -5,7 +5,7 @@ ThisBuild / libraryDependencySchemes ++= Seq(
 
 addSbtPlugin("org.typelevel"             % "sbt-typelevel"      % "0.4.21")
 addSbtPlugin("org.typelevel"             % "sbt-typelevel-site" % "0.4.21")
-addSbtPlugin("com.lightbend.paradox"     % "sbt-paradox"        % "0.10.3")
+addSbtPlugin("com.lightbend.paradox"     % "sbt-paradox"        % "0.10.4")
 addSbtPlugin("com.github.sbt"          % "sbt-site"           % "1.5.0")
 addSbtPlugin("com.typesafe.sbt"          % "sbt-ghpages"        % "0.6.3")
 addSbtPlugin("com.timushev.sbt"          % "sbt-updates"        % "0.6.4")
