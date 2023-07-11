@@ -206,7 +206,7 @@ lazy val example = project
     libraryDependencies ++= Seq(
       "org.typelevel"    %% "otel4s-java" % otel4sVersion,
       "io.opentelemetry" % "opentelemetry-exporter-otlp" % openTelemetryVersion % Runtime,
-      "io.opentelemetry" % "opentelemetry-sdk-extension-autoconfigure" % s"${openTelemetryVersion}-alpha" % Runtime,
+      "io.opentelemetry" % "opentelemetry-sdk-extension-autoconfigure" % openTelemetryVersion % Runtime,
     ),
     run / fork := true,
     javaOptions += "-Dotel.java.global-autoconfigure.enabled=true"
