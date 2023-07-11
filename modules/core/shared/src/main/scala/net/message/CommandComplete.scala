@@ -82,6 +82,7 @@ object CommandComplete {
     case "DROP SEQUENCE"              => apply(Completion.DropSequence)
     case "CREATE DATABASE"            => apply(Completion.CreateDatabase)
     case "DROP DATABASE"              => apply(Completion.DropDatabase)
+    case "ALTER DATABASE"             => apply(Completion.AlterDatabase)
     case "CREATE ROLE"                => apply(Completion.CreateRole)
     case "DROP ROLE"                  => apply(Completion.DropRole)
     case "CREATE MATERIALIZED VIEW"   => apply(Completion.CreateMaterializedView)
