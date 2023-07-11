@@ -60,7 +60,7 @@ ThisBuild / mimaBinaryIssueFilters ++= List(
 
 // This is used in a couple places
 lazy val fs2Version = "3.7.0"
-lazy val openTelemetryVersion = "1.26.0"
+lazy val openTelemetryVersion = "1.28.0"
 lazy val otel4sVersion = "0.2.1"
 
 // Global Settings
@@ -206,7 +206,7 @@ lazy val example = project
     libraryDependencies ++= Seq(
       "org.typelevel"    %% "otel4s-java" % otel4sVersion,
       "io.opentelemetry" % "opentelemetry-exporter-otlp" % openTelemetryVersion % Runtime,
-      "io.opentelemetry" % "opentelemetry-sdk-extension-autoconfigure" % s"${openTelemetryVersion}-alpha" % Runtime,
+      "io.opentelemetry" % "opentelemetry-sdk-extension-autoconfigure" % openTelemetryVersion % Runtime,
     ),
     run / fork := true,
     javaOptions += "-Dotel.java.global-autoconfigure.enabled=true"
