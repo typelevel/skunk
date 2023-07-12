@@ -220,6 +220,16 @@ class CommandTest extends SkunkTest {
         CREATE DATABASE skunk_database
        """.command
 
+  val alterDatabaseTemplateOn: Command[Void] =
+    sql"""
+       ALTER DATABASE skunk_database WITH is_template = TRUE
+       """.command
+
+  val alterDatabaseTemplateOff: Command[Void] =
+    sql"""
+       ALTER DATABASE skunk_database WITH is_template = FALSE
+       """.command
+
   val dropDatabase: Command[Void] =
     sql"""
         DROP DATABASE IF EXISTS skunk_database
@@ -421,10 +431,17 @@ class CommandTest extends SkunkTest {
     } yield "ok"
   }
 
-  sessionTest("create database, drop database"){ s=>
+  sessionTest("create database, alter database, drop database"){ s=>
     for{
       c <- s.execute(createDatabase)
       _ <- assert("completion", c == Completion.CreateDatabase)
+      acOn <- s.execute(alterDatabaseTemplateOn)
+      _ <- assert("completion", acOn == Completion.AlterDatabase)
+
+      // in order to drop a database, it must not be a template, so flip template = false again
+      acOff <- s.execute(alterDatabaseTemplateOff)
+
+      _ <- assert("completion", acOff == Completion.AlterDatabase)
       c <- s.execute(dropDatabase)
       _ <- assert("completion", c == Completion.DropDatabase)
     } yield "ok"

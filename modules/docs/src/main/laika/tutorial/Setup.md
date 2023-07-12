@@ -17,7 +17,7 @@ If you wish to use your own Postgres server you can download `world/world.sql` f
 Create a new project with Skunk as a dependency.
 
 ```scala
-libraryDependencies += "org.tpolecat" %% "skunk-refined" % "@VERSION@"
+libraryDependencies += "org.tpolecat" %% "skunk-core" % "@VERSION@"
 ```
 
 ## IDE Setup

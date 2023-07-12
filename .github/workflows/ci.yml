@@ -103,15 +103,15 @@ jobs:
         run: sbt 'project ${{ matrix.project }}' '++ ${{ matrix.scala }}' doc
 
       - name: Make target directories
-        if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
+        if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/series/0.6.x')
         run: mkdir -p modules/circe/.jvm/target target unidocs/target .js/target modules/core/native/target modules/docs/target modules/core/js/target modules/circe/.js/target modules/core/jvm/target modules/tests/js/target modules/refined/.native/target .jvm/target .native/target modules/refined/.js/target modules/refined/.jvm/target modules/circe/.native/target modules/tests/jvm/target modules/example/target modules/tests/native/target project/target
 
       - name: Compress target directories
-        if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
+        if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/series/0.6.x')
         run: tar cf targets.tar modules/circe/.jvm/target target unidocs/target .js/target modules/core/native/target modules/docs/target modules/core/js/target modules/circe/.js/target modules/core/jvm/target modules/tests/js/target modules/refined/.native/target .jvm/target .native/target modules/refined/.js/target modules/refined/.jvm/target modules/circe/.native/target modules/tests/jvm/target modules/example/target modules/tests/native/target project/target
 
       - name: Upload target directories
-        if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
+        if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/series/0.6.x')
         uses: actions/upload-artifact@v3
         with:
           name: target-${{ matrix.os }}-${{ matrix.java }}-${{ matrix.scala }}-${{ matrix.project }}
@@ -120,11 +120,10 @@ jobs:
   publish:
     name: Publish Artifacts
     needs: [build]
-    if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
+    if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/series/0.6.x')
     strategy:
       matrix:
         os: [ubuntu-latest]
-        scala: [2.13.10]
         java: [temurin@11]
     runs-on: ${{ matrix.os }}
     steps:
@@ -239,7 +238,7 @@ jobs:
           (echo "$PGP_PASSPHRASE"; echo; echo) | gpg --command-fd 0 --pinentry-mode loopback --change-passphrase $(gpg --list-secret-keys --with-colons 2> /dev/null | grep '^sec:' | cut --delimiter ':' --fields 5 | tail -n 1)
 
       - name: Publish
-        run: sbt '++ ${{ matrix.scala }}' tlCiRelease
+        run: sbt tlCiRelease
 
   coverage:
     name: Generate coverage report (2.13.10 JVM only)
@@ -299,7 +298,6 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        scala: [2.13.10]
         java: [temurin@11]
     runs-on: ${{ matrix.os }}
     steps:
@@ -343,10 +341,10 @@ jobs:
           docker-compose up -d
 
       - name: Generate site
-        run: sbt '++ ${{ matrix.scala }}' docs/tlSite
+        run: sbt docs/tlSite
 
       - name: Publish site
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/series/0.6.x'
         uses: peaceiris/actions-gh-pages@v3.9.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

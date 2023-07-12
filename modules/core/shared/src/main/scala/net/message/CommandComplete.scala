@@ -82,6 +82,7 @@ object CommandComplete {
     case "DROP SEQUENCE"              => apply(Completion.DropSequence)
     case "CREATE DATABASE"            => apply(Completion.CreateDatabase)
     case "DROP DATABASE"              => apply(Completion.DropDatabase)
+    case "ALTER DATABASE"             => apply(Completion.AlterDatabase)
     case "CREATE ROLE"                => apply(Completion.CreateRole)
     case "DROP ROLE"                  => apply(Completion.DropRole)
     case "CREATE MATERIALIZED VIEW"   => apply(Completion.CreateMaterializedView)
@@ -98,6 +99,7 @@ object CommandComplete {
     case Patterns.Insert(s)           => apply(Completion.Insert(s.drop(2).toInt))
     case Patterns.Copy(s)             => apply(Completion.Copy(s.toInt))
     case "SET CONSTRAINTS"            => apply(Completion.SetConstraints)
+    case "EXPLAIN"                    => apply(Completion.Explain)
     // more .. fill in as we hit them
 
     case s                  => apply(Completion.Unknown(s))
