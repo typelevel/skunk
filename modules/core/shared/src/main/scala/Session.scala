@@ -417,8 +417,9 @@ object Session {
     queryCache:    Int = 1024,
     parseCache:    Int = 1024,
     readTimeout:   Duration = Duration.Inf,
+    redactionStrategy: RedactionStrategy = RedactionStrategy.OptIn,
   ): Resource[F, Resource[F, Session[F]]] = {
-    pooledF[F](host, port, user, database, password, max, debug, strategy, ssl, parameters, socketOptions, commandCache, queryCache, parseCache, readTimeout).map(_.apply(Tracer[F]))
+    pooledF[F](host, port, user, database, password, max, debug, strategy, ssl, parameters, socketOptions, commandCache, queryCache, parseCache, readTimeout, redactionStrategy).map(_.apply(Tracer[F]))
   }
 
   /**
@@ -458,12 +459,13 @@ object Session {
     queryCache:    Int = 1024,
     parseCache:    Int = 1024,
     readTimeout:   Duration = Duration.Inf,
+    redactionStrategy: RedactionStrategy = RedactionStrategy.OptIn,
   ): Resource[F, Tracer[F] => Resource[F, Session[F]]] = {
 
     def session(socketGroup: SocketGroup[F], sslOp: Option[SSLNegotiation.Options[F]], cache: Describe.Cache[F])(implicit T: Tracer[F]): Resource[F, Session[F]] =
       for {
         pc <- Resource.eval(Parse.Cache.empty[F](parseCache))
-        s  <- fromSocketGroup[F](socketGroup, host, port, user, database, password, debug, strategy, socketOptions, sslOp, parameters, cache, pc, readTimeout)
+        s  <- fromSocketGroup[F](socketGroup, host, port, user, database, password, debug, strategy, socketOptions, sslOp, parameters, cache, pc, readTimeout, redactionStrategy)
       } yield s
 
     val logger: String => F[Unit] = s => Console[F].println(s"TLS: $s")
@@ -495,8 +497,9 @@ object Session {
     queryCache:   Int = 1024,
     parseCache:   Int = 1024,
     readTimeout:  Duration = Duration.Inf,
+    redactionStrategy: RedactionStrategy = RedactionStrategy.OptIn,
   ): Resource[F, Session[F]] =
-    singleF[F](host, port, user, database, password, debug, strategy, ssl, parameters, commandCache, queryCache, parseCache, readTimeout).apply(Tracer[F])
+    singleF[F](host, port, user, database, password, debug, strategy, ssl, parameters, commandCache, queryCache, parseCache, readTimeout, redactionStrategy).apply(Tracer[F])
 
   /**
    * Resource yielding logically unpooled sessions given a Tracer. This can be convenient for demonstrations and
@@ -518,6 +521,7 @@ object Session {
     queryCache:   Int = 1024,
     parseCache:   Int = 1024,
     readTimeout:  Duration = Duration.Inf,
+    redactionStrategy: RedactionStrategy = RedactionStrategy.OptIn,
   ): Tracer[F] => Resource[F, Session[F]] =
     Kleisli((_: Tracer[F]) => pooledF(
       host         = host,
@@ -533,32 +537,34 @@ object Session {
       commandCache = commandCache,
       queryCache   = queryCache,
       parseCache   = parseCache,
-      readTimeout  = readTimeout
+      readTimeout  = readTimeout,
+      redactionStrategy = redactionStrategy
     )).flatMap(f =>
       Kleisli { implicit T: Tracer[F] => f(T) }
     ).run
 
   def fromSocketGroup[F[_]: Temporal: Tracer: Console](
-    socketGroup:  SocketGroup[F],
-    host:         String,
-    port:         Int            = 5432,
-    user:         String,
-    database:     String,
-    password:     Option[String] = none,
-    debug:        Boolean        = false,
-    strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly,
-    socketOptions: List[SocketOption],
-    sslOptions:   Option[SSLNegotiation.Options[F]],
-    parameters:   Map[String, String],
-    describeCache: Describe.Cache[F],
-    parseCache: Parse.Cache[F],
-    readTimeout:  Duration = Duration.Inf,
+    socketGroup:       SocketGroup[F],
+    host:              String,
+    port:              Int            = 5432,
+    user:              String,
+    database:          String,
+    password:          Option[String] = none,
+    debug:             Boolean        = false,
+    strategy:          Typer.Strategy = Typer.Strategy.BuiltinsOnly,
+    socketOptions:     List[SocketOption],
+    sslOptions:        Option[SSLNegotiation.Options[F]],
+    parameters:        Map[String, String],
+    describeCache:     Describe.Cache[F],
+    parseCache:        Parse.Cache[F],
+    readTimeout:       Duration = Duration.Inf,
+    redactionStrategy: RedactionStrategy = RedactionStrategy.OptIn,
   ): Resource[F, Session[F]] =
     for {
       namer <- Resource.eval(Namer[F])
-      proto <- Protocol[F](host, port, debug, namer, socketGroup, socketOptions, sslOptions, describeCache, parseCache, readTimeout)
+      proto <- Protocol[F](host, port, debug, namer, socketGroup, socketOptions, sslOptions, describeCache, parseCache, readTimeout, redactionStrategy)
       _     <- Resource.eval(proto.startup(user, database, password, parameters))
-      sess  <- Resource.make(fromProtocol(proto, namer, strategy))(_ => proto.cleanup)
+      sess  <- Resource.make(fromProtocol(proto, namer, strategy, redactionStrategy))(_ => proto.cleanup)
     } yield sess
 
   /**
@@ -569,7 +575,8 @@ object Session {
   def fromProtocol[F[_]](
     proto:    Protocol[F],
     namer:    Namer[F],
-    strategy: Typer.Strategy
+    strategy: Typer.Strategy,
+    redactionStrategy: RedactionStrategy
   )(implicit ev: MonadCancel[F, Throwable]): F[Session[F]] = {
 
     val ft: F[Typer] =
@@ -616,7 +623,7 @@ object Session {
           }
 
         override def prepare[A, B](query: Query[A, B]): F[PreparedQuery[F, A, B]] =
-          proto.prepare(query, typer).map(PreparedQuery.fromProto(_))
+          proto.prepare(query, typer).map(PreparedQuery.fromProto(_, redactionStrategy))
 
         override def prepare[A](command: Command[A]): F[PreparedCommand[F, A]] =
           proto.prepare(command, typer).map(PreparedCommand.fromProto(_))

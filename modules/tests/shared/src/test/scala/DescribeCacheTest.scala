@@ -9,41 +9,24 @@ import skunk.codec.numeric.int4
 import cats.syntax.all._
 import cats.effect.IO
 import skunk.exception.PostgresErrorException
-import cats.effect.Resource
-import skunk.Session
-import org.typelevel.otel4s.trace.Tracer
 
 class DescribeCacheTest extends SkunkTest {
-
-  implicit val tracer: Tracer[IO] = Tracer.noop
 
   // N.B. this checks that statements are cached, but it _doesn't_ check that the cache is observed
   // by the `Describe` protocol implementation. There's not an easy way to do this without exposing
   // a bunch of internals.
 
-  def poolResource: Resource[IO, Resource[IO, Session[IO]]] =
-    Session.pooled(
-      host     = "localhost",
-      port     = 5432,
-      user     = "jimmy",
-      database = "world",
-      password = Some("banana"),
-      max      = 3,
-    )
-
-  test("describe cache should be shared across sessions from the same pool") {
-    poolResource.use { p =>
-      p.use { s1 =>
-        p.use { s2 =>
-          assert("sessions should be different", s1 ne s2) *>
-          assert("caches should be eq", s1.describeCache eq s2.describeCache)
-        }
+  pooledTest("describe cache should be shared across sessions from the same pool") { p =>
+    p.use { s1 =>
+      p.use { s2 =>
+        assert("sessions should be different", s1 ne s2) *>
+        assert("caches should be eq", s1.describeCache eq s2.describeCache)
       }
     }
   }
 
-  test("describe cache should be not shared across sessions from different pools") {
-    (poolResource, poolResource).tupled.use { case (p1, p2) =>
+  tracedTest("describe cache should be not shared across sessions from different pools") {
+    (pooled(), pooled()).tupled.use { case (p1, p2) =>
       p1.use { s1 =>
         p2.use { s2 =>
           assert("sessions should be different", s1 ne s2) *>

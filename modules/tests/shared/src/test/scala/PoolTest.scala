@@ -20,8 +20,6 @@ import skunk.util.Recycler
 
 class PoolTest extends FTest {
 
-  implicit val noop: Tracer[IO] = Tracer.noop
-
   case class UserFailure() extends Exception("user failure")
   case class AllocFailure() extends Exception("allocation failure")
   case class FreeFailure() extends Exception("free failure")
@@ -46,13 +44,13 @@ class PoolTest extends FTest {
     yielding(fas: _*).map(Resource.make(_)(_ => IO.unit))
 
   // This test leaks
-  test("error in alloc is rethrown to caller (immediate)") {
+  tracedTest("error in alloc is rethrown to caller (immediate)") {
     val rsrc = Resource.make(IO.raiseError[String](AllocFailure()))(_ => IO.unit)
     val pool = Pool.ofF({(_: Tracer[IO]) => rsrc}, 42)(Recycler.success)
     pool.use(_(Tracer[IO]).use(_ => IO.unit)).assertFailsWith[AllocFailure]
   }
 
-  test("error in alloc is rethrown to caller (deferral completion following errored cleanup)") {
+  tracedTest("error in alloc is rethrown to caller (deferral completion following errored cleanup)") {
     resourceYielding(IO(1), IO.raiseError(AllocFailure())).flatMap { r =>
       val p = Pool.ofF({(_: Tracer[IO]) => r}, 1)(Recycler[IO, Int](_ => IO.raiseError(ResetFailure())))
       p.use { r =>
@@ -68,14 +66,14 @@ class PoolTest extends FTest {
     }
   }
 
-  test("error in alloc is rethrown to caller (deferral completion following failed cleanup)") {
+  tracedTest("error in alloc is rethrown to caller (deferral completion following failed cleanup)") {
     resourceYielding(IO(1), IO.raiseError(AllocFailure())).flatMap { r =>
       val p = Pool.ofF({(_: Tracer[IO]) => r}, 1)(Recycler.failure)
       p.use { r =>
         for {
           d  <- Deferred[IO, Unit]
-          f1 <- r(noop).use(n => assertEqual("n should be 1", n, 1) *> d.get).start
-          f2 <- r(noop).use(_ => fail[Int]("should never get here")).assertFailsWith[AllocFailure].start
+          f1 <- r(ioTracer).use(n => assertEqual("n should be 1", n, 1) *> d.get).start
+          f2 <- r(ioTracer).use(_ => fail[Int]("should never get here")).assertFailsWith[AllocFailure].start
           _  <- d.complete(())
           _  <- f1.join
           _  <- f2.join
@@ -84,16 +82,16 @@ class PoolTest extends FTest {
     }
   }
 
-  test("provoke dangling deferral cancellation") {
+  tracedTest("provoke dangling deferral cancellation") {
     ints.flatMap { r =>
       val p = Pool.ofF({(_: Tracer[IO]) => r}, 1)(Recycler.failure)
       Deferred[IO, Either[Throwable, Int]].flatMap { d1 =>
         p.use { r =>
           for {
             d <- Deferred[IO, Unit]
-            _ <- r(noop).use(_ => d.complete(()) *> IO.never).start // leaked forever
+            _ <- r(ioTracer).use(_ => d.complete(()) *> IO.never).start // leaked forever
             _ <- d.get // make sure the resource has been allocated
-            f <- r(noop).use(_ => fail[Int]("should never get here")).attempt.flatMap(d1.complete).start // defer
+            f <- r(ioTracer).use(_ => fail[Int]("should never get here")).attempt.flatMap(d1.complete).start // defer
             _ <- IO.sleep(100.milli) // ensure that the fiber has a chance to run
           } yield f
         } .assertFailsWith[ResourceLeak].flatMap {
@@ -103,40 +101,40 @@ class PoolTest extends FTest {
     }
   }}
 
-  test("error in free is rethrown to caller") {
+  tracedTest("error in free is rethrown to caller") {
     val rsrc = Resource.make("foo".pure[IO])(_ => IO.raiseError(FreeFailure()))
     val pool = Pool.ofF({(_: Tracer[IO]) => rsrc}, 42)(Recycler.success)
-    pool.use(_(noop).use(_ => IO.unit)).assertFailsWith[FreeFailure]
+    pool.use(_(ioTracer).use(_ => IO.unit)).assertFailsWith[FreeFailure]
   }
 
-  test("error in reset is rethrown to caller") {
+  tracedTest("error in reset is rethrown to caller") {
     val rsrc = Resource.make("foo".pure[IO])(_ => IO.unit)
     val pool = Pool.ofF({(_: Tracer[IO]) => rsrc}, 42)(Recycler[IO, String](_ => IO.raiseError(ResetFailure())))
-    pool.use(_(noop).use(_ => IO.unit)).assertFailsWith[ResetFailure]
+    pool.use(_(ioTracer).use(_ => IO.unit)).assertFailsWith[ResetFailure]
   }
 
-  test("reuse on serial access") {
+  tracedTest("reuse on serial access") {
     ints.map(a => Pool.ofF({(_: Tracer[IO]) => a}, 3)(Recycler.success)).flatMap { factory =>
       factory.use { pool =>
-        pool(noop).use { n =>
+        pool(ioTracer).use { n =>
           assertEqual("first num should be 1", n, 1)
         } *>
-        pool(noop).use { n =>
+        pool(ioTracer).use { n =>
           assertEqual("we should get it again", n, 1)
         }
       }
     }
   }
 
-  test("allocation on nested access") {
+  tracedTest("allocation on nested access") {
     ints.map(a => Pool.ofF({(_: Tracer[IO]) => a}, 3)(Recycler.success)).flatMap { factory =>
       factory.use { pool =>
-        pool(noop).use { n =>
+        pool(ioTracer).use { n =>
           assertEqual("first num should be 1", n, 1) *>
-          pool(noop).use { n =>
+          pool(ioTracer).use { n =>
             assertEqual("but this one should be 2", n, 2)
           } *>
-          pool(noop).use { n =>
+          pool(ioTracer).use { n =>
             assertEqual("and again", n, 2)
           }
         }
@@ -144,10 +142,10 @@ class PoolTest extends FTest {
     }
   }
 
-  test("allocated resource can cause a leak, which will be detected on finalization") {
+  tracedTest("allocated resource can cause a leak, which will be detected on finalization") {
     ints.map(a => Pool.ofF({(_: Tracer[IO]) => a}, 3)(Recycler.success)).flatMap { factory =>
       factory.use { pool =>
-        pool(noop).allocated
+        pool(ioTracer).allocated
       } .assertFailsWith[ResourceLeak].flatMap {
         case ResourceLeak(expected, actual, _) =>
           assert("expected 1 leakage", expected - actual == 1)
@@ -155,10 +153,10 @@ class PoolTest extends FTest {
     }
   }
 
-  test("unmoored fiber can cause a leak, which will be detected on finalization") {
+  tracedTest("unmoored fiber can cause a leak, which will be detected on finalization") {
     ints.map(a => Pool.ofF({(_: Tracer[IO]) => a}, 3)(Recycler.success)).flatMap { factory =>
       factory.use { pool =>
-        pool(noop).use(_ => IO.never).start *>
+        pool(ioTracer).use(_ => IO.never).start *>
         IO.sleep(100.milli) // ensure that the fiber has a chance to run
       } .assertFailsWith[ResourceLeak].flatMap {
         case ResourceLeak(expected, actual, _) =>
@@ -174,11 +172,11 @@ class PoolTest extends FTest {
 
   val shortRandomDelay = IO((Random.nextInt() % 100).abs.milliseconds)
 
-  test("progress and safety with many fibers") {
+  tracedTest("progress and safety with many fibers") {
     ints.map(a => Pool.ofF({(_: Tracer[IO]) => a}, PoolSize)(Recycler.success)).flatMap { factory =>
       (1 to ConcurrentTasks).toList.parTraverse_{ _ =>
         factory.use { p =>
-          p(noop).use { _ =>
+          p(ioTracer).use { _ =>
             for {
               t <- shortRandomDelay
               _ <- IO.sleep(t)
@@ -189,13 +187,13 @@ class PoolTest extends FTest {
     }
   }
 
-  test("progress and safety with many fibers and cancellation") {
+  tracedTest("progress and safety with many fibers and cancellation") {
     ints.map(a => Pool.ofF({(_: Tracer[IO]) => a}, PoolSize)(Recycler.success)).flatMap { factory =>
       factory.use { pool =>
         (1 to ConcurrentTasks).toList.parTraverse_{_ =>
           for {
             t <- shortRandomDelay
-            f <- pool(noop).use(_ => IO.sleep(t)).start
+            f <- pool(ioTracer).use(_ => IO.sleep(t)).start
             _ <- if (t > 50.milliseconds) f.join else f.cancel
           } yield ()
         }
@@ -203,11 +201,11 @@ class PoolTest extends FTest {
     }
   }
 
-  test("progress and safety with many fibers and user failures") {
+  tracedTest("progress and safety with many fibers and user failures") {
     ints.map(a => Pool.ofF({(_: Tracer[IO]) => a}, PoolSize)(Recycler.success)).flatMap { factory =>
       factory.use { pool =>
         (1 to ConcurrentTasks).toList.parTraverse_{ _ =>
-          pool(noop).use { _ =>
+          pool(ioTracer).use { _ =>
             for {
               t <- shortRandomDelay
               _ <- IO.sleep(t)
@@ -219,7 +217,7 @@ class PoolTest extends FTest {
     }
   }
 
-  test("progress and safety with many fibers and allocation failures") {
+  tracedTest("progress and safety with many fibers and allocation failures") {
     val alloc = IO(Random.nextBoolean()).flatMap {
       case true  => IO.unit
       case false => IO.raiseError(AllocFailure())
@@ -227,14 +225,14 @@ class PoolTest extends FTest {
     val rsrc = Resource.make(alloc)(_ => IO.unit)
     Pool.ofF({(_: Tracer[IO]) => rsrc}, PoolSize)(Recycler.success).use { pool =>
       (1 to ConcurrentTasks).toList.parTraverse_{ _ =>
-        pool(noop).use { _ =>
+        pool(ioTracer).use { _ =>
           IO.unit
         } .attempt
       }
     }
   }
 
-  test("progress and safety with many fibers and freeing failures") {
+  tracedTest("progress and safety with many fibers and freeing failures") {
     val free = IO(Random.nextBoolean()).flatMap {
       case true  => IO.unit
       case false => IO.raiseError(FreeFailure())
@@ -242,7 +240,7 @@ class PoolTest extends FTest {
     val rsrc  = Resource.make(IO.unit)(_ => free)
     Pool.ofF({(_: Tracer[IO]) => rsrc}, PoolSize)(Recycler.success).use { pool =>
       (1 to ConcurrentTasks).toList.parTraverse_{ _ =>
-        pool(noop).use { _ =>
+        pool(ioTracer).use { _ =>
           IO.unit
         } .attempt
       }
@@ -252,7 +250,7 @@ class PoolTest extends FTest {
     }
   }
 
-  test("progress and safety with many fibers and reset failures") {
+  tracedTest("progress and safety with many fibers and reset failures") {
     val recycle = IO(Random.nextInt(3)).flatMap {
       case 0 => true.pure[IO]
       case 1 => false.pure[IO]
@@ -261,7 +259,7 @@ class PoolTest extends FTest {
     val rsrc  = Resource.make(IO.unit)(_ => IO.unit)
     Pool.ofF({(_: Tracer[IO]) => rsrc}, PoolSize)(Recycler(_ => recycle)).use { pool =>
       (1 to ConcurrentTasks).toList.parTraverse_{ _ =>
-        pool(noop).use { _ =>
+        pool(ioTracer).use { _ =>
           IO.unit
         } handleErrorWith {
           case ResetFailure() => IO.unit

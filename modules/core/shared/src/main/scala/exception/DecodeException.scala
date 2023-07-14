@@ -5,7 +5,7 @@
 package skunk.exception
 
 import cats.syntax.all._
-import skunk.{ Encoder, Decoder }
+import skunk.{ Encoder, Decoder, RedactionStrategy }
 import skunk.util.Origin
 // import skunk.net.Protocol
 import skunk.util.Text
@@ -23,12 +23,13 @@ class DecodeException[F[_], A, B](
   argumentsOrigin: Option[Origin],
   encoder:   Encoder[A],
   rowDescription: TypedRowDescription,
-  cause:     Option[Throwable] = None
+  cause:     Option[Throwable] = None,
+  redactionStrategy: RedactionStrategy,
 ) extends SkunkException(
   sql             = Some(sql),
   message         = "Decoding error.",
   detail          = Some("This query's decoder was unable to decode a row of data."),
-  arguments       = encoder.types.zip(encoder.encode(arguments)),
+  arguments       = encoder.types.zip(redactionStrategy.redactArguments(encoder.encode(arguments))),
   argumentsOrigin = argumentsOrigin,
   sqlOrigin       = sqlOrigin
 ) {

@@ -57,7 +57,7 @@ trait PreparedQuery[F[_], A, B] {
 /** @group Companions */
 object PreparedQuery {
 
-  def fromProto[F[_], A, B](proto: Protocol.PreparedQuery[F, A, B])(
+  def fromProto[F[_], A, B](proto: Protocol.PreparedQuery[F, A, B], redactionStrategy: RedactionStrategy)(
     implicit ev: MonadCancel[F, Throwable]
   ): PreparedQuery[F, A, B] =
     new PreparedQuery[F, A, B] {
@@ -131,7 +131,8 @@ object PreparedQuery {
             args       = args,
             callSite   = Some(CallSite(method, or)),
             hint       = Some(h),
-            argsOrigin = Some(or)
+            argsOrigin = Some(or),
+            redactionStrategy = redactionStrategy
           )
         }
 

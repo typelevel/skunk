@@ -186,6 +186,18 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       } else Tests.Argument()
     }
   )
+  .jvmSettings(
+    libraryDependencies ++= Seq(
+      "org.typelevel" %% "otel4s-java" % otel4sVersion,
+      "io.opentelemetry" % "opentelemetry-exporter-otlp" % openTelemetryVersion % Runtime,
+      "io.opentelemetry" % "opentelemetry-sdk-extension-autoconfigure" % s"${openTelemetryVersion}-alpha" % Runtime
+    ),
+    Test / fork := true,
+    javaOptions ++= Seq(
+      "-Dotel.java.global-autoconfigure.enabled=true",
+      "-Dotel.service.name=SkunkTests",
+    )
+  )
   .jsSettings(
     scalaJSLinkerConfig ~= { _.withESFeatures(_.withESVersion(org.scalajs.linker.interface.ESVersion.ES2018)) },
     Test / scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.CommonJSModule)),
