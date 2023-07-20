@@ -9,9 +9,8 @@ import cats.effect._
 import cats.effect.syntax.temporal._
 import fs2.Chunk
 import scodec.bits.BitVector
-import fs2.io.net.{Socket, SocketGroup, SocketOption}
-import com.comcast.ip4s._
-import skunk.exception.{EofException, SkunkException}
+import fs2.io.net.Socket
+import skunk.exception.EofException
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration.FiniteDuration
 
@@ -67,32 +66,16 @@ object BitVectorSocket {
    * @param port the remote port
    * @group Constructors
    */
-  def apply[F[_]](
-    host:          String,
-    port:          Int,
-    sg:            SocketGroup[F],
-    socketOptions: List[SocketOption],
+  def apply[F[_]: Temporal](
+    sockets: Resource[F, Socket[F]],
     sslOptions:    Option[SSLNegotiation.Options[F]],
     readTimeout:   Duration
-  )(implicit ev: Temporal[F]): Resource[F, BitVectorSocket[F]] = {
-
-    def fail[A](msg: String): Resource[F, A] =
-      Resource.eval(ev.raiseError(new SkunkException(message = msg, sql = None)))
-
-    def sock: Resource[F, Socket[F]] = {
-      (Hostname.fromString(host), Port.fromInt(port)) match {
-        case (Some(validHost), Some(validPort)) => sg.client(SocketAddress(validHost, validPort), socketOptions)
-        case (None, _) =>  fail(s"""Hostname: "$host" is not syntactically valid.""")
-        case (_, None) =>  fail(s"Port: $port falls out of the allowed range.")
-      }
-    }
-
+  ): Resource[F, BitVectorSocket[F]] =
     for {
-      sock <- sock
+      sock <- sockets
       sockʹ <- sslOptions.fold(sock.pure[Resource[F, *]])(SSLNegotiation.negotiateSSL(sock, _))
       carry <- Resource.eval(Ref.of(Chunk.empty[Byte]))
     } yield fromSocket(sockʹ, readTimeout, carry)
 
-  }
 }
 

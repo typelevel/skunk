@@ -14,7 +14,7 @@ import skunk.data._
 import skunk.util.{ Namer, Origin }
 import skunk.util.Typer
 import org.typelevel.otel4s.trace.Tracer
-import fs2.io.net.{ SocketGroup, SocketOption }
+import fs2.io.net.Socket
 import skunk.net.protocol.Describe
 import scala.concurrent.duration.Duration
 import skunk.net.protocol.Exchange
@@ -198,12 +198,9 @@ object Protocol {
    * @param port  Postgres port, default 5432
    */
   def apply[F[_]: Temporal: Tracer: Console](
-    host:         String,
-    port:         Int,
     debug:        Boolean,
     nam:          Namer[F],
-    sg:           SocketGroup[F],
-    socketOptions: List[SocketOption],
+    sockets: Resource[F, Socket[F]],
     sslOptions:   Option[SSLNegotiation.Options[F]],
     describeCache: Describe.Cache[F],
     parseCache: Parse.Cache[F],
@@ -211,7 +208,7 @@ object Protocol {
     redactionStrategy: RedactionStrategy
   ): Resource[F, Protocol[F]] =
     for {
-      bms <- BufferedMessageSocket[F](host, port, 256, debug, sg, socketOptions, sslOptions, readTimeout) // TODO: should we expose the queue size?
+      bms <- BufferedMessageSocket[F](256, debug, sockets, sslOptions, readTimeout) // TODO: should we expose the queue size?
       p   <- Resource.eval(fromMessageSocket(bms, nam, describeCache, parseCache, redactionStrategy))
     } yield p
 
