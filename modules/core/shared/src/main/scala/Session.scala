@@ -9,8 +9,9 @@ import cats.data.Kleisli
 import cats.effect._
 import cats.effect.std.Console
 import cats.syntax.all._
+import com.comcast.ip4s.{Hostname, Port, SocketAddress}
 import fs2.concurrent.Signal
-import fs2.io.net.{ Network, SocketGroup, SocketOption }
+import fs2.io.net.{ Network, Socket, SocketGroup, SocketOption }
 import fs2.Pipe
 import fs2.Stream
 import org.typelevel.otel4s.trace.Tracer
@@ -22,6 +23,7 @@ import skunk.util.Typer.Strategy.{ BuiltinsOnly, SearchPath }
 import skunk.net.SSLNegotiation
 import skunk.data.TransactionIsolationLevel
 import skunk.data.TransactionAccessMode
+import skunk.exception.SkunkException
 import skunk.net.protocol.Describe
 import scala.concurrent.duration.Duration
 import skunk.net.protocol.Parse
@@ -543,7 +545,7 @@ object Session {
       Kleisli { implicit T: Tracer[F] => f(T) }
     ).run
 
-  def fromSocketGroup[F[_]: Temporal: Tracer: Console](
+  def fromSocketGroup[F[_]: Tracer: Console](
     socketGroup:       SocketGroup[F],
     host:              String,
     port:              Int            = 5432,
@@ -559,10 +561,38 @@ object Session {
     parseCache:        Parse.Cache[F],
     readTimeout:       Duration = Duration.Inf,
     redactionStrategy: RedactionStrategy = RedactionStrategy.OptIn,
+  )(implicit ev: Temporal[F]): Resource[F, Session[F]] = {
+    def fail[A](msg: String): Resource[F, A] =
+      Resource.eval(ev.raiseError(new SkunkException(message = msg, sql = None)))
+
+    def sock: Resource[F, Socket[F]] = {
+      (Hostname.fromString(host), Port.fromInt(port)) match {
+        case (Some(validHost), Some(validPort)) => socketGroup.client(SocketAddress(validHost, validPort), socketOptions)
+        case (None, _) =>  fail(s"""Hostname: "$host" is not syntactically valid.""")
+        case (_, None) =>  fail(s"Port: $port falls out of the allowed range.")
+      }
+    }
+
+    fromSockets(sock, user, database, password, debug, strategy, sslOptions, parameters, describeCache, parseCache, readTimeout, redactionStrategy)
+  }
+
+  def fromSockets[F[_] : Temporal : Tracer : Console](
+   sockets: Resource[F, Socket[F]],
+   user: String,
+   database: String,
+   password: Option[String] = none,
+   debug: Boolean = false,
+   strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly,
+   sslOptions: Option[SSLNegotiation.Options[F]],
+   parameters: Map[String, String],
+   describeCache: Describe.Cache[F],
+   parseCache: Parse.Cache[F],
+   readTimeout: Duration = Duration.Inf,
+   redactionStrategy: RedactionStrategy = RedactionStrategy.OptIn,
   ): Resource[F, Session[F]] =
     for {
       namer <- Resource.eval(Namer[F])
-      proto <- Protocol[F](host, port, debug, namer, socketGroup, socketOptions, sslOptions, describeCache, parseCache, readTimeout, redactionStrategy)
+      proto <- Protocol[F](debug, namer, sockets, sslOptions, describeCache, parseCache, readTimeout, redactionStrategy)
       _     <- Resource.eval(proto.startup(user, database, password, parameters))
       sess  <- Resource.make(fromProtocol(proto, namer, strategy, redactionStrategy))(_ => proto.cleanup)
     } yield sess
