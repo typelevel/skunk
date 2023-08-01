@@ -11,13 +11,10 @@ import skunk.data._
 import skunk.codec.all._
 import skunk.implicits._
 import skunk.util.Typer
-import org.typelevel.otel4s.trace.Tracer
 import munit.Location
 import scala.concurrent.duration.Duration
 
 abstract class SkunkTest(debug: Boolean = false, strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly) extends ffstest.FTest {
-
-  implicit val trace: Tracer[IO] = Tracer.noop
 
   def session: Resource[IO, Session[IO]] = session(Duration.Inf)
 
@@ -34,23 +31,23 @@ abstract class SkunkTest(debug: Boolean = false, strategy: Typer.Strategy = Type
     )
 
   def sessionTest[A](name: String, readTimeout: Duration = Duration.Inf)(fa: Session[IO] => IO[A])(implicit loc: Location): Unit =
-    test(name)(session(readTimeout).use(fa))
+    tracedTest(name)(session(readTimeout).use(fa))
 
-  def pooled(readTimeout: Duration): Resource[IO, Resource[IO, Session[IO]]] =
+  def pooled(max: Int = 8, readTimeout: Duration = Duration.Inf): Resource[IO, Resource[IO, Session[IO]]] =
     Session.pooled(
       host        = "localhost",
       port        = 5432,
       user        = "jimmy",
       database    = "world",
       password    = Some("banana"),
-      max         = 8,
+      max         = max,
       strategy    = strategy,
       debug       = debug,
       readTimeout = readTimeout
     )
 
-  def pooledTest[A](name: String, readTimeout: Duration = Duration.Inf)(fa: Resource[IO, Session[IO]] => IO[A])(implicit loc: Location): Unit =
-    test(name)(pooled(readTimeout).use(fa))
+  def pooledTest[A](name: String, max: Int = 8, readTimeout: Duration = Duration.Inf)(fa: Resource[IO, Session[IO]] => IO[A])(implicit loc: Location): Unit =
+    tracedTest(name)(pooled(max, readTimeout).use(fa))
 
   implicit class SkunkTestSessionOps(s: Session[IO]) {
 

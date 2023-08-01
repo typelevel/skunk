@@ -2,7 +2,7 @@ ThisBuild / tlBaseVersion := "1.0"
 
 // Our Scala versions.
 lazy val `scala-2.13` = "2.13.10"
-lazy val `scala-3`  = "3.2.2"
+lazy val `scala-3`  = "3.3.0"
 
 ThisBuild / scalaVersion       := `scala-2.13`
 ThisBuild / crossScalaVersions := Seq(`scala-2.13`, `scala-3`)
@@ -60,7 +60,7 @@ ThisBuild / mimaBinaryIssueFilters ++= List(
 
 // This is used in a couple places
 lazy val fs2Version = "3.7.0"
-lazy val openTelemetryVersion = "1.26.0"
+lazy val openTelemetryVersion = "1.28.0"
 lazy val otel4sVersion = "0.2.1"
 
 // Global Settings
@@ -186,6 +186,18 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       } else Tests.Argument()
     }
   )
+  .jvmSettings(
+    libraryDependencies ++= Seq(
+      "org.typelevel" %% "otel4s-java" % otel4sVersion,
+      "io.opentelemetry" % "opentelemetry-exporter-otlp" % openTelemetryVersion % Runtime,
+      "io.opentelemetry" % "opentelemetry-sdk-extension-autoconfigure" % openTelemetryVersion % Runtime
+    ),
+    Test / fork := true,
+    javaOptions ++= Seq(
+      "-Dotel.java.global-autoconfigure.enabled=true",
+      "-Dotel.service.name=SkunkTests",
+    )
+  )
   .jsSettings(
     scalaJSLinkerConfig ~= { _.withESFeatures(_.withESVersion(org.scalajs.linker.interface.ESVersion.ES2018)) },
     Test / scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.CommonJSModule)),
@@ -206,7 +218,7 @@ lazy val example = project
     libraryDependencies ++= Seq(
       "org.typelevel"    %% "otel4s-java" % otel4sVersion,
       "io.opentelemetry" % "opentelemetry-exporter-otlp" % openTelemetryVersion % Runtime,
-      "io.opentelemetry" % "opentelemetry-sdk-extension-autoconfigure" % s"${openTelemetryVersion}-alpha" % Runtime,
+      "io.opentelemetry" % "opentelemetry-sdk-extension-autoconfigure" % openTelemetryVersion % Runtime,
     ),
     run / fork := true,
     javaOptions += "-Dotel.java.global-autoconfigure.enabled=true"

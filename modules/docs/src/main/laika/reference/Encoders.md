@@ -109,3 +109,8 @@ val person = (varchar *: int4).values.to[Person]
 sql"INSERT INTO person (name, age) VALUES $person"
 ```
 
+## Redaction
+
+By default, encoded values appear in exceptions and traces, which greatly enhances debugging. Some values are sensitive and should never be included in logs. The `Encoder` type has a `redacted` combinator which returns a new encoder of the same type, ensuring encoded values are not included in exceptions or traces.
+
+Alternatively, value redaction can be globally configured on a session level, overriding encoder level redaction settings. The default strategy is `RedactionStrategy.OptIn` which respects encoder level redaction. There's also `RedactionStrategy.All`, which redacts *all* values, and `RedactionStrategy.None`, which redacts no value. In both the all and none cases, encoder level redaction is ignored. The redaction strategy is specified as a parameter on the `Session` constructor -- e.g., `Session.single` and `Session.pooled`.

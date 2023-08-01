@@ -8,7 +8,7 @@ import cats._
 import cats.data.State
 import cats.syntax.all._
 import org.typelevel.twiddles.TwiddleSyntax
-import skunk.data.Type
+import skunk.data.{Encoded, Type}
 import skunk.util.Typer
 import skunk.util.Twiddler
 
@@ -18,8 +18,7 @@ import skunk.util.Twiddler
  */
 trait Encoder[A] { outer =>
 
-  protected lazy val empty: List[Option[String]] =
-    types.map(_ => None)
+  protected lazy val empty: List[Option[Encoded]] = types.as(None)
 
   /**
    * Given an initial parameter index, yield a hunk of sql containing placeholders, and a new
@@ -31,7 +30,24 @@ trait Encoder[A] { outer =>
    * Encode a value of type `A`, yielding a list of Postgres text-formatted strings, lifted to
    * `Option` to handle `NULL` values. Encoding failures raise unrecoverable errors.
    */
-  def encode(a: A): List[Option[String]]
+  def encode(a: A): List[Option[Encoded]]
+
+  /**
+    * Returns an encoder that redacts encoded values.
+    */
+  def redacted: Encoder[A] =
+    new Encoder[A] {
+      override def encode(a: A): List[Option[Encoded]] = outer.encode(a).map(_.map(_.redact))
+      override val types: List[Type] = outer.types
+      override val sql: State[Int, String] = outer.sql
+    }
+
+  def unredacted: Encoder[A] =
+    new Encoder[A] {
+      override def encode(a: A): List[Option[Encoded]] = outer.encode(a).map(_.map(_.unredact))
+      override val types: List[Type] = outer.types
+      override val sql: State[Int, String] = outer.sql
+    }
 
   /** Types of encoded fields, in order. */
   def types: List[Type]
@@ -48,7 +64,7 @@ trait Encoder[A] { outer =>
   /** Contramap inputs from a new type `B`, yielding an `Encoder[B]`. */
   def contramap[B](f: B => A): Encoder[B] =
     new Encoder[B] {
-      override def encode(b: B): List[Option[String]] = outer.encode(f(b))
+      override def encode(b: B): List[Option[Encoded]] = outer.encode(f(b))
       override val types: List[Type] = outer.types
       override val sql: State[Int, String] = outer.sql
     }
@@ -61,7 +77,7 @@ trait Encoder[A] { outer =>
   /** `Encoder` is semigroupal: a pair of encoders make a encoder for a pair. */
   def product[B](fb: Encoder[B]): Encoder[(A, B)] =
     new Encoder[(A, B)] {
-      override def encode(ab: (A, B)): List[Option[String]] = outer.encode(ab._1) ++ fb.encode(ab._2)
+      override def encode(ab: (A, B)): List[Option[Encoded]] = outer.encode(ab._1) ++ fb.encode(ab._2)
       override val types: List[Type] = outer.types ++ fb.types
       override val sql: State[Int, String] = (outer.sql, fb.sql).mapN((a, b) => s"$a, $b")
     }
@@ -74,7 +90,7 @@ trait Encoder[A] { outer =>
   // dumb errors
   def opt: Encoder[Option[A]] =
     new Encoder[Option[A]] {
-      override def encode(a: Option[A]): List[Option[String]] = a.fold(empty)(outer.encode)
+      override def encode(a: Option[A]): List[Option[Encoded]] = a.fold(empty)(outer.encode)
       override val types: List[Type] = outer.types
       override val sql: State[Int, String]   = outer.sql
     }
@@ -88,9 +104,9 @@ trait Encoder[A] { outer =>
       // N.B. this is error-prone because we have no static checking on the length. It should be a
       // well-explained runtime error to encode a list of the wrong length. This means we need to
       // encode into Either, as we do with decoding.
-      def encode(as: List[A]) = as.flatMap(outer.encode)
-      val types = (0 until n).toList.flatMap(_ => outer.types)
-      val sql   = outer.sql.replicateA(n).map(_.mkString(", "))
+      override def encode(as: List[A]) = as.flatMap(outer.encode)
+      override val types = (0 until n).toList.flatMap(_ => outer.types)
+      override val sql   = outer.sql.replicateA(n).map(_.mkString(", "))
     }
 
   /**
@@ -107,9 +123,9 @@ trait Encoder[A] { outer =>
    */
   def values: Encoder[A] =
     new Encoder[A] {
-      def encode(a: A): List[Option[String]] = outer.encode(a)
-      val types: List[Type] = outer.types
-      val sql: State[Int,String] = outer.sql.map(s => s"($s)")
+      override def encode(a: A): List[Option[Encoded]] = outer.encode(a)
+      override val types: List[Type] = outer.types
+      override val sql: State[Int,String] = outer.sql.map(s => s"($s)")
     }
 
   // now we can say (int4 ~ varchar ~ bool).values.list(2) to get ($1, $2, $3), ($4, $5, $6)

@@ -9,12 +9,12 @@ import cats.effect.{ Concurrent, Temporal, Resource }
 import cats.effect.std.Console
 import fs2.concurrent.Signal
 import fs2.Stream
-import skunk.{ Command, Query, Statement, ~, Void }
+import skunk.{ Command, Query, Statement, ~, Void, RedactionStrategy }
 import skunk.data._
 import skunk.util.{ Namer, Origin }
 import skunk.util.Typer
 import org.typelevel.otel4s.trace.Tracer
-import fs2.io.net.{ SocketGroup, SocketOption }
+import fs2.io.net.Socket
 import skunk.net.protocol.Describe
 import scala.concurrent.duration.Duration
 import skunk.net.protocol.Exchange
@@ -186,6 +186,7 @@ object Protocol {
     val preparedQuery:   PreparedQuery[F, A, B],
     val arguments:       A,
     val argumentsOrigin: Origin,
+    val redactionStrategy: RedactionStrategy
   ) extends Portal[F, A] {
     def preparedStatement: PreparedStatement[F, A] = preparedQuery
     def execute(maxRows: Int): F[List[B] ~ Boolean]
@@ -197,27 +198,26 @@ object Protocol {
    * @param port  Postgres port, default 5432
    */
   def apply[F[_]: Temporal: Tracer: Console](
-    host:         String,
-    port:         Int,
     debug:        Boolean,
     nam:          Namer[F],
-    sg:           SocketGroup[F],
-    socketOptions: List[SocketOption],
+    sockets: Resource[F, Socket[F]],
     sslOptions:   Option[SSLNegotiation.Options[F]],
     describeCache: Describe.Cache[F],
     parseCache: Parse.Cache[F],
-    readTimeout:  Duration
+    readTimeout:  Duration,
+    redactionStrategy: RedactionStrategy
   ): Resource[F, Protocol[F]] =
     for {
-      bms <- BufferedMessageSocket[F](host, port, 256, debug, sg, socketOptions, sslOptions, readTimeout) // TODO: should we expose the queue size?
-      p   <- Resource.eval(fromMessageSocket(bms, nam, describeCache, parseCache))
+      bms <- BufferedMessageSocket[F](256, debug, sockets, sslOptions, readTimeout) // TODO: should we expose the queue size?
+      p   <- Resource.eval(fromMessageSocket(bms, nam, describeCache, parseCache, redactionStrategy))
     } yield p
 
   def fromMessageSocket[F[_]: Concurrent: Tracer](
     bms: BufferedMessageSocket[F],
     nam: Namer[F],
     dc:  Describe.Cache[F],
-    pc:  Parse.Cache[F]
+    pc:  Parse.Cache[F],
+    redactionStrategy: RedactionStrategy
   ): F[Protocol[F]] =
     Exchange[F].map { ex =>
       new Protocol[F] {
@@ -235,16 +235,16 @@ object Protocol {
           bms.parameters
 
         override def prepare[A](command: Command[A], ty: Typer): F[PreparedCommand[F, A]] =
-          protocol.Prepare[F](describeCache, parseCache).apply(command, ty)
+          protocol.Prepare[F](describeCache, parseCache, redactionStrategy).apply(command, ty)
 
         override def prepare[A, B](query: Query[A, B], ty: Typer): F[PreparedQuery[F, A, B]] =
-          protocol.Prepare[F](describeCache, parseCache).apply(query, ty)
+          protocol.Prepare[F](describeCache, parseCache, redactionStrategy).apply(query, ty)
 
         override def execute(command: Command[Void]): F[Completion] =
-          protocol.Query[F].apply(command)
+          protocol.Query[F](redactionStrategy).apply(command)
 
         override def execute[B](query: Query[Void, B], ty: Typer): F[List[B]] =
-          protocol.Query[F].apply(query, ty)
+          protocol.Query[F](redactionStrategy).apply(query, ty)
 
         override def startup(user: String, database: String, password: Option[String], parameters: Map[String, String]): F[Unit] =
           protocol.Startup[F].apply(user, database, password, parameters)

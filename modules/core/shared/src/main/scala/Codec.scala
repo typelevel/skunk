@@ -8,7 +8,7 @@ import cats._
 import cats.data._
 import cats.syntax.all._
 import org.typelevel.twiddles.TwiddleSyntax
-import skunk.data.{Arr,Type}
+import skunk.data.{Arr, Encoded, Type}
 import skunk.util.Twiddler
 
 /**
@@ -28,7 +28,7 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
     new Codec[(A, B)] {
       private val pe = outer.asEncoder product fb.asEncoder
       private val pd = outer.asDecoder product fb.asDecoder
-      override def encode(ab: (A, B)): List[Option[String]] = pe.encode(ab)
+      override def encode(ab: (A, B)): List[Option[Encoded]] = pe.encode(ab)
       override def decode(offset: Int, ss: List[Option[String]]):Either[Decoder.Error, (A, B)] = pd.decode(offset, ss)
       override val sql: State[Int, String]   = (outer.sql, fb.sql).mapN((a, b) => s"$a, $b")
       override val types: List[Type]         = outer.types ++ fb.types
@@ -39,12 +39,21 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
     product(fb)
 
   /** Contramap inputs from, and map outputs to, a new type `B`, yielding a `Codec[B]`. */
-  def imap[B](f: A => B)(g: B => A): Codec[B] =
-    Codec(b => encode(g(b)), decode(_, _).map(f), types)
+  def imap[B](f: A => B)(g: B => A): Codec[B] = new Codec[B] {
+    override def encode(b: B): List[Option[Encoded]] = outer.encode(g(b))
+    override def decode(offset: Int, ss: List[Option[String]]): Either[Decoder.Error, B] = outer.decode(offset, ss).map(f)
+    override val sql: State[Int, String]   = outer.sql
+    override val types: List[Type]         = outer.types
+  }
 
   /** Contramap inputs from, and map decoded results to a new type `B` or an error, yielding a `Codec[B]`. */
-  def eimap[B](f: A => Either[String, B])(g: B => A): Codec[B] =
-    Codec(b => encode(g(b)), emap(f).decode(_, _), types)
+  def eimap[B](f: A => Either[String, B])(g: B => A): Codec[B] = new Codec[B] {
+    override def encode(b: B): List[Option[Encoded]] = outer.encode(g(b))
+    override def decode(offset: Int, ss: List[Option[String]]): Either[Decoder.Error, B] =
+      outer.decode(offset, ss).flatMap(a => f(a).leftMap(Decoder.Error(offset, length, _)))
+    override val sql: State[Int, String]   = outer.sql
+    override val types: List[Type]         = outer.types
+  }
 
   /** Adapt this `Codec` from twiddle-list type A to isomorphic case-class type `B`. */
   @deprecated("Use (a *: b *: c).to[CaseClass] instead of (a ~ b ~ c).gimap[CaseClass]", "0.6")
@@ -54,13 +63,23 @@ trait Codec[A] extends Encoder[A] with Decoder[A] { outer =>
   /** Lift this `Codec` into `Option`, where `None` is mapped to and from a vector of `NULL`. */
   override def opt: Codec[Option[A]] =
     new Codec[Option[A]] {
-      override def encode(oa: Option[A]): List[Option[String]] = oa.fold(empty)(outer.encode)
+      override def encode(oa: Option[A]): List[Option[Encoded]] = oa.fold(empty)(outer.encode)
       override def decode(offset: Int, ss: List[Option[String]]): Either[Decoder.Error, Option[A]] =
         if (ss.forall(_.isEmpty)) Right(None)
         else outer.decode(offset, ss).map(Some(_))
       override val sql: State[Int, String]   = outer.sql
       override val types: List[Type]         = outer.types
     }
+
+  override def redacted: Codec[A] = {
+    val red0 = super.redacted
+    new Codec[A] {
+      override def encode(a: A): List[Option[Encoded]] = red0.encode(a)
+      override def decode(offset: Int, ss: List[Option[String]]): Either[Decoder.Error, A] = outer.decode(offset, ss)
+      override val sql: State[Int, String] = outer.sql
+      override val types: List[Type] = outer.types
+    }
+  }
 
   override def toString: String =
     s"Codec(${types.mkString(", ")})"
@@ -77,7 +96,7 @@ object Codec extends TwiddleSyntax[Codec] {
     oids0:   List[Type]
   ): Codec[A] =
     new Codec[A] {
-      override def encode(a: A): List[Option[String]] = encode0(a)
+      override def encode(a: A): List[Option[Encoded]] = encode0(a).map(_.map(Encoded(_)))
       override def decode(offset: Int, ss: List[Option[String]]): Either[Decoder.Error, A] = decode0(offset, ss)
       override val types: List[Type] = oids0
       override val sql: State[Int, String] = State { (n: Int) =>

@@ -4,6 +4,10 @@
 
 package ffstest
 
+import cats.effect.IO
 import munit.CatsEffectSuite
+import org.typelevel.otel4s.trace.Tracer
 
-trait FTestPlatform extends CatsEffectSuite
+trait FTestPlatform extends CatsEffectSuite {
+  implicit lazy val ioTracer: Tracer[IO] = Tracer.noop
+}

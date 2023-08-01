@@ -7,14 +7,11 @@ package tests
 import cats.effect._
 import com.comcast.ip4s.UnknownHostException
 import fs2.io.net.ConnectException
-import org.typelevel.otel4s.trace.Tracer
 import skunk._
 import skunk.exception.SkunkException
 import skunk.exception.StartupException
 
 class StartupTest extends ffstest.FTest {
-
-  implicit val tracer: Tracer[IO] = Tracer.noop
 
   // Different ports for different authentication schemes.
   object Port {
@@ -25,7 +22,7 @@ class StartupTest extends ffstest.FTest {
     val Password = 5435
   }
 
-  test("md5 - successful login") {
+  tracedTest("md5 - successful login") {
     Session.single[IO](
       host     = "localhost",
       user     = "jimmy",
@@ -35,7 +32,7 @@ class StartupTest extends ffstest.FTest {
     ).use(_ => IO.unit)
   }
 
-  test("md5 - non-existent database") {
+  tracedTest("md5 - non-existent database") {
     Session.single[IO](
       host     = "localhost",
       user     = "jimmy",
@@ -47,7 +44,7 @@ class StartupTest extends ffstest.FTest {
      .flatMap(e => assertEqual("code", e.code, "3D000"))
   }
 
-  test("md5 - missing password") {
+  tracedTest("md5 - missing password") {
     Session.single[IO](
       host     = "localhost",
       user     = "jimmy",
@@ -59,7 +56,7 @@ class StartupTest extends ffstest.FTest {
      .flatMap(e => assertEqual("message", e.message, "Password required."))
   }
 
-  test("md5 - incorrect user") {
+  tracedTest("md5 - incorrect user") {
     Session.single[IO](
       host     = "localhost",
       user     = "frank",
@@ -71,7 +68,7 @@ class StartupTest extends ffstest.FTest {
      .flatMap(e => assertEqual("code", e.code, "28P01"))
   }
 
-  test("md5 - incorrect password") {
+  tracedTest("md5 - incorrect password") {
     Session.single[IO](
       host     = "localhost",
       user     = "jimmy",
@@ -83,7 +80,7 @@ class StartupTest extends ffstest.FTest {
      .flatMap(e => assertEqual("code", e.code, "28P01"))
   }
 
-  test("trust - successful login") {
+  tracedTest("trust - successful login") {
     Session.single[IO](
       host     = "localhost",
       user     = "postgres",
@@ -93,7 +90,7 @@ class StartupTest extends ffstest.FTest {
   }
 
   // TODO: should this be an error?
-  test("trust - successful login, ignored password") {
+  tracedTest("trust - successful login, ignored password") {
     Session.single[IO](
       host     = "localhost",
       user     = "postgres",
@@ -103,7 +100,7 @@ class StartupTest extends ffstest.FTest {
     ).use(_ => IO.unit)
   }
 
-  test("trust - non-existent database") {
+  tracedTest("trust - non-existent database") {
     Session.single[IO](
       host     = "localhost",
       user     = "postgres",
@@ -114,7 +111,7 @@ class StartupTest extends ffstest.FTest {
      .flatMap(e => assertEqual("code", e.code, "3D000"))
   }
 
-  test("trust - incorrect user") {
+  tracedTest("trust - incorrect user") {
     Session.single[IO](
       host     = "localhost",
       user     = "bogus",
@@ -125,7 +122,7 @@ class StartupTest extends ffstest.FTest {
      .flatMap(e => assertEqual("code", e.code, "28000"))
   }
 
-  test("scram - successful login") {
+  tracedTest("scram - successful login") {
     Session.single[IO](
       host     = "localhost",
       user     = "jimmy",
@@ -135,7 +132,7 @@ class StartupTest extends ffstest.FTest {
     ).use(_ => IO.unit)
   }
 
-  test("scram - non-existent database") {
+  tracedTest("scram - non-existent database") {
     Session.single[IO](
       host     = "localhost",
       user     = "jimmy",
@@ -147,7 +144,7 @@ class StartupTest extends ffstest.FTest {
      .flatMap(e => assertEqual("code", e.code, "3D000"))
   }
 
-  test("scram - missing password") {
+  tracedTest("scram - missing password") {
     Session.single[IO](
       host     = "localhost",
       user     = "jimmy",
@@ -159,7 +156,7 @@ class StartupTest extends ffstest.FTest {
      .flatMap(e => assertEqual("message", e.message, "Password required."))
   }
 
-  test("scram - incorrect user") {
+  tracedTest("scram - incorrect user") {
     Session.single[IO](
       host     = "localhost",
       user     = "frank",
@@ -171,7 +168,7 @@ class StartupTest extends ffstest.FTest {
      .flatMap(e => assertEqual("code", e.code, "28P01"))
   }
 
-  test("scram - incorrect password") {
+  tracedTest("scram - incorrect password") {
     Session.single[IO](
       host     = "localhost",
       user     = "jimmy",
@@ -183,7 +180,7 @@ class StartupTest extends ffstest.FTest {
      .flatMap(e => assertEqual("code", e.code, "28P01"))
   }
 
-  test("password - successful login") {
+  tracedTest("password - successful login") {
     Session.single[IO](
       host     = "localhost",
       user     = "jimmy",
@@ -193,7 +190,7 @@ class StartupTest extends ffstest.FTest {
     ).use(_ => IO.unit)
   }
 
-  test("password - non-existent database") {
+  tracedTest("password - non-existent database") {
     Session.single[IO](
       host     = "localhost",
       user     = "jimmy",
@@ -205,7 +202,7 @@ class StartupTest extends ffstest.FTest {
      .flatMap(e => assertEqual("code", e.code, "3D000"))
   }
 
-  test("password - missing password") {
+  tracedTest("password - missing password") {
     Session.single[IO](
       host     = "localhost",
       user     = "jimmy",
@@ -217,7 +214,7 @@ class StartupTest extends ffstest.FTest {
      .flatMap(e => assertEqual("message", e.message, "Password required."))
   }
 
-  test("password - incorrect user") {
+  tracedTest("password - incorrect user") {
     Session.single[IO](
       host     = "localhost",
       user     = "frank",
@@ -229,7 +226,7 @@ class StartupTest extends ffstest.FTest {
      .flatMap(e => assertEqual("code", e.code, "28P01"))
   }
 
-  test("password - incorrect password") {
+  tracedTest("password - incorrect password") {
     Session.single[IO](
       host     = "localhost",
       user     = "jimmy",
@@ -241,7 +238,7 @@ class StartupTest extends ffstest.FTest {
      .flatMap(e => assertEqual("code", e.code, "28P01"))
   }
 
-  test("invalid port") {
+  tracedTest("invalid port") {
     Session.single[IO](
       host     = "localhost",
       user     = "bob",
@@ -250,7 +247,7 @@ class StartupTest extends ffstest.FTest {
     ).use(_ => IO.unit).assertFailsWith[ConnectException]
   }
 
-  test("invalid host") {
+  tracedTest("invalid host") {
     Session.single[IO](
       host     = "blergh",
       user     = "bob",

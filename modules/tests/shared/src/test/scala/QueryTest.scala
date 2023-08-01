@@ -107,7 +107,7 @@ class QueryTest extends SkunkTest {
     }
 
 
-    pooledTest("timeout", 2.seconds) { getS =>
+    pooledTest("timeout", readTimeout = 2.seconds) { getS =>
       val f = sql"select pg_sleep($int4)"
       def getErr[X]: Either[Throwable, X] => Option[String] = _.swap.toOption.collect {
         case e: java.util.concurrent.TimeoutException => e.getMessage()
