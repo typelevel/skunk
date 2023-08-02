@@ -143,9 +143,14 @@ class CommandTest extends SkunkTest {
       )
       """.command
 
+  val alterIndex: Command[Void] =
+    sql"""
+      ALTER INDEX IF EXISTS id_index RENAME TO pk_index
+      """.command
+
   val dropIndex: Command[Void] =
     sql"""
-      DROP INDEX id_index
+      DROP INDEX pk_index
       """.command
 
   val createView: Command[Void] =
@@ -315,16 +320,18 @@ class CommandTest extends SkunkTest {
         ON city;
        """.command
 
-  sessionTest("create table, create index, drop index, alter table and drop table") { s =>
+  sessionTest("create table, create index, alter table, alter index, drop index and drop table") { s =>
     for {
       c <- s.execute(createTable)
       _ <- assert("completion",  c == Completion.CreateTable)
       c <- s.execute(createIndex)
       _ <- assert("completion",  c == Completion.CreateIndex)
-      c <- s.execute(dropIndex)
-      _ <- assert("completion",  c == Completion.DropIndex)
       c <- s.execute(alterTable)
       _ <- assert("completion",  c == Completion.AlterTable)
+      c <- s.execute(alterIndex)
+      _ <- assert("completion", c == Completion.AlterIndex)
+      c <- s.execute(dropIndex)
+      _ <- assert("completion",  c == Completion.DropIndex)
       c <- s.execute(dropTable)
       _ <- assert("completion",  c == Completion.DropTable)
       _ <- s.assertHealthy
