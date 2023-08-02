@@ -63,6 +63,7 @@ object Completion {
   case object Explain                   extends Completion
   case object Grant                     extends Completion
   case object Revoke                    extends Completion
+  case object AlterIndex                extends Completion
   // more ...
 
   /**
