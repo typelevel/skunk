@@ -1,145 +1,158 @@
 <!DOCTYPE html>
 <html lang="en">
+  
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="generator" content="Laika 0.18.1 + Helium Theme" />
-    <title>Queries</title>
-    
-      <meta name="author" content="Rob Norris"/>
-    
-    
-      <meta name="description" content="docs"/>
-    
-    
-      <link rel="icon" sizes="32x32" type="image/png" href="https://typelevel.org/img/favicon.png"/>
-    
-    
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700">
-    
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Fira+Mono:500">
-    
-    <link rel="stylesheet" type="text/css" href="../helium/icofont.min.css" />
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="generator" content="Typelevel Laika + Helium Theme" />
+  <title>Queries</title>
+  
+  <meta name="author" content="Rob Norris"/>
+  
+  
+  <meta name="description" content="docs"/>
+  
+  
+  
+  <link rel="icon" sizes="32x32" type="image/png" href="https://typelevel.org/img/favicon.png"/>
+  
+  
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700">
+  
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Fira+Mono:500">
+  
+  <link rel="stylesheet" type="text/css" href="../helium/icofont.min.css" />
     <link rel="stylesheet" type="text/css" href="../helium/laika-helium.css" />
-    <link rel="stylesheet" type="text/css" href="../site/styles.css" />
-    <script src="../helium/laika-helium.js"></script>
-    
-    
-    <script> /* for avoiding page load transitions */ </script>
-  </head>
+  <script src="../helium/laika-helium.js"></script>
+  
+  
+  <script> /* for avoiding page load transitions */ </script>
+</head>
 
   <body>
 
-    <header id="top-bar">
+    <header id="top-bar" class="light-default dark-default">
 
-      <div class="row">
-        <a id="nav-icon">
-          <i class="icofont-laika" title="Navigation">&#xefa2;</i>
-        </a>
-        
-      </div>
+  <div class="row">
+    <a id="nav-icon">
+      <i class="icofont-laika navigationMenu" title="Navigation">&#xefa2;</i>
+    </a>
+    
+    
+  </div>
 
-      <a class="image-link" href="https://typelevel.org"><img src="https://typelevel.org/img/logo.svg"></a>
+  <a class="image-link" href="https://typelevel.org"><img src="https://typelevel.org/img/logo.svg"></a>
 
-      <span class="row links"><a class="icon-link svg-link" href="https://www.javadoc.io/doc/org.tpolecat/skunk-docs_2.13/0.6.0/"><span title="API"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  <div class="row links">
+    
+    <a class="icon-link svg-link" href="https://www.javadoc.io/doc/org.tpolecat/skunk-docs_2.13/0.6.0/"><span class="api" title="API"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
   <g class="svg-shape">
     <path d="M75,47.5c13.246,0 24,10.754 24,24c0,13.246 -10.754,24 -24,24c-13.246,0 -24,-10.754 -24,-24c0,-13.246 10.754,-24 24,-24Zm-50,-0c13.246,-0 24,10.754 24,24c0,13.246 -10.754,24 -24,24c-13.246,-0 -24,-10.754 -24,-24c0,-13.246 10.754,-24 24,-24Zm2.705,16.735l7.239,0l0.622,-4.904l-21.833,0l-0,4.904l7.589,0l0,22.067l6.383,0l-0,-22.067Zm58.076,7.265c-0,-8.757 -3.698,-14.166 -10.781,-14.166c-7.083,-0 -10.781,5.604 -10.781,14.166c0,8.757 3.698,14.166 10.781,14.166c7.083,0 10.781,-5.604 10.781,-14.166Zm-6.539,0c0,6.538 -1.128,9.496 -4.242,9.496c-2.997,0 -4.242,-2.88 -4.242,-9.496c-0,-6.616 1.206,-9.496 4.242,-9.496c3.036,-0 4.242,2.88 4.242,9.496Zm-29.242,-67c13.246,0 24,10.754 24,24c0,13.246 -10.754,24 -24,24c-13.246,0 -24,-10.754 -24,-24c0,-13.246 10.754,-24 24,-24Zm0.512,9.834c-7.122,-0 -12.609,5.098 -12.609,14.127c-0,9.263 5.215,14.205 12.532,14.205c4.164,0 7.083,-1.634 9.068,-3.658l-2.88,-3.697c-1.518,1.206 -3.153,2.413 -5.838,2.413c-3.697,-0 -6.266,-2.763 -6.266,-9.263c-0,-6.616 2.724,-9.379 6.149,-9.379c2.102,-0 3.892,0.778 5.371,1.984l3.113,-3.775c-2.257,-1.868 -4.748,-2.957 -8.64,-2.957Z"/>
   </g>
-</svg></span></a><a class="icon-link svg-link" href="https://github.com/typelevel/skunk"><span title="Source Code"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+</svg></span></a>
+    
+    <a class="icon-link svg-link" href="https://github.com/typelevel/skunk"><span class="github" title="Source Code"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
   <g class="svg-shape">
     <path d="M49.995,1c-27.609,-0 -49.995,22.386 -49.995,50.002c-0,22.09 14.325,40.83 34.194,47.444c2.501,0.458 3.413,-1.086 3.413,-2.412c0,-1.185 -0.043,-4.331 -0.067,-8.503c-13.908,3.021 -16.843,-6.704 -16.843,-6.704c-2.274,-5.773 -5.552,-7.311 -5.552,-7.311c-4.54,-3.103 0.344,-3.042 0.344,-3.042c5.018,0.356 7.658,5.154 7.658,5.154c4.46,7.64 11.704,5.433 14.552,4.156c0.454,-3.232 1.744,-5.436 3.174,-6.685c-11.102,-1.262 -22.775,-5.553 -22.775,-24.713c-0,-5.457 1.949,-9.92 5.147,-13.416c-0.516,-1.265 -2.231,-6.348 0.488,-13.233c0,0 4.199,-1.344 13.751,5.126c3.988,-1.108 8.266,-1.663 12.518,-1.682c4.245,0.019 8.523,0.574 12.517,1.682c9.546,-6.47 13.736,-5.126 13.736,-5.126c2.728,6.885 1.013,11.968 0.497,13.233c3.204,3.496 5.141,7.959 5.141,13.416c0,19.209 -11.691,23.436 -22.83,24.673c1.795,1.544 3.394,4.595 3.394,9.26c0,6.682 -0.061,12.076 -0.061,13.715c0,1.338 0.899,2.894 3.438,2.406c19.853,-6.627 34.166,-25.354 34.166,-47.438c-0,-27.616 -22.389,-50.002 -50.005,-50.002"/>
   </g>
-</svg></span></a><a class="icon-link" href="https://discord.gg/XF3CXcMzqD"><i class="icofont-laika" title="Chat">&#xeed5;</i></a><a class="icon-link" href="https://fosstodon.org/@typelevel"><span class="mastodon" title="Mastodon"><svg class="svg-icon svg-link" width="100%" height="100%" viewBox="0 0 16 16" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+</svg></span></a>
+    
+    <a class="icon-link glyph-link" href="https://discord.gg/XF3CXcMzqD"><i class="icofont-laika chat" title="Chat">&#xeed5;</i></a>
+    
+    <a class="icon-link svg-link" href="https://fosstodon.org/@typelevel"><span class="mastodon" title="Mastodon"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 16 16" version="1.1" xmlns="http://www.w3.org/2000/svg">
   <g class="svg-shape">
     <path d="M11.19 12.195c2.016-.24 3.77-1.475 3.99-2.603.348-1.778.32-4.339.32-4.339 0-3.47-2.286-4.488-2.286-4.488C12.062.238 10.083.017 8.027 0h-.05C5.92.017 3.942.238 2.79.765c0 0-2.285 1.017-2.285 4.488l-.002.662c-.004.64-.007 1.35.011 2.091.083 3.394.626 6.74 3.78 7.57 1.454.383 2.703.463 3.709.408 1.823-.1 2.847-.647 2.847-.647l-.06-1.317s-1.303.41-2.767.36c-1.45-.05-2.98-.156-3.215-1.928a3.614 3.614 0 0 1-.033-.496s1.424.346 3.228.428c1.103.05 2.137-.064 3.188-.189zm1.613-2.47H11.13v-4.08c0-.859-.364-1.295-1.091-1.295-.804 0-1.207.517-1.207 1.541v2.233H7.168V5.89c0-1.024-.403-1.541-1.207-1.541-.727 0-1.091.436-1.091 1.296v4.079H3.197V5.522c0-.859.22-1.541.66-2.046.456-.505 1.052-.764 1.793-.764.856 0 1.504.328 1.933.983L8 4.39l.417-.695c.429-.655 1.077-.983 1.934-.983.74 0 1.336.259 1.791.764.442.505.661 1.187.661 2.046v4.203z"/>
   </g>
-</svg>
-</span></a></span>
+</svg></span></a>
+    
+  </div>  
 
-    </header>
-
+</header>
+    
     <nav id="sidebar">
 
-      <div class="row">
-        <a class="icon-link svg-link" href="https://www.javadoc.io/doc/org.tpolecat/skunk-docs_2.13/0.6.0/"><span title="API"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+  <div class="row">
+    
+    <a class="icon-link svg-link" href="https://www.javadoc.io/doc/org.tpolecat/skunk-docs_2.13/0.6.0/"><span class="api" title="API"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
   <g class="svg-shape">
     <path d="M75,47.5c13.246,0 24,10.754 24,24c0,13.246 -10.754,24 -24,24c-13.246,0 -24,-10.754 -24,-24c0,-13.246 10.754,-24 24,-24Zm-50,-0c13.246,-0 24,10.754 24,24c0,13.246 -10.754,24 -24,24c-13.246,-0 -24,-10.754 -24,-24c0,-13.246 10.754,-24 24,-24Zm2.705,16.735l7.239,0l0.622,-4.904l-21.833,0l-0,4.904l7.589,0l0,22.067l6.383,0l-0,-22.067Zm58.076,7.265c-0,-8.757 -3.698,-14.166 -10.781,-14.166c-7.083,-0 -10.781,5.604 -10.781,14.166c0,8.757 3.698,14.166 10.781,14.166c7.083,0 10.781,-5.604 10.781,-14.166Zm-6.539,0c0,6.538 -1.128,9.496 -4.242,9.496c-2.997,0 -4.242,-2.88 -4.242,-9.496c-0,-6.616 1.206,-9.496 4.242,-9.496c3.036,-0 4.242,2.88 4.242,9.496Zm-29.242,-67c13.246,0 24,10.754 24,24c0,13.246 -10.754,24 -24,24c-13.246,0 -24,-10.754 -24,-24c0,-13.246 10.754,-24 24,-24Zm0.512,9.834c-7.122,-0 -12.609,5.098 -12.609,14.127c-0,9.263 5.215,14.205 12.532,14.205c4.164,0 7.083,-1.634 9.068,-3.658l-2.88,-3.697c-1.518,1.206 -3.153,2.413 -5.838,2.413c-3.697,-0 -6.266,-2.763 -6.266,-9.263c-0,-6.616 2.724,-9.379 6.149,-9.379c2.102,-0 3.892,0.778 5.371,1.984l3.113,-3.775c-2.257,-1.868 -4.748,-2.957 -8.64,-2.957Z"/>
   </g>
-</svg></span></a><a class="icon-link svg-link" href="https://github.com/typelevel/skunk"><span title="Source Code"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+</svg></span></a>
+    
+    <a class="icon-link svg-link" href="https://github.com/typelevel/skunk"><span class="github" title="Source Code"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
   <g class="svg-shape">
     <path d="M49.995,1c-27.609,-0 -49.995,22.386 -49.995,50.002c-0,22.09 14.325,40.83 34.194,47.444c2.501,0.458 3.413,-1.086 3.413,-2.412c0,-1.185 -0.043,-4.331 -0.067,-8.503c-13.908,3.021 -16.843,-6.704 -16.843,-6.704c-2.274,-5.773 -5.552,-7.311 -5.552,-7.311c-4.54,-3.103 0.344,-3.042 0.344,-3.042c5.018,0.356 7.658,5.154 7.658,5.154c4.46,7.64 11.704,5.433 14.552,4.156c0.454,-3.232 1.744,-5.436 3.174,-6.685c-11.102,-1.262 -22.775,-5.553 -22.775,-24.713c-0,-5.457 1.949,-9.92 5.147,-13.416c-0.516,-1.265 -2.231,-6.348 0.488,-13.233c0,0 4.199,-1.344 13.751,5.126c3.988,-1.108 8.266,-1.663 12.518,-1.682c4.245,0.019 8.523,0.574 12.517,1.682c9.546,-6.47 13.736,-5.126 13.736,-5.126c2.728,6.885 1.013,11.968 0.497,13.233c3.204,3.496 5.141,7.959 5.141,13.416c0,19.209 -11.691,23.436 -22.83,24.673c1.795,1.544 3.394,4.595 3.394,9.26c0,6.682 -0.061,12.076 -0.061,13.715c0,1.338 0.899,2.894 3.438,2.406c19.853,-6.627 34.166,-25.354 34.166,-47.438c-0,-27.616 -22.389,-50.002 -50.005,-50.002"/>
   </g>
-</svg></span></a><a class="icon-link" href="https://discord.gg/XF3CXcMzqD"><i class="icofont-laika" title="Chat">&#xeed5;</i></a><a class="icon-link" href="https://fosstodon.org/@typelevel"><span class="mastodon" title="Mastodon"><svg class="svg-icon svg-link" width="100%" height="100%" viewBox="0 0 16 16" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+</svg></span></a>
+    
+    <a class="icon-link glyph-link" href="https://discord.gg/XF3CXcMzqD"><i class="icofont-laika chat" title="Chat">&#xeed5;</i></a>
+    
+    <a class="icon-link svg-link" href="https://fosstodon.org/@typelevel"><span class="mastodon" title="Mastodon"><svg class="svg-icon" width="100%" height="100%" viewBox="0 0 16 16" version="1.1" xmlns="http://www.w3.org/2000/svg">
   <g class="svg-shape">
     <path d="M11.19 12.195c2.016-.24 3.77-1.475 3.99-2.603.348-1.778.32-4.339.32-4.339 0-3.47-2.286-4.488-2.286-4.488C12.062.238 10.083.017 8.027 0h-.05C5.92.017 3.942.238 2.79.765c0 0-2.285 1.017-2.285 4.488l-.002.662c-.004.64-.007 1.35.011 2.091.083 3.394.626 6.74 3.78 7.57 1.454.383 2.703.463 3.709.408 1.823-.1 2.847-.647 2.847-.647l-.06-1.317s-1.303.41-2.767.36c-1.45-.05-2.98-.156-3.215-1.928a3.614 3.614 0 0 1-.033-.496s1.424.346 3.228.428c1.103.05 2.137-.064 3.188-.189zm1.613-2.47H11.13v-4.08c0-.859-.364-1.295-1.091-1.295-.804 0-1.207.517-1.207 1.541v2.233H7.168V5.89c0-1.024-.403-1.541-1.207-1.541-.727 0-1.091.436-1.091 1.296v4.079H3.197V5.522c0-.859.22-1.541.66-2.046.456-.505 1.052-.764 1.793-.764.856 0 1.504.328 1.933.983L8 4.39l.417-.695c.429-.655 1.077-.983 1.934-.983.74 0 1.336.259 1.791.764.442.505.661 1.187.661 2.046v4.203z"/>
   </g>
-</svg>
-</span></a>
-      </div>
+</svg></span></a>
+    
+  </div>
 
-      <ul class="nav-list">
-        <li class="level1"><a href="../index.html">Skunk</a></li>
-        <li class="level1 nav-header">Tutorial</li>
-        <li class="level2"><a href="index.html">Intro</a></li>
-        <li class="level2"><a href="Setup.html">Setup</a></li>
-        <li class="level2 active"><a href="#">Queries</a></li>
-        <li class="level2"><a href="Command.html">Commands</a></li>
-        <li class="level2"><a href="Transactions.html">Transactions</a></li>
-        <li class="level2"><a href="Channels.html">Channels</a></li>
-        <li class="level2"><a href="Tracing.html">Tracing</a></li>
-        <li class="level1 nav-header">Reference</li>
-        <li class="level2"><a href="../reference/index.html">Intro</a></li>
-        <li class="level2"><a href="../reference/Sessions.html">Sessions</a></li>
-        <li class="level2"><a href="../reference/TwiddleLists.html">Twiddle Lists</a></li>
-        <li class="level2"><a href="../reference/Encoders.html">Encoders</a></li>
-        <li class="level2"><a href="../reference/Fragments.html">Fragments</a></li>
-        <li class="level2"><a href="../reference/Identifiers.html">Identifiers</a></li>
-        <li class="level2"><a href="../reference/Concurrency.html">Concurrency</a></li>
-        <li class="level2"><a href="../reference/SchemaTypes.html">Schema Types</a></li>
-      </ul>
+  <ul class="nav-list">
+    <li class="level1 nav-leaf"><a href="../">Skunk</a></li>
+    <li class="level1 nav-header">Tutorial</li>
+    <li class="level2 nav-leaf"><a href="index.html">Intro</a></li>
+    <li class="level2 nav-leaf"><a href="Setup.html">Setup</a></li>
+    <li class="level2 active nav-leaf"><a href="#">Queries</a></li>
+    <li class="level2 nav-leaf"><a href="Command.html">Commands</a></li>
+    <li class="level2 nav-leaf"><a href="Transactions.html">Transactions</a></li>
+    <li class="level2 nav-leaf"><a href="Channels.html">Channels</a></li>
+    <li class="level2 nav-leaf"><a href="Tracing.html">Tracing</a></li>
+    <li class="level1 nav-header">Reference</li>
+    <li class="level2 nav-leaf"><a href="../reference/">Intro</a></li>
+    <li class="level2 nav-leaf"><a href="../reference/Sessions.html">Sessions</a></li>
+    <li class="level2 nav-leaf"><a href="../reference/TwiddleLists.html">Twiddle Lists</a></li>
+    <li class="level2 nav-leaf"><a href="../reference/Encoders.html">Encoders</a></li>
+    <li class="level2 nav-leaf"><a href="../reference/Fragments.html">Fragments</a></li>
+    <li class="level2 nav-leaf"><a href="../reference/Identifiers.html">Identifiers</a></li>
+    <li class="level2 nav-leaf"><a href="../reference/Concurrency.html">Concurrency</a></li>
+    <li class="level2 nav-leaf"><a href="../reference/SchemaTypes.html">Schema Types</a></li>
+  </ul>
 
-      <ul class="nav-list">
-        <li class="level1 nav-header">Related Projects</li>
-        
-          <li class="level2"><a href="https://typelevel.org/cats/">cats</a></li>
-        
-      </ul>
-
-    </nav>
+</nav>
 
     <div id="container">
 
-      <nav id="page-nav">
-        <p class="header"><a href="#">Queries</a></p>
+      
+<nav id="page-nav">
+  <p class="header"><a href="#">Queries</a></p>
 
-        <ul class="nav-list">
-          <li class="level1"><a href="#single-column-query">Single-Column Query</a></li>
-          <li class="level1"><a href="#multi-column-query">Multi-Column Query</a></li>
-          <li class="level2"><a href="#mapping-query-results">Mapping Query Results</a></li>
-          <li class="level2"><a href="#mapping-decoder-results">Mapping Decoder Results</a></li>
-          <li class="level2"><a href="#mapping-decoder-results-generically">Mapping Decoder Results Generically</a></li>
-          <li class="level1"><a href="#parameterized-query">Parameterized Query</a></li>
-          <li class="level1"><a href="#multi-parameter-query">Multi-Parameter Query</a></li>
-          <li class="level1"><a href="#summary-of-query-types">Summary of Query Types</a></li>
-          <li class="level1"><a href="#full-example">Full Example</a></li>
-          <li class="level1"><a href="#service-oriented-example">Service-Oriented Example</a></li>
-          <li class="level1"><a href="#experiment">Experiment</a></li>
-        </ul>
+  <ul class="nav-list">
+    <li class="level1 nav-leaf"><a href="#single-column-query">Single-Column Query</a></li>
+    <li class="level1 nav-node"><a href="#multi-column-query">Multi-Column Query</a></li>
+    <li class="level2 nav-leaf"><a href="#mapping-query-results">Mapping Query Results</a></li>
+    <li class="level2 nav-leaf"><a href="#mapping-decoder-results">Mapping Decoder Results</a></li>
+    <li class="level2 nav-leaf"><a href="#mapping-decoder-results-generically">Mapping Decoder Results Generically</a></li>
+    <li class="level1 nav-leaf"><a href="#parameterized-query">Parameterized Query</a></li>
+    <li class="level1 nav-leaf"><a href="#multi-parameter-query">Multi-Parameter Query</a></li>
+    <li class="level1 nav-leaf"><a href="#summary-of-query-types">Summary of Query Types</a></li>
+    <li class="level1 nav-leaf"><a href="#full-example">Full Example</a></li>
+    <li class="level1 nav-leaf"><a href="#service-oriented-example">Service-Oriented Example</a></li>
+    <li class="level1 nav-leaf"><a href="#experiment">Experiment</a></li>
+  </ul>
 
-        <p class="footer"></p>
-      </nav>
+  <p class="footer"></p>
+</nav>
+
 
       <main class="content">
 
         <h1 id="queries" class="title">Queries</h1>
         <p>This section explains how to construct and execute queries.</p>
         <div class="callout info">
-          <i class="icofont-laika">&#xef4e;</i>
+          <i class="icofont-laika info">&#xef4e;</i>
           <p>A <em>query</em> is a SQL statement that can return rows.</p>
         </div>
         
-        <h2 id="single-column-query" class="section">Single-Column Query<a class="anchor-link right" href="#single-column-query"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <h2 id="single-column-query" class="section"><a class="anchor-link left" href="#single-column-query"><i class="icofont-laika link">&#xef71;</i></a>Single-Column Query</h2>
         <p>First let&#39;s look at a query that selects a single column and decodes rows as Scala strings.</p>
         <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">a</span><span>: </span><span class="type-name">Query</span><span>[</span><span class="type-name">Void</span><span>, </span><span class="type-name">String</span><span>] =
   </span><span class="string-literal">sql&quot;SELECT name FROM country&quot;</span><span>.</span><span class="identifier">query</span><span>(</span><span class="identifier">varchar</span><span>)
@@ -152,23 +165,23 @@
 // )</span></code></pre>
         <p>Observe the following:</p>
         <ul>
-          <li>We are using the <a href="../reference/Fragments.html">sql interpolator</a> to construct a <a href="https://www.javadoc.io/doc/org.tpolecat/skunk-docs_2.13/0.6.0/skunk/Fragment.html">Fragment</a>, which we then turn into a <a href="https://www.javadoc.io/doc/org.tpolecat/skunk-docs_2.13/0.6.0/skunk/Query.html">Query</a> by calling the <code>query</code> method (fragments are also used to construct <a href="Command.html">Commands</a>).</li>
+          <li>We are using the <a href="../reference/Fragments.html">sql interpolator</a> to construct a <a class="api" href="https://www.javadoc.io/doc/org.tpolecat/skunk-docs_2.13/0.6.0/skunk/Fragment.html">Fragment</a>, which we then turn into a <a class="api" href="https://www.javadoc.io/doc/org.tpolecat/skunk-docs_2.13/0.6.0/skunk/Query.html">Query</a> by calling the <code>query</code> method (fragments are also used to construct <a href="Command.html">Commands</a>).</li>
           <li>The argument to <code>query</code> is a value called <code>varchar</code>, which has type <code>Decoder[String]</code> and defines the read relationship between the Postgres type <code>varchar</code> and the Scala type <code>String</code>. The relationship between Postgres types and Scala types is summarized in the reference section <a href="../reference/SchemaTypes.html">Schema Types</a>.</li>
           <li>The first type argument for our <code>Query</code> type is <code>Void</code>, which means this query has no parameters. The second type argument is <code>String</code>, which means we expect rows to be decoded as <code>String</code> values (via our <code>varchar</code> decoder).</li>
         </ul>
         <div class="callout info">
-          <i class="icofont-laika">&#xef4e;</i>
+          <i class="icofont-laika info">&#xef4e;</i>
           <p>Query and Command types are usually inferrable, but specifying a type ensures that the chosen encoders and decoders are consistent with the expected input and output Scala types. For this reason (and for clarity) we will always use explicit type annotations in the documentation.</p>
         </div>
         <p>The query above is a <em>simple query</em>.</p>
         <div class="callout info">
-          <i class="icofont-laika">&#xef4e;</i>
+          <i class="icofont-laika info">&#xef4e;</i>
           <p>A <em>simple query</em> is a query with no parameters.</p>
         </div>
-        <p>Postgres provides a <a href="https://www.postgresql.org/docs/10/protocol-flow.html#id-1.10.5.7.4">protocol</a> for execution of simple queries, returning all rows at once (Skunk returns them as a list). Such queries can be passed directly to <a href="https://www.javadoc.io/doc/org.tpolecat/skunk-docs_2.13/0.6.0/skunk/Session.html#execute">Session.execute</a>.</p>
+        <p>Postgres provides a <a href="https://www.postgresql.org/docs/10/protocol-flow.html#id-1.10.5.7.4">protocol</a> for execution of simple queries, returning all rows at once (Skunk returns them as a list). Such queries can be passed directly to <a class="api" href="https://www.javadoc.io/doc/org.tpolecat/skunk-docs_2.13/0.6.0/skunk/Session.html#execute">Session.execute</a>.</p>
         <pre class="keep-together pdf epub"><code class="nohighlight"><span class="comment">// assume s: Session[IO]
 </span><span class="identifier">s</span><span>.</span><span class="identifier">execute</span><span>(</span><span class="identifier">a</span><span>) </span><span class="comment">// IO[List[String]]</span></code></pre>
-        <p><a href="https://www.javadoc.io/doc/org.tpolecat/skunk-docs_2.13/0.6.0/skunk/Session.html">Session</a> provides the following methods for direct execution of simple queries. See the Scaladoc for more information.</p>
+        <p><a class="api" href="https://www.javadoc.io/doc/org.tpolecat/skunk-docs_2.13/0.6.0/skunk/Session.html">Session</a> provides the following methods for direct execution of simple queries. See the Scaladoc for more information.</p>
         <table>
           <thead>
             <tr>
@@ -196,7 +209,7 @@
           </tbody>
         </table>
         
-        <h2 id="multi-column-query" class="section">Multi-Column Query<a class="anchor-link right" href="#multi-column-query"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <h2 id="multi-column-query" class="section"><a class="anchor-link left" href="#multi-column-query"><i class="icofont-laika link">&#xef71;</i></a>Multi-Column Query</h2>
         <p>Our next example selects two columns.</p>
         <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">b</span><span>: </span><span class="type-name">Query</span><span>[</span><span class="type-name">Void</span><span>, </span><span class="type-name">String</span><span> ~ </span><span class="type-name">Int</span><span>] =
   </span><span class="string-literal">sql&quot;SELECT name, population FROM country&quot;</span><span>.</span><span class="identifier">query</span><span>(</span><span class="identifier">varchar</span><span> ~ </span><span class="identifier">int4</span><span>)
@@ -209,7 +222,7 @@
 // )</span></code></pre>
         <p>Observe that the argument to <code>query</code> is a pair of decoders conjoined with the <code>~</code> operator, yielding a <code>Decoder[String ~ Int]</code>. Executing this query will yield a <code>List[String ~ Int]</code>, which is an alias for <code>List[(String, Int)]</code>. See the section on <a href="../reference/TwiddleLists.html">twiddle lists</a> for more information on this mechanism.</p>
         
-        <h3 id="mapping-query-results" class="section">Mapping Query Results<a class="anchor-link right" href="#mapping-query-results"><i class="icofont-laika">&#xef71;</i></a></h3>
+        <h3 id="mapping-query-results" class="section"><a class="anchor-link left" href="#mapping-query-results"><i class="icofont-laika link">&#xef71;</i></a>Mapping Query Results</h3>
         <p>Decoding into a twiddle list (i.e., nested pairs) isn&#39;t ideal, so let&#39;s define a <code>Country</code> data type. We can then call <code>map</code> on our query to adapt the row type.</p>
         <pre><code class="nohighlight"><span class="keyword">case</span><span> </span><span class="keyword">class</span><span> </span><span class="type-name">Country</span><span>(</span><span class="identifier">name</span><span>: </span><span class="type-name">String</span><span>, </span><span class="identifier">population</span><span>: </span><span class="type-name">Int</span><span>)
 
@@ -231,7 +244,7 @@
         </ul>
         <p>So that is one way to do it.</p>
         
-        <h3 id="mapping-decoder-results" class="section">Mapping Decoder Results<a class="anchor-link right" href="#mapping-decoder-results"><i class="icofont-laika">&#xef71;</i></a></h3>
+        <h3 id="mapping-decoder-results" class="section"><a class="anchor-link left" href="#mapping-decoder-results"><i class="icofont-laika link">&#xef71;</i></a>Mapping Decoder Results</h3>
         <p>A more reusable way to do this is to define a <code>Decoder[Country]</code> based on the <code>varchar ~ int4</code> decoder. We can then decode directly into our <code>Country</code> data type.</p>
         <pre><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">country</span><span>: </span><span class="type-name">Decoder</span><span>[</span><span class="type-name">Country</span><span>] =
   (</span><span class="identifier">varchar</span><span> ~ </span><span class="identifier">int4</span><span>).</span><span class="identifier">map</span><span> { </span><span class="keyword">case</span><span> (</span><span class="identifier">n</span><span>, </span><span class="identifier">p</span><span>) =&gt; </span><span class="type-name">Country</span><span>(</span><span class="identifier">n</span><span>, </span><span class="identifier">p</span><span>) }     </span><span class="comment">// (1)
@@ -252,11 +265,11 @@
           <li>At ② we use our <code>country</code> decoder directly, yielding a <code>Query[Void, Country]</code>.</li>
         </ul>
         <div class="callout info">
-          <i class="icofont-laika">&#xef4e;</i>
+          <i class="icofont-laika info">&#xef4e;</i>
           <p>Because decoders are structural (i.e., they rely only on the position of column values) it can become a maintenance issue when queries and their decoders become separated in code. Try to keep decoders close to the queries that use them.</p>
         </div>
         
-        <h3 id="mapping-decoder-results-generically" class="section">Mapping Decoder Results Generically<a class="anchor-link right" href="#mapping-decoder-results-generically"><i class="icofont-laika">&#xef71;</i></a></h3>
+        <h3 id="mapping-decoder-results-generically" class="section"><a class="anchor-link left" href="#mapping-decoder-results-generically"><i class="icofont-laika link">&#xef71;</i></a>Mapping Decoder Results Generically</h3>
         <p>Because <code>Country</code> is a simple case class we can generate the mapping code mechanically. To do this, use <code>to</code> and specify the target data type.</p>
         <pre class="keep-together pdf epub"><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">country2</span><span>: </span><span class="type-name">Decoder</span><span>[</span><span class="type-name">Country</span><span>] =
   (</span><span class="identifier">varchar</span><span> *: </span><span class="identifier">int4</span><span>).</span><span class="identifier">to</span><span>[</span><span class="type-name">Country</span><span>]
@@ -274,7 +287,7 @@
 //   isDynamic = false
 // )</span></code></pre>
         
-        <h2 id="parameterized-query" class="section">Parameterized Query<a class="anchor-link right" href="#parameterized-query"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <h2 id="parameterized-query" class="section"><a class="anchor-link left" href="#parameterized-query"><i class="icofont-laika link">&#xef71;</i></a>Parameterized Query</h2>
         <p>Now let&#39;s add a parameter to the query.</p>
         <pre><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">e</span><span>: </span><span class="type-name">Query</span><span>[</span><span class="type-name">String</span><span>, </span><span class="type-name">Country</span><span>] =
   </span><span class="string-literal">sql&quot;&quot;&quot;
@@ -296,12 +309,12 @@
         <p>Observe that we have interpolated a value called <code>varchar</code>, which has type <code>Encoder[String]</code>.</p>
         <p>This means that Postgres will expect an argument of type <code>varchar</code>, which will have Scala type <code>String</code>. The relationship between Postgres types and Scala types is summarized in the reference section <a href="../reference/SchemaTypes.html">Schema Types</a>.</p>
         <div class="callout info">
-          <i class="icofont-laika">&#xef4e;</i>
+          <i class="icofont-laika info">&#xef4e;</i>
           <p>We have already seen <code>varchar</code> used as a row <em>decoder</em> for <code>String</code> and now we&#39;re using it as an <em>encoder</em> for <code>String</code>. We can do this because <code>varchar</code> actually has type <code>Codec[String]</code>, which extends both <code>Encoder[String]</code> and <code>Decoder[String]</code>. All type mappings provided by Skunk are codecs and can be used in both positions.</p>
         </div>
         <p>The query above is an <em>extended query</em>.</p>
         <div class="callout info">
-          <i class="icofont-laika">&#xef4e;</i>
+          <i class="icofont-laika info">&#xef4e;</i>
           <p>An <em>extended query</em> is a query with parameters, or a simple query that is executed via the extended query protocol.</p>
         </div>
         <p>Postgres provides a <a href="https://www.postgresql.org/docs/10/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY">protocol</a> for executing extended queries which is more involved than simple query protocol. It provides for prepared statements that can be reused with different sets of arguments, and provides cursors which allow results to be paged and streamed.</p>
@@ -313,7 +326,7 @@
     .</span><span class="identifier">compile</span><span>
     .</span><span class="identifier">drain</span><span>
 } </span><span class="comment">// IO[Unit]</span></code></pre>
-        <p>Observe that <code>prepare</code> returns a <code>Resource</code> that prepares the statement before use and then frees it on completion. Here we use <a href="https://www.javadoc.io/doc/org.tpolecat/skunk-docs_2.13/0.6.0/skunk/PreparedQuery.html">PreparedQuery</a>#stream to pass our parameter <code>&quot;U%&quot;</code> and then create an <a href="http://fs2.io">fs2</a> stream that fetches rows in blocks of 64 and prints them to the console.</p>
+        <p>Observe that <code>prepare</code> returns a <code>Resource</code> that prepares the statement before use and then frees it on completion. Here we use <a class="api" href="https://www.javadoc.io/doc/org.tpolecat/skunk-docs_2.13/0.6.0/skunk/PreparedQuery.html">PreparedQuery</a>#stream to pass our parameter <code>&quot;U%&quot;</code> and then create an <a href="http://fs2.io">fs2</a> stream that fetches rows in blocks of 64 and prints them to the console.</p>
         <p>Note that when using <code>Resource</code> and <code>Stream</code> together it is often convenient to express the entire program in terms of <code>Stream</code>.</p>
         <pre class="keep-together pdf epub"><code class="nohighlight"><span class="comment">// assume s: Session[IO]
 </span><span class="keyword">val</span><span> </span><span class="identifier">stream</span><span>: </span><span class="type-name">Stream</span><span>[</span><span class="type-name">IO</span><span>, </span><span class="type-name">Unit</span><span>] =
@@ -325,7 +338,7 @@
 
 </span><span class="identifier">stream</span><span>.</span><span class="identifier">compile</span><span>.</span><span class="identifier">drain</span><span> </span><span class="comment">// IO[Unit]</span></code></pre>
         <p>This program does the same thing, but perhaps in a more convenient style.</p>
-        <p><a href="https://www.javadoc.io/doc/org.tpolecat/skunk-docs_2.13/0.6.0/skunk/PreparedQuery.html">PreparedQuery</a> provides the following methods for execution. See the Scaladoc for more information.</p>
+        <p><a class="api" href="https://www.javadoc.io/doc/org.tpolecat/skunk-docs_2.13/0.6.0/skunk/PreparedQuery.html">PreparedQuery</a> provides the following methods for execution. See the Scaladoc for more information.</p>
         <table>
           <thead>
             <tr>
@@ -363,7 +376,7 @@
           </tbody>
         </table>
         
-        <h2 id="multi-parameter-query" class="section">Multi-Parameter Query<a class="anchor-link right" href="#multi-parameter-query"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <h2 id="multi-parameter-query" class="section"><a class="anchor-link left" href="#multi-parameter-query"><i class="icofont-laika link">&#xef71;</i></a>Multi-Parameter Query</h2>
         <p>Multiple parameters work analogously to multiple columns.</p>
         <pre><code class="nohighlight"><span class="keyword">val</span><span> </span><span class="identifier">f</span><span>: </span><span class="type-name">Query</span><span>[</span><span class="type-name">String</span><span> *: </span><span class="type-name">Int</span><span> *: </span><span class="type-name">EmptyTuple</span><span>, </span><span class="type-name">Country</span><span>] =
   </span><span class="string-literal">sql&quot;&quot;&quot;
@@ -394,7 +407,7 @@
 } </span><span class="comment">// IO[Unit]</span></code></pre>
         <p>And we pass the value <code>(&quot;U%&quot;, 2000000)</code> as our statement argument.</p>
         
-        <h2 id="summary-of-query-types" class="section">Summary of Query Types<a class="anchor-link right" href="#summary-of-query-types"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <h2 id="summary-of-query-types" class="section"><a class="anchor-link left" href="#summary-of-query-types"><i class="icofont-laika link">&#xef71;</i></a>Summary of Query Types</h2>
         <p>The <em>simple query protocol</em> (i.e., <code>Session#execute</code>) is slightly more efficient in terms of message exchange, so use it if:</p>
         <ul>
           <li>
@@ -423,7 +436,7 @@
           </li>
         </ul>
         
-        <h2 id="full-example" class="section">Full Example<a class="anchor-link right" href="#full-example"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <h2 id="full-example" class="section"><a class="anchor-link left" href="#full-example"><i class="icofont-laika link">&#xef71;</i></a>Full Example</h2>
         <p>Here is a complete program listing that demonstrates our knowledge thus far.</p>
         <pre><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="identifier">_</span><span>
 </span><span class="keyword">import</span><span> </span><span class="identifier">skunk</span><span>.</span><span class="identifier">_</span><span>
@@ -486,7 +499,7 @@
 
 }</span></code></pre>
         <p>Running this program yields the following.</p>
-        <pre><code>timestamp is 2023-07-12T18:08:49.516331Z
+        <pre><code>timestamp is 2023-08-15T17:33:28.862187Z
 Country(United Arab Emirates,ARE,2441000)
 Country(United Kingdom,GBR,59623400)
 Country(Uganda,UGA,21778000)
@@ -496,7 +509,7 @@ Country(Uzbekistan,UZB,24318000)
 Country(United States,USA,278357000)
 Country(United States Minor Outlying Islands,UMI,0)</code></pre>
         
-        <h2 id="service-oriented-example" class="section">Service-Oriented Example<a class="anchor-link right" href="#service-oriented-example"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <h2 id="service-oriented-example" class="section"><a class="anchor-link left" href="#service-oriented-example"><i class="icofont-laika link">&#xef71;</i></a>Service-Oriented Example</h2>
         <p>In real life a program like <code>QueryExample</code> above will grow complicated an hard to maintain because the database abstractions are out in the open. It&#39;s better to define an interface that <em>uses</em> a database session and write your program in terms of that interface. Here is a rewritten version of the program above that demonstrates this pattern.</p>
         <pre><code class="nohighlight"><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">syntax</span><span>.</span><span class="identifier">all</span><span>.</span><span class="identifier">_</span><span>
 </span><span class="keyword">import</span><span> </span><span class="identifier">cats</span><span>.</span><span class="identifier">effect</span><span>.</span><span class="identifier">_</span><span>
@@ -575,7 +588,7 @@ Country(United States Minor Outlying Islands,UMI,0)</code></pre>
 
 }</span></code></pre>
         <p>Running this program yields the same output as above.</p>
-        <pre><code>timestamp is 2023-07-12T18:08:49.705435Z
+        <pre><code>timestamp is 2023-08-15T17:33:29.100206Z
 Country(United Arab Emirates,ARE,2441000)
 Country(United Kingdom,GBR,59623400)
 Country(Uganda,UGA,21778000)
@@ -585,7 +598,7 @@ Country(Uzbekistan,UZB,24318000)
 Country(United States,USA,278357000)
 Country(United States Minor Outlying Islands,UMI,0)</code></pre>
         
-        <h2 id="experiment" class="section">Experiment<a class="anchor-link right" href="#experiment"><i class="icofont-laika">&#xef71;</i></a></h2>
+        <h2 id="experiment" class="section"><a class="anchor-link left" href="#experiment"><i class="icofont-laika link">&#xef71;</i></a>Experiment</h2>
         <p>Here are some experiments you might want to try.</p>
         <ul>
           <li>
@@ -689,14 +702,17 @@ Country(United States Minor Outlying Islands,UMI,0)</code></pre>
           </tbody>
         </table>
 
-        <hr style="margin-top: 30px"/>
-        <footer style="font-size: 90%; text-align: center">
-          skunk is a <a href="https://typelevel.org/">Typelevel</a> project distributed under the <a href="https://opensource.org/licenses/MIT">MIT</a> license.
-        </footer>
+        
+<hr class="footer-rule"/>
+<footer>
+  skunk is a <a href="https://typelevel.org/">Typelevel</a> project distributed under the <a href="https://opensource.org/licenses/MIT">MIT</a> license.
+</footer>
+
 
       </main>
 
     </div>
 
   </body>
+
 </html>
