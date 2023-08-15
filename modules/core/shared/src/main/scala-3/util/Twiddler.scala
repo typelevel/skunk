@@ -6,7 +6,6 @@ package skunk
 package util
 
 import scala.annotation.implicitNotFound
-import scala.quoted._
 import scala.deriving.Mirror
 
 import skunk.implicits._

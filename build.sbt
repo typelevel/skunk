@@ -3,7 +3,7 @@ ThisBuild / tlBaseVersion := "0.6"
 // Our Scala versions.
 lazy val `scala-2.12` = "2.12.17"
 lazy val `scala-2.13` = "2.13.10"
-lazy val `scala-3.0`  = "3.2.2"
+lazy val `scala-3.0`  = "3.3.0"
 
 ThisBuild / scalaVersion       := `scala-2.13`
 ThisBuild / crossScalaVersions :=
@@ -16,6 +16,7 @@ ThisBuild / developers   := List(
 )
 
 ThisBuild / tlCiReleaseBranches += "series/0.6.x"
+ThisBuild / tlCiScalafmtCheck := false
 ThisBuild / tlSitePublishBranch := Some("series/0.6.x")
 ThisBuild / tlSonatypeUseLegacyHost := false
 ThisBuild / githubWorkflowOSes := Seq("ubuntu-latest")
@@ -23,7 +24,7 @@ ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("11"))
 ThisBuild / tlJdkRelease := Some(8)
 
 ThisBuild / githubWorkflowBuildPreamble ++= nativeBrewInstallWorkflowSteps.value
-ThisBuild / nativeBrewInstallCond := Some("matrix.project == 'rootNative'")
+ThisBuild / nativeBrewInstallCond := Some("matrix.project == 'skunkNative'")
 
 lazy val setupCertAndDocker = Seq(
   WorkflowStep.Run(
@@ -38,15 +39,12 @@ ThisBuild / tlCiHeaderCheck := true
 ThisBuild / githubWorkflowAddedJobs +=
   WorkflowJob(
     id = "coverage",
-    name = s"Generate coverage report (${`scala-2.13`} JVM only)",
+    name = s"Generate coverage report (2.13 JVM only)",
     scalas = List(`scala-2.13`),
     steps = githubWorkflowJobSetup.value.toList ++
       List(
-        WorkflowStep.Sbt(List("coverage", "rootJVM/test", "coverageReport")),
-        WorkflowStep.Run(
-          List("bash <(curl -s https://codecov.io/bash)"),
-          name = Some("Upload code coverage data")
-        )
+        WorkflowStep.Sbt(List("coverage", "skunkJVM/test", "coverageReport")),
+        WorkflowStep.Use(UseRef.Public("codecov", "codecov-action", "v3"))
       )
   )
 
@@ -83,7 +81,7 @@ lazy val commonSettings = Seq(
 
   // Compilation
   scalacOptions -= "-language:experimental.macros", // doesn't work cross-version
-  Compile / doc / scalacOptions --= Seq("-Xfatal-warnings"),
+  Compile / doc / scalacOptions --= Seq("-Werror"),
   Compile / doc / scalacOptions ++= Seq(
     "-groups",
     "-sourcepath", (LocalRootProject / baseDirectory).value.getAbsolutePath,
@@ -110,7 +108,6 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .settings(
     name := "skunk-core",
     description := "Tagless, non-blocking data access library for Postgres.",
-    scalacOptions ~= (_.filterNot(_ == "-source:3.0-migration")),
     libraryDependencies ++= Seq(
       "org.typelevel"          %%% "cats-core"               % "2.9.0",
       "org.typelevel"          %%% "cats-effect"             % "3.5.0",
@@ -170,7 +167,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .enablePlugins(AutomateHeaderPlugin, NoPublishPlugin)
   .settings(commonSettings)
   .settings(
-    scalacOptions  -= "-Xfatal-warnings",
+    tlFatalWarnings := false,
     libraryDependencies ++= Seq(
       "org.scalameta"     %%% "munit"                   % "1.0.0-M7",
       "org.scalameta"     % "junit-interface"           % "1.0.0-M7",
@@ -233,7 +230,14 @@ lazy val docs = project
   .enablePlugins(TypelevelSitePlugin)
   .settings(commonSettings)
   .settings(
+    scalacOptions ~= {
+      _.map {
+        case opt if opt.startsWith("-Xlint") => s"$opt,-missing-interpolator"
+        case opt => opt
+      }
+    },
     mdocIn := (Compile / sourceDirectory).value / "laika",
+    tlSiteIsTypelevelProject := Some(TypelevelProject.Affiliate),
     libraryDependencies ++= Seq(
       "org.tpolecat"  %%% "natchez-jaeger" % natchezVersion,
     ),
