@@ -121,7 +121,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.scala-lang.modules" %%% "scala-collection-compat" % "2.10.0",
       "org.typelevel"          %%% "twiddles-core"           % "0.6.0",
     ) ++ Seq(
-      "com.beachape"  %%% "enumeratum"   % "1.7.2",
+      "com.beachape"  %%% "enumeratum"   % "1.7.3",
     ).filterNot(_ => tlIsScala3.value)
   ).jvmSettings(
     libraryDependencies += "com.ongres.scram" % "client" % "2.1",
