@@ -8,7 +8,6 @@ package protocol
 import cats.FlatMap
 import cats.syntax.all._
 import skunk.net.message.{ Close => CloseMessage, Flush, CloseComplete }
-import skunk.net.MessageSocket
 import org.typelevel.otel4s.Attribute
 import org.typelevel.otel4s.trace.Span
 import org.typelevel.otel4s.trace.Tracer

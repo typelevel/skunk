@@ -20,13 +20,13 @@ final class Arr[A] private (
 ) {
 
   // Data and extent must be consistent. Should be guaranteed but let's check anyway.
-  assert((data.isEmpty && extent.isEmpty) || (data.length  == extent.product))
+  assert((data.isEmpty && extent.isEmpty) || (data.length  == wrapIntArray(extent).product))
 
   // In order to access elements we need the offsets associated with each dimension. But let's not
   // compute it unless we need to since these will be constructed in a tight loop when we unroll
   // a resultset that contains array columns.
   private lazy val _offsets: Array[Int] =
-    extent.tails.map(_.product).drop(1).toArray
+    extent.tails.map(wrapIntArray(_).product).drop(1).toArray
 
   /**
    * Attempt to reshape this `Arr` with the specified dimensions. This is possible if and only if

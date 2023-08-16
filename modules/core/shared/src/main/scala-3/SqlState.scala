@@ -4,7 +4,6 @@
 
 package skunk
 
-import scala.collection.immutable.IndexedSeq
 import skunk.exception.PostgresErrorException
 
 /**
