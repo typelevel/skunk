@@ -5,7 +5,6 @@
 package skunk.net.message
 
 import cats.syntax.all._
-import scodec.interop.cats._
 import scodec._
 import scodec.codecs._
 

@@ -4,8 +4,11 @@
 
 package skunk.net.message
 
+import org.typelevel.scalaccompat.annotation._
+
 import scala.scalanative.unsafe._
 
+@nowarn212
 @link("crypto")
 @extern
 private[message] object openssl {
