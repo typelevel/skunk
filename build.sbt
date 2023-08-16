@@ -142,7 +142,7 @@ lazy val refined = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .settings(
     name := "skunk-refined",
     libraryDependencies ++= Seq(
-      "eu.timepit" %%% "refined" % "0.10.3",
+      "eu.timepit" %%% "refined" % "0.11.0",
     )
   )
 
