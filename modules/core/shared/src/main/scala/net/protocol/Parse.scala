@@ -45,7 +45,7 @@ object Parse {
                   _  <- span.addAttributes(
                           Attribute("statement-name", id.value),
                           Attribute("statement-sql",  statement.sql),
-                          Attribute("statement-parameter-types", os.map(n => ty.typeForOid(n, -1).getOrElse(n)).mkString("[", ", ", "]"))
+                          Attribute("statement-parameter-types", os.map(n => ty.typeForOid(n, -1).fold(n.toString)(_.toString)).mkString("[", ", ", "]"))
                         )
                   _  <- send(ParseMessage(id.value, statement.sql, os))
                   _  <- send(Flush)
