@@ -49,6 +49,7 @@ trait TemporalCodecs {
         .optionalStart
         .appendFraction(NANO_OF_SECOND, 0, precision, true)
         .optionalEnd
+      ()
     }
 
     requiredPart.toFormatter(Locale.US)
