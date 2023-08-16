@@ -290,6 +290,31 @@ jobs:
           modules-ignore: skunk_2.12 skunk_2.13 skunk_3 docs_2.12 docs_2.13 docs_3 skunk_2.12 skunk_2.13 skunk_3 skunk_2.12 skunk_2.13 skunk_3 tests_sjs1_2.12 tests_sjs1_2.13 tests_sjs1_3 tests_2.12 tests_2.13 tests_3 example_2.12 example_2.13 example_3 tests_native0.4_2.12 tests_native0.4_2.13 tests_native0.4_3
           configs-ignore: test scala-tool scala-doc-tool test-internal
 
+  validate-steward:
+    name: Validate Steward Config
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        java: [temurin@11]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout current branch (fast)
+        uses: actions/checkout@v3
+
+      - name: Setup Java (temurin@11)
+        id: setup-java-temurin-11
+        if: matrix.java == 'temurin@11'
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 11
+
+      - uses: coursier/setup-action@v1
+        with:
+          apps: scala-steward
+
+      - run: scala-steward validate-repo-config .scala-steward.conf
+
   site:
     name: Generate Site
     strategy:
