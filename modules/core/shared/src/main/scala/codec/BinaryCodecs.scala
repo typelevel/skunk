@@ -23,8 +23,7 @@ trait BinaryCodecs {
   def bit(length: Int): Codec[BitVector] =
     Codec.simple[BitVector](
       _.toBin,
-      s => { println(s"got $s"); BitVector.fromBinDescriptive(s) },
-      // BitVector.fromBinDescriptive(_),
+      BitVector.fromBinDescriptive(_),
       Type.bit(length)
     )
 
