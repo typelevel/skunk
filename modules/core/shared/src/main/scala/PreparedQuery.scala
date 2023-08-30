@@ -74,7 +74,7 @@ object PreparedQuery {
         Stream.resource(proto.bind(args, or)).flatMap { cursor =>
           def chunks: Stream[F, B] =
             Stream.eval(cursor.execute(chunkSize)).flatMap { case (bs, more) =>
-              val s = Stream.chunk(Chunk.seq(bs))
+              val s = Stream.chunk(Chunk.from(bs))
               if (more) s ++ chunks
               else s
             }
