@@ -5,7 +5,6 @@
 package skunk.net.message
 
 import cats.syntax.all._
-import scodec.interop.cats._
 import scodec.Encoder
 import scodec.bits.ByteVector
 import scodec.codecs.{bytes, int32, variableSizeBytes}

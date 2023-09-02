@@ -305,6 +305,20 @@ class CommandTest extends SkunkTest {
         ON city;
        """.command
 
+  val grant: Command[Void] =
+    sql"""
+        GRANT ALL PRIVILEGES
+        ON ALL TABLES IN SCHEMA public
+        TO skunk_role
+       """.command
+
+  val revoke: Command[Void] =
+    sql"""
+        REVOKE ALL PRIVILEGES
+        ON ALL TABLES IN SCHEMA public
+        FROM skunk_role
+       """.command
+
   sessionTest("create table, create index, drop index, alter table and drop table") { s =>
     for {
       c <- s.execute(createTable)
@@ -526,6 +540,18 @@ class CommandTest extends SkunkTest {
       .flatMap(_ => IO.unit)
       .assertFailsWith[UnexpectedRowsException]
       .as("ok")
+  }
+
+  sessionTest("grant, revoke") { s =>
+    for{
+      _ <- s.execute(createRole)
+      c <- s.execute(grant)
+      _ <- assert("completion", c == Completion.Grant)
+      c <- s.execute(revoke)
+      _ <- assert("completion", c == Completion.Revoke)
+      _ <- s.execute(dropRole)
+      _ <- s.assertHealthy
+    } yield "ok"
   }
 
 }
