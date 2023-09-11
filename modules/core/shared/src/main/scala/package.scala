@@ -3,7 +3,6 @@
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
 import cats.effect.Resource
-import org.typelevel.scalaccompat.annotation._
 import org.typelevel.twiddles.TwiddleCompat
 
 /**
