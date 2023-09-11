@@ -2,8 +2,6 @@
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
-package skunk
-
 import cats.effect.Resource
 import org.typelevel.scalaccompat.annotation._
 import org.typelevel.twiddles.TwiddleCompat
@@ -126,8 +124,7 @@ import org.typelevel.twiddles.TwiddleCompat
  * @groupname Companions Companion Objects
  * @groupprio Companions 999
  */
-@nowarn213("msg=package object inheritance is deprecated")
-object `package` extends TwiddleCompat { // aka package object skunk, yes this actually works ...
+package object skunk extends TwiddleCompat {
 
   // we can use this to defeat value discarding warnings for erasable proof terms
   private[skunk] def void(a: Any*): Unit = (a, ())._2
