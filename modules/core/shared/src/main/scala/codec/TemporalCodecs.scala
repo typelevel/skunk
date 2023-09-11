@@ -68,7 +68,7 @@ trait TemporalCodecs {
       .toFormatter(Locale.US)
 
   private val eraFormatter: DateTimeFormatter =
-    DateTimeFormatter.ofPattern(" G")
+    DateTimeFormatter.ofPattern(" G", Locale.US)
 
   private val localDateFormatter: DateTimeFormatter =
     new DateTimeFormatterBuilder()
