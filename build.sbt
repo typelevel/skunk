@@ -59,7 +59,7 @@ ThisBuild / mimaBinaryIssueFilters ++= List(
 )
 
 // This is used in a couple places
-lazy val fs2Version = "3.9.1"
+lazy val fs2Version = "3.9.2"
 lazy val natchezVersion = "0.3.3"
 
 // Global Settings
