@@ -15,7 +15,7 @@ private[message] trait ScramPlatform { this: Scram.type =>
   
   def clientFirstBareWithRandomNonce: ByteVector = {
     val buf = new Array[Byte](32)
-    if (RAND_bytes(buf.at(0), 32) != 1)
+    if (RAND_bytes(buf.atUnsafe(0), 32) != 1)
       throw new RuntimeException("RAND_bytes")
     val nonce = ByteVector.view(buf).toBase64
     clientFirstBareWithNonce(nonce)
@@ -27,7 +27,7 @@ private[message] trait ScramPlatform { this: Scram.type =>
       throw new RuntimeException("EVP_get_digestbyname")
     val md = new Array[Byte](EVP_MAX_MD_SIZE)
     val mdLen = stackalloc[CUnsignedInt]()
-    if (openssl.HMAC(evpMd, key.toArrayUnsafe.at(0), key.size.toInt, str.toArrayUnsafe.at(0), str.size.toULong, md.at(0), mdLen) == null)
+    if (openssl.HMAC(evpMd, key.toArrayUnsafe.atUnsafe(0), key.size.toInt, str.toArrayUnsafe.atUnsafe(0), str.size.toULong, md.atUnsafe(0), mdLen) == null)
       throw new RuntimeException("HMAC")
     ByteVector.view(md, 0, (!mdLen).toInt)
   }
@@ -38,7 +38,7 @@ private[message] trait ScramPlatform { this: Scram.type =>
     val `type` = EVP_get_digestbyname(c"SHA256")
     if (`type` == null)
       throw new RuntimeException("EVP_get_digestbyname")
-    if (EVP_Digest(input.toArrayUnsafe.at(0), input.size.toULong, md.at(0), size, `type`, null) != 1)
+    if (EVP_Digest(input.toArrayUnsafe.atUnsafe(0), input.size.toULong, md.atUnsafe(0), size, `type`, null) != 1)
       throw new RuntimeException("EVP_Digest")
     ByteVector.view(md, 0, (!size).toInt)
   }
@@ -48,7 +48,7 @@ private[message] trait ScramPlatform { this: Scram.type =>
     if (digest == null)
       throw new RuntimeException("EVP_get_digestbyname")
     val out = new Array[Byte](32)
-    if (PKCS5_PBKDF2_HMAC(str.getBytes.at(0), str.length, salt.toArrayUnsafe.at(0), salt.size.toInt, iterations, digest, 32, out.at(0)) != 1)
+    if (PKCS5_PBKDF2_HMAC(str.getBytes.atUnsafe(0), str.length, salt.toArrayUnsafe.atUnsafe(0), salt.size.toInt, iterations, digest, 32, out.atUnsafe(0)) != 1)
       throw new RuntimeException("PKCS5_PBKDF2_HMAC")
     ByteVector.view(out)
   }
