@@ -62,7 +62,7 @@ object Typer {
   val Static: Typer = new Typer {
     import Type._
 
-    val strategy = Strategy.BuiltinsOnly
+    val strategy: Strategy = Strategy.BuiltinsOnly
 
     val staticByOid: Map[Int, Type] =
       Map(
@@ -232,7 +232,7 @@ object Typer {
     (p.typeInfoMap, p.relInfoMap).mapN { (tim, rim) =>
       Static orElse new Typer {
 
-        val strategy = Strategy.SearchPath
+        val strategy: Strategy = Strategy.SearchPath
 
         val nameToOid: Map[String, Int] =
           tim.map { case (k, v) => v.name -> k }

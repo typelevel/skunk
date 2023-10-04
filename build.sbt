@@ -1,8 +1,8 @@
 ThisBuild / tlBaseVersion := "1.0"
 
 // Our Scala versions.
-lazy val `scala-2.13` = "2.13.11"
-lazy val `scala-3`  = "3.3.0"
+lazy val `scala-2.13` = "2.13.12"
+lazy val `scala-3`  = "3.3.1"
 
 ThisBuild / scalaVersion       := `scala-2.13`
 ThisBuild / crossScalaVersions := Seq(`scala-2.13`, `scala-3`)
@@ -57,7 +57,7 @@ ThisBuild / mimaBinaryIssueFilters ++= List(
 )
 
 // This is used in a couple places
-lazy val fs2Version = "3.8.0"
+lazy val fs2Version = "3.9.2"
 lazy val openTelemetryVersion = "1.29.0"
 lazy val otel4sVersion = "0.2.1"
 
@@ -109,7 +109,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     description := "Tagless, non-blocking data access library for Postgres.",
     libraryDependencies ++= Seq(
       "org.typelevel"          %%% "cats-core"               % "2.10.0",
-      "org.typelevel"          %%% "cats-effect"             % "3.5.1",
+      "org.typelevel"          %%% "cats-effect"             % "3.5.2",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
       "org.scodec"             %%% "scodec-bits"             % "1.1.37",
@@ -153,8 +153,8 @@ lazy val circe = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .settings(
     name := "skunk-circe",
     libraryDependencies ++= Seq(
-      "io.circe" %%% "circe-core"   % "0.14.5",
-      "io.circe" %%% "circe-parser" % "0.14.5"
+      "io.circe" %%% "circe-core"   % "0.14.6",
+      "io.circe" %%% "circe-parser" % "0.14.6"
     )
   )
 
@@ -167,8 +167,8 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .settings(
     tlFatalWarnings := false,
     libraryDependencies ++= Seq(
-      "org.scalameta"     %%% "munit"                   % "1.0.0-M8",
-      "org.scalameta"     % "junit-interface"           % "1.0.0-M8",
+      "org.scalameta"     %%% "munit"                   % "1.0.0-M10",
+      "org.scalameta"     % "junit-interface"           % "1.0.0-M10",
       "org.typelevel"     %%% "scalacheck-effect-munit" % "2.0.0-M2",
       "org.typelevel"     %%% "munit-cats-effect"       % "2.0.0-M3",
       "org.typelevel"     %%% "cats-free"               % "2.10.0",
@@ -201,7 +201,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   )
   .nativeEnablePlugins(ScalaNativeBrewedConfigPlugin)
   .nativeSettings(
-    libraryDependencies += "com.armanbilge" %%% "epollcat" % "0.1.5",
+    libraryDependencies += "com.armanbilge" %%% "epollcat" % "0.1.6",
     Test / nativeBrewFormulas ++= Set("s2n", "utf8proc"),
     Test / envVars ++= Map("S2N_DONT_MLOCK" -> "1")
   )
