@@ -129,9 +129,14 @@ object StringContextOps {
         if encoders.isEmpty then '{ Void.codec }
         else if legacyCommandSyntax then encoders.reduceLeft {
           case ('{$a : Encoder[a]}, '{ $b : Encoder[b] }) => '{$a ~ $b}
-        } else encoders.reduceRight {
-          case ('{$a : Encoder[a]}, '{ $b : Encoder[bh *: bt] }) => '{$a *: $b}
-          case ('{$a : Encoder[a]}, '{ $b : Encoder[b] }) => '{$a *: $b}
+        } else {
+          if (encoders.size == 1) encoders.head
+          else {
+            val last: Expr[Any] = encoders.last match {
+              case '{$a: Encoder[a]} => '{$a.imap(_ *: EmptyTuple)(_.head)}
+            }
+            encoders.init.foldRight(last) { case ('{$a: Encoder[a]}, '{$acc: Encoder[t & Tuple]}) => '{$a *: $acc} }
+          }
         }
 
       finalEnc match {
