@@ -156,7 +156,7 @@ lazy val circe = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     name := "skunk-circe",
     libraryDependencies ++= Seq(
       "io.circe" %%% "circe-core"   % "0.14.6",
-      "io.circe" %%% "circe-parser" % "0.14.6"
+      "io.circe" %%% "circe-jawn" % "0.14.6"
     )
   )
 
