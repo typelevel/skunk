@@ -161,7 +161,7 @@ lazy val circe = crossProject(JVMPlatform, JSPlatform, NativePlatform)
 lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .crossType(CrossType.Full)
   .in(file("modules/tests"))
-  .dependsOn(core, circe)
+  .dependsOn(core, circe, refined)
   .enablePlugins(AutomateHeaderPlugin, NoPublishPlugin)
   .settings(commonSettings)
   .settings(
@@ -175,6 +175,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.typelevel"     %%% "cats-laws"               % "2.10.0",
       "org.typelevel"     %%% "discipline-munit"        % "2.0.0-M3",
       "org.typelevel"     %%% "cats-time"               % "0.5.1",
+      "eu.timepit"        %%% "refined-cats"            % "0.10.3",
     ),
     testFrameworks += new TestFramework("munit.Framework"),
     testOptions += {
