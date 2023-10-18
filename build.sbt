@@ -243,22 +243,18 @@ lazy val docs = project
       "org.tpolecat"  %%% "natchez-jaeger" % natchezVersion,
     ),
     laikaConfig := {
-      import laika.rewrite.link._
+      import laika.config._
 
       laikaConfig.value.withRawContent
         .withConfigValue("version", mdocVariables.value("VERSION"))
         .withConfigValue(
-          LinkConfig(apiLinks =
-            List(
-              ApiLinks(
-                baseUri = s"https://www.javadoc.io/doc/org.tpolecat/skunk-docs_${scalaBinaryVersion.value}/${mdocVariables.value("VERSION")}/",
-                packagePrefix = "skunk"
-              ),
-              ApiLinks(
-                baseUri = s"https://www.javadoc.io/doc/co.fs2/fs2-docs_${scalaBinaryVersion.value}/$fs2Version/",
-                packagePrefix = "fs2"
-              ),
-            )
+          LinkConfig.empty.addApiLinks(
+            ApiLinks(
+              s"https://www.javadoc.io/doc/org.tpolecat/skunk-docs_${scalaBinaryVersion.value}/${mdocVariables.value("VERSION")}/"
+            ).withPackagePrefix("skunk"),
+            ApiLinks(
+              s"https://www.javadoc.io/doc/co.fs2/fs2-docs_${scalaBinaryVersion.value}/$fs2Version/"
+            ).withPackagePrefix("fs2")
           )
         )
     }
