@@ -101,6 +101,7 @@ object CommandComplete {
     case "EXPLAIN"                    => apply(Completion.Explain)
     case "GRANT"                      => apply(Completion.Grant)
     case "REVOKE"                     => apply(Completion.Revoke)
+    case "ALTER INDEX"                => apply(Completion.AlterIndex)
     // more .. fill in as we hit them
 
     case s                  => apply(Completion.Unknown(s))
