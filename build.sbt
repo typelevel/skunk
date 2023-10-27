@@ -112,8 +112,8 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.typelevel"          %%% "cats-effect"             % "3.5.2",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
-      "org.scodec"             %%% "scodec-bits"             % "1.1.37",
-      "org.scodec"             %%% "scodec-core"             % (if (tlIsScala3.value) "2.2.1" else "1.11.10"),
+      "org.scodec"             %%% "scodec-bits"             % "1.1.38",
+      "org.scodec"             %%% "scodec-core"             % (if (tlIsScala3.value) "2.2.2" else "1.11.10"),
       "org.scodec"             %%% "scodec-cats"             % "1.2.0",
       "org.typelevel"          %%% "otel4s-core-trace"       % otel4sVersion,
       "org.tpolecat"           %%% "sourcepos"               % "1.1.0",
@@ -154,7 +154,7 @@ lazy val circe = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     name := "skunk-circe",
     libraryDependencies ++= Seq(
       "io.circe" %%% "circe-core"   % "0.14.6",
-      "io.circe" %%% "circe-parser" % "0.14.6"
+      "io.circe" %%% "circe-jawn" % "0.14.6"
     )
   )
 
@@ -173,6 +173,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.typelevel"     %%% "munit-cats-effect"       % "2.0.0-M3",
       "org.typelevel"     %%% "cats-free"               % "2.10.0",
       "org.typelevel"     %%% "cats-laws"               % "2.10.0",
+      "org.typelevel"     %%% "cats-effect-testkit"     % "3.5.2",
       "org.typelevel"     %%% "discipline-munit"        % "2.0.0-M3",
       "org.typelevel"     %%% "cats-time"               % "0.5.1",
       "eu.timepit"        %%% "refined-cats"            % "0.10.3",
@@ -253,22 +254,18 @@ lazy val docs = project
     mdocIn := (Compile / sourceDirectory).value / "laika",
     tlSiteIsTypelevelProject := Some(TypelevelProject.Affiliate),
     laikaConfig := {
-      import laika.rewrite.link._
+      import laika.config._
 
       laikaConfig.value.withRawContent
         .withConfigValue("version", mdocVariables.value("VERSION"))
         .withConfigValue(
-          LinkConfig(apiLinks =
-            List(
-              ApiLinks(
-                baseUri = s"https://www.javadoc.io/doc/org.tpolecat/skunk-docs_${scalaBinaryVersion.value}/${mdocVariables.value("VERSION")}/",
-                packagePrefix = "skunk"
-              ),
-              ApiLinks(
-                baseUri = s"https://www.javadoc.io/doc/co.fs2/fs2-docs_${scalaBinaryVersion.value}/$fs2Version/",
-                packagePrefix = "fs2"
-              ),
-            )
+          LinkConfig.empty.addApiLinks(
+            ApiLinks(
+              s"https://www.javadoc.io/doc/org.tpolecat/skunk-docs_${scalaBinaryVersion.value}/${mdocVariables.value("VERSION")}/"
+            ).withPackagePrefix("skunk"),
+            ApiLinks(
+              s"https://www.javadoc.io/doc/co.fs2/fs2-docs_${scalaBinaryVersion.value}/$fs2Version/"
+            ).withPackagePrefix("fs2")
           )
         )
     }

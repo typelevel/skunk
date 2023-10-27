@@ -6,6 +6,7 @@ package skunk.util
 
 import cats.effect.Concurrent
 import cats.effect.Deferred
+import cats.effect.Poll
 import cats.effect.Ref
 import cats.effect.implicits._
 import cats.effect.Resource
@@ -83,7 +84,7 @@ object Pool {
       // available. If there is a filled slot, remove it and yield its alloc. If there is an empty
       // slot, remove it and allocate. If there are no slots, enqueue the deferral and wait on it,
       // which will [semantically] block the caller until an alloc is returned to the pool.
-      val give: F[Alloc] =
+      def give(poll: Poll[F]): F[Alloc] =
         Tracer[F].span("pool.allocate").surround {
           Deferred[F, Either[Throwable, Alloc]].flatMap { d =>
 
@@ -99,7 +100,23 @@ object Pool {
             ref.modify {
               case (Some(a) :: os, ds) => ((os, ds), a.pure[F])
               case (None    :: os, ds) => ((os, ds), Concurrent[F].onError(rsrc(Tracer[F]).allocated)(restore))
-              case (Nil,           ds) => ((Nil, ds :+ d), d.get.flatMap(_.liftTo[F].onError(restore)))
+              case (Nil,           ds) =>
+                val cancel = ref.flatModify { // try to remove our deferred
+                  case (os, ds) =>
+                    val canRemove = ds.contains(d)
+                    val cleanupMaybe = if (canRemove) // we'll pull it out before anyone can complete it
+                      ().pure[F]
+                    else // someone got to it first and will complete it, so we wait and then return it
+                      d.get.flatMap(_.liftTo[F]).onError(restore).flatMap(take(_))
+
+                    ((os, if (canRemove) ds.filterNot(_ == d) else ds), cleanupMaybe)
+                }
+
+                val wait =
+                  poll(d.get)
+                    .onCancel(cancel)
+                    .flatMap(_.liftTo[F].onError(restore))
+                ((Nil, ds :+ d), wait)
             } .flatten
 
           }
@@ -110,9 +127,7 @@ object Pool {
       // cannot be canceled, so we don't need to worry about that case here.
       def take(a: Alloc): F[Unit] =
         Tracer[F].span("pool.free").surround {
-          recycler(a._1).onError {
-            case t     => dispose(a) *> t.raiseError[F, Unit]
-          } flatMap {
+          recycler(a._1).onError { case _ => dispose(a) } flatMap {
             case true  => recycle(a)
             case false => dispose(a)
           }
@@ -141,7 +156,7 @@ object Pool {
         }
 
       // Hey, that's all we need to create our resource!
-      Resource.make(give)(take).map(_._1)
+      Resource.makeFull[F, Alloc](give)(take).map(_._1)
 
     }
 
