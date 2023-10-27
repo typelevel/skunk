@@ -60,6 +60,7 @@ ThisBuild / mimaBinaryIssueFilters ++= List(
 lazy val fs2Version = "3.9.2"
 lazy val openTelemetryVersion = "1.29.0"
 lazy val otel4sVersion = "0.3.0-RC2"
+lazy val refinedVersion = "0.11.0"
 
 // Global Settings
 lazy val commonSettings = Seq(
@@ -140,7 +141,7 @@ lazy val refined = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .settings(
     name := "skunk-refined",
     libraryDependencies ++= Seq(
-      "eu.timepit" %%% "refined" % "0.11.0",
+      "eu.timepit" %%% "refined" % refinedVersion,
     )
   )
 
@@ -176,7 +177,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.typelevel"     %%% "cats-effect-testkit"     % "3.5.2",
       "org.typelevel"     %%% "discipline-munit"        % "2.0.0-M3",
       "org.typelevel"     %%% "cats-time"               % "0.5.1",
-      "eu.timepit"        %%% "refined-cats"            % "0.10.3",
+      "eu.timepit"        %%% "refined-cats"            % refinedVersion,
     ),
     testFrameworks += new TestFramework("munit.Framework"),
     testOptions += {
