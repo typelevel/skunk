@@ -363,7 +363,6 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        scala: [2.13.12]
         java: [temurin@11]
     runs-on: ${{ matrix.os }}
     steps:
@@ -391,6 +390,6 @@ jobs:
           export SERVER_CERT=$(cat world/server.crt)
           docker-compose up -d
 
-      - run: sbt '++ ${{ matrix.scala }}' coverage skunkJVM/test coverageReport
+      - run: sbt coverage skunkJVM/test coverageReport
 
       - uses: codecov/codecov-action@v3
