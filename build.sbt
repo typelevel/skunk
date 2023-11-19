@@ -38,7 +38,8 @@ ThisBuild / githubWorkflowAddedJobs +=
   WorkflowJob(
     id = "coverage",
     name = s"Generate coverage report (2.13 JVM only)",
-    scalas = List(`scala-2.13`),
+    scalas = Nil,
+    sbtStepPreamble = Nil,
     steps = githubWorkflowJobSetup.value.toList ++
       List(
         WorkflowStep.Sbt(List("coverage", "skunkJVM/test", "coverageReport")),
@@ -171,7 +172,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.scalameta"     %%% "munit"                   % "1.0.0-M10",
       "org.scalameta"     % "junit-interface"           % "1.0.0-M10",
       "org.typelevel"     %%% "scalacheck-effect-munit" % "2.0.0-M2",
-      "org.typelevel"     %%% "munit-cats-effect"       % "2.0.0-M3",
+      "org.typelevel"     %%% "munit-cats-effect"       % "2.0.0-M4",
       "org.typelevel"     %%% "cats-free"               % "2.10.0",
       "org.typelevel"     %%% "cats-laws"               % "2.10.0",
       "org.typelevel"     %%% "cats-effect-testkit"     % "3.5.2",
