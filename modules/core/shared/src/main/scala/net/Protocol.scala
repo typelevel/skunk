@@ -89,6 +89,12 @@ trait Protocol[F[_]] {
   def execute[A](query: Query[Void, A], ty: Typer): F[List[A]]
 
   /**
+   * Execute any non-parameterized statement containing single or multi-query statements.
+   * Discard returned completitions and rows.
+   */
+  def execute_(statement: Statement[Void]): F[Unit]
+
+  /**
    * Initiate the session. This must be the first thing you do. This is very basic at the moment.
    */
   def startup(user: String, database: String, password: Option[String], parameters: Map[String, String]): F[Unit]
@@ -245,6 +251,8 @@ object Protocol {
 
         override def execute[B](query: Query[Void, B], ty: Typer): F[List[B]] =
           protocol.Query[F](redactionStrategy).apply(query, ty)
+
+        override def execute_(statement: Statement[Void]): F[Unit] = protocol.Query[F](redactionStrategy).apply_(statement)
 
         override def startup(user: String, database: String, password: Option[String], parameters: Map[String, String]): F[Unit] =
           protocol.Startup[F].apply(user, database, password, parameters)
