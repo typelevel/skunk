@@ -64,6 +64,7 @@ object Completion {
   case object Grant                     extends Completion
   case object Revoke                    extends Completion
   case object AlterIndex                extends Completion
+  case class Merge(count: Int)          extends Completion
   // more ...
 
   /**

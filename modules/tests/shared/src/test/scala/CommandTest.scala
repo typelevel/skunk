@@ -94,6 +94,13 @@ class CommandTest extends SkunkTest {
          WHERE id = $int4
        """.command
 
+  val mergeCity: Command[Int] =
+    sql"""
+         MERGE INTO city
+         USING (VALUES ($int4)) t(city_id) ON t.city_id = city.id
+         WHEN MATCHED THEN DELETE
+       """.command
+
   val createTable: Command[Void] =
     sql"""
       CREATE TABLE IF NOT EXISTS earth (
@@ -520,6 +527,18 @@ class CommandTest extends SkunkTest {
       c <- s.prepare(selectCity).flatMap(_.unique(Garin3.id))
       _ <- assert("read", c == Garin3)
       _ <- s.prepare(deleteCity).flatMap(_.execute(Garin3.id))
+      _ <- s.assertHealthy
+    } yield "ok"
+  }
+
+  sessionTest("merge a record") { s =>
+    for {
+      c <- s.prepare(insertCity).flatMap(_.execute(Garin))
+      _ <- assert("completion",  c == Completion.Insert(1))
+      c <- s.prepare(mergeCity).flatMap(_.execute(Garin.id))
+      _ <- assert("merge", c == Completion.Merge(1))
+      c <- s.prepare(selectCity).flatMap(_.option(Garin.id))
+      _ <- assert("read", c == None)
       _ <- s.assertHealthy
     } yield "ok"
   }
