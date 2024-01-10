@@ -98,7 +98,7 @@ lazy val commonSettings = Seq(
 
 lazy val skunk = tlCrossRootProject
   .settings(name := "skunk")
-  .aggregate(core, tests, circe, refined, example, unidocs)
+  .aggregate(core, tests, circe, refined, postgis, example, unidocs)
   .settings(commonSettings)
 
 lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
@@ -160,10 +160,23 @@ lazy val circe = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     )
   )
 
+lazy val postgis = crossProject(JVMPlatform, JSPlatform, NativePlatform)
+  .crossType(CrossType.Pure)
+  .in(file("modules/postgis"))
+  .dependsOn(core)
+  .enablePlugins(AutomateHeaderPlugin)
+  .settings(commonSettings)
+  .settings(
+    name := "skunk-postgis",
+    libraryDependencies ++= Seq(
+      "org.typelevel" %%% "cats-parse" % "1.0.0"
+    )
+  )
+
 lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .crossType(CrossType.Full)
   .in(file("modules/tests"))
-  .dependsOn(core, circe, refined)
+  .dependsOn(core, circe, refined, postgis)
   .enablePlugins(AutomateHeaderPlugin, NoPublishPlugin)
   .settings(commonSettings)
   .settings(
@@ -274,4 +287,3 @@ lazy val docs = project
   )
 
 // ci
-
