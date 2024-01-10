@@ -2,7 +2,7 @@ version: '3'
 services:
   # main instance for testing
   postgres:
-    image: postgres:11
+    image: postgis/postgis:11-3.3
     volumes:
       - ./world/fix_perms.sh:/docker-entrypoint-initdb.d/fix_perms.sh
       - ./world/world.sql:/docker-entrypoint-initdb.d/world.sql
