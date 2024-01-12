@@ -532,18 +532,22 @@ class CommandTest extends SkunkTest {
   }
 
   sessionTest("merge a record") { s =>
-    (for {
-      c <- s.prepare(insertCity).flatMap(_.execute(Garin))
-      _ <- assert("completion",  c == Completion.Insert(1))
-      c <- s.prepare(mergeCity).flatMap(_.execute(Garin.id))
-      _ <- assert("merge", c == Completion.Merge(1))
-      c <- s.prepare(selectCity).flatMap(_.option(Garin.id))
-      _ <- assert("read", c == None)
-      _ <- s.execute(deleteCity)(Garin.id)
-      _ <- s.assertHealthy
-    } yield "ok")
-      .recoverWith {
-        case SqlState.SyntaxError(ex) if ex.message.startsWith("""Syntax error at or near "MERGE"""") => s.execute(deleteCity)(Garin.id).as("ok")
+    s.unique(sql"SHOW server_version".query(skunk.codec.all.text))
+      .flatMap { version =>
+        val majorVersion = version.substring(0, 2).toInt
+        if (majorVersion >= 15) {
+          for {
+            c <- s.prepare(insertCity).flatMap(_.execute(Garin))
+            _ <- assert("completion",  c == Completion.Insert(1))
+            c <- s.prepare(mergeCity).flatMap(_.execute(Garin.id))
+            _ <- assert("merge", c == Completion.Merge(1))
+            c <- s.prepare(selectCity).flatMap(_.option(Garin.id))
+            _ <- assert("read", c == None)
+            _ <- s.execute(deleteCity)(Garin.id)
+            _ <- s.assertHealthy
+          } yield "ok"
+        }
+        else IO.pure("skip")
       }
   }
 
