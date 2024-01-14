@@ -171,7 +171,11 @@ lazy val postgis = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     name := "skunk-postgis",
     libraryDependencies ++= Seq(
       "org.typelevel" %%% "cats-parse" % "1.0.0"
-    )
+    ),
+    mimaPreviousArtifacts := mimaPreviousArtifacts.value.filter { artifact =>
+      VersionNumber(artifact.revision).matchesSemVer(SemanticSelector(">0.6.3"))
+    },
+    mimaFailOnNoPrevious := false
   )
 
 lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
