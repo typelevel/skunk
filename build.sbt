@@ -119,7 +119,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.scodec"             %%% "scodec-cats"             % "1.2.0",
       "org.typelevel"          %%% "otel4s-core-trace"       % otel4sVersion,
       "org.tpolecat"           %%% "sourcepos"               % "1.1.0",
-      "org.typelevel"          %%% "twiddles-core"           % "0.7.1",
+      "org.typelevel"          %%% "twiddles-core"           % "0.7.2",
     ) ++ Seq(
       "com.beachape"  %%% "enumeratum"   % "1.7.3",
     ).filterNot(_ => tlIsScala3.value)
@@ -170,7 +170,7 @@ lazy val postgis = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     name := "skunk-postgis",
     libraryDependencies ++= Seq(
       "org.typelevel" %%% "cats-parse" % "1.0.0"
-    )
+    ),
   )
 
 lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)

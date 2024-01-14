@@ -41,6 +41,7 @@ object CommandComplete {
     val Update: Regex = """UPDATE (\d+)""".r
     val Insert: Regex = """INSERT (\d+ \d+)""".r
     val Copy:   Regex = """COPY (\d+)""".r
+    val Merge:  Regex = """MERGE (\d+)""".r
   }
 
   //TODO: maybe make lazy val
@@ -103,6 +104,7 @@ object CommandComplete {
     case "GRANT"                      => apply(Completion.Grant)
     case "REVOKE"                     => apply(Completion.Revoke)
     case "ALTER INDEX"                => apply(Completion.AlterIndex)
+    case Patterns.Merge(s)            => apply(Completion.Merge(s.toInt))
     // more .. fill in as we hit them
 
     case s                  => apply(Completion.Unknown(s))
