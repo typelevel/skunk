@@ -58,11 +58,18 @@ final case class Fragment[A](
   def stripMargin: Fragment[A] = stripMargin('|')
 
   def stripMargin(marginChar: Char): Fragment[A] = {
-    val ps = parts.map {
+    val head = parts.headOption
+    val tail = parts.tail
+    val ps = head.map {
       _.bimap(
-        _.stripMargin(marginChar).replaceAll("\n", " "),
-        _.map(_.stripMargin(marginChar).replaceAll("\n", " "))
+        _.stripMargin(marginChar),
+        _.map(_.stripMargin(marginChar))
       )
+    }.toList ++ tail.map {
+      _.bimap(
+        str => str.takeWhile(_ != '\n') + str.dropWhile(_ != '\n').stripMargin(marginChar),
+        _.map(str => str.takeWhile(_ != '\n') + str.dropWhile(_ != '\n').stripMargin(marginChar))
+  )
     }
     Fragment(ps, encoder, origin)
   }
