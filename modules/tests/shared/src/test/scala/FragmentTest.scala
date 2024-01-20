@@ -85,7 +85,6 @@ class FragmentTest extends SkunkTest {
     val f = sql"""select
               |$int4
               |""".stripMargin
-    f.sql == sql"select\n $int4\n".sql
     f.sql == """select
                |$1
                |""".stripMargin
@@ -95,7 +94,6 @@ class FragmentTest extends SkunkTest {
     val f = sql"""select
                  ^$int4
                  ^""".stripMargin('^')
-    f.sql == sql"select\n $int4\n".sql
     f.sql == """select
                ^$1
                ^""".stripMargin('^')
