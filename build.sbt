@@ -58,7 +58,7 @@ ThisBuild / mimaBinaryIssueFilters ++= List(
 )
 
 // This is used in a couple places
-lazy val fs2Version = "3.9.3"
+lazy val fs2Version = "3.9.4"
 lazy val openTelemetryVersion = "1.29.0"
 lazy val otel4sVersion = "0.4.0"
 lazy val refinedVersion = "0.11.0"
@@ -111,7 +111,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     description := "Tagless, non-blocking data access library for Postgres.",
     libraryDependencies ++= Seq(
       "org.typelevel"          %%% "cats-core"               % "2.10.0",
-      "org.typelevel"          %%% "cats-effect"             % "3.5.2",
+      "org.typelevel"          %%% "cats-effect"             % "3.5.3",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
       "org.scodec"             %%% "scodec-bits"             % "1.1.38",
@@ -170,7 +170,7 @@ lazy val postgis = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     name := "skunk-postgis",
     libraryDependencies ++= Seq(
       "org.typelevel" %%% "cats-parse" % "1.0.0"
-    )
+    ),
   )
 
 lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
@@ -188,7 +188,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.typelevel"     %%% "munit-cats-effect"       % "2.0.0-M4",
       "org.typelevel"     %%% "cats-free"               % "2.10.0",
       "org.typelevel"     %%% "cats-laws"               % "2.10.0",
-      "org.typelevel"     %%% "cats-effect-testkit"     % "3.5.2",
+      "org.typelevel"     %%% "cats-effect-testkit"     % "3.5.3",
       "org.typelevel"     %%% "discipline-munit"        % "2.0.0-M3",
       "org.typelevel"     %%% "cats-time"               % "0.5.1",
       "eu.timepit"        %%% "refined-cats"            % refinedVersion,
