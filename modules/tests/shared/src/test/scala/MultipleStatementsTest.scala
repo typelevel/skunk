@@ -23,17 +23,23 @@ class MultipleStatementsTest extends SkunkTest {
   statements.foreach { case (q, c, any) =>
     sessionTest(s"query: ${q.sql}") { s =>  s.execute(q).assertFailsWith[SkunkException] *> s.assertHealthy }
     sessionTest(s"command: ${c.sql}") { s =>  s.execute(c).assertFailsWith[SkunkException] *> s.assertHealthy }
-    sessionTest(s"any discarded: ${any.sql}") { s =>  s.execute_(any).assertFailsWith[CopyNotSupportedException] *> s.assertHealthy }
+    sessionTest(s"any discarded: ${any.sql}") { s =>  s.executeDiscard(any).assertFailsWith[CopyNotSupportedException] *> s.assertHealthy }
   }
 
   // statements with no errors
-  List("select 1","commit","/* empty */")
+  List(
+    """CREATE FUNCTION do_something() RETURNS integer AS $$ BEGIN RETURN 1; END; $$ LANGUAGE plpgsql;
+       SELECT do_something();
+       DROP FUNCTION do_something""", // query + command
+    "select 1", // query
+    "commit", // command
+    "/* empty */")
     .permutations
     .toList
     .map(s => sql"#${s.intercalate(";")}".command)
     .foreach { stmt =>
       sessionTest(s"discarded no errors: ${stmt.sql}") { s =>
-        s.execute_(stmt) *> s.assertHealthy
+        s.executeDiscard(stmt) *> s.assertHealthy
       }
     }
 
@@ -50,11 +56,11 @@ class MultipleStatementsTest extends SkunkTest {
 
       if (statements.indexOf(conflict) < statements.indexOf(copy))
         sessionTest(s"discarded with postgres error: ${stmt.sql}")(s => 
-          s.execute_(stmt).assertFailsWith[PostgresErrorException] *> s.assertHealthy
+          s.executeDiscard(stmt).assertFailsWith[PostgresErrorException] *> s.assertHealthy
         )
       else
         sessionTest(s"discarded with unsupported error: ${stmt.sql}")(s =>
-          s.execute_(stmt).assertFailsWith[CopyNotSupportedException] *> s.assertHealthy
+          s.executeDiscard(stmt).assertFailsWith[CopyNotSupportedException] *> s.assertHealthy
         )
     }
   }

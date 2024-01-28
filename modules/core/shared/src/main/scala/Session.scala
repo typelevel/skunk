@@ -196,10 +196,10 @@ trait Session[F[_]] {
   def execute[A](command: Command[A], args: A)(implicit ev: DummyImplicit): F[Completion] = execute(command)(args)
 
   /**
-   * Execute any non-parameterized statement containing single or multi-query statements.
-   * Discard returned completitions and rows.
+   * Execute any non-parameterized statement containing single or multi-query statements,
+   * discarding returned completions and rows.
    */
-  def execute_(statement: Statement[Void]): F[Unit]
+  def executeDiscard(statement: Statement[Void]): F[Unit]
 
   /**
    * Prepares then caches a query, yielding a `PreparedQuery` which can be executed multiple
@@ -629,8 +629,8 @@ object Session {
         override def execute(command: Command[Void]): F[Completion] =
           proto.execute(command)
         
-        override def execute_(statement: Statement[Void]): F[Unit] =
-          proto.execute_(statement)
+        override def executeDiscard(statement: Statement[Void]): F[Unit] =
+          proto.executeDiscard(statement)
 
         override def channel(name: Identifier): Channel[F, String, String] =
           Channel.fromNameAndProtocol(name, proto)
@@ -710,7 +710,7 @@ object Session {
 
         override def execute(command: Command[Void]): G[Completion] = fk(outer.execute(command))
 
-        override def execute_(statement: Statement[Void]): G[Unit] = fk(outer.execute_(statement))
+        override def executeDiscard(statement: Statement[Void]): G[Unit] = fk(outer.executeDiscard(statement))
 
         override def execute[A](query: Query[Void,A]): G[List[A]] = fk(outer.execute(query))
 

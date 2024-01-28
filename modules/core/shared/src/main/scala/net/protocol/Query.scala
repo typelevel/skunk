@@ -23,7 +23,7 @@ import skunk.exception.EmptyStatementException
 trait Query[F[_]] {
   def apply(command: Command[Void]): F[Completion]
   def apply[B](query: skunk.Query[Void, B], ty: Typer): F[List[B]]
-  def apply_(statement: Statement[Void]): F[Unit]
+  def applyDiscard(statement: Statement[Void]): F[Unit]
 }
 
 object Query {
@@ -222,19 +222,8 @@ object Query {
             case Some(e) => e.raiseError[F, Unit]
           }
 
-          case RowDescription(_) | RowData(_) | CommandComplete(_) | EmptyQueryResponse =>
+          case RowDescription(_) | RowData(_) | CommandComplete(_) | EmptyQueryResponse | NoticeResponse(_) =>
             finishUpDiscard(stmt, error)
-
-          case NoticeResponse(info) =>
-            error match {
-              case None =>
-                for {
-                  hi <- history(Int.MaxValue)
-                  err = new PostgresErrorException(stmt.sql, Some(stmt.origin), info, hi)
-                  c <- finishUpDiscard(stmt, Some(err))
-                } yield c
-              case _ => finishUpDiscard(stmt, error)
-            }
 
           case ErrorResponse(info) =>
             error match {
@@ -258,7 +247,7 @@ object Query {
             finishCopyOut *> finishUpDiscard(stmt, error.orElse(new CopyNotSupportedException(stmt).some))
         }
 
-      override def apply_(statement: Statement[Void]): F[Unit] =
+      override def applyDiscard(statement: Statement[Void]): F[Unit] =
         exchange("query") { (span: Span[F]) =>
           span.addAttribute(
             Attribute("command.sql", statement.sql)
