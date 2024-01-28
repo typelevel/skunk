@@ -30,9 +30,11 @@ class MultipleStatementsTest extends SkunkTest {
   List(
     """CREATE FUNCTION do_something() RETURNS integer AS $$ BEGIN RETURN 1; END; $$ LANGUAGE plpgsql;
        SELECT do_something();
-       DROP FUNCTION do_something""", // query + command
-    "select 1", // query
-    "commit", // command
+       DROP FUNCTION do_something
+       """,
+    """ALTER TABLE city ADD COLUMN idd SERIAL;
+       SELECT setval('city_idd_seq', max(id)) FROM city;
+       ALTER TABLE city DROP COLUMN idd""",
     "/* empty */")
     .permutations
     .toList
