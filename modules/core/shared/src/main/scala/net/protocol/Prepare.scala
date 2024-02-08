@@ -5,17 +5,16 @@
 package skunk.net.protocol
 
 import cats.effect.Resource
-import cats.MonadError
-import cats.syntax.flatMap._
-import cats.syntax.functor._
-import skunk.~
-import skunk.RedactionStrategy
+import cats.effect.kernel.MonadCancelThrow
+import cats.syntax.flatMap.*
+import cats.syntax.functor.*
+import net.protocol.BindExecute
+import org.typelevel.otel4s.trace.Tracer
 import skunk.data.Completion
 import skunk.net.MessageSocket
-import skunk.net.Protocol.{ PreparedCommand, PreparedQuery, CommandPortal, QueryPortal }
-import skunk.util.{ Origin, Namer }
-import skunk.util.Typer
-import org.typelevel.otel4s.trace.Tracer
+import skunk.net.Protocol.{CommandPortal, PreparedCommand, PreparedQuery, QueryPortal}
+import skunk.util.{Namer, Origin, Typer}
+import skunk.{RedactionStrategy, ~}
 
 trait Prepare[F[_]] {
   def apply[A](command: skunk.Command[A], ty: Typer): F[PreparedCommand[F, A]]
@@ -24,8 +23,10 @@ trait Prepare[F[_]] {
 
 object Prepare {
 
-  def apply[F[_]: Exchange: MessageSocket: Namer: Tracer](describeCache: Describe.Cache[F], parseCache: Parse.Cache[F], redactionStrategy: RedactionStrategy)(
-    implicit ev: MonadError[F, Throwable]
+  def apply[F[_]: Exchange: MessageSocket: Namer: Tracer: MonadCancelThrow]
+  (describeCache: Describe.Cache[F],
+   parseCache: Parse.Cache[F],
+   redactionStrategy: RedactionStrategy
   ): Prepare[F] =
     new Prepare[F] {
 
@@ -41,6 +42,9 @@ object Prepare {
                   Execute[F](redactionStrategy).apply(this)
               }
             }
+
+          def bindExecute(args: A, origin: Origin): F[Completion] =
+            BindExecute[F].command(this, args, origin, redactionStrategy)
         }
 
       override def apply[A, B](query: skunk.Query[A, B], ty: Typer): F[PreparedQuery[F, A, B]] =

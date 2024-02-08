@@ -143,6 +143,7 @@ object Protocol {
   ) extends PreparedStatement[F, A] {
     def statement: Statement[A] = command
     def bind(args: A, argsOrigin: Origin): Resource[F, CommandPortal[F, A]]
+    def bindExecute(args: A, argsOrigin: Origin): F[Completion]
   }
 
   /**
