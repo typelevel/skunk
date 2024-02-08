@@ -83,15 +83,26 @@ class FragmentTest extends SkunkTest {
 
   pureTest("stripMargin") {
     val f = sql"""select
-    |$int4
-    |""".stripMargin
-    f.sql.trim == sql"select $int4".sql
+              |$int4
+              |""".stripMargin
+    f.sql == """select
+               |$1
+               |""".stripMargin
   }
 
   pureTest("stripMargin with char") {
     val f = sql"""select
-    ^$int4
-    ^""".stripMargin('^')
-    f.sql.trim == sql"select $int4".sql
+                 ^$int4
+                 ^""".stripMargin('^')
+    f.sql == """select
+               ^$1
+               ^""".stripMargin('^')
+  }
+
+  pureTest("stripMargin respects intermediate pipes") {
+    val f = sql"""|select ${text} || 'foo'
+                  |2""".stripMargin
+    f.sql == """select $1 || 'foo'
+               |2""".stripMargin
   }
 }

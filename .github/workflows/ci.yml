@@ -90,15 +90,15 @@ jobs:
 
       - name: Make target directories
         if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/series/0.6.x')
-        run: mkdir -p modules/circe/.jvm/target unidocs/target modules/core/native/target modules/core/js/target modules/circe/.js/target modules/core/jvm/target modules/refined/.native/target modules/refined/.js/target modules/refined/.jvm/target modules/circe/.native/target project/target
+        run: mkdir -p modules/circe/.jvm/target unidocs/target modules/core/native/target modules/core/js/target modules/postgis/.native/target modules/circe/.js/target modules/postgis/.js/target modules/core/jvm/target modules/refined/.native/target modules/refined/.js/target modules/refined/.jvm/target modules/circe/.native/target modules/postgis/.jvm/target project/target
 
       - name: Compress target directories
         if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/series/0.6.x')
-        run: tar cf targets.tar modules/circe/.jvm/target unidocs/target modules/core/native/target modules/core/js/target modules/circe/.js/target modules/core/jvm/target modules/refined/.native/target modules/refined/.js/target modules/refined/.jvm/target modules/circe/.native/target project/target
+        run: tar cf targets.tar modules/circe/.jvm/target unidocs/target modules/core/native/target modules/core/js/target modules/postgis/.native/target modules/circe/.js/target modules/postgis/.js/target modules/core/jvm/target modules/refined/.native/target modules/refined/.js/target modules/refined/.jvm/target modules/circe/.native/target modules/postgis/.jvm/target project/target
 
       - name: Upload target directories
         if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/series/0.6.x')
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: target-${{ matrix.os }}-${{ matrix.java }}-${{ matrix.scala }}-${{ matrix.project }}
           path: targets.tar
@@ -138,7 +138,7 @@ jobs:
           docker-compose up -d
 
       - name: Download target directories (2.13, skunkJS)
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: target-${{ matrix.os }}-${{ matrix.java }}-2.13-skunkJS
 
@@ -148,7 +148,7 @@ jobs:
           rm targets.tar
 
       - name: Download target directories (2.13, skunkJVM)
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: target-${{ matrix.os }}-${{ matrix.java }}-2.13-skunkJVM
 
@@ -158,7 +158,7 @@ jobs:
           rm targets.tar
 
       - name: Download target directories (2.13, skunkNative)
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: target-${{ matrix.os }}-${{ matrix.java }}-2.13-skunkNative
 
@@ -168,7 +168,7 @@ jobs:
           rm targets.tar
 
       - name: Download target directories (3, skunkJS)
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: target-${{ matrix.os }}-${{ matrix.java }}-3-skunkJS
 
@@ -178,7 +178,7 @@ jobs:
           rm targets.tar
 
       - name: Download target directories (3, skunkJVM)
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: target-${{ matrix.os }}-${{ matrix.java }}-3-skunkJVM
 
@@ -188,7 +188,7 @@ jobs:
           rm targets.tar
 
       - name: Download target directories (3, skunkNative)
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: target-${{ matrix.os }}-${{ matrix.java }}-3-skunkNative
 

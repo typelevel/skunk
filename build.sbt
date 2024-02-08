@@ -58,7 +58,7 @@ ThisBuild / mimaBinaryIssueFilters ++= List(
 )
 
 // This is used in a couple places
-lazy val fs2Version = "3.9.3"
+lazy val fs2Version = "3.9.4"
 lazy val openTelemetryVersion = "1.29.0"
 lazy val otel4sVersion = "0.4.0"
 lazy val refinedVersion = "0.11.0"
@@ -98,7 +98,7 @@ lazy val commonSettings = Seq(
 
 lazy val skunk = tlCrossRootProject
   .settings(name := "skunk")
-  .aggregate(core, tests, circe, refined, example, unidocs)
+  .aggregate(core, tests, circe, refined, postgis, example, unidocs)
   .settings(commonSettings)
 
 lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
@@ -111,7 +111,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     description := "Tagless, non-blocking data access library for Postgres.",
     libraryDependencies ++= Seq(
       "org.typelevel"          %%% "cats-core"               % "2.10.0",
-      "org.typelevel"          %%% "cats-effect"             % "3.5.2",
+      "org.typelevel"          %%% "cats-effect"             % "3.5.3",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
       "org.scodec"             %%% "scodec-bits"             % "1.1.38",
@@ -119,7 +119,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.scodec"             %%% "scodec-cats"             % "1.2.0",
       "org.typelevel"          %%% "otel4s-core-trace"       % otel4sVersion,
       "org.tpolecat"           %%% "sourcepos"               % "1.1.0",
-      "org.typelevel"          %%% "twiddles-core"           % "0.7.1",
+      "org.typelevel"          %%% "twiddles-core"           % "0.8.0",
     ) ++ Seq(
       "com.beachape"  %%% "enumeratum"   % "1.7.3",
     ).filterNot(_ => tlIsScala3.value)
@@ -160,10 +160,23 @@ lazy val circe = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     )
   )
 
+lazy val postgis = crossProject(JVMPlatform, JSPlatform, NativePlatform)
+  .crossType(CrossType.Pure)
+  .in(file("modules/postgis"))
+  .dependsOn(core)
+  .enablePlugins(AutomateHeaderPlugin)
+  .settings(commonSettings)
+  .settings(
+    name := "skunk-postgis",
+    libraryDependencies ++= Seq(
+      "org.typelevel" %%% "cats-parse" % "1.0.0"
+    ),
+  )
+
 lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .crossType(CrossType.Full)
   .in(file("modules/tests"))
-  .dependsOn(core, circe, refined)
+  .dependsOn(core, circe, refined, postgis)
   .enablePlugins(AutomateHeaderPlugin, NoPublishPlugin)
   .settings(commonSettings)
   .settings(
@@ -175,7 +188,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.typelevel"     %%% "munit-cats-effect"       % "2.0.0-M4",
       "org.typelevel"     %%% "cats-free"               % "2.10.0",
       "org.typelevel"     %%% "cats-laws"               % "2.10.0",
-      "org.typelevel"     %%% "cats-effect-testkit"     % "3.5.2",
+      "org.typelevel"     %%% "cats-effect-testkit"     % "3.5.3",
       "org.typelevel"     %%% "discipline-munit"        % "2.0.0-M3",
       "org.typelevel"     %%% "cats-time"               % "0.5.1",
       "eu.timepit"        %%% "refined-cats"            % refinedVersion,
@@ -274,4 +287,3 @@ lazy val docs = project
   )
 
 // ci
-
