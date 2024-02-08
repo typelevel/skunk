@@ -40,9 +40,6 @@ object BindExecute {
   def apply[F[_] : Exchange : MessageSocket : Namer : Tracer: MonadCancelThrow]: BindExecute[F] =
     new BindExecute[F] {
 
-      // https://github.com/tpolecat/skunk/issues/210
-      val syncReady: F[Unit] =
-        send(message.Sync) *> expect { case message.ReadyForQuery(_) => }
 
       def command[A](
                       statement: PreparedCommand[F, A],
@@ -66,7 +63,8 @@ object BindExecute {
               case message.ErrorResponse(info) =>
                 for {
                   hi <- history(Int.MaxValue)
-                  _ <- syncReady
+                  // https://github.com/tpolecat/skunk/issues/210
+                  _ <- send (message.Sync) *> expect {case message.ReadyForQuery (_) =>}
                   a <- PostgresErrorException.raiseError[F, Unit](
                     sql = statement.statement.sql,
                     sqlOrigin = Some(statement.statement.origin),
@@ -78,9 +76,13 @@ object BindExecute {
                 } yield a
             }
             c <- flatExpect {
-              case skunk.net.message.CommandComplete(c) => syncReady.as(c)
+              case skunk.net.message.CommandComplete(c) =>
+                send(message.Sync) *>
+                expect { case message.ReadyForQuery(_) => c}
+
               case message.EmptyQueryResponse =>
-                syncReady *>
+                send(message.Sync) *>
+                expect { case message.ReadyForQuery(_) => } *>
                   new EmptyStatementException(statement.command).raiseError[F, Completion]
 
               case message.CopyOutResponse(_) =>
@@ -92,14 +94,15 @@ object BindExecute {
 
               case message.CopyInResponse(_) =>
                 send(message.CopyFail) *>
-                  expect { case message.ErrorResponse(_) => }
-                syncReady *>
+                expect { case message.ErrorResponse(_) => } *>
+                send(message.Sync) *>
+                expect { case message.ReadyForQuery(_) => } *>
                   new CopyNotSupportedException(statement.command).raiseError[F, Completion]
 
               case message.ErrorResponse(info) =>
                 for {
                   hi <- history(Int.MaxValue)
-                  _ <- syncReady
+                  _ <- send (message.Sync) *> expect {case message.ReadyForQuery (_) =>}
                   redactedArgs = statement.command.encoder.types zip redactionStrategy.redactArguments(ea)
                   a <- PostgresErrorException.raiseError[F, Completion](
                     sql = statement.command.sql,
