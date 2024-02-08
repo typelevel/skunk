@@ -86,6 +86,7 @@ object CommandComplete {
     case "ALTER DATABASE"             => apply(Completion.AlterDatabase)
     case "CREATE ROLE"                => apply(Completion.CreateRole)
     case "DROP ROLE"                  => apply(Completion.DropRole)
+    case "ALTER ROLE"                 => apply(Completion.AlterRole)
     case "CREATE MATERIALIZED VIEW"   => apply(Completion.CreateMaterializedView)
     case "REFRESH MATERIALIZED VIEW"  => apply(Completion.RefreshMaterializedView)
     case "DROP MATERIALIZED VIEW"     => apply(Completion.DropMaterializedView)
@@ -105,6 +106,11 @@ object CommandComplete {
     case "REVOKE"                     => apply(Completion.Revoke)
     case "ALTER INDEX"                => apply(Completion.AlterIndex)
     case Patterns.Merge(s)            => apply(Completion.Merge(s.toInt))
+    case "COMMENT"                    => apply(Completion.Comment)
+    case "CREATE POLICY"              => apply(Completion.CreatePolicy)
+    case "ALTER POLICY"               => apply(Completion.AlterPolicy)
+    case "DROP POLICY"                => apply(Completion.DropPolicy)
+    case "ANALYZE"                    => apply(Completion.Analyze)
     // more .. fill in as we hit them
 
     case s                  => apply(Completion.Unknown(s))
