@@ -368,10 +368,10 @@ class CommandTest extends SkunkTest {
     sql"DROP POLICY my_policy ON city".command
 
   val analyze: Command[Void] =
-    sql"ANALYZE".command
+    sql"ANALYZE city".command
   
   val analyzeVerbose: Command[Void] =
-    sql"ANALYZE VERBOSE".command
+    sql"ANALYZE VERBOSE city".command
 
   sessionTest("create table, create index, alter table, alter index, drop index and drop table") { s =>
     for {
