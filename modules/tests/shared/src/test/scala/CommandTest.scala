@@ -308,6 +308,11 @@ class CommandTest extends SkunkTest {
         END;'
     """.command
 
+  val alterFunction: Command[Void] =
+    sql"""
+        ALTER FUNCTION my_trigger_func() RESET search_path
+    """.command
+
   val dropFunction: Command[Void] =
     sql"DROP FUNCTION my_trigger_func;".command
 
@@ -401,6 +406,8 @@ class CommandTest extends SkunkTest {
       _ <- assert("completion", c == Completion.AlterTrigger)
       c <- s.execute(dropTrigger)
       _ <- assert("completion",  c == Completion.DropTrigger)
+      c <- s.execute(alterFunction)
+      _ <- assert("completion",  c == Completion.AlterFunction)
       c <- s.execute(dropFunction)
       _ <- assert("completion",  c == Completion.DropFunction)
       _ <- s.assertHealthy
