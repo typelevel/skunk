@@ -34,6 +34,7 @@ object Completion {
   case object AlterType                 extends Completion
   case object CreateFunction            extends Completion
   case object DropFunction              extends Completion
+  case object AlterFunction             extends Completion
   case class  Copy(count: Int)          extends Completion
   case object Show                      extends Completion
   case object Do                        extends Completion
@@ -51,6 +52,7 @@ object Completion {
   case object DropDatabase              extends Completion
   case object CreateRole                extends Completion
   case object DropRole                  extends Completion
+  case object AlterRole                 extends Completion
   case object CreateMaterializedView    extends Completion
   case object RefreshMaterializedView   extends Completion
   case object DropMaterializedView      extends Completion
@@ -65,6 +67,11 @@ object Completion {
   case object Revoke                    extends Completion
   case object AlterIndex                extends Completion
   case class Merge(count: Int)          extends Completion
+  case object CreatePolicy              extends Completion
+  case object AlterPolicy               extends Completion
+  case object DropPolicy                extends Completion
+  case object Comment                   extends Completion
+  case object Analyze                   extends Completion
   // more ...
 
   /**
