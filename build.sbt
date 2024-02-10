@@ -187,8 +187,8 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .settings(
     tlFatalWarnings := false,
     libraryDependencies ++= Seq(
-      "org.scalameta"     %%% "munit"                   % "1.0.0-M10",
-      "org.scalameta"     % "junit-interface"           % "1.0.0-M10",
+      "org.scalameta"     %%% "munit"                   % "1.0.0-M11",
+      "org.scalameta"     % "junit-interface"           % "1.0.0-M11",
       "org.typelevel"     %%% "scalacheck-effect-munit" % "2.0.0-M2",
       "org.typelevel"     %%% "munit-cats-effect"       % "2.0.0-M4",
       "org.typelevel"     %%% "cats-free"               % "2.10.0",
