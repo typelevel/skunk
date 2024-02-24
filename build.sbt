@@ -98,6 +98,7 @@ lazy val commonSettings = Seq(
 
 lazy val skunk = tlCrossRootProject
   .settings(name := "skunk")
+  .aggregate(bench, core, tests, circe, refined, postgis, example, unidocs)
   .aggregate(core, tests, circe, refined, postgis, example, unidocs)
   .settings(commonSettings)
 
@@ -242,6 +243,17 @@ lazy val example = project
     //   "org.http4s"    %%% "http4s-circe"        % "0.21.22",
     //   "io.circe"      %%% "circe-generic"       % "0.13.0",
     // ).filterNot(_ => scalaVersion.value.startsWith("3."))
+  )
+
+lazy val bench = project
+  .in(file("modules/bench"))
+  .enablePlugins(NoPublishPlugin)
+  .enablePlugins(AutomateHeaderPlugin)
+  .enablePlugins(JmhPlugin)
+  .dependsOn(core.jvm)
+  .settings(commonSettings)
+  .settings(
+    libraryDependencies += "org.postgresql" % "postgresql" % "42.7.2"
   )
 
 lazy val unidocs = project
