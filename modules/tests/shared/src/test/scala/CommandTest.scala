@@ -252,6 +252,9 @@ class CommandTest extends SkunkTest {
         CREATE ROLE skunk_role
        """.command
 
+  val alterRole: Command[Void] =
+    sql"ALTER ROLE skunk_role WITH PASSWORD '123'".command
+
   val dropRole: Command[Void] =
     sql"""
         DROP ROLE skunk_role
@@ -305,6 +308,11 @@ class CommandTest extends SkunkTest {
         END;'
     """.command
 
+  val alterFunction: Command[Void] =
+    sql"""
+        ALTER FUNCTION my_trigger_func() RESET search_path
+    """.command
+
   val dropFunction: Command[Void] =
     sql"DROP FUNCTION my_trigger_func;".command
 
@@ -341,6 +349,35 @@ class CommandTest extends SkunkTest {
         FROM skunk_role
        """.command
 
+  val addComment : Command[Void] =
+    sql"COMMENT ON TABLE city IS 'A city'".command
+  
+  val removeComment : Command[Void] =
+    sql"COMMENT ON TABLE city IS NULL".command
+
+  val createPolicy: Command[Void] =
+    sql"""
+      CREATE POLICY my_policy ON city 
+      TO CURRENT_USER
+      WITH CHECK (FALSE)
+       """.command
+
+  val alterPolicy: Command[Void] =
+    sql"""
+      ALTER POLICY my_policy 
+      ON city TO CURRENT_USER 
+      WITH CHECK (TRUE)
+       """.command
+  
+  val dropPolicy: Command[Void] =
+    sql"DROP POLICY my_policy ON city".command
+
+  val analyze: Command[Void] =
+    sql"ANALYZE city".command
+  
+  val analyzeVerbose: Command[Void] =
+    sql"ANALYZE VERBOSE city".command
+
   sessionTest("create table, create index, alter table, alter index, drop index and drop table") { s =>
     for {
       c <- s.execute(createTable)
@@ -369,6 +406,8 @@ class CommandTest extends SkunkTest {
       _ <- assert("completion", c == Completion.AlterTrigger)
       c <- s.execute(dropTrigger)
       _ <- assert("completion",  c == Completion.DropTrigger)
+      c <- s.execute(alterFunction)
+      _ <- assert("completion",  c == Completion.AlterFunction)
       c <- s.execute(dropFunction)
       _ <- assert("completion",  c == Completion.DropFunction)
       _ <- s.assertHealthy
@@ -393,6 +432,18 @@ class CommandTest extends SkunkTest {
       _ <- assert("completion",  c == Completion.AlterType)
       c <- s.execute(dropType)
       _ <- assert("completion",  c == Completion.DropType)
+      _ <- s.assertHealthy
+    } yield "ok"
+  }
+
+  sessionTest("create, alter and drop policy") { s =>
+    for {
+      c <- s.execute(createPolicy)
+      _ <- assert("completion",  c == Completion.CreatePolicy)
+      c <- s.execute(alterPolicy)
+      _ <- assert("completion",  c == Completion.AlterPolicy)
+      c <- s.execute(dropPolicy)
+      _ <- assert("completion",  c == Completion.DropPolicy)
       _ <- s.assertHealthy
     } yield "ok"
   }
@@ -475,10 +526,12 @@ class CommandTest extends SkunkTest {
     } yield "ok"
   }
 
-  sessionTest("create role, drop role") { s =>
+  sessionTest("create role, alter role, drop role") { s =>
     for {
       c <- s.execute(createRole)
       _ <- assert("completion", c == Completion.CreateRole)
+      c <- s.execute(alterRole)
+      _ <- assert("completion", c == Completion.AlterRole)
       c <- s.execute(dropRole)
       _ <- assert("completion", c == Completion.DropRole)
     } yield "ok"
@@ -497,6 +550,26 @@ class CommandTest extends SkunkTest {
     for{
       c <- s.execute(doCommand)
       _ <- assert("completion", c == Completion.Do)
+      _ <- s.assertHealthy
+    } yield "ok"
+  }
+
+  sessionTest("add comment, remove comment") { s =>
+    for{
+      c <- s.execute(addComment)
+      _ <- assert("completion", c == Completion.Comment)
+      c <- s.execute(removeComment)
+      _ <- assert("completion", c == Completion.Comment)
+      _ <- s.assertHealthy
+    } yield "ok"
+  }
+
+  sessionTest("analyze") { s =>
+    for{
+      c <- s.execute(analyze)
+      _ <- assert("completion", c == Completion.Analyze)
+      v <- s.execute(analyzeVerbose)
+      _ <- assert("completion", v == Completion.Analyze)
       _ <- s.assertHealthy
     } yield "ok"
   }
