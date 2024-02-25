@@ -23,6 +23,7 @@ import skunk.exception.EmptyStatementException
 trait Query[F[_]] {
   def apply(command: Command[Void]): F[Completion]
   def apply[B](query: skunk.Query[Void, B], ty: Typer): F[List[B]]
+  def applyDiscard(statement: Statement[Void]): F[Unit]
 }
 
 object Query {
@@ -212,8 +213,45 @@ object Query {
 
         }
 
+      // Finish up any single or multi-query statement, discard returned completions and/or rows
+      // Fail with first encountered error
+      def finishUpDiscard(stmt: Statement[_], error: Option[SkunkException]): F[Unit] =
+        flatExpect {
+          case ReadyForQuery(_) => error match {
+            case None => ().pure[F]
+            case Some(e) => e.raiseError[F, Unit]
+          }
 
+          case RowDescription(_) | RowData(_) | CommandComplete(_) | EmptyQueryResponse | NoticeResponse(_) =>
+            finishUpDiscard(stmt, error)
 
+          case ErrorResponse(info) =>
+            error match {
+              case None =>
+                for {
+                  hi <- history(Int.MaxValue) 
+                  err = new PostgresErrorException(stmt.sql, Some(stmt.origin), info, hi)
+                  c <- finishUpDiscard(stmt, Some(err))
+                } yield c
+              case _ => finishUpDiscard(stmt, error)
+            }
+
+          // We don't support COPY FROM STDIN yet but we do need to be able to clean up if a user
+          // tries it.
+          case CopyInResponse(_) =>
+            send(CopyFail)                      *>
+            expect { case ErrorResponse(_) => } *>
+            finishUpDiscard(stmt, error.orElse(new CopyNotSupportedException(stmt).some))
+
+          case CopyOutResponse(_) =>
+            finishCopyOut *> finishUpDiscard(stmt, error.orElse(new CopyNotSupportedException(stmt).some))
+        }
+
+      override def applyDiscard(statement: Statement[Void]): F[Unit] =
+        exchange("query") { (span: Span[F]) =>
+          span.addAttribute(
+            Attribute("command.sql", statement.sql)
+          ) *> send(QueryMessage(statement.sql)) *> finishUpDiscard(statement, None)
+        }
     }
-
 }
