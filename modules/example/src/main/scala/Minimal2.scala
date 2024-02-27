@@ -12,7 +12,7 @@ import skunk.implicits._
 import skunk.codec.all._
 import io.opentelemetry.api.GlobalOpenTelemetry
 import org.typelevel.otel4s.Attribute
-import org.typelevel.otel4s.java.OtelJava
+import org.typelevel.otel4s.oteljava.OtelJava
 import org.typelevel.otel4s.trace.Tracer
 import fs2.io.net.Network
 import cats.effect.std.Console

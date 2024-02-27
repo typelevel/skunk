@@ -60,7 +60,7 @@ ThisBuild / mimaBinaryIssueFilters ++= List(
 // This is used in a couple places
 lazy val fs2Version = "3.9.4"
 lazy val openTelemetryVersion = "1.29.0"
-lazy val otel4sVersion = "0.4.0"
+lazy val otel4sVersion = "0.5.0-RC1"
 lazy val refinedVersion = "0.11.0"
 
 // Global Settings
@@ -203,7 +203,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   )
   .jvmSettings(
     libraryDependencies ++= Seq(
-      "org.typelevel" %% "otel4s-java" % otel4sVersion,
+      "org.typelevel" %% "otel4s-oteljava" % otel4sVersion,
       "io.opentelemetry" % "opentelemetry-exporter-otlp" % openTelemetryVersion % Runtime,
       "io.opentelemetry" % "opentelemetry-sdk-extension-autoconfigure" % openTelemetryVersion % Runtime
     ),
@@ -231,7 +231,7 @@ lazy val example = project
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "org.typelevel"    %% "otel4s-java" % otel4sVersion,
+      "org.typelevel"    %% "otel4s-oteljava" % otel4sVersion,
       "io.opentelemetry" % "opentelemetry-exporter-otlp" % openTelemetryVersion % Runtime,
       "io.opentelemetry" % "opentelemetry-sdk-extension-autoconfigure" % openTelemetryVersion % Runtime,
     ),
