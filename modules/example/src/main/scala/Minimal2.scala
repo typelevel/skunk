@@ -10,7 +10,6 @@ import cats.syntax.all._
 import skunk._
 import skunk.implicits._
 import skunk.codec.all._
-import io.opentelemetry.api.GlobalOpenTelemetry
 import org.typelevel.otel4s.Attribute
 import org.typelevel.otel4s.oteljava.OtelJava
 import org.typelevel.otel4s.trace.Tracer
@@ -55,12 +54,9 @@ object Minimal2 extends IOApp {
       List("A%", "B%").parTraverse(p => lookup(p, s))
     } as ExitCode.Success
 
-  def getTracer[F[_]: Async: LiftIO]: Resource[F, Tracer[F]] = {
-    Resource
-      .eval(Sync[F].delay(GlobalOpenTelemetry.get))
-      .evalMap(OtelJava.forAsync[F])
+  def getTracer[F[_]: Async: LiftIO]: Resource[F, Tracer[F]] =
+    OtelJava.autoConfigured[F]()
       .evalMap(_.tracerProvider.tracer("skunk-http4s-example").get)
-  }
 
   def run(args: List[String]): IO[ExitCode] =
     getTracer[IO].use { implicit T =>
