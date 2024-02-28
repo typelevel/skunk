@@ -8,6 +8,7 @@ import skunk.implicits._
 import skunk.codec.numeric.int4
 import cats.syntax.all._
 import cats.effect.IO
+import org.typelevel.otel4s.trace.Tracer
 import skunk.exception.PostgresErrorException
 
 class DescribeCacheTest extends SkunkTest {
@@ -25,7 +26,7 @@ class DescribeCacheTest extends SkunkTest {
     }
   }
 
-  tracedTest("describe cache should be not shared across sessions from different pools") {
+  tracedTest("describe cache should be not shared across sessions from different pools") { implicit tracer: Tracer[IO] =>
     (pooled(), pooled()).tupled.use { case (p1, p2) =>
       p1.use { s1 =>
         p2.use { s2 =>

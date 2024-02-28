@@ -11,6 +11,7 @@ import org.typelevel.cats.time.{ offsetdatetimeInstances => _, _ }
 import java.time._
 import skunk.codec.temporal._
 import cats.effect.{IO, Resource}
+import org.typelevel.otel4s.trace.Tracer
 import skunk._, skunk.implicits._
 import scala.concurrent.duration.{ Duration => SDuration }
 
@@ -24,7 +25,7 @@ class TemporalCodecTest extends CodecTest {
 
   // Also, run these tests with the session set to a timezone other than UTC. Our test instance is
   // set to UTC, which masks the error reported at https://github.com/tpolecat/skunk/issues/313.
-  override def session(readTimeout: SDuration): Resource[IO,Session[IO]] =
+  override def session(readTimeout: SDuration)(implicit tracer: Tracer[IO]): Resource[IO,Session[IO]] =
     super.session(readTimeout).evalTap(s => s.execute(sql"SET TIME ZONE +3".command))
 
   // Date

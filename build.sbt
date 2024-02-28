@@ -5,7 +5,7 @@ lazy val `scala-2.13` = "2.13.12"
 lazy val `scala-3.0`  = "3.3.3"
 
 ThisBuild / scalaVersion       := `scala-2.13`
-ThisBuild / crossScalaVersions := Seq(`scala-2.13`, `scala-3`)
+ThisBuild / crossScalaVersions := Seq(`scala-2.13`, `scala-3.0`)
 
 ThisBuild / organization := "org.tpolecat"
 ThisBuild / licenses     := Seq(License.MIT)
@@ -60,7 +60,7 @@ ThisBuild / mimaBinaryIssueFilters ++= List(
 // This is used in a couple places
 lazy val fs2Version = "3.9.4"
 lazy val openTelemetryVersion = "1.29.0"
-lazy val otel4sVersion = "0.4.0"
+lazy val otel4sVersion = "0.5.0-RC2"
 lazy val refinedVersion = "0.11.0"
 
 // Global Settings
@@ -193,6 +193,8 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.typelevel"     %%% "discipline-munit"        % "2.0.0-M3",
       "org.typelevel"     %%% "cats-time"               % "0.5.1",
       "eu.timepit"        %%% "refined-cats"            % refinedVersion,
+      "org.typelevel"     %%% "otel4s-sdk-trace"        % otel4sVersion,
+      "org.typelevel"     %%% "otel4s-sdk-exporter-trace" % otel4sVersion,
     ),
     testFrameworks += new TestFramework("munit.Framework"),
     testOptions += {
@@ -202,26 +204,20 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     }
   )
   .jvmSettings(
-    libraryDependencies ++= Seq(
-      "org.typelevel" %% "otel4s-java" % otel4sVersion,
-      "io.opentelemetry" % "opentelemetry-exporter-otlp" % openTelemetryVersion % Runtime,
-      "io.opentelemetry" % "opentelemetry-sdk-extension-autoconfigure" % openTelemetryVersion % Runtime
-    ),
     Test / fork := true,
-    javaOptions ++= Seq(
-      "-Dotel.java.global-autoconfigure.enabled=true",
-      "-Dotel.service.name=SkunkTests",
-    )
+    javaOptions += "-Dotel.service.name=SkunkTests"
   )
   .jsSettings(
     scalaJSLinkerConfig ~= { _.withESFeatures(_.withESVersion(org.scalajs.linker.interface.ESVersion.ES2018)) },
     Test / scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.CommonJSModule)),
+    Test / envVars ++= Map("OTEL_SERVICE_NAME" -> "SkunkTestsJS")
   )
   .nativeEnablePlugins(ScalaNativeBrewedConfigPlugin)
   .nativeSettings(
     libraryDependencies += "com.armanbilge" %%% "epollcat" % "0.1.6",
     Test / nativeBrewFormulas ++= Set("s2n", "utf8proc"),
-    Test / envVars ++= Map("S2N_DONT_MLOCK" -> "1")
+    Test / envVars ++= Map("S2N_DONT_MLOCK" -> "1"),
+    Test / envVars ++= Map("OTEL_SERVICE_NAME" -> "SkunkTestsNative")
   )
 
 lazy val example = project
@@ -231,7 +227,7 @@ lazy val example = project
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "org.typelevel"    %% "otel4s-java" % otel4sVersion,
+      "org.typelevel"    %% "otel4s-oteljava" % otel4sVersion,
       "io.opentelemetry" % "opentelemetry-exporter-otlp" % openTelemetryVersion % Runtime,
       "io.opentelemetry" % "opentelemetry-sdk-extension-autoconfigure" % openTelemetryVersion % Runtime,
     ),

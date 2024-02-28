@@ -9,20 +9,28 @@ import cats.effect._
 import cats.syntax.all._
 import scala.reflect.ClassTag
 import munit.{CatsEffectSuite, Location, TestOptions}
+import org.typelevel.otel4s.sdk.exporter.otlp.trace.autoconfigure.OtlpSpanExporterAutoConfigure
 import skunk.exception._
 import org.typelevel.twiddles._
+import org.typelevel.otel4s.sdk.trace.SdkTraces
 import org.typelevel.otel4s.trace.Tracer
 
 trait FTest extends CatsEffectSuite with FTestPlatform {
 
+  private def withinSpan[A](name: String)(body: Tracer[IO] => IO[A]): IO[A] =
+    SdkTraces
+      .autoConfigured[IO](_.addExporterConfigurer(OtlpSpanExporterAutoConfigure[IO]))
+      .evalMap(_.tracerProvider.get(getClass.getName()))
+      .use(tracer => tracer.span(spanNameForTest(name)).surround(body(tracer)))
+
   private def spanNameForTest(name: String): String =
     s"${getClass.getSimpleName} - $name"
 
-  def tracedTest[A](name: String)(body: => IO[A])(implicit loc: Location): Unit =
-    test(name)(Tracer[IO].span(spanNameForTest(name)).surround(body))
+  def tracedTest[A](name: String)(body: Tracer[IO] => IO[A])(implicit loc: Location): Unit =
+    test(name)(withinSpan(name)(body))
 
-  def tracedTest[A](options: TestOptions)(body: => IO[A])(implicit loc: Location): Unit =
-    test(options)(Tracer[IO].span(spanNameForTest(options.name)).surround(body))
+  def tracedTest[A](options: TestOptions)(body: Tracer[IO] => IO[A])(implicit loc: Location): Unit =
+    test(options)(withinSpan(options.name)(body))
 
   def pureTest(name: String)(f: => Boolean): Unit = test(name)(assert(name, f))
   def fail[A](msg: String): IO[A] = IO.raiseError(new AssertionError(msg))

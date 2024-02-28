@@ -5,11 +5,12 @@
 package tests.issue
 
 import cats.effect._
+import org.typelevel.otel4s.trace.Tracer
 import skunk._
 
 class Test238 extends ffstest.FTest {
 
-  tracedTest("see (https://github.com/functional-streams-for-scala/fs2/pull/1989)") {
+  tracedTest("see (https://github.com/functional-streams-for-scala/fs2/pull/1989)") { implicit tracer: Tracer[IO] =>
     Session.single[IO](
       host     = "localhost",
       user     = "jimmy",
