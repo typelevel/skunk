@@ -2,7 +2,7 @@ ThisBuild / tlBaseVersion := "1.0"
 
 // Our Scala versions.
 lazy val `scala-2.13` = "2.13.12"
-lazy val `scala-3`  = "3.3.1"
+lazy val `scala-3.0`  = "3.3.3"
 
 ThisBuild / scalaVersion       := `scala-2.13`
 ThisBuild / crossScalaVersions := Seq(`scala-2.13`, `scala-3`)
@@ -112,7 +112,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     description := "Tagless, non-blocking data access library for Postgres.",
     libraryDependencies ++= Seq(
       "org.typelevel"          %%% "cats-core"               % "2.10.0",
-      "org.typelevel"          %%% "cats-effect"             % "3.5.3",
+      "org.typelevel"          %%% "cats-effect"             % "3.5.4",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
       "org.scodec"             %%% "scodec-bits"             % "1.1.38",
@@ -189,7 +189,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.typelevel"     %%% "munit-cats-effect"       % "2.0.0-M4",
       "org.typelevel"     %%% "cats-free"               % "2.10.0",
       "org.typelevel"     %%% "cats-laws"               % "2.10.0",
-      "org.typelevel"     %%% "cats-effect-testkit"     % "3.5.3",
+      "org.typelevel"     %%% "cats-effect-testkit"     % "3.5.4",
       "org.typelevel"     %%% "discipline-munit"        % "2.0.0-M3",
       "org.typelevel"     %%% "cats-time"               % "0.5.1",
       "eu.timepit"        %%% "refined-cats"            % refinedVersion,
