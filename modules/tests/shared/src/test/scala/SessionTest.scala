@@ -5,6 +5,7 @@
 package tests
 
 import cats.effect._
+import org.typelevel.otel4s.trace.Tracer.Implicits.noop
 import skunk.Session
 import skunk.exception.SkunkException
 

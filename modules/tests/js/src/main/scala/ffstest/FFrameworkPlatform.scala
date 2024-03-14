@@ -5,9 +5,10 @@
 package ffstest
 
 import cats.effect.IO
+import fs2.compression.Compression
 import munit.CatsEffectSuite
-import org.typelevel.otel4s.trace.Tracer
 
 trait FTestPlatform extends CatsEffectSuite {
-  implicit lazy val ioTracer: Tracer[IO] = Tracer.noop
+  implicit val fs2Compression: Compression[IO] =
+    fs2.io.compression.fs2ioCompressionForIO
 }

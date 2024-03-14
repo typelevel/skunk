@@ -7,6 +7,7 @@ package tests
 import cats.effect._
 import com.comcast.ip4s.UnknownHostException
 import fs2.io.net.ConnectException
+import org.typelevel.otel4s.trace.Tracer
 import skunk._
 import skunk.exception.SkunkException
 import skunk.exception.StartupException
@@ -22,7 +23,7 @@ class StartupTest extends ffstest.FTest {
     val Password = 5435
   }
 
-  tracedTest("md5 - successful login") {
+  tracedTest("md5 - successful login") { implicit tracer: Tracer[IO] =>
     Session.single[IO](
       host     = "localhost",
       user     = "jimmy",
@@ -32,7 +33,7 @@ class StartupTest extends ffstest.FTest {
     ).use(_ => IO.unit)
   }
 
-  tracedTest("md5 - non-existent database") {
+  tracedTest("md5 - non-existent database") { implicit tracer: Tracer[IO] =>
     Session.single[IO](
       host     = "localhost",
       user     = "jimmy",
@@ -44,7 +45,7 @@ class StartupTest extends ffstest.FTest {
      .flatMap(e => assertEqual("code", e.code, "3D000"))
   }
 
-  tracedTest("md5 - missing password") {
+  tracedTest("md5 - missing password") { implicit tracer: Tracer[IO] =>
     Session.single[IO](
       host     = "localhost",
       user     = "jimmy",
@@ -56,7 +57,7 @@ class StartupTest extends ffstest.FTest {
      .flatMap(e => assertEqual("message", e.message, "Password required."))
   }
 
-  tracedTest("md5 - incorrect user") {
+  tracedTest("md5 - incorrect user") { implicit tracer: Tracer[IO] =>
     Session.single[IO](
       host     = "localhost",
       user     = "frank",
@@ -68,7 +69,7 @@ class StartupTest extends ffstest.FTest {
      .flatMap(e => assertEqual("code", e.code, "28P01"))
   }
 
-  tracedTest("md5 - incorrect password") {
+  tracedTest("md5 - incorrect password") { implicit tracer: Tracer[IO] =>
     Session.single[IO](
       host     = "localhost",
       user     = "jimmy",
@@ -80,7 +81,7 @@ class StartupTest extends ffstest.FTest {
      .flatMap(e => assertEqual("code", e.code, "28P01"))
   }
 
-  tracedTest("trust - successful login") {
+  tracedTest("trust - successful login") { implicit tracer: Tracer[IO] =>
     Session.single[IO](
       host     = "localhost",
       user     = "postgres",
@@ -90,7 +91,7 @@ class StartupTest extends ffstest.FTest {
   }
 
   // TODO: should this be an error?
-  tracedTest("trust - successful login, ignored password") {
+  tracedTest("trust - successful login, ignored password") { implicit tracer: Tracer[IO] =>
     Session.single[IO](
       host     = "localhost",
       user     = "postgres",
@@ -100,7 +101,7 @@ class StartupTest extends ffstest.FTest {
     ).use(_ => IO.unit)
   }
 
-  tracedTest("trust - non-existent database") {
+  tracedTest("trust - non-existent database") { implicit tracer: Tracer[IO] =>
     Session.single[IO](
       host     = "localhost",
       user     = "postgres",
@@ -111,7 +112,7 @@ class StartupTest extends ffstest.FTest {
      .flatMap(e => assertEqual("code", e.code, "3D000"))
   }
 
-  tracedTest("trust - incorrect user") {
+  tracedTest("trust - incorrect user") { implicit tracer: Tracer[IO] =>
     Session.single[IO](
       host     = "localhost",
       user     = "bogus",
@@ -122,7 +123,7 @@ class StartupTest extends ffstest.FTest {
      .flatMap(e => assertEqual("code", e.code, "28000"))
   }
 
-  tracedTest("scram - successful login") {
+  tracedTest("scram - successful login") { implicit tracer: Tracer[IO] =>
     Session.single[IO](
       host     = "localhost",
       user     = "jimmy",
@@ -132,7 +133,7 @@ class StartupTest extends ffstest.FTest {
     ).use(_ => IO.unit)
   }
 
-  tracedTest("scram - non-existent database") {
+  tracedTest("scram - non-existent database") { implicit tracer: Tracer[IO] =>
     Session.single[IO](
       host     = "localhost",
       user     = "jimmy",
@@ -144,7 +145,7 @@ class StartupTest extends ffstest.FTest {
      .flatMap(e => assertEqual("code", e.code, "3D000"))
   }
 
-  tracedTest("scram - missing password") {
+  tracedTest("scram - missing password") { implicit tracer: Tracer[IO] =>
     Session.single[IO](
       host     = "localhost",
       user     = "jimmy",
@@ -156,7 +157,7 @@ class StartupTest extends ffstest.FTest {
      .flatMap(e => assertEqual("message", e.message, "Password required."))
   }
 
-  tracedTest("scram - incorrect user") {
+  tracedTest("scram - incorrect user") { implicit tracer: Tracer[IO] =>
     Session.single[IO](
       host     = "localhost",
       user     = "frank",
@@ -168,7 +169,7 @@ class StartupTest extends ffstest.FTest {
      .flatMap(e => assertEqual("code", e.code, "28P01"))
   }
 
-  tracedTest("scram - incorrect password") {
+  tracedTest("scram - incorrect password") { implicit tracer: Tracer[IO] =>
     Session.single[IO](
       host     = "localhost",
       user     = "jimmy",
@@ -180,7 +181,7 @@ class StartupTest extends ffstest.FTest {
      .flatMap(e => assertEqual("code", e.code, "28P01"))
   }
 
-  tracedTest("password - successful login") {
+  tracedTest("password - successful login") { implicit tracer: Tracer[IO] =>
     Session.single[IO](
       host     = "localhost",
       user     = "jimmy",
@@ -190,7 +191,7 @@ class StartupTest extends ffstest.FTest {
     ).use(_ => IO.unit)
   }
 
-  tracedTest("password - non-existent database") {
+  tracedTest("password - non-existent database") { implicit tracer: Tracer[IO] =>
     Session.single[IO](
       host     = "localhost",
       user     = "jimmy",
@@ -202,7 +203,7 @@ class StartupTest extends ffstest.FTest {
      .flatMap(e => assertEqual("code", e.code, "3D000"))
   }
 
-  tracedTest("password - missing password") {
+  tracedTest("password - missing password") { implicit tracer: Tracer[IO] =>
     Session.single[IO](
       host     = "localhost",
       user     = "jimmy",
@@ -214,7 +215,7 @@ class StartupTest extends ffstest.FTest {
      .flatMap(e => assertEqual("message", e.message, "Password required."))
   }
 
-  tracedTest("password - incorrect user") {
+  tracedTest("password - incorrect user") { implicit tracer: Tracer[IO] =>
     Session.single[IO](
       host     = "localhost",
       user     = "frank",
@@ -226,7 +227,7 @@ class StartupTest extends ffstest.FTest {
      .flatMap(e => assertEqual("code", e.code, "28P01"))
   }
 
-  tracedTest("password - incorrect password") {
+  tracedTest("password - incorrect password") { implicit tracer: Tracer[IO] =>
     Session.single[IO](
       host     = "localhost",
       user     = "jimmy",
@@ -238,7 +239,7 @@ class StartupTest extends ffstest.FTest {
      .flatMap(e => assertEqual("code", e.code, "28P01"))
   }
 
-  tracedTest("invalid port") {
+  tracedTest("invalid port") { implicit tracer: Tracer[IO] =>
     Session.single[IO](
       host     = "localhost",
       user     = "bob",
@@ -247,7 +248,7 @@ class StartupTest extends ffstest.FTest {
     ).use(_ => IO.unit).assertFailsWith[ConnectException]
   }
 
-  tracedTest("invalid host") {
+  tracedTest("invalid host") { implicit tracer: Tracer[IO] =>
     Session.single[IO](
       host     = "blergh",
       user     = "bob",
