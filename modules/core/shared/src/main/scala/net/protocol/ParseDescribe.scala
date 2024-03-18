@@ -44,40 +44,40 @@ object ParseDescribe {
                 ).raiseError[F, Unit]
         } yield a
 
-      override def apply[A](cmd: skunk.Command[A], ty: Typer): F[StatementId] = {
-        
-        def parseExchange(span: Span[F]): F[(F[StatementId], StatementId => F[Unit])] = cmd.encoder.oids(ty) match {
+      def parseExchange(stmt: Statement[_], ty: Typer)(span: Span[F]): F[(F[StatementId], StatementId => F[Unit])] = 
+        stmt.encoder.oids(ty) match {
 
           case Right(os) if os.length > Short.MaxValue =>
-            TooManyParametersException(cmd).raiseError[F, (F[StatementId], StatementId => F[Unit])]
+            TooManyParametersException(stmt).raiseError[F, (F[StatementId], StatementId => F[Unit])]
 
           case Right(os) =>
-            OptionT(parseCache.value.get(cmd)).map(id => (id.pure, (_:StatementId) => ().pure)).getOrElse {
+            OptionT(parseCache.value.get(stmt)).map(id => (id.pure, (_:StatementId) => ().pure)).getOrElse {
               val pre = for {
                 id <- nextName("statement").map(StatementId(_))
                 _  <- span.addAttributes(
                         Attribute("statement-name", id.value),
-                        Attribute("statement-sql",  cmd.sql),
+                        Attribute("statement-sql",  stmt.sql),
                         Attribute("statement-parameter-types", os.map(n => ty.typeForOid(n, -1).fold(n.toString)(_.toString)).mkString("[", ", ", "]"))
                       )
-                _  <- send(ParseMessage(id.value, cmd.sql, os))
+                _  <- send(ParseMessage(id.value, stmt.sql, os))
 
               } yield id
               val post = (id: StatementId) => for {
                 _  <- flatExpect {
                         case ParseComplete       => ().pure[F]
-                        case ErrorResponse(info) => syncAndFail(cmd, info)
+                        case ErrorResponse(info) => syncAndFail(stmt, info)
                       }
-                _  <- parseCache.value.put(cmd, id)
+                _  <- parseCache.value.put(stmt, id)
               } yield ()
 
               (pre, post)
             }
-
           case Left(err) =>
-            UnknownTypeException(cmd, err, ty.strategy).raiseError[F, (F[StatementId], StatementId => F[Unit])]
+            UnknownTypeException(stmt, err, ty.strategy).raiseError[F, (F[StatementId], StatementId => F[Unit])]
 
         }
+
+      override def apply[A](cmd: skunk.Command[A], ty: Typer): F[StatementId] = {
 
         def describeExchange(span: Span[F]): F[(StatementId => F[Unit], F[Unit])] = 
           OptionT(cache.commandCache.get(cmd)).as(((_: StatementId) => ().pure, ().pure)).getOrElse {
@@ -109,7 +109,7 @@ object ParseDescribe {
           }
 
         exchange("parse+describe") { (span: Span[F]) => 
-          parseExchange(span).flatMap{ case (preParse, postParse) =>
+          parseExchange(cmd, ty)(span).flatMap{ case (preParse, postParse) =>
             describeExchange(span).flatMap { case (preDesc, postDesc) =>
               for {
                 id <- preParse
@@ -126,38 +126,6 @@ object ParseDescribe {
 
       override def apply[A, B](query: skunk.Query[A, B], ty: Typer): F[(StatementId, TypedRowDescription)] = {
         
-        def parseExchange(span: Span[F]): F[(F[StatementId], StatementId => F[Unit])] = query.encoder.oids(ty) match {
-
-          case Right(os) if os.length > Short.MaxValue =>
-            TooManyParametersException(query).raiseError[F, (F[StatementId], StatementId => F[Unit])]
-
-          case Right(os) =>
-            OptionT(parseCache.value.get(query)).map(id => (id.pure, (_:StatementId) => ().pure)).getOrElse {
-              val pre = for {
-                id <- nextName("statement").map(StatementId(_))
-                _  <- span.addAttributes(
-                        Attribute("statement-name", id.value),
-                        Attribute("statement-sql",  query.sql),
-                        Attribute("statement-parameter-types", os.map(n => ty.typeForOid(n, -1).fold(n.toString)(_.toString)).mkString("[", ", ", "]"))
-                      )
-                _  <- send(ParseMessage(id.value, query.sql, os))
-
-              } yield id
-              val post = (id: StatementId) => for {
-                _  <- flatExpect {
-                        case ParseComplete       => ().pure[F]
-                        case ErrorResponse(info) => syncAndFail(query, info)
-                      }
-                _  <- parseCache.value.put(query, id)
-              } yield ()
-
-              (pre, post)
-            }
-
-          case Left(err) =>
-            UnknownTypeException(query, err, ty.strategy).raiseError[F, (F[StatementId], StatementId => F[Unit])]
-        }  
-
         def describeExchange(span: Span[F]): F[(StatementId => F[Unit], F[TypedRowDescription])] = 
           OptionT(cache.queryCache.get(query)).map(rd => ((_:StatementId) => ().pure, rd.pure)).getOrElse {
             val pre = (id: StatementId) =>
@@ -187,7 +155,7 @@ object ParseDescribe {
 
         
         exchange("parse+describe") { (span: Span[F]) => 
-          parseExchange(span).flatMap{ case (preParse, postParse) =>
+          parseExchange(query, ty)(span).flatMap{ case (preParse, postParse) =>
             describeExchange(span).flatMap { case (preDesc, postDesc) =>
               for {
                 id <- preParse
