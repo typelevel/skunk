@@ -7,12 +7,10 @@ package skunk.net.protocol
 import cats._
 import cats.effect.Ref
 import cats.syntax.all._
-import skunk.exception.{ UnexpectedRowsException, ColumnAlignmentException, NoDataException }
 import skunk.net.MessageSocket
 import skunk.net.Protocol.StatementId
 import skunk.net.message.{ Describe => DescribeMessage, Parse => ParseMessage, _ }
 import skunk.util.{ StatementCache, Typer }
-import skunk.exception.UnknownOidException
 import skunk.data.TypedRowDescription
 import org.typelevel.otel4s.Attribute
 import org.typelevel.otel4s.trace.Span
@@ -26,7 +24,7 @@ import skunk.net.protocol.exchange
 
 trait Describe[F[_]] {
   def apply[A](cmd: skunk.Command[A], ty: Typer): F[StatementId]
-  def apply[A](query: skunk.Query[_, A], id: StatementId, ty: Typer): F[TypedRowDescription]
+  def apply[A, B](query: skunk.Query[A, B], ty: Typer): F[(StatementId, TypedRowDescription)]
 }
 
 object Describe {
@@ -83,7 +81,7 @@ object Describe {
 
         }
 
-        def describeExchange(span: Span[F]):F[(StatementId => F[Unit], F[Unit])] = 
+        def describeExchange(span: Span[F]): F[(StatementId => F[Unit], F[Unit])] = 
           OptionT(cache.commandCache.get(cmd)).as(((_: StatementId) => ().pure, ().pure)).getOrElse {
             val pre = (id: StatementId) =>for {
               _  <- span.addAttribute(Attribute("statement-id", id.value))
@@ -128,28 +126,82 @@ object Describe {
 
       }
 
-      override def apply[A](query: skunk.Query[_, A], id: StatementId, ty: Typer): F[TypedRowDescription] =
-        OptionT(cache.queryCache.get(query)).getOrElseF {
-          exchange("describe") { (span: Span[F]) =>
-            for {
-              _  <- span.addAttribute(Attribute("statement-id", id.value))
-              _  <- send(DescribeMessage.statement(id.value))
-              _  <- send(Flush)
-              _  <- expect { case ParameterDescription(_) => } // always ok
-              rd <- flatExpect {
-                      case rd @ RowDescription(_) => rd.pure[F]
-                      case NoData                 => NoDataException(query).raiseError[F, RowDescription]
-                    }
-              td <- rd.typed(ty) match {
-                      case Left(err) => UnknownOidException(query, err, ty.strategy).raiseError[F, TypedRowDescription]
-                      case Right(td) =>
-                        span.addAttribute(Attribute("column-types", td.fields.map(_.tpe).mkString("[", ", ", "]"))).as(td)
-                    }
-              _  <- ColumnAlignmentException(query, td).raiseError[F, Unit].unlessA(query.isDynamic || query.decoder.types === td.types)
-              _  <- cache.queryCache.put(query, td) // on success
-            } yield td
+      override def apply[A, B](query: skunk.Query[A, B], ty: Typer): F[(StatementId, TypedRowDescription)] = {
+        
+        def parseExchange(span: Span[F]): F[(F[StatementId], StatementId => F[Unit])] = query.encoder.oids(ty) match {
+
+          case Right(os) if os.length > Short.MaxValue =>
+            TooManyParametersException(query).raiseError[F, (F[StatementId], StatementId => F[Unit])]
+
+          case Right(os) =>
+            OptionT(parseCache.value.get(query)).map(id => (id.pure, (_:StatementId) => ().pure)).getOrElse {
+              val pre = for {
+                id <- nextName("statement").map(StatementId(_))
+                _  <- span.addAttributes(
+                        Attribute("statement-name", id.value),
+                        Attribute("statement-sql",  query.sql),
+                        Attribute("statement-parameter-types", os.map(n => ty.typeForOid(n, -1).fold(n.toString)(_.toString)).mkString("[", ", ", "]"))
+                      )
+                _  <- send(ParseMessage(id.value, query.sql, os))
+
+              } yield id
+              val post = (id: StatementId) => for {
+                _  <- flatExpect {
+                        case ParseComplete       => ().pure[F]
+                        case ErrorResponse(info) => syncAndFail(query, info)
+                      }
+                _  <- parseCache.value.put(query, id)
+              } yield ()
+
+              (pre, post)
+            }
+
+          case Left(err) =>
+            UnknownTypeException(query, err, ty.strategy).raiseError[F, (F[StatementId], StatementId => F[Unit])]
+        }  
+
+        def describeExchange(span: Span[F]): F[(StatementId => F[Unit], F[TypedRowDescription])] = 
+          OptionT(cache.queryCache.get(query)).map(rd => ((_:StatementId) => ().pure, rd.pure)).getOrElse {
+            val pre = (id: StatementId) =>
+              for {
+                _  <- span.addAttribute(Attribute("statement-id", id.value))
+                _  <- send(DescribeMessage.statement(id.value))
+              } yield ()
+
+            val post =
+              for {   
+                _  <- expect { case ParameterDescription(_) => } // always ok
+                rd <- flatExpect {
+                        case rd @ RowDescription(_) => rd.pure[F]
+                        case NoData                 => NoDataException(query).raiseError[F, RowDescription]
+                      }
+                td <- rd.typed(ty) match {
+                        case Left(err) => UnknownOidException(query, err, ty.strategy).raiseError[F, TypedRowDescription]
+                        case Right(td) =>
+                          span.addAttribute(Attribute("column-types", td.fields.map(_.tpe).mkString("[", ", ", "]"))).as(td)
+                      }
+                _  <- ColumnAlignmentException(query, td).raiseError[F, Unit].unlessA(query.isDynamic || query.decoder.types === td.types)
+                _  <- cache.queryCache.put(query, td) // on success
+              } yield td
+
+            (pre, post)
           }
-        }
+
+        
+        exchange("parse+describe") { (span: Span[F]) => 
+          parseExchange(span).flatMap{ case (preParse, postParse) =>
+            describeExchange(span).flatMap { case (preDesc, postDesc) =>
+              for {
+                id <- preParse
+                _  <- preDesc(id)
+                _  <- send(Flush)
+                _  <- postParse(id)
+                rd <- postDesc
+              } yield (id, rd)
+            }
+          }
+        }  
+      }
 
     }
 
