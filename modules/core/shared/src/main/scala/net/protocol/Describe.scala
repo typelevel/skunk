@@ -10,7 +10,7 @@ import cats.syntax.all._
 import skunk.exception.{ UnexpectedRowsException, ColumnAlignmentException, NoDataException }
 import skunk.net.MessageSocket
 import skunk.net.Protocol.StatementId
-import skunk.net.message.{ Describe => DescribeMessage, _ }
+import skunk.net.message.{ Describe => DescribeMessage, Parse => ParseMessage, _ }
 import skunk.util.{ StatementCache, Typer }
 import skunk.exception.UnknownOidException
 import skunk.data.TypedRowDescription
@@ -18,26 +18,79 @@ import org.typelevel.otel4s.Attribute
 import org.typelevel.otel4s.trace.Span
 import org.typelevel.otel4s.trace.Tracer
 import cats.data.OptionT
+import cats.effect.kernel.MonadCancel
+import skunk.Statement
+import skunk.exception.*
+import skunk.util.Namer
+import skunk.net.protocol.exchange
 
 trait Describe[F[_]] {
-  def apply(cmd: skunk.Command[_], id: StatementId, ty: Typer): F[Unit]
+  def apply[A](cmd: skunk.Command[A], ty: Typer): F[StatementId]
   def apply[A](query: skunk.Query[_, A], id: StatementId, ty: Typer): F[TypedRowDescription]
 }
 
 object Describe {
 
-  def apply[F[_]: Exchange: MessageSocket: Tracer](cache: Cache[F])(
-    implicit ev: MonadError[F, Throwable]
+  def apply[F[_]: Exchange: MessageSocket: Tracer: Namer](cache: Describe.Cache[F], parseCache: Parse.Cache[F])(
+    implicit ev: MonadCancel[F, Throwable]
   ): Describe[F] =
     new Describe[F] {
+      def syncAndFail(statement: Statement[_], info: Map[Char, String]): F[Unit] =
+        for {
+          hi <- history(Int.MaxValue)
+          _  <- send(Sync)
+          _  <- expect { case ReadyForQuery(_) => }
+          a  <- new PostgresErrorException(
+                  sql       = statement.sql,
+                  sqlOrigin = Some(statement.origin),
+                  info      = info,
+                  history   = hi,
+                ).raiseError[F, Unit]
+        } yield a
 
-      override def apply(cmd: skunk.Command[_], id: StatementId, ty: Typer): F[Unit] =
-        exchange("describe") { (span: Span[F]) =>
-          OptionT(cache.commandCache.get(cmd)).getOrElseF {
-            for {
+      override def apply[A](cmd: skunk.Command[A], ty: Typer): F[StatementId] = {
+        
+        def parseExchange(span: Span[F]): F[(F[StatementId], StatementId => F[Unit])] = cmd.encoder.oids(ty) match {
+
+          case Right(os) if os.length > Short.MaxValue =>
+            TooManyParametersException(cmd).raiseError[F, (F[StatementId], StatementId => F[Unit])]
+
+          case Right(os) =>
+            OptionT(parseCache.value.get(cmd)).map(id => (id.pure, (_:StatementId) => ().pure)).getOrElse {
+              val pre = for {
+                id <- nextName("statement").map(StatementId(_))
+                _  <- span.addAttributes(
+                        Attribute("statement-name", id.value),
+                        Attribute("statement-sql",  cmd.sql),
+                        Attribute("statement-parameter-types", os.map(n => ty.typeForOid(n, -1).fold(n.toString)(_.toString)).mkString("[", ", ", "]"))
+                      )
+                _  <- send(ParseMessage(id.value, cmd.sql, os))
+
+              } yield id
+              val post = (id: StatementId) => for {
+                _  <- flatExpect {
+                        case ParseComplete       => ().pure[F]
+                        case ErrorResponse(info) => syncAndFail(cmd, info)
+                      }
+                _  <- parseCache.value.put(cmd, id)
+              } yield ()
+
+              (pre, post)
+            }
+
+          case Left(err) =>
+            UnknownTypeException(cmd, err, ty.strategy).raiseError[F, (F[StatementId], StatementId => F[Unit])]
+
+        }
+
+        def describeExchange(span: Span[F]):F[(StatementId => F[Unit], F[Unit])] = 
+          OptionT(cache.commandCache.get(cmd)).as(((_: StatementId) => ().pure, ().pure)).getOrElse {
+            val pre = (id: StatementId) =>for {
               _  <- span.addAttribute(Attribute("statement-id", id.value))
               _  <- send(DescribeMessage.statement(id.value))
-              _  <- send(Flush)
+            } yield ()
+            
+            val post: F[Unit] = for {
               _  <- expect { case ParameterDescription(_) => } // always ok
               _  <- flatExpect {
                       case NoData                 => ().pure[F]
@@ -55,8 +108,25 @@ object Describe {
                     }
               _  <- cache.commandCache.put(cmd, ()) // on success
             } yield ()
+
+            (pre, post)
           }
-        }
+
+        exchange("parse+describe") { (span: Span[F]) => 
+          parseExchange(span).flatMap{ case (preParse, postParse) =>
+            describeExchange(span).flatMap { case (preDesc, postDesc) =>
+              for {
+                id <- preParse
+                _  <- preDesc(id)
+                _  <- send(Flush)
+                _  <- postParse(id)
+                _  <- postDesc
+              } yield id
+            }
+          }
+        }  
+
+      }
 
       override def apply[A](query: skunk.Query[_, A], id: StatementId, ty: Typer): F[TypedRowDescription] =
         OptionT(cache.queryCache.get(query)).getOrElseF {

@@ -5,7 +5,6 @@
 package skunk.net.protocol
 
 import cats.effect.Resource
-import cats.MonadError
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import skunk.~
@@ -16,6 +15,7 @@ import skunk.net.Protocol.{ PreparedCommand, PreparedQuery, CommandPortal, Query
 import skunk.util.{ Origin, Namer }
 import skunk.util.Typer
 import org.typelevel.otel4s.trace.Tracer
+import cats.effect.kernel.MonadCancel
 
 trait Prepare[F[_]] {
   def apply[A](command: skunk.Command[A], ty: Typer): F[PreparedCommand[F, A]]
@@ -25,28 +25,27 @@ trait Prepare[F[_]] {
 object Prepare {
 
   def apply[F[_]: Exchange: MessageSocket: Namer: Tracer](describeCache: Describe.Cache[F], parseCache: Parse.Cache[F], redactionStrategy: RedactionStrategy)(
-    implicit ev: MonadError[F, Throwable]
+    implicit ev: MonadCancel[F, Throwable]
   ): Prepare[F] =
     new Prepare[F] {
 
       override def apply[A](command: skunk.Command[A], ty: Typer): F[PreparedCommand[F, A]] =
-        for {
-          id <- Parse[F](parseCache).apply(command, ty)
-          _  <- Describe[F](describeCache).apply(command, id, ty)
-        } yield new PreparedCommand[F, A](id, command) { pc =>
-          def bind(args: A, origin: Origin): Resource[F, CommandPortal[F, A]] =
-            Bind[F].apply(this, args, origin, redactionStrategy).map {
-              new CommandPortal[F, A](_, pc, args, origin) {
-                val execute: F[Completion] =
-                  Execute[F](redactionStrategy).apply(this)
+        Describe[F](describeCache, parseCache).apply(command, ty).map { id =>
+          new PreparedCommand[F, A](id, command) { pc =>
+            def bind(args: A, origin: Origin): Resource[F, CommandPortal[F, A]] =
+              Bind[F].apply(this, args, origin, redactionStrategy).map {
+                new CommandPortal[F, A](_, pc, args, origin) {
+                  val execute: F[Completion] =
+                    Execute[F](redactionStrategy).apply(this)
+                }
               }
-            }
+          }
         }
 
       override def apply[A, B](query: skunk.Query[A, B], ty: Typer): F[PreparedQuery[F, A, B]] =
         for {
           id <- Parse[F](parseCache).apply(query, ty)
-          rd <- Describe[F](describeCache).apply(query, id, ty)
+          rd <- Describe[F](describeCache, parseCache).apply(query, id, ty)
         } yield new PreparedQuery[F, A, B](id, query, rd) { pq =>
           def bind(args: A, origin: Origin): Resource[F, QueryPortal[F, A, B]] =
             Bind[F].apply(this, args, origin, redactionStrategy).map {
