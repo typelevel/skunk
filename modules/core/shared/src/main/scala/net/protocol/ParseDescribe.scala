@@ -21,7 +21,7 @@ import skunk.util.Namer
 import skunk.net.protocol.exchange
 
 trait ParseDescribe[F[_]] {
-  def apply[A](cmd: skunk.Command[A], ty: Typer): F[StatementId]
+  def command[A](cmd: skunk.Command[A], ty: Typer): F[StatementId]
   def apply[A, B](query: skunk.Query[A, B], ty: Typer): F[(StatementId, TypedRowDescription)]
 }
 
@@ -77,11 +77,11 @@ object ParseDescribe {
 
         }
 
-      override def apply[A](cmd: skunk.Command[A], ty: Typer): F[StatementId] = {
+      override def command[A](cmd: skunk.Command[A], ty: Typer): F[StatementId] = {
 
         def describeExchange(span: Span[F]): F[(StatementId => F[Unit], F[Unit])] = 
           OptionT(cache.commandCache.get(cmd)).as(((_: StatementId) => ().pure, ().pure)).getOrElse {
-            val pre = (id: StatementId) =>for {
+            val pre = (id: StatementId) => for {
               _  <- span.addAttribute(Attribute("statement-id", id.value))
               _  <- send(DescribeMessage.statement(id.value))
             } yield ()

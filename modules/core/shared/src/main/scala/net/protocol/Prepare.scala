@@ -8,7 +8,6 @@ import cats.effect.Resource
 import cats.syntax.functor._
 import skunk.~
 import skunk.RedactionStrategy
-import skunk.data.Completion
 import skunk.net.MessageSocket
 import skunk.net.Protocol.{ PreparedCommand, PreparedQuery, CommandPortal, QueryPortal }
 import skunk.util.{ Origin, Namer }
@@ -29,15 +28,10 @@ object Prepare {
     new Prepare[F] {
 
       override def apply[A](command: skunk.Command[A], ty: Typer): F[PreparedCommand[F, A]] =
-        ParseDescribe[F](describeCache, parseCache).apply(command, ty).map { id =>
+        ParseDescribe[F](describeCache, parseCache).command(command, ty).map { id =>
           new PreparedCommand[F, A](id, command) { pc =>
             def bind(args: A, origin: Origin): Resource[F, CommandPortal[F, A]] =
-              Bind[F].apply(this, args, origin, redactionStrategy).map {
-                new CommandPortal[F, A](_, pc, args, origin) {
-                  val execute: F[Completion] =
-                    Execute[F](redactionStrategy).apply(this)
-                }
-              }
+              BindExecute[F].command(this, args, origin, redactionStrategy)
           }
         }
 
