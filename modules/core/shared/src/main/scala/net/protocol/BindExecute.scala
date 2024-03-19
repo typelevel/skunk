@@ -18,7 +18,6 @@ import skunk.RedactionStrategy
 import skunk.net.Protocol
 import skunk.data.Completion
 import skunk.net.protocol.exchange
-import skunk.data.Encoded
 
 trait BindExecute[F[_]] {
 
@@ -44,18 +43,18 @@ object BindExecute {
         argsOrigin: Origin,
         redactionStrategy: RedactionStrategy
       ): Resource[F, Protocol.CommandPortal[F, A]] = {
+        val ea  = statement.statement.encoder.encode(args) // encoded args
         
-        def preBind(span: Span[F]): F[(PortalId, List[Option[Encoded]])] = for {
+        def preBind(span: Span[F]): F[PortalId] = for {
               pn <- nextName("portal").map(PortalId(_))
-              ea  = statement.statement.encoder.encode(args) // encoded args
               _  <- span.addAttributes(
                 Attribute("arguments", redactionStrategy.redactArguments(ea).map(_.orNull).mkString(",")),
                 Attribute("portal-id", pn.value)
               )
               _  <- send(BindMessage(pn.value, statement.id.value, ea.map(_.map(_.value))))
-        } yield (pn, ea)
+        } yield pn
 
-        def postBind(ea: List[Option[Encoded]]):F[Unit] = flatExpect {
+        val postBind: F[Unit] = flatExpect {
           case BindComplete        => ().pure[F]
           case ErrorResponse(info) =>
             for {
@@ -118,11 +117,11 @@ object BindExecute {
         Resource.make {
           exchange("bind+execute"){ (span: Span[F]) =>
             for {
-              (pn, ea) <- preBind(span)
-              _        <- preExec(pn) 
-              _        <- send(Flush)
-              _        <- postBind(ea)
-              c        <- postExec
+              pn <- preBind(span)
+              _  <- preExec(pn) 
+              _  <- send(Flush)
+              _  <- postBind
+              c  <- postExec
             } yield new Protocol.CommandPortal[F, A](pn, statement, args, argsOrigin) {
               def execute: F[Completion] = c.pure
             }
