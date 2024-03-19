@@ -42,7 +42,7 @@ object Prepare {
               Bind[F].apply(this, args, origin, redactionStrategy).map {
                new QueryPortal[F, A, B](_, pq, args, origin, redactionStrategy) {
                   def execute(maxRows: Int): F[List[B] ~ Boolean] =
-                   Execute[F](this.redactionStrategy).apply(this, maxRows, ty)
+                   Execute[F].apply(this, maxRows, ty)
                }
              }
           }
