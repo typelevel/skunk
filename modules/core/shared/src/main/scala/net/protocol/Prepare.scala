@@ -5,6 +5,7 @@
 package skunk.net.protocol
 
 import cats.effect.Resource
+import cats.effect.Concurrent
 import cats.syntax.functor._
 import skunk.~
 import skunk.RedactionStrategy
@@ -13,7 +14,6 @@ import skunk.net.Protocol.{ PreparedCommand, PreparedQuery, CommandPortal, Query
 import skunk.util.{ Origin, Namer }
 import skunk.util.Typer
 import org.typelevel.otel4s.trace.Tracer
-import cats.effect.kernel.MonadCancel
 
 trait Prepare[F[_]] {
   def apply[A](command: skunk.Command[A], ty: Typer): F[PreparedCommand[F, A]]
@@ -23,7 +23,7 @@ trait Prepare[F[_]] {
 object Prepare {
 
   def apply[F[_]: Exchange: MessageSocket: Namer: Tracer](describeCache: Describe.Cache[F], parseCache: Parse.Cache[F], redactionStrategy: RedactionStrategy)(
-    implicit ev: MonadCancel[F, Throwable]
+    implicit ev: Concurrent[F]
   ): Prepare[F] =
     new Prepare[F] {
 
@@ -38,13 +38,18 @@ object Prepare {
       override def apply[A, B](query: skunk.Query[A, B], ty: Typer): F[PreparedQuery[F, A, B]] =
         ParseDescribe[F](describeCache, parseCache).apply(query, ty).map { case (id, rd) =>
           new PreparedQuery[F, A, B](id, query, rd) { pq =>
-            def bind(args: A, origin: Origin): Resource[F, QueryPortal[F, A, B]] =
-              Bind[F].apply(this, args, origin, redactionStrategy).map {
-               new QueryPortal[F, A, B](_, pq, args, origin, redactionStrategy) {
-                  def execute(maxRows: Int): F[List[B] ~ Boolean] =
-                   Execute[F].apply(this, maxRows, ty)
-               }
-             }
+            def bind(args: A, origin: Origin, maxRows: Option[Int]): Resource[F, QueryPortal[F, A, B]] =
+              maxRows match {
+                case None => 
+                  Bind[F].apply(this, args, origin, redactionStrategy).map {
+                   new QueryPortal[F, A, B](_, pq, args, origin, redactionStrategy) {
+                      def execute(maxRows: Int): F[List[B] ~ Boolean] =
+                       Execute[F].apply(this, maxRows)
+                    }
+                  }
+                case Some(initialSize) =>
+                  BindExecute[F].query(this, args, origin, redactionStrategy, initialSize)
+              }
           }
         }
 

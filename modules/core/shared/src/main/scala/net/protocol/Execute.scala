@@ -9,13 +9,12 @@ import cats.MonadError
 import skunk.~
 import skunk.net.{ Protocol, MessageSocket }
 import skunk.net.message.{ Execute => ExecuteMessage, _ }
-import skunk.util.Typer
 import org.typelevel.otel4s.Attribute
 import org.typelevel.otel4s.trace.Span
 import org.typelevel.otel4s.trace.Tracer
 
 trait Execute[F[_]] {
-  def apply[A, B](portal: Protocol.QueryPortal[F, A, B], maxRows: Int, ty: Typer): F[List[B] ~ Boolean]
+  def apply[A, B](portal: Protocol.QueryPortal[F, A, B], maxRows: Int): F[List[B] ~ Boolean]
 }
 
 object Execute {
@@ -25,7 +24,7 @@ object Execute {
   ): Execute[F] =
     new Unroll[F] with Execute[F] {
 
-      override def apply[A, B](portal: Protocol.QueryPortal[F, A, B], maxRows: Int, ty: Typer): F[List[B] ~ Boolean] =
+      override def apply[A, B](portal: Protocol.QueryPortal[F, A, B], maxRows: Int): F[List[B] ~ Boolean] =
         exchange("execute") { (span: Span[F]) =>
           for {
             _  <- span.addAttributes(

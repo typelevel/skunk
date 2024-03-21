@@ -11,6 +11,7 @@ import skunk.exception.DecodeException
 import skunk.net.message._
 import skunk.net.MessageSocket
 import skunk.net.Protocol.QueryPortal
+import skunk.net.Protocol.PreparedQuery
 import skunk.util.Origin
 import skunk.data.TypedRowDescription
 import org.typelevel.otel4s.Attribute
@@ -40,6 +41,24 @@ private[protocol] class Unroll[F[_]: MessageSocket: Tracer](
       rowDescription = portal.preparedQuery.rowDescription,
       decoder        = portal.preparedQuery.query.decoder,
       redactionStrategy = portal.redactionStrategy
+    )
+  
+  def unroll[A, B](
+    preparedQuery: PreparedQuery[F, A, B],
+    arguments: A,
+    argumentsOrigin: Origin,
+    redactionStrategy: RedactionStrategy
+  ): F[(List[B], Boolean)] =
+    unroll(
+      extended       = true,
+      sql            = preparedQuery.query.sql,
+      sqlOrigin      = preparedQuery.query.origin,
+      args           = arguments,
+      argsOrigin     = Some(argumentsOrigin),
+      encoder        = preparedQuery.query.encoder,
+      rowDescription = preparedQuery.rowDescription,
+      decoder        = preparedQuery.query.decoder,
+      redactionStrategy = redactionStrategy
     )
 
   // When we do a quick query there's no statement to hang onto all the error-reporting context

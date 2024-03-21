@@ -163,7 +163,7 @@ object Protocol {
     val rowDescription: TypedRowDescription
   ) extends PreparedStatement[F, A] {
     def statement: Statement[A] = query
-    def bind(args: A, argsOrigin: Origin): Resource[F, QueryPortal[F, A, B]]
+    def bind(args: A, argsOrigin: Origin, maxRows: Option[Int]): Resource[F, QueryPortal[F, A, B]]
   }
 
   /**
