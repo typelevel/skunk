@@ -146,7 +146,7 @@ object BindExecute {
           }
         } { portal => Close[F].apply(portal.id)}
 
-    }
+      }
 
       def query[A, B](
         statement:  Protocol.PreparedQuery[F, A, B],
@@ -167,8 +167,8 @@ object BindExecute {
                       )
                 _  <- send(ExecuteMessage(pn.value, initialSize))
                 _  <- send(Flush)
-                rs <- unroll(statement, args, argsOrigin, redactionStrategy)
                 _  <- postBind
+                rs <- unroll(statement, args, argsOrigin, redactionStrategy)
               } yield new Protocol.QueryPortal[F, A, B](pn, statement, args, argsOrigin, redactionStrategy) {
                 def execute(maxRows: Int): F[List[B] ~ Boolean] = 
                   prefetch.tryGet.flatMap {
