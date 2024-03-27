@@ -38,18 +38,15 @@ object Prepare {
       override def apply[A, B](query: skunk.Query[A, B], ty: Typer): F[PreparedQuery[F, A, B]] =
         ParseDescribe[F](describeCache, parseCache).apply(query, ty).map { case (id, rd) =>
           new PreparedQuery[F, A, B](id, query, rd) { pq =>
-            def bind(args: A, origin: Origin, maxRows: Option[Int]): Resource[F, QueryPortal[F, A, B]] =
-              maxRows match {
-                case None => 
-                  Bind[F].apply(this, args, origin, redactionStrategy).map {
-                   new QueryPortal[F, A, B](_, pq, args, origin, redactionStrategy) {
-                      def execute(maxRows: Int): F[List[B] ~ Boolean] =
-                       Execute[F].apply(this, maxRows)
-                    }
-                  }
-                case Some(initialSize) =>
-                  BindExecute[F].query(this, args, origin, redactionStrategy, initialSize)
+            def bind(args: A, origin: Origin): Resource[F, QueryPortal[F, A, B]] =
+              Bind[F].apply(this, args, origin, redactionStrategy).map {
+               new QueryPortal[F, A, B](_, pq, args, origin, redactionStrategy) {
+                  def execute(maxRows: Int): F[List[B] ~ Boolean] =
+                   Execute[F].apply(this, maxRows)
+                }
               }
+            def bindSized(args: A, origin: Origin, maxRows: Int): Resource[F, QueryPortal[F, A, B]] =
+              BindExecute[F].query(this, args, origin, redactionStrategy, maxRows)
           }
         }
 
