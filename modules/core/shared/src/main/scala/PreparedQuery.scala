@@ -71,7 +71,7 @@ object PreparedQuery {
         }
 
       override def stream(args: A, chunkSize: Int)(implicit or: Origin): Stream[F, B] =
-        Stream.resource(proto.bind(args, or)).flatMap { cursor =>
+        Stream.resource(proto.bindSized(args, or, chunkSize)).flatMap { cursor =>
           def chunks: Stream[F, B] =
             Stream.eval(cursor.execute(chunkSize)).flatMap { case (bs, more) =>
               val s = Stream.chunk(Chunk.from(bs))
@@ -84,7 +84,7 @@ object PreparedQuery {
       // We have a few operations that only want the first row. In order to do this AND
       // know if there are more we need to ask for 2 rows.
       private def fetch2(args: A)(implicit or: Origin): F[(List[B], Boolean)] =
-        cursor(args).use(_.fetch(2))
+        proto.bindSized(args, or, 2).use(_.execute(2))
 
       override def option(args: A)(implicit or: Origin): F[Option[B]] =
         fetch2(args).flatMap { case (bs, _) =>

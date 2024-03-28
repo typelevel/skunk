@@ -164,6 +164,7 @@ object Protocol {
   ) extends PreparedStatement[F, A] {
     def statement: Statement[A] = query
     def bind(args: A, argsOrigin: Origin): Resource[F, QueryPortal[F, A, B]]
+    def bindSized(args: A, argsOrigin: Origin, maxRows: Int): Resource[F, QueryPortal[F, A, B]]
   }
 
   /**
