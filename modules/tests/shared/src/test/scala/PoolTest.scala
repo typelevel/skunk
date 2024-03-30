@@ -83,6 +83,21 @@ class PoolTest extends FTest {
     }
   }
 
+  tracedTest("error in finalizer does not prevent cleanup of deferreds".only) { implicit tracer: Tracer[IO] =>
+    val r = Resource.make(IO(1))(_ => IO.raiseError(ResetFailure()))
+    val p = Pool.ofF({(_: Tracer[IO]) => r}, 1)(Recycler.failure)
+    p.use { r =>
+      for {
+        d  <- Deferred[IO, Unit]
+        tasks = List(
+          r(Tracer[IO]).use(n => assertEqual("n should be 1", n, 1) *> d.complete(())),
+          d.get *> r(Tracer[IO]).use(_ => fail[Int]("should not get here")),
+        )
+        _ <- tasks.parSequence.assertFailsWith[ResetFailure]
+      } yield ()
+    }
+  }
+
   tracedTest("provoke dangling deferral cancellation") { implicit tracer: Tracer[IO] =>
     ints.flatMap { r =>
       val p = Pool.ofF({(_: Tracer[IO]) => r}, 1)(Recycler.failure)
