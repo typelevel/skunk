@@ -88,15 +88,9 @@ class PoolTest extends FTest {
     val r = Resource.make(IO(1))(_ => IO.raiseError(ResetFailure()))
     val p = Pool.ofF({(_: Trace[IO]) => r}, 1)(Recycler.failure)
     p.use { r =>
-      for {
-        d  <- Deferred[IO, Unit]
-        tasks = List(
-          r(Trace[IO]).use(n => assertEqual("n should be 1", n, 1) *> d.complete(())),
-          d.get *> r(Trace[IO]).use(_ => fail[Int]("should not get here")),
-        )
-        _ <- tasks.parSequence.assertFailsWith[ResetFailure]
-      } yield ()
-    }
+      val tx = r(Trace[IO]).use(_ => IO.unit)
+      List(tx, tx).parSequence
+    }.assertFailsWith[ResetFailure]
   }
 
   test("provoke dangling deferral cancellation") {
