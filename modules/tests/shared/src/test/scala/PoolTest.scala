@@ -84,7 +84,7 @@ class PoolTest extends FTest {
     }
   }
 
-  test("error in finalizer does not prevent cleanup of deferreds".only) {
+  test("error in finalizer does not prevent cleanup of deferreds") {
     val r = Resource.make(IO(1))(_ => IO.raiseError(ResetFailure()))
     val p = Pool.ofF({(_: Trace[IO]) => r}, 1)(Recycler.failure)
     p.use { r =>
