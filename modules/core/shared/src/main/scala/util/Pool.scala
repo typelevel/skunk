@@ -152,7 +152,7 @@ object Pool {
           ref.modify {
             case (os, Nil) =>  ((os :+ None, Nil), ().pure[F]) // new empty slot
             case (os, d :: ds) =>  ((os, ds), Concurrent[F].attempt(rsrc(Tracer[F]).allocated).flatMap(d.complete).void) // alloc now!
-          } .guarantee(a._2).flatten
+          }.flatMap(next => a._2.guarantee(next)) // first finalize the original alloc then potentially do new alloc
         }
 
       // Hey, that's all we need to create our resource!

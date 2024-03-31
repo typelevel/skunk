@@ -28,4 +28,4 @@ esac
 export SERVER_KEY=$(cat world/server.key)
 export SERVER_CERT=$(cat world/server.crt)
 
-docker compose $CMD $EXTRA_FLAGS
+docker-compose $CMD $EXTRA_FLAGS
