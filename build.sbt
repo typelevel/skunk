@@ -1,7 +1,7 @@
 ThisBuild / tlBaseVersion := "1.0"
 
 // Our Scala versions.
-lazy val `scala-2.13` = "2.13.12"
+lazy val `scala-2.13` = "2.13.14"
 lazy val `scala-3.0`  = "3.3.3"
 
 ThisBuild / scalaVersion       := `scala-2.13`
@@ -156,8 +156,8 @@ lazy val circe = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .settings(
     name := "skunk-circe",
     libraryDependencies ++= Seq(
-      "io.circe" %%% "circe-core"   % "0.14.6",
-      "io.circe" %%% "circe-jawn" % "0.14.6"
+      "io.circe" %%% "circe-core"   % "0.14.7",
+      "io.circe" %%% "circe-jawn" % "0.14.7"
     )
   )
 
@@ -183,10 +183,10 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .settings(
     tlFatalWarnings := false,
     libraryDependencies ++= Seq(
-      "org.scalameta"     %%% "munit"                   % "1.0.0-M11",
-      "org.scalameta"     % "junit-interface"           % "1.0.0-M12",
+      "org.scalameta"     %%% "munit"                   % "1.0.0-RC1",
+      "org.scalameta"     % "junit-interface"           % "1.0.0-RC1",
       "org.typelevel"     %%% "scalacheck-effect-munit" % "2.0.0-M2",
-      "org.typelevel"     %%% "munit-cats-effect"       % "2.0.0-M5",
+      "org.typelevel"     %%% "munit-cats-effect"       % "2.0.0-RC1",
       "org.typelevel"     %%% "cats-free"               % "2.10.0",
       "org.typelevel"     %%% "cats-laws"               % "2.10.0",
       "org.typelevel"     %%% "cats-effect-testkit"     % "3.5.4",

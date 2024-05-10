@@ -3,11 +3,11 @@ ThisBuild / libraryDependencySchemes ++= Seq(
   "org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always
 )
 
-addSbtPlugin("org.typelevel"      % "sbt-typelevel"                               % "0.6.7")
-addSbtPlugin("org.typelevel"      % "sbt-typelevel-site"                          % "0.6.7")
+addSbtPlugin("org.typelevel"      % "sbt-typelevel"                               % "0.7.1")
+addSbtPlugin("org.typelevel"      % "sbt-typelevel-site"                          % "0.7.1")
 addSbtPlugin("com.timushev.sbt"   % "sbt-updates"                                 % "0.6.4")
 addSbtPlugin("pl.project13.scala" % "sbt-jmh"                                     % "0.4.7")
-addSbtPlugin("org.scoverage"      % "sbt-scoverage"                               % "2.0.11")
+addSbtPlugin("org.scoverage"      % "sbt-scoverage"                               % "2.0.12")
 addSbtPlugin("org.scala-js"       % "sbt-scalajs"                                 % "1.16.0")
 addSbtPlugin("org.scala-native"   % "sbt-scala-native"                            % "0.4.17")
-addSbtPlugin("com.armanbilge"     % "sbt-scala-native-config-brew-github-actions" % "0.2.0-RC1")
+addSbtPlugin("com.armanbilge"     % "sbt-scala-native-config-brew-github-actions" % "0.3.0")

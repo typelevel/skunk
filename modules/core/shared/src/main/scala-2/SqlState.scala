@@ -12,7 +12,7 @@ import skunk.exception.PostgresErrorException
 sealed abstract class SqlState(val code: String) extends EnumEntry {
 
   def unapply(e: Throwable): Option[PostgresErrorException] =
-    Some(e).collect { case e: PostgresErrorException if e.code == code => e }
+    Some(e).collect { case pe: PostgresErrorException if pe.code == code => pe }
 
 }
 
