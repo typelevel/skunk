@@ -180,7 +180,7 @@ object Typer {
     //Note Postgres defines oids as *unsigned* Ints https://www.postgresql.org/docs/current/datatype-oid.html
     //Since Scala currently lacks a built-in unsigned Int type, if the oid exceeds `Int.MaxValue`
     //it will be converted to/from a negative Int by this Codec (only observed in CockroachDB)
-    val oid: Codec[Int] = Codec.simple(java.lang.Integer.toUnsignedLong(_).toString, _.toLong.toInt.asRight, Type.oid)
+    val oid: Codec[Int] = Codec.simple(java.lang.Integer.toUnsignedLong(_).toString, java.lang.Integer.parseUnsignedInt(_).asRight, Type.oid)
 
     val typeInfoMap: F[Map[Int, TypeInfo]] = {
 
