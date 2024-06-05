@@ -9,7 +9,7 @@ import cats.data.Kleisli
 import cats.effect._
 import cats.effect.std.Console
 import cats.syntax.all._
-import com.comcast.ip4s.{Hostname, Port, SocketAddress}
+import com.comcast.ip4s.{Host, Port, SocketAddress}
 import fs2.concurrent.Signal
 import fs2.io.net.{ Network, Socket, SocketGroup, SocketOption }
 import fs2.Pipe
@@ -572,7 +572,7 @@ object Session {
       Resource.eval(ev.raiseError(new SkunkException(message = msg, sql = None)))
 
     def sock: Resource[F, Socket[F]] = {
-      (Hostname.fromString(host), Port.fromInt(port)) match {
+      (Host.fromString(host), Port.fromInt(port)) match {
         case (Some(validHost), Some(validPort)) => socketGroup.client(SocketAddress(validHost, validPort), socketOptions)
         case (None, _) =>  fail(s"""Hostname: "$host" is not syntactically valid.""")
         case (_, None) =>  fail(s"Port: $port falls out of the allowed range.")
