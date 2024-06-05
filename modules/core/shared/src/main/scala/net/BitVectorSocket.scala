@@ -80,7 +80,7 @@ object BitVectorSocket {
       Resource.eval(ev.raiseError(new SkunkException(message = msg, sql = None)))
 
     def sock: Resource[F, Socket[F]] = {
-      (Hostname.fromString(host), Port.fromInt(port)) match {
+      (Host.fromString(host), Port.fromInt(port)) match {
         case (Some(validHost), Some(validPort)) => sg.client(SocketAddress(validHost, validPort), socketOptions)
         case (None, _) =>  fail(s"""Hostname: "$host" is not syntactically valid.""")
         case (_, None) =>  fail(s"Port: $port falls out of the allowed range.")
