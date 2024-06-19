@@ -145,6 +145,7 @@ object Type {
   val varchar          = Type("varchar")
   val void             = Type("void")
   val xid              = Type("xid")
+  val xid8             = Type("xid8")
   val xml              = Type("xml")
 
   // Built-in Array Types
@@ -161,6 +162,7 @@ object Type {
   val _oid             = Type("_oid",           List(Type("oid")))
   val _tid             = Type("_tid",           List(Type("tid")))
   val _xid             = Type("_xid",           List(Type("xid")))
+  val _xid8            = Type("_xid8",          List(Type("xid8")))
   val _cid             = Type("_cid",           List(Type("cid")))
   val _oidvector       = Type("_oidvector",     List(Type("oidvector")))
   val _json            = Type("_json",          List(Type("json")))

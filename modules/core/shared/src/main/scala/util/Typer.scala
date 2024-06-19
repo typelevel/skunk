@@ -89,7 +89,7 @@ object Typer {
         704  -> tinterval,     2279 -> trigger,          3310 -> tsm_handler, 3615 -> tsquery,
         3908 -> tsrange,       3910 -> tstzrange,        3614 -> tsvector,    2970 -> txid_snapshot,
         705  -> unknown,       2950 -> uuid,             1562 -> varbit,      1043 -> varchar,
-        2278 -> void,          28   -> xid,              142  -> xml,
+        2278 -> void,          28   -> xid,              5069 -> xid8,        142  -> xml,
 
         // Built-in Array Types
         1000 -> _bool,         1001 -> _bytea,         1002 -> _char,         1003 -> _name,
@@ -109,7 +109,7 @@ object Typer {
         3644 -> _gtsvector,    3645 -> _tsquery,       3735 -> _regconfig,    3770 -> _regdictionary,
         3807 -> _jsonb,        2949 -> _txid_snapshot, 3905 -> _int4range,    3907 -> _numrange,
         3909 -> _tsrange,      3911 -> _tstzrange,     3913 -> _daterange,    3927 -> _int8range,
-        2287 -> _record,       1263 -> _cstring,
+        2287 -> _record,       1263 -> _cstring,       271  -> _xid8
 
      )
 
