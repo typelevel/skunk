@@ -111,7 +111,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     name := "skunk-core",
     description := "Tagless, non-blocking data access library for Postgres.",
     libraryDependencies ++= Seq(
-      "org.typelevel"          %%% "cats-core"               % "2.10.0",
+      "org.typelevel"          %%% "cats-core"               % "2.11.0",
       "org.typelevel"          %%% "cats-effect"             % "3.5.4",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
@@ -122,7 +122,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.tpolecat"           %%% "sourcepos"               % "1.1.0",
       "org.typelevel"          %%% "twiddles-core"           % "0.8.0",
     ) ++ Seq(
-      "com.beachape"  %%% "enumeratum"   % "1.7.3",
+      "com.beachape"  %%% "enumeratum"   % "1.7.4",
     ).filterNot(_ => tlIsScala3.value)
   ).jvmSettings(
     libraryDependencies += "com.ongres.scram" % "client" % "2.1",
@@ -130,7 +130,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     libraryDependencies ++= Seq(
       "com.armanbilge" %%% "saslprep" % "0.1.1",
       "io.github.cquiroz" %%% "scala-java-time" % "2.5.0",
-      "io.github.cquiroz" %%% "locales-minimal-en_us-db" % "1.5.1"
+      "io.github.cquiroz" %%% "locales-minimal-en_us-db" % "1.5.3"
     ),
   )
 
@@ -183,12 +183,12 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .settings(
     tlFatalWarnings := false,
     libraryDependencies ++= Seq(
-      "org.scalameta"     %%% "munit"                   % "1.0.0-RC1",
-      "org.scalameta"     % "junit-interface"           % "1.0.0-RC1",
+      "org.scalameta"     %%% "munit"                   % "1.0.0",
+      "org.scalameta"     % "junit-interface"           % "1.0.0",
       "org.typelevel"     %%% "scalacheck-effect-munit" % "2.0.0-M2",
-      "org.typelevel"     %%% "munit-cats-effect"       % "2.0.0-RC1",
-      "org.typelevel"     %%% "cats-free"               % "2.10.0",
-      "org.typelevel"     %%% "cats-laws"               % "2.10.0",
+      "org.typelevel"     %%% "munit-cats-effect"       % "2.0.0",
+      "org.typelevel"     %%% "cats-free"               % "2.11.0",
+      "org.typelevel"     %%% "cats-laws"               % "2.11.0",
       "org.typelevel"     %%% "cats-effect-testkit"     % "3.5.4",
       "org.typelevel"     %%% "discipline-munit"        % "2.0.0-M3",
       "org.typelevel"     %%% "cats-time"               % "0.5.1",

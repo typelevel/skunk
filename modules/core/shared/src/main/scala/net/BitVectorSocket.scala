@@ -69,8 +69,20 @@ object BitVectorSocket {
   def apply[F[_]: Temporal](
     sockets: Resource[F, Socket[F]],
     sslOptions:    Option[SSLNegotiation.Options[F]],
-    readTimeout:   Duration
-  ): Resource[F, BitVectorSocket[F]] =
+    readTimeout:  Duration
+  )(implicit ev: Temporal[F]): Resource[F, BitVectorSocket[F]] = {
+
+    def fail[A](msg: String): Resource[F, A] =
+      Resource.eval(ev.raiseError(new SkunkException(message = msg, sql = None)))
+
+    def sock: Resource[F, Socket[F]] = {
+      (Host.fromString(host), Port.fromInt(port)) match {
+        case (Some(validHost), Some(validPort)) => sg.client(SocketAddress(validHost, validPort), socketOptions)
+        case (None, _) =>  fail(s"""Hostname: "$host" is not syntactically valid.""")
+        case (_, None) =>  fail(s"Port: $port falls out of the allowed range.")
+      }
+    }
+
     for {
       sock <- sockets
       sockʹ <- sslOptions.fold(sock.pure[Resource[F, *]])(SSLNegotiation.negotiateSSL(sock, _))
