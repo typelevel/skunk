@@ -26,7 +26,7 @@ ThisBuild / nativeBrewInstallCond := Some("matrix.project == 'skunkNative'")
 
 lazy val setupCertAndDocker = Seq(
   WorkflowStep.Run(
-    commands = List("export SERVER_KEY=$(cat world/server.key)", "export SERVER_CERT=$(cat world/server.crt)", "docker-compose up -d"),
+    commands = List("export SERVER_KEY=$(cat world/server.key)", "export SERVER_CERT=$(cat world/server.crt)", "docker compose up -d"),
     name = Some("Start up Postgres"),
   )
 )

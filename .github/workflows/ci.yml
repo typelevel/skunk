@@ -60,7 +60,7 @@ jobs:
         run: |
           export SERVER_KEY=$(cat world/server.key)
           export SERVER_CERT=$(cat world/server.crt)
-          docker-compose up -d
+          docker compose up -d
 
       - name: Install brew formulae (ubuntu)
         if: (matrix.project == 'skunkNative') && startsWith(matrix.os, 'ubuntu')
@@ -143,7 +143,7 @@ jobs:
         run: |
           export SERVER_KEY=$(cat world/server.key)
           export SERVER_CERT=$(cat world/server.crt)
-          docker-compose up -d
+          docker compose up -d
 
       - name: Download target directories (2.13, skunkJS)
         uses: actions/download-artifact@v4
@@ -264,7 +264,7 @@ jobs:
         run: |
           export SERVER_KEY=$(cat world/server.key)
           export SERVER_CERT=$(cat world/server.crt)
-          docker-compose up -d
+          docker compose up -d
 
       - name: Submit Dependencies
         uses: scalacenter/sbt-dependency-submission@v2
@@ -306,7 +306,7 @@ jobs:
         run: |
           export SERVER_KEY=$(cat world/server.key)
           export SERVER_CERT=$(cat world/server.crt)
-          docker-compose up -d
+          docker compose up -d
 
       - name: Generate site
         run: sbt docs/tlSite
@@ -353,7 +353,7 @@ jobs:
         run: |
           export SERVER_KEY=$(cat world/server.key)
           export SERVER_CERT=$(cat world/server.crt)
-          docker-compose up -d
+          docker compose up -d
 
       - run: sbt coverage skunkJVM/test coverageReport
 
