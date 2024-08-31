@@ -97,7 +97,6 @@ lazy val commonSettings = Seq(
 )
 
 lazy val skunk = tlCrossRootProject
-  .settings(name := "skunk")
   .aggregate(core, tests, circe, refined, postgis, example, unidocs)
   .settings(commonSettings)
 
