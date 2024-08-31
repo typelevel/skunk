@@ -299,7 +299,7 @@ jobs:
       - name: Submit Dependencies
         uses: scalacenter/sbt-dependency-submission@v2
         with:
-          modules-ignore: skunk_2.12 skunk_2.13 skunk_3 docs_2.12 docs_2.13 docs_3 skunk_2.12 skunk_2.13 skunk_3 skunk_2.12 skunk_2.13 skunk_3 tests_sjs1_2.12 tests_sjs1_2.13 tests_sjs1_3 tests_2.12 tests_2.13 tests_3 example_2.12 example_2.13 example_3 tests_native0.4_2.12 tests_native0.4_2.13 tests_native0.4_3
+          modules-ignore: skunkjs_2.12 skunkjs_2.13 skunkjs_3 docs_2.12 docs_2.13 docs_3 skunkjvm_2.12 skunkjvm_2.13 skunkjvm_3 skunknative_2.12 skunknative_2.13 skunknative_3 tests_sjs1_2.12 tests_sjs1_2.13 tests_sjs1_3 tests_2.12 tests_2.13 tests_3 example_2.12 example_2.13 example_3 tests_native0.4_2.12 tests_native0.4_2.13 tests_native0.4_3
           configs-ignore: test scala-tool scala-doc-tool test-internal
 
   validate-steward:
