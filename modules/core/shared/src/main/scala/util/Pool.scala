@@ -95,12 +95,19 @@ object Pool {
               case _ => ref.update { case (os, ds) => (os :+ None, ds) }
             }
 
+            def createAlloc: F[(A, F[Unit])] = Concurrent[F].onError(rsrc(Tracer[F]).allocated)(restore)
+
             // Here we go. The cases are a full slot (done), an empty slot (alloc), and no slots at
             // all (defer and wait).
             ref.modify {
-              case (Some(a) :: os, ds) => ((os, ds), a.pure[F])
-              case (None    :: os, ds) => ((os, ds), Concurrent[F].onError(rsrc(Tracer[F]).allocated)(restore))
-              case (Nil,           ds) =>
+              case (Some(a) :: os, ds) =>
+                ((os, ds), recycler(a._1).attempt.flatMap {
+                  case Right(true) => a.pure[F]
+                  case Left(_) | Right(false) => dispose(a) *> createAlloc
+                })
+              case (None :: os, ds) =>
+                ((os, ds), createAlloc)
+              case (Nil, ds) =>
                 val cancel = ref.flatModify { // try to remove our deferred
                   case (os, ds) =>
                     val canRemove = ds.contains(d)
