@@ -98,30 +98,31 @@ Stream.eval(s.prepare(c)).flatMap { pc =>
 
 ### Contramapping Commands
 
-Similar to `map`ping the _output_ of a Query, we can `contramap` the _input_ to a command or query. Here we provide a function that turns an `Info` into a `String ~ String`, yielding a `Command[Info]`.
+Similar to `map`ping the _output_ of a Query, we can `contramap` the _input_ to a command or query. Here we provide a function that turns an `Info` into a `Int ~ String`, yielding a `Command[Info]`.
 
 ```scala mdoc
-case class Info(code: String, hos: String)
+case class Info(code: String, population: Int)
 
 val update2: Command[Info] =
   sql"""
     UPDATE country
-    SET    headofstate = $varchar
+    SET    population = $int4
     WHERE  code = ${bpchar(3)}
-  """.command                                                         // Command[String *: String *: EmptyTuple]
-     .contramap { case Info(code, hos) => code *: hos *: EmptyTuple } // Command[Info]
+  """.command                                                         // Command[Int *: String *: EmptyTuple]
+     .contramap { case Info(code, pop) => pop *: code *: EmptyTuple } // Command[Info]
 ```
 
-However in this case the mapping is entirely mechanical. Similar to `to` on query results, we can skip the boilerplate and `to` directly to an isomosphic case class.
+However, if the case class members' order matches the SQL order the mapping is entirely mechanical. Similar to `to` on query results, we can skip the boilerplate and `to` directly to an isomosphic case class.
 
 ```scala mdoc
-val update3: Command[Info] =
+case class Info2(population: Int, code: String)
+val update3: Command[Info2] =
   sql"""
     UPDATE country
-    SET    headofstate = $varchar
+    SET    population = $int4
     WHERE  code = ${bpchar(3)}
-  """.command  // Command[String *: String *: EmptyTuple]
-     .to[Info] // Command[Info]
+  """.command  // Command[Int *: String *: EmptyTuple]
+     .to[Info2] // Command[Info2]
 ```
 
 ## List Parameters
