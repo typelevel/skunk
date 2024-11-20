@@ -7,7 +7,6 @@ package mdoc
 import java.io.{ ByteArrayOutputStream, PrintStream }
 import java.nio.file.Path
 import scala.meta.internal.io.PathIO
-import scala.meta.io.AbsolutePath
 import mdoc.internal.cli.MainOps
 import mdoc.internal.cli.Settings
 import mdoc.internal.io.ConsoleReporter
@@ -52,8 +51,7 @@ object Main {
   }
 
   def process(args: Array[String], reporter: Reporter, cwd: Path): Int = {
-    val base = Settings.default(AbsolutePath(cwd)).copy(variablePrinter = ReplVariablePrinter(pprinter = custom))
-    val ctx  = Settings.fromCliArgs(args.toList, base)
+    val ctx  = Settings.fromCliArgs(args.toList, cwd).map(_.copy(variablePrinter = ReplVariablePrinter(pprinter = custom)))
     MainOps.process(ctx, reporter)
   }
 
