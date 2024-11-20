@@ -60,7 +60,7 @@ ThisBuild / mimaBinaryIssueFilters ++= List(
 // This is used in a couple places
 lazy val fs2Version = "3.11.0"
 lazy val openTelemetryVersion = "1.29.0"
-lazy val otel4sVersion = "0.9.0"
+lazy val otel4sVersion = "0.11.1"
 lazy val refinedVersion = "0.11.0"
 
 // Global Settings
