@@ -59,9 +59,9 @@ ThisBuild / mimaBinaryIssueFilters ++= List(
 
 // This is used in a couple places
 lazy val fs2Version = "3.11.0"
-lazy val openTelemetryVersion = "1.29.0"
+lazy val openTelemetryVersion = "1.44.1"
 lazy val otel4sVersion = "0.11.1"
-lazy val refinedVersion = "0.11.0"
+lazy val refinedVersion = "0.11.2"
 
 // Global Settings
 lazy val commonSettings = Seq(
@@ -110,7 +110,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     name := "skunk-core",
     description := "Tagless, non-blocking data access library for Postgres.",
     libraryDependencies ++= Seq(
-      "org.typelevel"          %%% "cats-core"               % "2.11.0",
+      "org.typelevel"          %%% "cats-core"               % "2.12.0",
       "org.typelevel"          %%% "cats-effect"             % "3.5.6",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
@@ -119,17 +119,17 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.scodec"             %%% "scodec-cats"             % "1.2.0",
       "org.typelevel"          %%% "otel4s-core-trace"       % otel4sVersion,
       "org.tpolecat"           %%% "sourcepos"               % "1.1.0",
-      "org.typelevel"          %%% "twiddles-core"           % "0.8.0",
+      "org.typelevel"          %%% "twiddles-core"           % "0.9.0",
     ) ++ Seq(
-      "com.beachape"  %%% "enumeratum"   % "1.7.4",
+      "com.beachape"  %%% "enumeratum"   % "1.7.5",
     ).filterNot(_ => tlIsScala3.value)
   ).jvmSettings(
     libraryDependencies += "com.ongres.scram" % "client" % "2.1",
   ).platformsSettings(JSPlatform, NativePlatform)(
     libraryDependencies ++= Seq(
       "com.armanbilge" %%% "saslprep" % "0.1.1",
-      "io.github.cquiroz" %%% "scala-java-time" % "2.5.0",
-      "io.github.cquiroz" %%% "locales-minimal-en_us-db" % "1.5.3"
+      "io.github.cquiroz" %%% "scala-java-time" % "2.6.0",
+      "io.github.cquiroz" %%% "locales-minimal-en_us-db" % "1.5.4"
     ),
   )
 
@@ -155,8 +155,8 @@ lazy val circe = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .settings(
     name := "skunk-circe",
     libraryDependencies ++= Seq(
-      "io.circe" %%% "circe-core"   % "0.14.8",
-      "io.circe" %%% "circe-jawn" % "0.14.8"
+      "io.circe" %%% "circe-core"   % "0.14.10",
+      "io.circe" %%% "circe-jawn" % "0.14.10"
     )
   )
 
@@ -182,14 +182,14 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .settings(
     tlFatalWarnings := false,
     libraryDependencies ++= Seq(
-      "org.scalameta"     %%% "munit"                   % "1.0.0",
+      "org.scalameta"     %%% "munit"                   % "1.0.2",
       "org.scalameta"     % "junit-interface"           % "1.0.2",
       "org.typelevel"     %%% "scalacheck-effect-munit" % "2.0.0-M2",
       "org.typelevel"     %%% "munit-cats-effect"       % "2.0.0",
-      "org.typelevel"     %%% "cats-free"               % "2.11.0",
-      "org.typelevel"     %%% "cats-laws"               % "2.11.0",
+      "org.typelevel"     %%% "cats-free"               % "2.12.0",
+      "org.typelevel"     %%% "cats-laws"               % "2.12.0",
       "org.typelevel"     %%% "cats-effect-testkit"     % "3.5.6",
-      "org.typelevel"     %%% "discipline-munit"        % "2.0.0-M3",
+      "org.typelevel"     %%% "discipline-munit"        % "2.0.0",
       "org.typelevel"     %%% "cats-time"               % "0.5.1",
       "eu.timepit"        %%% "refined-cats"            % refinedVersion,
       "org.typelevel"     %%% "otel4s-sdk-trace"        % otel4sVersion,
@@ -248,7 +248,7 @@ lazy val bench = project
   .dependsOn(core.jvm)
   .settings(commonSettings)
   .settings(
-    libraryDependencies += "org.postgresql" % "postgresql" % "42.7.2"
+    libraryDependencies += "org.postgresql" % "postgresql" % "42.7.4"
   )
 
 lazy val unidocs = project
