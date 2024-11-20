@@ -1,8 +1,8 @@
 ThisBuild / tlBaseVersion := "1.0"
 
 // Our Scala versions.
-lazy val `scala-2.13` = "2.13.14"
-lazy val `scala-3.0`  = "3.3.3"
+lazy val `scala-2.13` = "2.13.15"
+lazy val `scala-3.0`  = "3.3.4"
 
 ThisBuild / scalaVersion       := `scala-2.13`
 ThisBuild / crossScalaVersions := Seq(`scala-2.13`, `scala-3.0`)
@@ -58,7 +58,7 @@ ThisBuild / mimaBinaryIssueFilters ++= List(
 )
 
 // This is used in a couple places
-lazy val fs2Version = "3.10.2"
+lazy val fs2Version = "3.11.0"
 lazy val openTelemetryVersion = "1.29.0"
 lazy val otel4sVersion = "0.9.0"
 lazy val refinedVersion = "0.11.0"
@@ -99,7 +99,6 @@ lazy val commonSettings = Seq(
 lazy val skunk = tlCrossRootProject
   .settings(name := "skunk")
   .aggregate(bench, core, tests, circe, refined, postgis, example, unidocs)
-  .aggregate(core, tests, circe, refined, postgis, example, unidocs)
   .settings(commonSettings)
 
 lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
@@ -112,7 +111,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     description := "Tagless, non-blocking data access library for Postgres.",
     libraryDependencies ++= Seq(
       "org.typelevel"          %%% "cats-core"               % "2.11.0",
-      "org.typelevel"          %%% "cats-effect"             % "3.5.4",
+      "org.typelevel"          %%% "cats-effect"             % "3.5.6",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
       "org.scodec"             %%% "scodec-bits"             % "1.1.38",
@@ -184,12 +183,12 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     tlFatalWarnings := false,
     libraryDependencies ++= Seq(
       "org.scalameta"     %%% "munit"                   % "1.0.0",
-      "org.scalameta"     % "junit-interface"           % "1.0.0",
+      "org.scalameta"     % "junit-interface"           % "1.0.2",
       "org.typelevel"     %%% "scalacheck-effect-munit" % "2.0.0-M2",
       "org.typelevel"     %%% "munit-cats-effect"       % "2.0.0",
       "org.typelevel"     %%% "cats-free"               % "2.11.0",
       "org.typelevel"     %%% "cats-laws"               % "2.11.0",
-      "org.typelevel"     %%% "cats-effect-testkit"     % "3.5.4",
+      "org.typelevel"     %%% "cats-effect-testkit"     % "3.5.6",
       "org.typelevel"     %%% "discipline-munit"        % "2.0.0-M3",
       "org.typelevel"     %%% "cats-time"               % "0.5.1",
       "eu.timepit"        %%% "refined-cats"            % refinedVersion,
