@@ -110,7 +110,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     description := "Tagless, non-blocking data access library for Postgres.",
     libraryDependencies ++= Seq(
       "org.typelevel"          %%% "cats-core"               % "2.11.0",
-      "org.typelevel"          %%% "cats-effect"             % "3.5.6",
+      "org.typelevel"          %%% "cats-effect"             % "3.5.7",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
       "org.scodec"             %%% "scodec-bits"             % "1.1.38",
@@ -192,7 +192,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.typelevel"     %%% "munit-cats-effect"       % "2.0.0",
       "org.typelevel"     %%% "cats-free"               % "2.11.0",
       "org.typelevel"     %%% "cats-laws"               % "2.11.0",
-      "org.typelevel"     %%% "cats-effect-testkit"     % "3.5.6",
+      "org.typelevel"     %%% "cats-effect-testkit"     % "3.5.7",
       "org.typelevel"     %%% "discipline-munit"        % "2.0.0-M3",
       "org.typelevel"     %%% "cats-time"               % "0.5.1",
     ),
