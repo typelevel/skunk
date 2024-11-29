@@ -59,7 +59,7 @@ ThisBuild / mimaBinaryIssueFilters ++= List(
 
 // This is used in a couple places
 lazy val fs2Version = "3.11.0"
-lazy val openTelemetryVersion = "1.29.0"
+lazy val openTelemetryVersion = "1.44.1"
 lazy val otel4sVersion = "0.11.1"
 lazy val refinedVersion = "0.11.0"
 
@@ -248,7 +248,7 @@ lazy val bench = project
   .dependsOn(core.jvm)
   .settings(commonSettings)
   .settings(
-    libraryDependencies += "org.postgresql" % "postgresql" % "42.7.2"
+    libraryDependencies += "org.postgresql" % "postgresql" % "42.7.4"
   )
 
 lazy val unidocs = project
