@@ -62,7 +62,7 @@ object Typer {
   val Static: Typer = new Typer {
     import Type._
 
-    val strategy = Strategy.BuiltinsOnly
+    val strategy: Strategy = Strategy.BuiltinsOnly
 
     val staticByOid: Map[Int, Type] =
       Map(
@@ -177,7 +177,10 @@ object Typer {
   case class TypeInfo(oid: Int, name: String, arrayTypeOid: Option[Int], relOid: Option[Int])
 
   implicit class ProtocolOps[F[_]: Functor](p: Protocol[F]) {
-    val oid: Codec[Int] = Codec.simple(_.toString, _.toInt.asRight, Type.oid)
+    //Note Postgres defines oids as *unsigned* Ints https://www.postgresql.org/docs/current/datatype-oid.html
+    //Since Scala currently lacks a built-in unsigned Int type, if the oid exceeds `Int.MaxValue`
+    //it will be converted to/from a negative Int by this Codec (only observed in CockroachDB)
+    val oid: Codec[Int] = Codec.simple(java.lang.Integer.toUnsignedLong(_).toString, _.toLong.toInt.asRight, Type.oid)
 
     val typeInfoMap: F[Map[Int, TypeInfo]] = {
 
@@ -232,7 +235,7 @@ object Typer {
     (p.typeInfoMap, p.relInfoMap).mapN { (tim, rim) =>
       Static orElse new Typer {
 
-        val strategy = Strategy.SearchPath
+        val strategy: Strategy = Strategy.SearchPath
 
         val nameToOid: Map[String, Int] =
           tim.map { case (k, v) => v.name -> k }

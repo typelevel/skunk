@@ -94,6 +94,13 @@ class CommandTest extends SkunkTest {
          WHERE id = $int4
        """.command
 
+  val mergeCity: Command[Int] =
+    sql"""
+         MERGE INTO city
+         USING (VALUES ($int4)) t(city_id) ON t.city_id = city.id
+         WHEN MATCHED THEN DELETE
+       """.command
+
   val createTable: Command[Void] =
     sql"""
       CREATE TABLE IF NOT EXISTS earth (
@@ -143,9 +150,14 @@ class CommandTest extends SkunkTest {
       )
       """.command
 
+  val alterIndex: Command[Void] =
+    sql"""
+      ALTER INDEX IF EXISTS id_index RENAME TO pk_index
+      """.command
+
   val dropIndex: Command[Void] =
     sql"""
-      DROP INDEX id_index
+      DROP INDEX pk_index
       """.command
 
   val createView: Command[Void] =
@@ -230,6 +242,9 @@ class CommandTest extends SkunkTest {
         CREATE ROLE skunk_role
        """.command
 
+  val alterRole: Command[Void] =
+    sql"ALTER ROLE skunk_role WITH PASSWORD '123'".command
+
   val dropRole: Command[Void] =
     sql"""
         DROP ROLE skunk_role
@@ -283,6 +298,11 @@ class CommandTest extends SkunkTest {
         END;'
     """.command
 
+  val alterFunction: Command[Void] =
+    sql"""
+        ALTER FUNCTION my_trigger_func() RESET search_path
+    """.command
+
   val dropFunction: Command[Void] =
     sql"DROP FUNCTION my_trigger_func;".command
 
@@ -305,16 +325,61 @@ class CommandTest extends SkunkTest {
         ON city;
        """.command
 
-  sessionTest("create table, create index, drop index, alter table and drop table") { s =>
+  val grant: Command[Void] =
+    sql"""
+        GRANT ALL PRIVILEGES
+        ON ALL TABLES IN SCHEMA public
+        TO skunk_role
+       """.command
+
+  val revoke: Command[Void] =
+    sql"""
+        REVOKE ALL PRIVILEGES
+        ON ALL TABLES IN SCHEMA public
+        FROM skunk_role
+       """.command
+
+  val addComment : Command[Void] =
+    sql"COMMENT ON TABLE city IS 'A city'".command
+  
+  val removeComment : Command[Void] =
+    sql"COMMENT ON TABLE city IS NULL".command
+
+  val createPolicy: Command[Void] =
+    sql"""
+      CREATE POLICY my_policy ON city 
+      TO CURRENT_USER
+      WITH CHECK (FALSE)
+       """.command
+
+  val alterPolicy: Command[Void] =
+    sql"""
+      ALTER POLICY my_policy 
+      ON city TO CURRENT_USER 
+      WITH CHECK (TRUE)
+       """.command
+  
+  val dropPolicy: Command[Void] =
+    sql"DROP POLICY my_policy ON city".command
+
+  val analyze: Command[Void] =
+    sql"ANALYZE city".command
+  
+  val analyzeVerbose: Command[Void] =
+    sql"ANALYZE VERBOSE city".command
+
+  sessionTest("create table, create index, alter table, alter index, drop index and drop table") { s =>
     for {
       c <- s.execute(createTable)
       _ <- assert("completion",  c == Completion.CreateTable)
       c <- s.execute(createIndex)
       _ <- assert("completion",  c == Completion.CreateIndex)
-      c <- s.execute(dropIndex)
-      _ <- assert("completion",  c == Completion.DropIndex)
       c <- s.execute(alterTable)
       _ <- assert("completion",  c == Completion.AlterTable)
+      c <- s.execute(alterIndex)
+      _ <- assert("completion", c == Completion.AlterIndex)
+      c <- s.execute(dropIndex)
+      _ <- assert("completion",  c == Completion.DropIndex)
       c <- s.execute(dropTable)
       _ <- assert("completion",  c == Completion.DropTable)
       _ <- s.assertHealthy
@@ -331,6 +396,8 @@ class CommandTest extends SkunkTest {
       _ <- assert("completion", c == Completion.AlterTrigger)
       c <- s.execute(dropTrigger)
       _ <- assert("completion",  c == Completion.DropTrigger)
+      c <- s.execute(alterFunction)
+      _ <- assert("completion",  c == Completion.AlterFunction)
       c <- s.execute(dropFunction)
       _ <- assert("completion",  c == Completion.DropFunction)
       _ <- s.assertHealthy
@@ -355,6 +422,18 @@ class CommandTest extends SkunkTest {
       _ <- assert("completion",  c == Completion.AlterType)
       c <- s.execute(dropType)
       _ <- assert("completion",  c == Completion.DropType)
+      _ <- s.assertHealthy
+    } yield "ok"
+  }
+
+  sessionTest("create, alter and drop policy") { s =>
+    for {
+      c <- s.execute(createPolicy)
+      _ <- assert("completion",  c == Completion.CreatePolicy)
+      c <- s.execute(alterPolicy)
+      _ <- assert("completion",  c == Completion.AlterPolicy)
+      c <- s.execute(dropPolicy)
+      _ <- assert("completion",  c == Completion.DropPolicy)
       _ <- s.assertHealthy
     } yield "ok"
   }
@@ -430,10 +509,12 @@ class CommandTest extends SkunkTest {
     } yield "ok"
   }
 
-  sessionTest("create role, drop role") { s =>
+  sessionTest("create role, alter role, drop role") { s =>
     for {
       c <- s.execute(createRole)
       _ <- assert("completion", c == Completion.CreateRole)
+      c <- s.execute(alterRole)
+      _ <- assert("completion", c == Completion.AlterRole)
       c <- s.execute(dropRole)
       _ <- assert("completion", c == Completion.DropRole)
     } yield "ok"
@@ -452,6 +533,26 @@ class CommandTest extends SkunkTest {
     for{
       c <- s.execute(doCommand)
       _ <- assert("completion", c == Completion.Do)
+      _ <- s.assertHealthy
+    } yield "ok"
+  }
+
+  sessionTest("add comment, remove comment") { s =>
+    for{
+      c <- s.execute(addComment)
+      _ <- assert("completion", c == Completion.Comment)
+      c <- s.execute(removeComment)
+      _ <- assert("completion", c == Completion.Comment)
+      _ <- s.assertHealthy
+    } yield "ok"
+  }
+
+  sessionTest("analyze") { s =>
+    for{
+      c <- s.execute(analyze)
+      _ <- assert("completion", c == Completion.Analyze)
+      v <- s.execute(analyzeVerbose)
+      _ <- assert("completion", v == Completion.Analyze)
       _ <- s.assertHealthy
     } yield "ok"
   }
@@ -503,6 +604,26 @@ class CommandTest extends SkunkTest {
     } yield "ok"
   }
 
+  sessionTest("merge a record") { s =>
+    s.unique(sql"SHOW server_version".query(skunk.codec.all.text))
+      .flatMap { version =>
+        val majorVersion = version.substring(0, 2).toInt
+        if (majorVersion >= 15) {
+          for {
+            c <- s.prepare(insertCity).flatMap(_.execute(Garin))
+            _ <- assert("completion",  c == Completion.Insert(1))
+            c <- s.prepare(mergeCity).flatMap(_.execute(Garin.id))
+            _ <- assert("merge", c == Completion.Merge(1))
+            c <- s.prepare(selectCity).flatMap(_.option(Garin.id))
+            _ <- assert("read", c == None)
+            _ <- s.execute(deleteCity)(Garin.id)
+            _ <- s.assertHealthy
+          } yield "ok"
+        }
+        else IO.pure("skip")
+      }
+  }
+
   sessionTest("pipe") { s =>
     for {
       _ <- s.execute(sql"delete from city where name like 'Pipe%'".command)
@@ -526,6 +647,18 @@ class CommandTest extends SkunkTest {
       .flatMap(_ => IO.unit)
       .assertFailsWith[UnexpectedRowsException]
       .as("ok")
+  }
+
+  sessionTest("grant, revoke") { s =>
+    for{
+      _ <- s.execute(createRole)
+      c <- s.execute(grant)
+      _ <- assert("completion", c == Completion.Grant)
+      c <- s.execute(revoke)
+      _ <- assert("completion", c == Completion.Revoke)
+      _ <- s.execute(dropRole)
+      _ <- s.assertHealthy
+    } yield "ok"
   }
 
 }

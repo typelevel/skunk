@@ -4,7 +4,6 @@
 
 package skunk.net.message
 
-import scodec.Attempt
 import scodec.bits._
 import scodec._
 

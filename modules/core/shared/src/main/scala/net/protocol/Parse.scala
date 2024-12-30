@@ -43,7 +43,7 @@ object Parse {
                   _  <- Trace[F].put(
                           "statement-name"            -> id.value,
                           "statement-sql"             -> statement.sql,
-                          "statement-parameter-types" -> os.map(n => ty.typeForOid(n, -1).getOrElse(n)).mkString("[", ", ", "]")
+                          "statement-parameter-types" -> os.map(n => ty.typeForOid(n, -1).fold(n.toString)(_.toString)).mkString("[", ", ", "]")
                         )
                   _  <- send(ParseMessage(id.value, statement.sql, os))
                   _  <- send(Flush)
