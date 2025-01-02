@@ -15,7 +15,7 @@ import munit.Location
 import org.typelevel.otel4s.trace.Tracer
 import scala.concurrent.duration.Duration
 
-abstract class SkunkTest(debug: Boolean = false, strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly) extends ffstest.FTest {
+abstract class SkunkTest(debug: Boolean = true, strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly) extends ffstest.FTest {
 
   def session(implicit tracer: Tracer[IO]): Resource[IO, Session[IO]] = session(Duration.Inf)
 
@@ -34,7 +34,7 @@ abstract class SkunkTest(debug: Boolean = false, strategy: Typer.Strategy = Type
   def sessionTest[A](name: String, readTimeout: Duration = Duration.Inf)(fa: Session[IO] => IO[A])(implicit loc: Location): Unit =
     tracedTest(name)(tracer => session(readTimeout)(tracer).use(fa))
 
-  def pooled(max: Int = 8, readTimeout: Duration = Duration.Inf)(implicit tracer: Tracer[IO]): Resource[IO, Resource[IO, Session[IO]]] =
+  def pooled(max: Int = 8, readTimeout: Duration = Duration.Inf, parseCacheSize: Int = 1024)(implicit tracer: Tracer[IO]): Resource[IO, Resource[IO, Session[IO]]] =
     Session.pooled(
       host        = "localhost",
       port        = 5432,
@@ -44,11 +44,12 @@ abstract class SkunkTest(debug: Boolean = false, strategy: Typer.Strategy = Type
       max         = max,
       strategy    = strategy,
       debug       = debug,
-      readTimeout = readTimeout
+      readTimeout = readTimeout,
+      parseCache = parseCacheSize
     )
 
-  def pooledTest[A](name: String, max: Int = 8, readTimeout: Duration = Duration.Inf)(fa: Resource[IO, Session[IO]] => IO[A])(implicit loc: Location): Unit =
-    tracedTest(name)(tracer => pooled(max, readTimeout)(tracer).use(fa))
+  def pooledTest[A](name: String, max: Int = 8, readTimeout: Duration = Duration.Inf, parseCacheSize: Int = 1024)(fa: Resource[IO, Session[IO]] => IO[A])(implicit loc: Location): Unit =
+    tracedTest(name)(tracer => pooled(max, readTimeout, parseCacheSize)(tracer).use(fa))
 
   implicit class SkunkTestSessionOps(s: Session[IO]) {
 

@@ -300,6 +300,10 @@ trait Session[F[_]] {
    */
   def parseCache: Parse.Cache[F]
 
+  /**
+   * Closes any prepared statements evicted as part of this session.  Statements are evicted when the cache limit is reached.
+   */
+  private[skunk] def clearEvicted: F[Unit]
 }
 
 
@@ -313,9 +317,11 @@ object Session {
   abstract class Impl[F[_]: MonadCancelThrow] extends Session[F] {
 
     override def execute[A, B](query: Query[A, B])(args: A): F[List[B]] =
-      Monad[F].flatMap(prepare(query))(_.cursor(args).use {
-        _.fetch(Int.MaxValue).map { case (rows, _) => rows }
-      })
+      Monad[F].flatMap(prepare(query)) { pq =>
+        pq.cursor(args).use {
+         _.fetch(Int.MaxValue).map { case (rows, _) => rows }
+        }
+      }
 
     override def unique[A, B](query: Query[A, B])(args: A): F[B] =
       Monad[F].flatMap(prepare(query))(_.unique(args))
@@ -359,7 +365,7 @@ object Session {
      * isn't running arbitrary statements then `minimal` might be more efficient.
      */
     def full[F[_]: Monad]: Recycler[F, Session[F]] =
-      ensureIdle[F] <+> unlistenAll <+> resetAll
+      closeEvictedPreparedStatements[F] <+> ensureIdle[F] <+> unlistenAll <+> resetAll
 
     /**
      * Ensure the session is idle, then run a trivial query to ensure the connection is in working
@@ -367,6 +373,11 @@ object Session {
      */
     def minimal[F[_]: Monad]: Recycler[F, Session[F]] =
       ensureIdle[F] <+> Recycler(_.unique(Query("VALUES (true)", Origin.unknown, Void.codec, bool)))
+    
+    def closeEvictedPreparedStatements[F[_]: Monad]: Recycler[F, Session[F]] =
+      Recycler { session =>
+        session.clearEvicted.as(true)
+      }
 
     /**
      * Yield `true` the session is idle (i.e., that there is no ongoing transaction), otherwise
@@ -662,7 +673,7 @@ object Session {
           }
 
         override def prepare[A, B](query: Query[A, B]): F[PreparedQuery[F, A, B]] =
-          proto.prepare(query, typer).map(PreparedQuery.fromProto(_, redactionStrategy))
+          proto.prepare(query, typer).map { p => PreparedQuery.fromProto(p, redactionStrategy) }
 
         override def prepare[A](command: Command[A]): F[PreparedCommand[F, A]] =
           proto.prepare(command, typer).map(PreparedCommand.fromProto(_))
@@ -678,6 +689,9 @@ object Session {
 
         override def parseCache: Parse.Cache[F] =
           proto.parseCache
+
+        override def clearEvicted: F[Unit] = 
+          proto.clearEvicted
 
       }
     }
@@ -736,6 +750,8 @@ object Session {
         override def describeCache: Describe.Cache[G] = outer.describeCache.mapK(fk)
 
         override def parseCache: Parse.Cache[G] = outer.parseCache.mapK(fk)
+        
+        private[skunk] override def clearEvicted: G[Unit] = fk(outer.clearEvicted)
 
       }
   }

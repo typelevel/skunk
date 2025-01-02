@@ -103,6 +103,11 @@ trait Protocol[F[_]] {
    * Cleanup the session. This will close any cached prepared statements.
    */
   def cleanup: F[Unit]
+  
+  /**
+   * Cleanup the session. This will close any cached prepared statements.
+   */
+  def clearEvicted: F[Unit]
 
   /**
    * Signal representing the current transaction status as reported by `ReadyForQuery`. It's not
@@ -260,6 +265,10 @@ object Protocol {
 
         override def cleanup: F[Unit] =
           parseCache.value.values.flatMap(xs => xs.traverse_(protocol.Close[F].apply))
+        
+        override def clearEvicted: F[Unit] =
+          parseCache.value.evicted.flatMap(_.traverse_(protocol.Close[F].apply)) >>
+            parseCache.value.clearEvicted
 
         override def transactionStatus: Signal[F, TransactionStatus] =
           bms.transactionStatus
