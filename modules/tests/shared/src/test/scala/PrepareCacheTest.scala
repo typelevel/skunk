@@ -6,8 +6,6 @@ package tests
 
 import skunk.implicits._
 import skunk.codec.numeric.int8
-// import cats.syntax.all._
-// import cats.effect.IO
 import skunk.codec.text
 import skunk.codec.boolean
 
