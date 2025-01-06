@@ -15,7 +15,7 @@ import munit.Location
 import org.typelevel.otel4s.trace.Tracer
 import scala.concurrent.duration.Duration
 
-abstract class SkunkTest(debug: Boolean = true, strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly) extends ffstest.FTest {
+abstract class SkunkTest(debug: Boolean = false, strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly) extends ffstest.FTest {
 
   def session(implicit tracer: Tracer[IO]): Resource[IO, Session[IO]] = session(Duration.Inf)
 

@@ -10,19 +10,21 @@ import cats.syntax.all._
  * Cache based on a two-generation GC.
  * Taken from https://twitter.com/pchiusano/status/1260255494519865346
  */
-sealed abstract case class SemispaceCache[K, V](gen0: Map[K, V], gen1: Map[K, V], max: Int, evicted: List[V]) {
+sealed abstract case class SemispaceCache[K, V](gen0: Map[K, V], gen1: Map[K, V], max: Int, possiblyEvicted: List[V]) {
 
   assert(max >= 0)
   assert(gen0.size <= max)
   assert(gen1.size <= max)
 
+  def evicted: List[V] = (possiblyEvicted.toSet -- values.toSet).toList
+
   def withEvicted(e: List[V]): SemispaceCache[K, V] = 
     SemispaceCache(gen0, gen1, max, e)
 
   def insert(k: K, v: V): SemispaceCache[K, V] = {
-    if (max == 0)             this.withEvicted(v :: evicted)                                        // special case, can't insert!
-    else if (gen0.size < max) SemispaceCache(gen0 + (k -> v), gen1, max, evicted)                   // room in gen0, done!
-    else                      SemispaceCache(Map(k -> v), gen0, max, gen1.values.toList ::: evicted)// no room in gen0, slide it down
+    if (max == 0)             this.withEvicted(v :: possiblyEvicted)                                        // special case, can't insert!
+    else if (gen0.size < max) SemispaceCache(gen0 + (k -> v), gen1, max, possiblyEvicted)                   // room in gen0, done!
+    else                      SemispaceCache(Map(k -> v), gen0, max, gen1.values.toList ::: possiblyEvicted)// no room in gen0, slide it down
   }
 
   def lookup(k: K): Option[(SemispaceCache[K, V], V)] = {
