@@ -662,7 +662,7 @@ object Session {
           }
 
         override def prepare[A, B](query: Query[A, B]): F[PreparedQuery[F, A, B]] =
-          proto.prepare(query, typer).map { p => PreparedQuery.fromProto(p, redactionStrategy) }
+          proto.prepare(query, typer).map(PreparedQuery.fromProto(_, redactionStrategy))
 
         override def prepare[A](command: Command[A]): F[PreparedCommand[F, A]] =
           proto.prepare(command, typer).map(PreparedCommand.fromProto(_))

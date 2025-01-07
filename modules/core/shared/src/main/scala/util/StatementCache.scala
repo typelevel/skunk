@@ -13,9 +13,6 @@ import skunk.data.SemispaceCache
 /** An LRU (by access) cache, keyed by statement `CacheKey`. */
 sealed trait StatementCache[F[_], V] { outer =>
 
-  /**
-    * @return entry along with any values evicted as a result of the retrieval
-    */
   def get(k: Statement[_]): F[Option[V]]
   private[skunk] def put(k: Statement[_], v: V): F[Unit]
   def containsKey(k: Statement[_]): F[Boolean]
@@ -40,13 +37,12 @@ object StatementCache {
   def empty[F[_]: Functor: Ref.Make, V](max: Int): F[StatementCache[F, V]] =
     Ref[F].of(SemispaceCache.empty[Statement.CacheKey, V](max)).map { ref =>
       new StatementCache[F, V] {
+
         def get(k: Statement[_]): F[Option[V]] =
           ref.modify { c =>
             c.lookup(k.cacheKey) match {
-              case Some((cʹ, v)) => 
-                (cʹ, Some(v))
-              case None          => 
-                (c, None)
+              case Some((cʹ, v)) =>  (cʹ, Some(v))
+              case None          =>  (c, None)
             }
           }
 
