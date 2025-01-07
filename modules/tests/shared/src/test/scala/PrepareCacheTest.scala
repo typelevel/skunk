@@ -16,20 +16,6 @@ class PrepareCacheTest extends SkunkTest {
   private val pgStatementsCountByStatement = sql"select count(*) from pg_prepared_statements where statement = ${text.text}".query(int8)
   private val pgStatementsCount = sql"select count(*) from pg_prepared_statements".query(int8)
   private val pgStatements = sql"select statement from pg_prepared_statements order by prepare_time".query(text.text)
-
-  pooledTest("empty prepare cache should close prepared statements at end of session", max=1, parseCacheSize = 0) { p =>
-    p.use { s =>
-      s.execute(pgStatementsByName)("foo").void >>
-      s.execute(pgStatementsCount).map { count =>
-        assertEquals(count, List(1L), "cached and evicted prepared statements should still exist")   
-      }
-    } >> 
-    p.use { s =>
-      s.execute(pgStatementsCount).map { count =>
-        assertEquals(count, List(0L), "all prepared statements should be closed since we have size 0")   
-      }
-    } 
-  }
   
   pooledTest("prepare cache should close evicted prepared statements at end of session", max=1, parseCacheSize = 1) { p =>
     p.use { s =>
@@ -37,12 +23,12 @@ class PrepareCacheTest extends SkunkTest {
       s.execute(pgStatementsByStatement)("bar").void >>
       s.execute(pgStatementsCountByStatement)("baz").void >>
       s.execute(pgStatementsCount).map { count =>
-        assertEquals(count, List(3L), "cached and evicted prepared statements should still exist")   
+        assertEquals(count, List(2L), "cached prepared statements should still exist but evicted ones should not")   
       }
     } >> 
     p.use { s =>
-      // Because of the way semispace cache works the last *two* statements will be caused even though the size is 1
-      // With a max of N the max size of the cache is really N*2 because it keeps gen0/gen1
+      // Because of the way semispace cache works the last *two* statements will be cached even though the max size is 1
+      // With a max of N, the max cache size is really N*2 because it keeps gen0/gen1
       s.execute(pgStatements).map { statements =>
         assertEquals(statements, List(
           "select true from pg_prepared_statements where statement = $1",

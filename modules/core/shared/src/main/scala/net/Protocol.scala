@@ -264,11 +264,10 @@ object Protocol {
           protocol.Startup[F].apply(user, database, password, parameters)
 
         override def cleanup: F[Unit] =
-          parseCache.value.values.flatMap(xs => xs.traverse_(protocol.Close[F].apply))
+          parseCache.value.values.flatMap(_.traverse_(protocol.Close[F].apply)) >> clearEvicted
         
         override def clearEvicted: F[Unit] =
-          parseCache.value.evicted.flatMap(_.traverse_(protocol.Close[F].apply)) >>
-            parseCache.value.clearEvicted
+          parseCache.value.clearEvicted.flatMap(_.traverse_(protocol.Close[F].apply))
 
         override def transactionStatus: Signal[F, TransactionStatus] =
           bms.transactionStatus

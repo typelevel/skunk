@@ -6,7 +6,7 @@ package skunk.net.protocol
 
 import cats.effect.Resource
 import cats.effect.Concurrent
-import cats.syntax.functor._
+import cats.syntax.all._
 import skunk.~
 import skunk.RedactionStrategy
 import skunk.net.MessageSocket

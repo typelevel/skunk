@@ -7,7 +7,7 @@ package skunk.net.protocol
 import cats.syntax.all._
 import skunk.net.MessageSocket
 import skunk.net.Protocol.StatementId
-import skunk.net.message.{ Describe => DescribeMessage, Parse => ParseMessage, _ }
+import skunk.net.message.{ Describe => DescribeMessage, Parse => ParseMessage, Close => _, _ }
 import skunk.util.Typer
 import skunk.data.TypedRowDescription
 import org.typelevel.otel4s.Attribute
@@ -44,14 +44,18 @@ object ParseDescribe {
                 ).raiseError[F, Unit]
         } yield a
 
-      def parseExchange(stmt: Statement[_], ty: Typer)(span: Span[F]): F[(F[StatementId], StatementId => F[Unit])] = 
+      def parseExchange(stmt: Statement[_], ty: Typer)(span: Span[F]): F[(F[StatementId], StatementId => F[Unit], F[Unit])] = 
         stmt.encoder.oids(ty) match {
 
           case Right(os) if os.length > Short.MaxValue =>
-            TooManyParametersException(stmt).raiseError[F, (F[StatementId], StatementId => F[Unit])]
+            TooManyParametersException(stmt).raiseError[F, (F[StatementId], StatementId => F[Unit], F[Unit])]
 
           case Right(os) =>
-            OptionT(parseCache.value.get(stmt)).map(id => (id.pure, (_:StatementId) => ().pure)).getOrElse {
+
+            val closeEvictedStatements =
+              parseCache.value.clearEvicted.flatMap(_.traverse_(Close.midExchange[F].apply))
+
+            OptionT(parseCache.value.get(stmt)).map(id => (id.pure, (_:StatementId) => ().pure, closeEvictedStatements)).getOrElse {
               val pre = for {
                 id <- nextName("statement").map(StatementId(_))
                 _  <- span.addAttributes(
@@ -70,17 +74,17 @@ object ParseDescribe {
                 _  <- parseCache.value.put(stmt, id)
               } yield ()
 
-              (pre, post)
+              (pre, post, closeEvictedStatements)
             }
           case Left(err) =>
-            UnknownTypeException(stmt, err, ty.strategy).raiseError[F, (F[StatementId], StatementId => F[Unit])]
+            UnknownTypeException(stmt, err, ty.strategy).raiseError[F, (F[StatementId], StatementId => F[Unit], F[Unit])]
 
         }
 
       override def command[A](cmd: skunk.Command[A], ty: Typer): F[StatementId] = {
 
         def describeExchange(span: Span[F]): F[(StatementId => F[Unit], F[Unit])] = 
-          OptionT(cache.commandCache.get(cmd)).as(((_: StatementId) => ().pure, ().pure)).getOrElse {
+          OptionT(cache.commandCache.get(cmd)).as(((_: StatementId) => ().pure, cache.commandCache.clearEvicted.void)).getOrElse {
             val pre = (id: StatementId) => for {
               _  <- span.addAttribute(Attribute("statement-id", id.value))
               _  <- send(DescribeMessage.statement(id.value))
@@ -103,13 +107,14 @@ object ParseDescribe {
                         }
                     }
               _  <- cache.commandCache.put(cmd, ()) // on success
+              _  <- cache.commandCache.clearEvicted
             } yield ()
 
             (pre, post)
           }
 
         exchange("parse+describe") { (span: Span[F]) => 
-          parseExchange(cmd, ty)(span).flatMap{ case (preParse, postParse) =>
+          parseExchange(cmd, ty)(span).flatMap { case (preParse, postParse, closeEvictedStatements) =>
             describeExchange(span).flatMap { case (preDesc, postDesc) =>
               for {
                 id <- preParse
@@ -117,6 +122,7 @@ object ParseDescribe {
                 _  <- send(Flush)
                 _  <- postParse(id)
                 _  <- postDesc
+                _  <- closeEvictedStatements
               } yield id
             }
           }
@@ -127,7 +133,7 @@ object ParseDescribe {
       override def apply[A, B](query: skunk.Query[A, B], ty: Typer): F[(StatementId, TypedRowDescription)] = {
         
         def describeExchange(span: Span[F]): F[(StatementId => F[Unit], F[TypedRowDescription])] = 
-          OptionT(cache.queryCache.get(query)).map(rd => ((_:StatementId) => ().pure, rd.pure)).getOrElse {
+          OptionT(cache.queryCache.get(query)).map(rd => ((_:StatementId) => ().pure, cache.queryCache.clearEvicted.as(rd))).getOrElse {
             val pre = (id: StatementId) =>
               for {
                 _  <- span.addAttribute(Attribute("statement-id", id.value))
@@ -148,6 +154,7 @@ object ParseDescribe {
                       }
                 _  <- ColumnAlignmentException(query, td).raiseError[F, Unit].unlessA(query.isDynamic || query.decoder.types === td.types)
                 _  <- cache.queryCache.put(query, td) // on success
+                _  <- cache.queryCache.clearEvicted
               } yield td
 
             (pre, post)
@@ -155,7 +162,7 @@ object ParseDescribe {
 
         
         exchange("parse+describe") { (span: Span[F]) => 
-          parseExchange(query, ty)(span).flatMap{ case (preParse, postParse) =>
+          parseExchange(query, ty)(span).flatMap { case (preParse, postParse, closeEvictedStatements) =>
             describeExchange(span).flatMap { case (preDesc, postDesc) =>
               for {
                 id <- preParse
@@ -163,6 +170,7 @@ object ParseDescribe {
                 _  <- send(Flush)
                 _  <- postParse(id)
                 rd <- postDesc
+                _  <- closeEvictedStatements
               } yield (id, rd)
             }
           }

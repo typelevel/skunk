@@ -13,9 +13,6 @@ import skunk.data.SemispaceCache
 /** An LRU (by access) cache, keyed by statement `CacheKey`. */
 sealed trait StatementCache[F[_], V] { outer =>
 
-  def evicted: F[List[V]] 
-  def clearEvicted: F[Unit]
-
   /**
     * @return entry along with any values evicted as a result of the retrieval
     */
@@ -24,6 +21,7 @@ sealed trait StatementCache[F[_], V] { outer =>
   def containsKey(k: Statement[_]): F[Boolean]
   def clear: F[Unit]
   def values: F[List[V]]
+  def clearEvicted: F[List[V]]
 
   def mapK[G[_]](fk: F ~> G): StatementCache[G, V] =
     new StatementCache[G, V] {
@@ -32,9 +30,7 @@ sealed trait StatementCache[F[_], V] { outer =>
       def containsKey(k: Statement[_]): G[Boolean] = fk(outer.containsKey(k))
       def clear: G[Unit] = fk(outer.clear)
       def values: G[List[V]] = fk(outer.values)
-
-      def evicted: G[List[V]]  = fk(outer.evicted)
-      def clearEvicted: G[Unit] = fk(outer.clearEvicted)
+      def clearEvicted: G[List[V]] = fk(outer.clearEvicted)
     }
 
 }
@@ -44,11 +40,6 @@ object StatementCache {
   def empty[F[_]: Functor: Ref.Make, V](max: Int): F[StatementCache[F, V]] =
     Ref[F].of(SemispaceCache.empty[Statement.CacheKey, V](max)).map { ref =>
       new StatementCache[F, V] {
-        def evicted: F[List[V]]  = 
-          ref.get.map(_.evicted)
-        def clearEvicted: F[Unit] = 
-          ref.update(_.withEvicted(List.empty))
-
         def get(k: Statement[_]): F[Option[V]] =
           ref.modify { c =>
             c.lookup(k.cacheKey) match {
@@ -70,6 +61,9 @@ object StatementCache {
 
         def values: F[List[V]] =
           ref.get.map(_.values)
+
+        def clearEvicted: F[List[V]] = 
+          ref.modify(_.clearEvicted)
       }
     }
 

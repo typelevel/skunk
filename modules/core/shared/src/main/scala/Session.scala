@@ -365,7 +365,7 @@ object Session {
      * isn't running arbitrary statements then `minimal` might be more efficient.
      */
     def full[F[_]: Monad]: Recycler[F, Session[F]] =
-      closeEvictedPreparedStatements[F] <+> ensureIdle[F] <+> unlistenAll <+> resetAll
+      ensureIdle[F] <+> unlistenAll <+> resetAll
 
     /**
      * Ensure the session is idle, then run a trivial query to ensure the connection is in working
@@ -374,11 +374,6 @@ object Session {
     def minimal[F[_]: Monad]: Recycler[F, Session[F]] =
       ensureIdle[F] <+> Recycler(_.unique(Query("VALUES (true)", Origin.unknown, Void.codec, bool)))
     
-    def closeEvictedPreparedStatements[F[_]: Monad]: Recycler[F, Session[F]] =
-      Recycler { session =>
-        session.clearEvicted.as(true)
-      }
-
     /**
      * Yield `true` the session is idle (i.e., that there is no ongoing transaction), otherwise
      * yield false. This check does not require network IO.
@@ -393,7 +388,6 @@ object Session {
     /** Reset all variables to system defaults and yield `true`. */
     def resetAll[F[_]: Functor]: Recycler[F, Session[F]] =
       Recycler(_.execute(Command("RESET ALL", Origin.unknown, Void.codec)).as(true))
-
   }
 
   /**
@@ -692,7 +686,6 @@ object Session {
 
         override def clearEvicted: F[Unit] = 
           proto.clearEvicted
-
       }
     }
   }
