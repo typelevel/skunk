@@ -299,11 +299,6 @@ trait Session[F[_]] {
    * the cache through this accessor.
    */
   def parseCache: Parse.Cache[F]
-
-  /**
-   * Closes any prepared statements evicted as part of this session.  Statements are evicted when the cache limit is reached.
-   */
-  private[skunk] def clearEvicted: F[Unit]
 }
 
 
@@ -683,9 +678,6 @@ object Session {
 
         override def parseCache: Parse.Cache[F] =
           proto.parseCache
-
-        override def clearEvicted: F[Unit] = 
-          proto.clearEvicted
       }
     }
   }
@@ -743,9 +735,6 @@ object Session {
         override def describeCache: Describe.Cache[G] = outer.describeCache.mapK(fk)
 
         override def parseCache: Parse.Cache[G] = outer.parseCache.mapK(fk)
-        
-        private[skunk] override def clearEvicted: G[Unit] = fk(outer.clearEvicted)
-
       }
   }
 

@@ -105,11 +105,6 @@ trait Protocol[F[_]] {
   def cleanup: F[Unit]
   
   /**
-   * Cleanup the session. This will close any cached prepared statements.
-   */
-  def clearEvicted: F[Unit]
-
-  /**
    * Signal representing the current transaction status as reported by `ReadyForQuery`. It's not
    * clear that this is a useful thing to expose.
    */
@@ -264,11 +259,8 @@ object Protocol {
           protocol.Startup[F].apply(user, database, password, parameters)
 
         override def cleanup: F[Unit] =
-          parseCache.value.values.flatMap(_.traverse_(protocol.Close[F].apply)) >> clearEvicted
+          parseCache.value.values.flatMap(_.traverse_(protocol.Close[F].apply))
         
-        override def clearEvicted: F[Unit] =
-          parseCache.value.clearEvicted.flatMap(_.traverse_(protocol.Close[F].apply))
-
         override def transactionStatus: Signal[F, TransactionStatus] =
           bms.transactionStatus
 
