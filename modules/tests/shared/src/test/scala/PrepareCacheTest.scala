@@ -17,6 +17,23 @@ class PrepareCacheTest extends SkunkTest {
   private val pgStatementsCount = sql"select count(*) from pg_prepared_statements".query(int8)
   private val pgStatements = sql"select statement from pg_prepared_statements order by prepare_time".query(text.text)
   
+  pooledTest("prepared statements via prepare shoudln't get evicted until they go out of scope", max=1, parseCacheSize = 1) { p =>
+    p.use { s =>
+      // creates entry in cache
+      s.prepare(pgStatementsByName)   
+    }.flatMap { pq =>
+      p.use { s =>
+        // this works
+        pq.option("bar") >>
+        // create two more prepared statements which will evicted our pq
+        s.execute(pgStatementsByStatement)("foo") >> 
+        s.execute(pgStatementsCountByStatement)("bar") >>
+        // This blows up because cache is referring to prepared statement in postgres that doesn't exist anymore
+        pq.option("bar")
+      }   
+    }
+  }  
+  
   pooledTest("prepare cache should close evicted prepared statements at end of session", max=1, parseCacheSize = 1) { p =>
     p.use { s =>
       s.execute(pgStatementsByName)("foo").void >>
