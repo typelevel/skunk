@@ -10,15 +10,16 @@ import cats.syntax.all._
  * Cache based on a two-generation GC.
  * Taken from https://twitter.com/pchiusano/status/1260255494519865346
  */
-sealed abstract case class SemispaceCache[K, V](gen0: Map[K, V], gen1: Map[K, V], max: Int, possiblyEvicted: List[V]) {
+sealed abstract case class SemispaceCache[K, V](gen0: Map[K, V], gen1: Map[K, V], max: Int, possiblyEvicted: SemispaceCache.EvictionSet[V]) {
 
-  assert(max > 0) // nb: enforced in empty constructor
+  assert(max >= 0)
   assert(gen0.size <= max)
   assert(gen1.size <= max)
 
   def insert(k: K, v: V): SemispaceCache[K, V] =
-    if (gen0.size < max) SemispaceCache(gen0 + (k -> v), gen1, max, possiblyEvicted)                   // room in gen0, done!
-    else                 SemispaceCache(Map(k -> v), gen0, max, gen1.values.toList ::: possiblyEvicted)// no room in gen0, slide it down
+    if (max == 0)        SemispaceCache(gen0, gen1, max, possiblyEvicted + v)                  // immediately evict
+    else if (gen0.size < max) SemispaceCache(gen0 + (k -> v), gen1, max, possiblyEvicted)      // room in gen0, done!
+    else                 SemispaceCache(Map(k -> v), gen0, max, possiblyEvicted ++ gen1.values)// no room in gen0, slide it down
 
   def lookup(k: K): Option[(SemispaceCache[K, V], V)] =
     gen0.get(k).tupleLeft(this) orElse       // key is in gen0, done!
@@ -31,17 +32,46 @@ sealed abstract case class SemispaceCache[K, V](gen0: Map[K, V], gen1: Map[K, V]
     (gen0.values.toSet | gen1.values.toSet).toList
 
   def evictAll: SemispaceCache[K, V] =
-    SemispaceCache(Map.empty, Map.empty, max, (gen0.values.toSet | gen1.values.toSet | possiblyEvicted.toSet).toList)
+    SemispaceCache(Map.empty, Map.empty, max, possiblyEvicted ++ gen0.values ++ gen1.values)
 
   def clearEvicted: (SemispaceCache[K, V], List[V]) =
-    (SemispaceCache(gen0, gen1, max, Nil), (possiblyEvicted.toSet -- values.toSet).toList)
+    (SemispaceCache(gen0, gen1, max, possiblyEvicted.clear), (possiblyEvicted -- gen0.values -- gen1.values).toList)
 }
 
 object SemispaceCache {
 
-  private def apply[K, V](gen0: Map[K, V], gen1: Map[K, V], max: Int, evicted: List[V]): SemispaceCache[K, V] =
+  private def apply[K, V](gen0: Map[K, V], gen1: Map[K, V], max: Int, evicted: EvictionSet[V]): SemispaceCache[K, V] =
     new SemispaceCache[K, V](gen0, gen1, max, evicted) {}
 
-  def empty[K, V](max: Int): SemispaceCache[K, V] =
-    SemispaceCache[K, V](Map.empty, Map.empty, max max 1, Nil)
+  def empty[K, V](max: Int, trackEviction: Boolean): SemispaceCache[K, V] =
+    SemispaceCache[K, V](Map.empty, Map.empty, max max 0, if (trackEviction) EvictionSet.empty else new EvictionSet.ZeroEvictionSet)
+
+  sealed trait EvictionSet[V] {
+    def +(v: V): EvictionSet[V]
+    def ++(vs: Iterable[V]): EvictionSet[V]
+    def --(vs: Iterable[V]): EvictionSet[V]
+    def toList: List[V]
+    def clear: EvictionSet[V]
+  }
+
+  private[SemispaceCache] object EvictionSet {
+
+    class ZeroEvictionSet[V] extends EvictionSet[V] {
+      def +(v: V): EvictionSet[V] = this
+      def ++(vs: Iterable[V]): EvictionSet[V] = this
+      def --(vs: Iterable[V]): EvictionSet[V] = this
+      def toList: List[V] = Nil
+      def clear: EvictionSet[V] = this
+    }
+
+    class DefaultEvictionSet[V](underlying: Set[V]) extends EvictionSet[V] {
+      def +(v: V): EvictionSet[V] = new DefaultEvictionSet(underlying + v)
+      def ++(vs: Iterable[V]): EvictionSet[V] = new DefaultEvictionSet(underlying ++ vs)
+      def --(vs: Iterable[V]): EvictionSet[V] = new DefaultEvictionSet(underlying -- vs)
+      def toList: List[V] = underlying.toList
+      def clear: EvictionSet[V] = new DefaultEvictionSet(Set.empty)
+    }
+
+    def empty[V]: EvictionSet[V] = new DefaultEvictionSet(Set.empty)
+  }
 }

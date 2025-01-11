@@ -11,17 +11,17 @@ import org.scalacheck.Prop._
 class SemispaceCacheTest extends ScalaCheckSuite {
 
   val genEmpty: Gen[SemispaceCache[Int, String]] =
-    Gen.choose(-1, 10).map(SemispaceCache.empty)
+    Gen.choose(-1, 10).map(SemispaceCache.empty(_, true))
 
   test("insert on empty cache results in no eviction") {
-    val cache = SemispaceCache.empty(0).insert("one", 1)
+    val cache = SemispaceCache.empty(0, true).insert("one", 1)
     assertEquals(cache.values.sorted, List(1))
     assert(cache.containsKey("one"))
     assertEquals(cache.clearEvicted._2, Nil)
   }
   
   test("insert on full cache results in eviction") {
-    val cache = SemispaceCache.empty(1).insert("one", 1)
+    val cache = SemispaceCache.empty(1, true).insert("one", 1)
     assertEquals(cache.values, List(1))
     assertEquals(cache.lookup("one").map(_._2), Some(1))
     assertEquals(cache.clearEvicted._2, List.empty)

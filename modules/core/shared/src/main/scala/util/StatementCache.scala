@@ -34,8 +34,8 @@ sealed trait StatementCache[F[_], V] { outer =>
 
 object StatementCache {
 
-  def empty[F[_]: Functor: Ref.Make, V](max: Int): F[StatementCache[F, V]] =
-    Ref[F].of(SemispaceCache.empty[Statement.CacheKey, V](max)).map { ref =>
+  def empty[F[_]: Functor: Ref.Make, V](max: Int, trackEviction: Boolean): F[StatementCache[F, V]] =
+    Ref[F].of(SemispaceCache.empty[Statement.CacheKey, V](max, trackEviction)).map { ref =>
       new StatementCache[F, V] {
 
         def get(k: Statement[_]): F[Option[V]] =

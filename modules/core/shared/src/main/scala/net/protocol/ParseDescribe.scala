@@ -7,7 +7,7 @@ package skunk.net.protocol
 import cats.syntax.all._
 import skunk.net.MessageSocket
 import skunk.net.Protocol.StatementId
-import skunk.net.message.{ Describe => DescribeMessage, Parse => ParseMessage, Close => _, _ }
+import skunk.net.message.{ Describe => DescribeMessage, Parse => ParseMessage, _ }
 import skunk.util.Typer
 import skunk.data.TypedRowDescription
 import org.typelevel.otel4s.Attribute
@@ -81,7 +81,7 @@ object ParseDescribe {
       override def command[A](cmd: skunk.Command[A], ty: Typer): F[StatementId] = {
 
         def describeExchange(span: Span[F]): F[(StatementId => F[Unit], F[Unit])] = 
-          OptionT(cache.commandCache.get(cmd)).as(((_: StatementId) => ().pure, cache.commandCache.clearEvicted.void)).getOrElse {
+          OptionT(cache.commandCache.get(cmd)).as(((_: StatementId) => ().pure, ().pure)).getOrElse {
             val pre = (id: StatementId) => for {
               _  <- span.addAttribute(Attribute("statement-id", id.value))
               _  <- send(DescribeMessage.statement(id.value))
@@ -104,7 +104,6 @@ object ParseDescribe {
                         }
                     }
               _  <- cache.commandCache.put(cmd, ()) // on success
-              _  <- cache.commandCache.clearEvicted
             } yield ()
 
             (pre, post)
@@ -129,7 +128,7 @@ object ParseDescribe {
       override def apply[A, B](query: skunk.Query[A, B], ty: Typer): F[(StatementId, TypedRowDescription)] = {
         
         def describeExchange(span: Span[F]): F[(StatementId => F[Unit], F[TypedRowDescription])] = 
-          OptionT(cache.queryCache.get(query)).map(rd => ((_:StatementId) => ().pure, cache.queryCache.clearEvicted.as(rd))).getOrElse {
+          OptionT(cache.queryCache.get(query)).map(rd => ((_:StatementId) => ().pure, rd.pure)).getOrElse {
             val pre = (id: StatementId) =>
               for {
                 _  <- span.addAttribute(Attribute("statement-id", id.value))
@@ -150,7 +149,6 @@ object ParseDescribe {
                       }
                 _  <- ColumnAlignmentException(query, td).raiseError[F, Unit].unlessA(query.isDynamic || query.decoder.types === td.types)
                 _  <- cache.queryCache.put(query, td) // on success
-                _  <- cache.queryCache.clearEvicted
               } yield td
 
             (pre, post)

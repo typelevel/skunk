@@ -20,7 +20,7 @@ object Parse {
 
   object Cache {
     def empty[F[_]: Functor: Ref.Make](capacity: Int): F[Cache[F]] =
-      StatementCache.empty[F, StatementId](capacity).map(Parse.Cache(_))
+      StatementCache.empty[F, StatementId](capacity, true).map(Parse.Cache(_))
   }
 
 }
