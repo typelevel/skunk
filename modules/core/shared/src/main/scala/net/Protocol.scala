@@ -73,6 +73,12 @@ trait Protocol[F[_]] {
    */
   def prepare[A, B](query: Query[A, B], ty: Typer): F[Protocol.PreparedQuery[F, A, B]]
 
+  /** Like [[prepare]] but does not cache the result and closes the command upon resource cleanup. */
+  def prepareR[A](command: Command[A], ty: Typer): Resource[F, Protocol.PreparedCommand[F, A]]
+
+  /** Like [[prepare]] but does not cache the result and closes the query upon resource cleanup. */
+  def prepareR[A, B](query: Query[A, B], ty: Typer): Resource[F, Protocol.PreparedQuery[F, A, B]]
+
   /**
    * Execute a non-parameterized command (a statement that produces no rows), yielding a
    * `Completion`. This is equivalent to `prepare` + `bind` + `execute` but it uses the "simple"
@@ -249,6 +255,20 @@ object Protocol {
 
         override def prepare[A, B](query: Query[A, B], ty: Typer): F[PreparedQuery[F, A, B]] =
           protocol.Prepare[F](describeCache, parseCache, redactionStrategy).apply(query, ty)
+
+        override def prepareR[A](command: Command[A], ty: Typer): Resource[F, Protocol.PreparedCommand[F, A]] = {
+          val acquire = Parse.Cache.empty[F](1).flatMap { pc =>
+            protocol.Prepare[F](describeCache, pc, redactionStrategy).apply(command, ty)
+          }
+          Resource.make(acquire)(pc => protocol.Close[F].apply(pc.id))
+        }
+
+        override def prepareR[A, B](query: Query[A, B], ty: Typer): Resource[F, Protocol.PreparedQuery[F, A, B]] = {
+          val acquire = Parse.Cache.empty[F](1).flatMap { pc =>
+            protocol.Prepare[F](describeCache, pc, redactionStrategy).apply(query, ty)
+          }
+          Resource.make(acquire)(pq => protocol.Close[F].apply(pq.id))
+        }
 
         override def execute(command: Command[Void]): F[Completion] =
           protocol.Query[F](redactionStrategy).apply(command)

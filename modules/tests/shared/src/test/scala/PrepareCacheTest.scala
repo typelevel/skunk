@@ -55,4 +55,16 @@ class PrepareCacheTest extends SkunkTest {
       }   
     }
   }
+
+  pooledTest("statements prepared via prepareR are not cached and are closed immediately", max = 1) { p =>
+    p.use { s =>
+      s.prepareR(pgStatementsByName).use { pq =>
+        pq.option("bar").void >>
+        s.parseCache.value.values.map(vs => assertEquals(vs.size, 0, "statement should not have been cached"))
+      } >>
+      s.execute(pgStatements).map { statements =>
+        assertEquals(statements, Nil)
+      }
+    }
+  }
 }
