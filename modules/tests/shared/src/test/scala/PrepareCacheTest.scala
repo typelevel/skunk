@@ -67,4 +67,25 @@ class PrepareCacheTest extends SkunkTest {
       }
     }
   }
+
+  pooledTest("statements manually cleared from parse cache are evicted upon session recycling", max = 1) { p =>
+    p.use { s =>
+      s.execute(pgStatementsByName)("foo").void >>
+      s.execute(pgStatementsByStatement)("bar").void >>
+      s.execute(pgStatementsCountByStatement)("baz").void >>
+      s.parseCache.value.clear >>
+      s.parseCache.value.values.map { values =>
+        assertEquals(values.size, 0, "no prepared statements are cached")
+      } >>
+      s.execute(pgStatementsCount).map { count =>
+        assertEquals(count, List(3L), "evicted prepared statements should still exist on server")
+      }
+    } >>
+    p.use { s =>
+      // verify all statements were closed
+      s.execute(pgStatements).map { statements =>
+        assertEquals(statements, Nil)
+      }
+    }
+  }
 }
