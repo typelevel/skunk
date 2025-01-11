@@ -10,16 +10,16 @@ import cats.syntax.all._
  * Cache based on a two-generation GC.
  * Taken from https://twitter.com/pchiusano/status/1260255494519865346
  */
-sealed abstract case class SemispaceCache[K, V](gen0: Map[K, V], gen1: Map[K, V], max: Int, possiblyEvicted: SemispaceCache.EvictionSet[V]) {
+sealed abstract case class SemispaceCache[K, V](gen0: Map[K, V], gen1: Map[K, V], max: Int, evicted: SemispaceCache.EvictionSet[V]) {
 
   assert(max >= 0)
   assert(gen0.size <= max)
   assert(gen1.size <= max)
 
   def insert(k: K, v: V): SemispaceCache[K, V] =
-    if (max == 0)        SemispaceCache(gen0, gen1, max, possiblyEvicted + v)                  // immediately evict
-    else if (gen0.size < max) SemispaceCache(gen0 + (k -> v), gen1, max, possiblyEvicted)      // room in gen0, done!
-    else                 SemispaceCache(Map(k -> v), gen0, max, possiblyEvicted ++ gen1.values)// no room in gen0, slide it down
+    if (max == 0)        SemispaceCache(gen0, gen1, max, evicted + v)                      // immediately evict
+    else if (gen0.size < max) SemispaceCache(gen0 + (k -> v), gen1, max, evicted - v)      // room in gen0, done!
+    else                 SemispaceCache(Map(k -> v), gen0, max, evicted ++ gen1.values - v)// no room in gen0, slide it down
 
   def lookup(k: K): Option[(SemispaceCache[K, V], V)] =
     gen0.get(k).tupleLeft(this) orElse       // key is in gen0, done!
@@ -32,10 +32,10 @@ sealed abstract case class SemispaceCache[K, V](gen0: Map[K, V], gen1: Map[K, V]
     (gen0.values.toSet | gen1.values.toSet).toList
 
   def evictAll: SemispaceCache[K, V] =
-    SemispaceCache(Map.empty, Map.empty, max, possiblyEvicted ++ gen0.values ++ gen1.values)
+    SemispaceCache(Map.empty, Map.empty, max, evicted ++ gen0.values ++ gen1.values)
 
   def clearEvicted: (SemispaceCache[K, V], List[V]) =
-    (SemispaceCache(gen0, gen1, max, possiblyEvicted.clear), (possiblyEvicted -- gen0.values -- gen1.values).toList)
+    (SemispaceCache(gen0, gen1, max, evicted.clear), evicted.toList)
 }
 
 object SemispaceCache {
@@ -49,7 +49,7 @@ object SemispaceCache {
   sealed trait EvictionSet[V] {
     def +(v: V): EvictionSet[V]
     def ++(vs: Iterable[V]): EvictionSet[V]
-    def --(vs: Iterable[V]): EvictionSet[V]
+    def -(v: V): EvictionSet[V]
     def toList: List[V]
     def clear: EvictionSet[V]
   }
@@ -59,7 +59,7 @@ object SemispaceCache {
     class ZeroEvictionSet[V] extends EvictionSet[V] {
       def +(v: V): EvictionSet[V] = this
       def ++(vs: Iterable[V]): EvictionSet[V] = this
-      def --(vs: Iterable[V]): EvictionSet[V] = this
+      def -(v: V): EvictionSet[V] = this
       def toList: List[V] = Nil
       def clear: EvictionSet[V] = this
     }
@@ -67,7 +67,7 @@ object SemispaceCache {
     class DefaultEvictionSet[V](underlying: Set[V]) extends EvictionSet[V] {
       def +(v: V): EvictionSet[V] = new DefaultEvictionSet(underlying + v)
       def ++(vs: Iterable[V]): EvictionSet[V] = new DefaultEvictionSet(underlying ++ vs)
-      def --(vs: Iterable[V]): EvictionSet[V] = new DefaultEvictionSet(underlying -- vs)
+      def -(v: V): EvictionSet[V] = new DefaultEvictionSet(underlying - v)
       def toList: List[V] = underlying.toList
       def clear: EvictionSet[V] = new DefaultEvictionSet(Set.empty)
     }
