@@ -18,7 +18,7 @@ sealed trait StatementCache[F[_], V] { outer =>
   def containsKey(k: Statement[_]): F[Boolean]
   def clear: F[Unit]
   def values: F[List[V]]
-  def clearEvicted: F[List[V]]
+  private[skunk] def clearEvicted: F[List[V]]
 
   def mapK[G[_]](fk: F ~> G): StatementCache[G, V] =
     new StatementCache[G, V] {
@@ -46,14 +46,14 @@ object StatementCache {
             }
           }
 
-        private[skunk] def put(k: Statement[_], v: V): F[Unit] =
+        def put(k: Statement[_], v: V): F[Unit] =
           ref.update(_.insert(k.cacheKey, v))
 
         def containsKey(k: Statement[_]): F[Boolean] =
           ref.get.map(_.containsKey(k.cacheKey))
 
         def clear: F[Unit] =
-          ref.set(SemispaceCache.empty[Statement.CacheKey, V](max))
+          ref.update(_.evictAll)
 
         def values: F[List[V]] =
           ref.get.map(_.values)
@@ -62,5 +62,4 @@ object StatementCache {
           ref.modify(_.clearEvicted)
       }
     }
-
 }

@@ -30,6 +30,9 @@ sealed abstract case class SemispaceCache[K, V](gen0: Map[K, V], gen1: Map[K, V]
   def values: List[V] =
     (gen0.values.toSet | gen1.values.toSet).toList
 
+  def evictAll: SemispaceCache[K, V] =
+    SemispaceCache(Map.empty, Map.empty, max, (gen0.values.toSet | gen1.values.toSet | possiblyEvicted.toSet).toList)
+
   def clearEvicted: (SemispaceCache[K, V], List[V]) =
     (SemispaceCache(gen0, gen1, max, Nil), (possiblyEvicted.toSet -- values.toSet).toList)
 }
@@ -40,6 +43,5 @@ object SemispaceCache {
     new SemispaceCache[K, V](gen0, gen1, max, evicted) {}
 
   def empty[K, V](max: Int): SemispaceCache[K, V] =
-    SemispaceCache[K, V](Map.empty, Map.empty, max max 1, List.empty)
-
+    SemispaceCache[K, V](Map.empty, Map.empty, max max 1, Nil)
 }

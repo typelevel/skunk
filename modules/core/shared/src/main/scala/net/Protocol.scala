@@ -115,6 +115,9 @@ trait Protocol[F[_]] {
 
   /** Cache for the `Parse` protocol. */
   def parseCache: Parse.Cache[F]
+
+  /** Closes any prepared statements that have been evicted from the parse cache. */
+  def closeEvictedPreparedStatements: F[Unit]
 }
 
 object Protocol {
@@ -270,6 +273,8 @@ object Protocol {
         override val parseCache: Parse.Cache[F] =
           pc
 
+        override def closeEvictedPreparedStatements: F[Unit] = 
+          pc.value.clearEvicted.flatMap(_.traverse_(protocol.Close[F].apply))
       }
     }
 

@@ -299,6 +299,11 @@ trait Session[F[_]] {
    * the cache through this accessor.
    */
   def parseCache: Parse.Cache[F]
+
+  /**
+   * Send a Close to server for each prepared statement that has been evicted.
+   */
+  def closeEvictedPreparedStatements: F[Unit]
 }
 
 
@@ -360,14 +365,20 @@ object Session {
      * isn't running arbitrary statements then `minimal` might be more efficient.
      */
     def full[F[_]: Monad]: Recycler[F, Session[F]] =
-      ensureIdle[F] <+> unlistenAll <+> resetAll
+      closeEvictedPreparedStatements[F] <+> ensureIdle[F] <+> unlistenAll <+> resetAll
 
     /**
      * Ensure the session is idle, then run a trivial query to ensure the connection is in working
      * order. In most cases this check is sufficient.
      */
     def minimal[F[_]: Monad]: Recycler[F, Session[F]] =
-      ensureIdle[F] <+> Recycler(_.unique(Query("VALUES (true)", Origin.unknown, Void.codec, bool)))
+      closeEvictedPreparedStatements[F] <+> ensureIdle[F] <+> Recycler(_.unique(Query("VALUES (true)", Origin.unknown, Void.codec, bool)))
+
+    /**
+     * Send a Close to server for each prepared statement that was evicted during this session.
+     */
+    def closeEvictedPreparedStatements[F[_]: Monad]: Recycler[F, Session[F]] =
+      Recycler(_.closeEvictedPreparedStatements.as(true))
     
     /**
      * Yield `true` the session is idle (i.e., that there is no ongoing transaction), otherwise
@@ -678,6 +689,9 @@ object Session {
 
         override def parseCache: Parse.Cache[F] =
           proto.parseCache
+
+        override def closeEvictedPreparedStatements: F[Unit] = 
+          proto.closeEvictedPreparedStatements
       }
     }
   }
@@ -735,6 +749,8 @@ object Session {
         override def describeCache: Describe.Cache[G] = outer.describeCache.mapK(fk)
 
         override def parseCache: Parse.Cache[G] = outer.parseCache.mapK(fk)
+
+        override def closeEvictedPreparedStatements: G[Unit] = fk(outer.closeEvictedPreparedStatements)
       }
   }
 

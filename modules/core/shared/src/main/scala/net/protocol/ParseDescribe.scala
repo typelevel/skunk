@@ -44,18 +44,15 @@ object ParseDescribe {
                 ).raiseError[F, Unit]
         } yield a
 
-      def parseExchange(stmt: Statement[_], ty: Typer)(span: Span[F]): F[(F[StatementId], StatementId => F[Unit], F[Unit])] = 
+      def parseExchange(stmt: Statement[_], ty: Typer)(span: Span[F]): F[(F[StatementId], StatementId => F[Unit])] = 
         stmt.encoder.oids(ty) match {
 
           case Right(os) if os.length > Short.MaxValue =>
-            TooManyParametersException(stmt).raiseError[F, (F[StatementId], StatementId => F[Unit], F[Unit])]
+            TooManyParametersException(stmt).raiseError[F, (F[StatementId], StatementId => F[Unit])]
 
           case Right(os) =>
 
-            val closeEvictedStatements =
-              parseCache.value.clearEvicted.flatMap(_.traverse_(Close.midExchange[F].apply))
-
-            OptionT(parseCache.value.get(stmt)).map(id => (id.pure, (_:StatementId) => ().pure, closeEvictedStatements)).getOrElse {
+            OptionT(parseCache.value.get(stmt)).map(id => (id.pure, (_:StatementId) => ().pure)).getOrElse {
               val pre = for {
                 id <- nextName("statement").map(StatementId(_))
                 _  <- span.addAttributes(
@@ -74,10 +71,10 @@ object ParseDescribe {
                 _  <- parseCache.value.put(stmt, id)
               } yield ()
 
-              (pre, post, closeEvictedStatements)
+              (pre, post)
             }
           case Left(err) =>
-            UnknownTypeException(stmt, err, ty.strategy).raiseError[F, (F[StatementId], StatementId => F[Unit], F[Unit])]
+            UnknownTypeException(stmt, err, ty.strategy).raiseError[F, (F[StatementId], StatementId => F[Unit])]
 
         }
 
@@ -114,7 +111,7 @@ object ParseDescribe {
           }
 
         exchange("parse+describe") { (span: Span[F]) => 
-          parseExchange(cmd, ty)(span).flatMap { case (preParse, postParse, closeEvictedStatements) =>
+          parseExchange(cmd, ty)(span).flatMap { case (preParse, postParse) =>
             describeExchange(span).flatMap { case (preDesc, postDesc) =>
               for {
                 id <- preParse
@@ -122,7 +119,6 @@ object ParseDescribe {
                 _  <- send(Flush)
                 _  <- postParse(id)
                 _  <- postDesc
-                _  <- closeEvictedStatements
               } yield id
             }
           }
@@ -162,7 +158,7 @@ object ParseDescribe {
 
         
         exchange("parse+describe") { (span: Span[F]) => 
-          parseExchange(query, ty)(span).flatMap { case (preParse, postParse, closeEvictedStatements) =>
+          parseExchange(query, ty)(span).flatMap { case (preParse, postParse) =>
             describeExchange(span).flatMap { case (preDesc, postDesc) =>
               for {
                 id <- preParse
@@ -170,7 +166,6 @@ object ParseDescribe {
                 _  <- send(Flush)
                 _  <- postParse(id)
                 rd <- postDesc
-                _  <- closeEvictedStatements
               } yield (id, rd)
             }
           }
