@@ -13,11 +13,11 @@ class SemispaceCacheTest extends ScalaCheckSuite {
   val genEmpty: Gen[SemispaceCache[Int, String]] =
     Gen.choose(-1, 10).map(SemispaceCache.empty(_, true))
 
-  test("insert on empty cache results in no eviction") {
+  test("insert on empty cache results in eviction") {
     val cache = SemispaceCache.empty(0, true).insert("one", 1)
-    assertEquals(cache.values.sorted, List(1))
-    assert(cache.containsKey("one"))
-    assertEquals(cache.clearEvicted._2, Nil)
+    assertEquals(cache.values, Nil)
+    assert(!cache.containsKey("one"))
+    assertEquals(cache.clearEvicted._2, List(1))
   }
   
   test("insert on full cache results in eviction") {
@@ -47,7 +47,7 @@ class SemispaceCacheTest extends ScalaCheckSuite {
   test("insert should allow lookup") {
     forAll(genEmpty) { c =>
       val cʹ = c.insert(1, "x")
-      assertEquals(cʹ.lookup(1), Some((cʹ, "x")))
+      assertEquals(cʹ.lookup(1), if (c.max == 0) None else Some((cʹ, "x")))
     }
   }
 
