@@ -73,6 +73,12 @@ trait Protocol[F[_]] {
    */
   def prepare[A, B](query: Query[A, B], ty: Typer): F[Protocol.PreparedQuery[F, A, B]]
 
+  /** Like [[prepare]] but does not cache the result and closes the command upon resource cleanup. */
+  def prepareR[A](command: Command[A], ty: Typer): Resource[F, Protocol.PreparedCommand[F, A]]
+
+  /** Like [[prepare]] but does not cache the result and closes the query upon resource cleanup. */
+  def prepareR[A, B](query: Query[A, B], ty: Typer): Resource[F, Protocol.PreparedQuery[F, A, B]]
+
   /**
    * Execute a non-parameterized command (a statement that produces no rows), yielding a
    * `Completion`. This is equivalent to `prepare` + `bind` + `execute` but it uses the "simple"
@@ -103,7 +109,7 @@ trait Protocol[F[_]] {
    * Cleanup the session. This will close any cached prepared statements.
    */
   def cleanup: F[Unit]
-
+  
   /**
    * Signal representing the current transaction status as reported by `ReadyForQuery`. It's not
    * clear that this is a useful thing to expose.
@@ -115,6 +121,9 @@ trait Protocol[F[_]] {
 
   /** Cache for the `Parse` protocol. */
   def parseCache: Parse.Cache[F]
+
+  /** Closes any prepared statements that have been evicted from the parse cache. */
+  def closeEvictedPreparedStatements: F[Unit]
 }
 
 object Protocol {
@@ -247,6 +256,20 @@ object Protocol {
         override def prepare[A, B](query: Query[A, B], ty: Typer): F[PreparedQuery[F, A, B]] =
           protocol.Prepare[F](describeCache, parseCache, redactionStrategy).apply(query, ty)
 
+        override def prepareR[A](command: Command[A], ty: Typer): Resource[F, Protocol.PreparedCommand[F, A]] = {
+          val acquire = Parse.Cache.empty[F](1).flatMap { pc =>
+            protocol.Prepare[F](describeCache, pc, redactionStrategy).apply(command, ty)
+          }
+          Resource.make(acquire)(pc => protocol.Close[F].apply(pc.id))
+        }
+
+        override def prepareR[A, B](query: Query[A, B], ty: Typer): Resource[F, Protocol.PreparedQuery[F, A, B]] = {
+          val acquire = Parse.Cache.empty[F](1).flatMap { pc =>
+            protocol.Prepare[F](describeCache, pc, redactionStrategy).apply(query, ty)
+          }
+          Resource.make(acquire)(pq => protocol.Close[F].apply(pq.id))
+        }
+
         override def execute(command: Command[Void]): F[Completion] =
           protocol.Query[F](redactionStrategy).apply(command)
 
@@ -259,8 +282,8 @@ object Protocol {
           protocol.Startup[F].apply(user, database, password, parameters)
 
         override def cleanup: F[Unit] =
-          parseCache.value.values.flatMap(xs => xs.traverse_(protocol.Close[F].apply))
-
+          parseCache.value.values.flatMap(_.traverse_(protocol.Close[F].apply))
+        
         override def transactionStatus: Signal[F, TransactionStatus] =
           bms.transactionStatus
 
@@ -270,6 +293,8 @@ object Protocol {
         override val parseCache: Parse.Cache[F] =
           pc
 
+        override def closeEvictedPreparedStatements: F[Unit] = 
+          pc.value.clearEvicted.flatMap(_.traverse_(protocol.Close[F].apply))
       }
     }
 

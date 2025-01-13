@@ -51,6 +51,7 @@ object ParseDescribe {
             TooManyParametersException(stmt).raiseError[F, (F[StatementId], StatementId => F[Unit])]
 
           case Right(os) =>
+
             OptionT(parseCache.value.get(stmt)).map(id => (id.pure, (_:StatementId) => ().pure)).getOrElse {
               val pre = for {
                 id <- nextName("statement").map(StatementId(_))
@@ -109,7 +110,7 @@ object ParseDescribe {
           }
 
         exchange("parse+describe") { (span: Span[F]) => 
-          parseExchange(cmd, ty)(span).flatMap{ case (preParse, postParse) =>
+          parseExchange(cmd, ty)(span).flatMap { case (preParse, postParse) =>
             describeExchange(span).flatMap { case (preDesc, postDesc) =>
               for {
                 id <- preParse
@@ -155,7 +156,7 @@ object ParseDescribe {
 
         
         exchange("parse+describe") { (span: Span[F]) => 
-          parseExchange(query, ty)(span).flatMap{ case (preParse, postParse) =>
+          parseExchange(query, ty)(span).flatMap { case (preParse, postParse) =>
             describeExchange(span).flatMap { case (preDesc, postDesc) =>
               for {
                 id <- preParse

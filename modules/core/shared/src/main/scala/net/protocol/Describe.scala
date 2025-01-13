@@ -26,8 +26,8 @@ object Describe {
       commandCapacity: Int,
       queryCapacity:   Int,
     ): F[Cache[F]] = (
-      StatementCache.empty[F, Unit](commandCapacity),
-      StatementCache.empty[F, TypedRowDescription](queryCapacity)
+      StatementCache.empty[F, Unit](commandCapacity, false),
+      StatementCache.empty[F, TypedRowDescription](queryCapacity, false)
     ).mapN(Describe.Cache(_, _))
   }
 

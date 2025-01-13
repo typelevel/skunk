@@ -218,26 +218,22 @@ trait Session[F[_]] {
   /**
    * Resource that prepares a query, yielding a `PreparedQuery` which can be executed multiple
    * times with different arguments.
-   * 
-   * Note: this method only exists to ease migration from Skunk 0.3 and prior. Use the
-   * non-resource variant instead.
    *
+   * The prepared query is not cached and is closed upon resource cleanup.
+   * 
    * @group Queries
    */
-  def prepareR[A, B](query: Query[A, B]): Resource[F, PreparedQuery[F, A, B]] =
-    Resource.eval(prepare(query))
+  def prepareR[A, B](query: Query[A, B]): Resource[F, PreparedQuery[F, A, B]]
 
   /**
    * Prepare an `INSERT`, `UPDATE`, or `DELETE` command that returns no rows. The resulting
    * `PreparedCommand` can be executed multiple times with different arguments.
-   * 
-   * Note: this method only exists to ease migration from Skunk 0.3 and prior. Use the
-   * non-resource variant instead.
    *
+   * The prepared command is not cached and is closed upon resource cleanup.
+   * 
    * @group Commands
    */
-  def prepareR[A](command: Command[A]): Resource[F, PreparedCommand[F, A]] =
-    Resource.eval(prepare(command))
+  def prepareR[A](command: Command[A]): Resource[F, PreparedCommand[F, A]]
 
   /**
    * Transform a `Command` into a `Pipe` from inputs to `Completion`s.
@@ -300,6 +296,10 @@ trait Session[F[_]] {
    */
   def parseCache: Parse.Cache[F]
 
+  /**
+   * Send a Close to server for each prepared statement that has been evicted.
+   */
+  def closeEvictedPreparedStatements: F[Unit]
 }
 
 
@@ -313,9 +313,11 @@ object Session {
   abstract class Impl[F[_]: MonadCancelThrow] extends Session[F] {
 
     override def execute[A, B](query: Query[A, B])(args: A): F[List[B]] =
-      Monad[F].flatMap(prepare(query))(_.cursor(args).use {
-        _.fetch(Int.MaxValue).map { case (rows, _) => rows }
-      })
+      Monad[F].flatMap(prepare(query)) { pq =>
+        pq.cursor(args).use {
+         _.fetch(Int.MaxValue).map { case (rows, _) => rows }
+        }
+      }
 
     override def unique[A, B](query: Query[A, B])(args: A): F[B] =
       Monad[F].flatMap(prepare(query))(_.unique(args))
@@ -359,15 +361,21 @@ object Session {
      * isn't running arbitrary statements then `minimal` might be more efficient.
      */
     def full[F[_]: Monad]: Recycler[F, Session[F]] =
-      ensureIdle[F] <+> unlistenAll <+> resetAll
+      closeEvictedPreparedStatements[F] <+> ensureIdle[F] <+> unlistenAll <+> resetAll
 
     /**
      * Ensure the session is idle, then run a trivial query to ensure the connection is in working
      * order. In most cases this check is sufficient.
      */
     def minimal[F[_]: Monad]: Recycler[F, Session[F]] =
-      ensureIdle[F] <+> Recycler(_.unique(Query("VALUES (true)", Origin.unknown, Void.codec, bool)))
+      closeEvictedPreparedStatements[F] <+> ensureIdle[F] <+> Recycler(_.unique(Query("VALUES (true)", Origin.unknown, Void.codec, bool)))
 
+    /**
+     * Send a Close to server for each prepared statement that was evicted during this session.
+     */
+    def closeEvictedPreparedStatements[F[_]: Monad]: Recycler[F, Session[F]] =
+      Recycler(_.closeEvictedPreparedStatements.as(true))
+    
     /**
      * Yield `true` the session is idle (i.e., that there is no ongoing transaction), otherwise
      * yield false. This check does not require network IO.
@@ -382,7 +390,6 @@ object Session {
     /** Reset all variables to system defaults and yield `true`. */
     def resetAll[F[_]: Functor]: Recycler[F, Session[F]] =
       Recycler(_.execute(Command("RESET ALL", Origin.unknown, Void.codec)).as(true))
-
   }
 
   /**
@@ -667,6 +674,12 @@ object Session {
         override def prepare[A](command: Command[A]): F[PreparedCommand[F, A]] =
           proto.prepare(command, typer).map(PreparedCommand.fromProto(_))
 
+        override def prepareR[A, B](query: Query[A, B]): Resource[F, PreparedQuery[F, A, B]] =
+          proto.prepareR(query, typer).map(PreparedQuery.fromProto(_, redactionStrategy))
+
+        override def prepareR[A](command: Command[A]): Resource[F, PreparedCommand[F, A]] =
+          proto.prepareR(command, typer).map(PreparedCommand.fromProto(_))
+
         override def transaction[A]: Resource[F, Transaction[F]] =
           Transaction.fromSession(this, namer, none, none)
 
@@ -679,6 +692,8 @@ object Session {
         override def parseCache: Parse.Cache[F] =
           proto.parseCache
 
+        override def closeEvictedPreparedStatements: F[Unit] = 
+          proto.closeEvictedPreparedStatements
       }
     }
   }
@@ -724,6 +739,10 @@ object Session {
 
         override def prepare[A](command: Command[A]): G[PreparedCommand[G,A]] = fk(outer.prepare(command)).map(_.mapK(fk))
 
+        override def prepareR[A, B](query: Query[A, B]): Resource[G, PreparedQuery[G, A, B]] = outer.prepareR(query).mapK(fk).map(_.mapK(fk))
+
+        override def prepareR[A](command: Command[A]): Resource[G, PreparedCommand[G, A]] = outer.prepareR(command).mapK(fk).map(_.mapK(fk))
+
         override def transaction[A]: Resource[G,Transaction[G]] = outer.transaction.mapK(fk).map(_.mapK(fk))
 
         override def transaction[A](isolationLevel: TransactionIsolationLevel, accessMode: TransactionAccessMode): Resource[G,Transaction[G]] =
@@ -737,6 +756,7 @@ object Session {
 
         override def parseCache: Parse.Cache[G] = outer.parseCache.mapK(fk)
 
+        override def closeEvictedPreparedStatements: G[Unit] = fk(outer.closeEvictedPreparedStatements)
       }
   }
 

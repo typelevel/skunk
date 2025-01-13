@@ -11,7 +11,32 @@ import org.scalacheck.Prop._
 class SemispaceCacheTest extends ScalaCheckSuite {
 
   val genEmpty: Gen[SemispaceCache[Int, String]] =
-    Gen.choose(-1, 10).map(SemispaceCache.empty)
+    Gen.choose(-1, 10).map(SemispaceCache.empty(_, true))
+
+  test("insert on empty cache results in eviction") {
+    val cache = SemispaceCache.empty(0, true).insert("one", 1)
+    assertEquals(cache.values, Nil)
+    assert(!cache.containsKey("one"))
+    assertEquals(cache.clearEvicted._2, List(1))
+  }
+  
+  test("insert on full cache results in eviction") {
+    val cache = SemispaceCache.empty(1, true).insert("one", 1)
+    assertEquals(cache.values, List(1))
+    assertEquals(cache.lookup("one").map(_._2), Some(1))
+    assertEquals(cache.clearEvicted._2, List.empty)
+
+    // We now have two items (the cache stores up to 2*max entries)
+    val updated = cache.insert("two", 2)
+    assert(updated.containsKey("one")) // gen1
+    assert(updated.containsKey("two")) // gen0
+    assertEquals(updated.clearEvicted._2, List.empty)
+    
+    val third = updated.insert("one", 1)
+    assert(third.containsKey("one")) // gen1
+    assert(third.containsKey("two")) // gen0
+    assertEquals(third.clearEvicted._2, List.empty)
+  }
 
   test("max is never negative") {
     forAll(genEmpty) { c =>
@@ -19,7 +44,7 @@ class SemispaceCacheTest extends ScalaCheckSuite {
     }
   }
 
-  test("insert should allow lookup, unless max == 0") {
+  test("insert should allow lookup") {
     forAll(genEmpty) { c =>
       val cʹ = c.insert(1, "x")
       assertEquals(cʹ.lookup(1), if (c.max == 0) None else Some((cʹ, "x")))

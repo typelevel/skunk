@@ -40,7 +40,5 @@ object Close {
           _ <- send(Flush)
           _ <- expect { case CloseComplete => }
         } yield ()
-
     }
-
 }
