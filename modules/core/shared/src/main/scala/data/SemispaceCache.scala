@@ -21,7 +21,7 @@ sealed abstract case class SemispaceCache[K, V](gen0: Map[K, V], gen1: Map[K, V]
     else if (gen0.size < max) SemispaceCache(gen0 + (k -> v), gen1 - k, max, evicted - v)      // room in gen0, done!
     else                 SemispaceCache(Map(k -> v), gen0 - k, max, evicted ++ gen1.values - v)// no room in gen0, slide it down
 
-  def lookup(k: K): Option[(SemispaceCache[K, V], V)] =
+  def lookup(k: K): Option[(SemispaceCache[K, V], V)] = 
     gen0.get(k).tupleLeft(this) orElse       // key is in gen0, done!
     gen1.get(k).map(v => (insert(k, v), v))  // key is in gen1, copy to gen0
 
@@ -40,8 +40,14 @@ sealed abstract case class SemispaceCache[K, V](gen0: Map[K, V], gen1: Map[K, V]
 
 object SemispaceCache {
 
-  private def apply[K, V](gen0: Map[K, V], gen1: Map[K, V], max: Int, evicted: EvictionSet[V]): SemispaceCache[K, V] =
-    new SemispaceCache[K, V](gen0, gen1, max, evicted) {}
+  private def apply[K, V](gen0: Map[K, V], gen1: Map[K, V], max: Int, evicted: EvictionSet[V]): SemispaceCache[K, V] = {
+    val r = new SemispaceCache[K, V](gen0, gen1, max, evicted) {}
+    val gen0Intersection: Set[V] = (gen0.values.toSet intersect evicted.toList.toSet)
+    val gen1Intersection: Set[V] = (gen1.values.toSet intersect evicted.toList.toSet)
+    assert(gen0Intersection.isEmpty, s"gen0 has overlapping values in evicted: ${gen0Intersection}")
+    assert(gen1Intersection.isEmpty, s"gen1 has overlapping values in evicted: ${gen1Intersection}")
+    r
+  }
 
   def empty[K, V](max: Int, trackEviction: Boolean): SemispaceCache[K, V] =
     SemispaceCache[K, V](Map.empty, Map.empty, max max 0, if (trackEviction) EvictionSet.empty else new EvictionSet.ZeroEvictionSet)
