@@ -8,6 +8,7 @@ import skunk.implicits._
 import skunk.codec.numeric.int8
 import skunk.codec.text
 import skunk.codec.boolean
+import cats.syntax.all._
 
 class PrepareCacheTest extends SkunkTest {
 
@@ -17,7 +18,7 @@ class PrepareCacheTest extends SkunkTest {
   private val pgStatementsCount = sql"select count(*) from pg_prepared_statements".query(int8)
   private val pgStatements = sql"select statement from pg_prepared_statements order by prepare_time".query(text.text)
     
-  pooledTest("prepare cache should close evicted prepared statements at end of session", max = 1, parseCacheSize = 1) { p =>
+  pooledTest("prepare cache should close evicted prepared statements at end of session", max = 1, parseCacheSize = 2) { p =>
     p.use { s =>
       s.execute(pgStatementsByName)("foo").void >>
       s.execute(pgStatementsByStatement)("bar").void >>
@@ -40,7 +41,7 @@ class PrepareCacheTest extends SkunkTest {
     } 
   }
 
-  pooledTest("prepared statements via prepare shouldn't get evicted until they go out of scope", max = 1, parseCacheSize = 1) { p =>
+  pooledTest("prepared statements via prepare shouldn't get evicted until they go out of scope", max = 1, parseCacheSize = 2) { p =>
     p.use { s =>
       // creates entry in cache
       s.prepare(pgStatementsByName)   
@@ -87,5 +88,15 @@ class PrepareCacheTest extends SkunkTest {
         assertEquals(statements, Nil)
       }
     }
+  }
+
+  pooledTest("concurrent prepare cache should close evicted prepared statements at end of session", max = 1, parseCacheSize = 4) { p =>
+    List.fill(8)(
+      p.use { s =>
+        s.execute(pgStatementsByName)("foo").void >>
+        s.execute(pgStatementsByStatement)("bar").void >>
+        s.execute(pgStatementsCountByStatement)("baz").void
+      }
+    ).sequence
   }
 }

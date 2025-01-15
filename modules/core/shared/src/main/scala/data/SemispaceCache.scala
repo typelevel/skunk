@@ -18,8 +18,8 @@ sealed abstract case class SemispaceCache[K, V](gen0: Map[K, V], gen1: Map[K, V]
 
   def insert(k: K, v: V): SemispaceCache[K, V] =
     if (max == 0)        SemispaceCache(gen0, gen1, max, evicted + v)                      // immediately evict
-    else if (gen0.size < max) SemispaceCache(gen0 + (k -> v), gen1, max, evicted - v)      // room in gen0, done!
-    else                 SemispaceCache(Map(k -> v), gen0, max, evicted ++ gen1.values - v)// no room in gen0, slide it down
+    else if (gen0.size < max) SemispaceCache(gen0 + (k -> v), gen1 - k, max, evicted - v)      // room in gen0, done!
+    else                 SemispaceCache(Map(k -> v), gen0 - k, max, evicted ++ gen1.values - v)// no room in gen0, slide it down
 
   def lookup(k: K): Option[(SemispaceCache[K, V], V)] =
     gen0.get(k).tupleLeft(this) orElse       // key is in gen0, done!
