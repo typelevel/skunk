@@ -12,6 +12,36 @@ class SemispaceCacheTest extends ScalaCheckSuite {
 
   val genEmpty: Gen[SemispaceCache[Int, String]] =
     Gen.choose(-1, 10).map(SemispaceCache.empty(_, true))
+  
+  test("eviction should never contain values in gen0/gen1") {
+    val cache = SemispaceCache.empty(2, true).insert("one", 1)
+
+    val i1 = cache.insert("one", 1)
+    // Two doesn't exist; space in gen0, insert
+    val i2 = i1.lookup("two").map(_._1).getOrElse(i1.insert("two", 2))
+    assertEquals(i2.gen0, Map("one" -> 1, "two" -> 2))
+    assertEquals(i2.gen1, Map.empty[String, Int])
+    assertEquals(i2.evicted.toList, Nil)
+    
+    // Three doesn't exist, hit max; slide gen0 -> gen1 and add to gen0
+    val i3 = i2.lookup("three").map(_._1).getOrElse(i2.insert("three", 3))
+    assertEquals(i3.gen0, Map("three" -> 3))
+    assertEquals(i3.gen1, Map("one" -> 1, "two" -> 2))
+    assertEquals(i3.evicted.toList, Nil)
+    
+    // One exists in gen1; pull up to gen0 and REMOVE from gen1
+    val i4 = i3.lookup("one").map(_._1).getOrElse(i3.insert("one", 1))
+    assertEquals(i4.gen0, Map("one" -> 1, "three" -> 3))
+    assertEquals(i4.gen1, Map("two" -> 2))
+    assertEquals(i4.evicted.toList, Nil)
+    
+    // Four doesn't exist; gen0 is full so push to gen1
+    // insert four to gen0 and evict gen1
+    val i5 = i4.lookup("four").map(_._1).getOrElse(i4.insert("four", 4))
+    assertEquals(i5.gen0, Map("four" -> 4))
+    assertEquals(i5.gen1, Map("one" -> 1, "three" -> 3))
+    assertEquals(i5.evicted.toList, List(2))
+  }
 
   test("insert on empty cache results in eviction") {
     val cache = SemispaceCache.empty(0, true).insert("one", 1)
@@ -73,7 +103,7 @@ class SemispaceCacheTest extends ScalaCheckSuite {
       val max = c.max
 
       // Load up the cache such that it overflows by 1
-      val cʹ = (0 to max).foldLeft(c) { case (c, n) => c.insert(n, "x") }
+      val cʹ = (0 to max).foldLeft(c) { case (c, n) => c.insert(n, n.toString) }
       assertEquals(cʹ.gen0.size, 1 min max)
       assertEquals(cʹ.gen1.size, max)
 
@@ -82,7 +112,9 @@ class SemispaceCacheTest extends ScalaCheckSuite {
         case None => assertEquals(max, 0)
         case Some((cʹʹ, _)) =>
           assertEquals(cʹʹ.gen0.size, 2 min max)
-          assertEquals(cʹʹ.gen1.size, max)
+          // When we promote 0 to gen0, we remove it from gen1
+          assertEquals(cʹʹ.gen1.size, max-1 max 1)
+          assertEquals(cʹʹ.evicted.toList, Nil)
       }
 
     }
