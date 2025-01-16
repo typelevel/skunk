@@ -18,6 +18,9 @@ sealed abstract case class SortedBiMap[K: Ordering, V](entries: SortedMap[K, V],
   def get(k: K): Option[V] = entries.get(k)
 
   def put(k: K, v: V): SortedBiMap[K, V] =
+    // nb: couple important properties here:
+    //  - SortedBiMap(k0 -> v, v -> k0).put(k1, v) == SortedBiMap(k1 -> v, v -> k1) 
+    //  - SortedBiMap(k -> v0, v0 -> k).put(k, v1) == SortedBiMap(k -> v1, v1 -> k) 
     SortedBiMap(
       inverse.get(v).fold(entries)(entries - _) + (k -> v), 
       entries.get(k).fold(inverse)(inverse - _) + (v -> k))
