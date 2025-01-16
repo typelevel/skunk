@@ -35,6 +35,7 @@ sealed trait StatementCache[F[_], V] { outer =>
 object StatementCache {
 
   def empty[F[_]: Functor: Ref.Make, V](max: Int, trackEviction: Boolean): F[StatementCache[F, V]] =
+    // State is the cache and a set of evicted values; the evicted set only grows when trackEviction is true
     Ref[F].of((Cache.empty[Statement.CacheKey, V](max), Set.empty[V])).map { ref =>
       new StatementCache[F, V] {
 
@@ -49,7 +50,8 @@ object StatementCache {
         def put(k: Statement[_], v: V): F[Unit] =
           ref.update { case (c, evicted) =>
             val (c2, e) = c.put(k.cacheKey, v)
-            val evicted2 = e.filter(_ => trackEviction).fold(evicted) { case (_, v) => evicted + v }
+            // Remove the value we just inserted from the evicted set and add the newly evicted value, if any
+            val evicted2 = e.filter(_ => trackEviction).fold(evicted - v) { case (_, ev) => evicted - v + ev }
             (c2, evicted2)
           }
 
@@ -67,8 +69,7 @@ object StatementCache {
 
         def clearEvicted: F[List[V]] =
           ref.modify { case (c, evicted) =>
-            val activeValues = c.values.toSet
-            (c, Set.empty[V]) -> evicted.filterNot(activeValues).toList
+            (c, Set.empty[V]) -> evicted.toList
           }
       }
     }
