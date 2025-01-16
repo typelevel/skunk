@@ -40,7 +40,7 @@ object StatementCache {
 
         def get(k: Statement[_]): F[Option[V]] =
           ref.modify { case (c, evicted) =>
-            c.lookup(k.cacheKey) match {
+            c.get(k.cacheKey) match {
               case Some((cʹ, v)) =>  (cʹ -> evicted, Some(v))
               case None          =>  (c -> evicted, None)
             }
@@ -48,13 +48,13 @@ object StatementCache {
 
         def put(k: Statement[_], v: V): F[Unit] =
           ref.update { case (c, evicted) =>
-            val (c2, e) = c.insert(k.cacheKey, v)
+            val (c2, e) = c.put(k.cacheKey, v)
             val evicted2 = e.filter(_ => trackEviction).fold(evicted) { case (_, v) => evicted + v }
             (c2, evicted2)
           }
 
         def containsKey(k: Statement[_]): F[Boolean] =
-          ref.get.map(_._1.containsKey(k.cacheKey))
+          ref.get.map(_._1.contains(k.cacheKey))
 
         def clear: F[Unit] =
           ref.update { case (c, evicted) =>
