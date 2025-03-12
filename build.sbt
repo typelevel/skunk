@@ -16,7 +16,6 @@ ThisBuild / developers   := List(
 ThisBuild / tlCiReleaseBranches += "series/0.6.x"
 ThisBuild / tlCiScalafmtCheck := false
 ThisBuild / tlSitePublishBranch := Some("series/0.6.x")
-ThisBuild / sonatypeCredentialHost := xerial.sbt.Sonatype.sonatypeLegacy
 ThisBuild / githubWorkflowOSes := Seq("ubuntu-latest")
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("11"))
 ThisBuild / tlJdkRelease := Some(8)
