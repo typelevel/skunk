@@ -302,7 +302,7 @@ trait Session[F[_]] {
   def closeEvictedPreparedStatements: F[Unit]
 }
 
-
+case class Credentials(user: String, password: Option[String] = none)
 
 /** @group Companions */
 object Session {
@@ -475,12 +475,98 @@ object Session {
     parseCache:    Int = 2048,
     readTimeout:   Duration = Duration.Inf,
     redactionStrategy: RedactionStrategy = RedactionStrategy.OptIn,
+  ): Resource[F, Tracer[F] => Resource[F, Session[F]]] =
+           pooled_F[F](host, port,  database, Applicative[F].pure(Credentials(user, password)), max, debug, strategy, ssl, parameters, socketOptions, commandCache, queryCache, parseCache, readTimeout, redactionStrategy)
+
+  /**
+   * Resource yielding a `SessionPool` managing up to `max` concurrent `Session`s. Typically you
+   * will `use` this resource once on application startup and pass the resulting
+   * `Resource[F, Session[F]]` to the rest of your program.
+   *
+   * The pool maintains a cache of queries and commands that have been checked against the schema,
+   * eliminating the need to check them more than once. If your program is changing the schema on
+   * the fly than you probably don't want this behavior; you can disable it by setting the
+   * `commandCache` and `queryCache` parameters to zero.
+   *
+   * Note that calling `.flatten` on the nested `Resource` returned by this method may seem
+   * reasonable, but it will result in a resource that allocates a new pool for each session, which
+   * is probably not what you want.
+   * @param host          Postgres server host
+   * @param port          Postgres port, default 5432
+   * @param database      Postgres database
+   * @param credentials   A computation used to retrieve credentials before establishing a new session
+   * @param max           Maximum concurrent sessions
+   * @param debug
+   * @param strategy
+   * @param commandCache  Size of the cache for command checking
+   * @param queryCache    Size of the cache for query checking
+   * @group Constructors
+   */
+  def pooled_[F[_]: Temporal: Tracer: Network: Console](
+    host:          String,
+    port:          Int            = 5432,
+    database:      String,
+    credentials:   F[Credentials],
+    max:           Int,
+    debug:         Boolean        = false,
+    strategy:      Typer.Strategy = Typer.Strategy.BuiltinsOnly,
+    ssl:           SSL            = SSL.None,
+    parameters:    Map[String, String] = Session.DefaultConnectionParameters,
+    socketOptions: List[SocketOption] = Session.DefaultSocketOptions,
+    commandCache:  Int = 1024,
+    queryCache:    Int = 1024,
+    parseCache:    Int = 1024,
+    readTimeout:   Duration = Duration.Inf,
+    redactionStrategy: RedactionStrategy = RedactionStrategy.OptIn,
+  ): Resource[F, Resource[F, Session[F]]] = {
+      pooled_F[F](host, port,  database, credentials, max, debug, strategy, ssl, parameters, socketOptions, commandCache, queryCache, parseCache, readTimeout, redactionStrategy).map(_.apply(Tracer[F]))
+  }
+
+  /**
+   * Resource yielding a function from Tracer to `SessionPool` managing up to `max` concurrent `Session`s. Typically you
+   * will `use` this resource once on application startup and pass the resulting
+   * `Resource[F, Session[F]]` to the rest of your program.
+   *
+   * The pool maintains a cache of queries and commands that have been checked against the schema,
+   * eliminating the need to check them more than once. If your program is changing the schema on
+   * the fly than you probably don't want this behavior; you can disable it by setting the
+   * `commandCache` and `queryCache` parameters to zero.
+   *
+   * @param host          Postgres server host
+   * @param port          Postgres port, default 5432
+   * @param user          Postgres user
+   * @param database      Postgres database
+   * @param credentials   A computation used to retrieve credentials before establishing a new session
+   * @param max           Maximum concurrent sessions
+   * @param debug
+   * @param strategy
+   * @param commandCache  Size of the cache for command checking
+   * @param queryCache    Size of the cache for query checking
+   * @group Constructors
+   */
+  def pooled_F[F[_]: Temporal: Network: Console](
+    host:          String,
+    port:          Int            = 5432,
+    database:      String,
+    credentials:   F[Credentials],
+    max:           Int,
+    debug:         Boolean        = false,
+    strategy:      Typer.Strategy = Typer.Strategy.BuiltinsOnly,
+    ssl:           SSL            = SSL.None,
+    parameters:    Map[String, String] = Session.DefaultConnectionParameters,
+    socketOptions: List[SocketOption] = Session.DefaultSocketOptions,
+    commandCache:  Int = 1024,
+    queryCache:    Int = 1024,
+    parseCache:    Int = 1024,
+    readTimeout:   Duration = Duration.Inf,
+    redactionStrategy: RedactionStrategy = RedactionStrategy.OptIn,
   ): Resource[F, Tracer[F] => Resource[F, Session[F]]] = {
 
     def session(socketGroup: SocketGroup[F], sslOp: Option[SSLNegotiation.Options[F]], cache: Describe.Cache[F])(implicit T: Tracer[F]): Resource[F, Session[F]] =
       for {
         pc <- Resource.eval(Parse.Cache.empty[F](parseCache))
-        s  <- fromSocketGroup[F](socketGroup, host, port, user, database, password, debug, strategy, socketOptions, sslOp, parameters, cache, pc, readTimeout, redactionStrategy)
+        credentials_ <- Resource.eval(credentials)
+        s  <- fromSocketGroup[F](socketGroup, host, port, credentials_.user, database, credentials_.password, debug, strategy, socketOptions, sslOp, parameters, cache, pc, readTimeout, redactionStrategy)
       } yield s
 
     val logger: String => F[Unit] = s => Console[F].println(s"TLS: $s")
