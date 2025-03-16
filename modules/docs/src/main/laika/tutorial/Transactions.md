@@ -159,12 +159,10 @@ object TransactionExample extends IOApp {
 
   // a source of sessions
   val session: Resource[IO, Session[IO]] =
-    Session.single(
-      host     = "localhost",
-      user     = "jimmy",
-      database = "world",
-      password = Some("banana")
-    )
+    Session.Builder[IO]
+      .withDatabase("world")
+      .withUserAndPassword("jimmy", "banana")
+      .single
 
   // a resource that creates and drops a temporary table
   def withPetsTable(s: Session[IO]): Resource[IO, Unit] = {

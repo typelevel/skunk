@@ -258,12 +258,10 @@ object QueryExample extends IOApp {
 
   // a source of sessions
   val session: Resource[IO, Session[IO]] =
-    Session.single(
-      host     = "localhost",
-      user     = "jimmy",
-      database = "world",
-      password = Some("banana")
-    )
+    Session.Builder[IO]
+      .withDatabase("world")
+      .withUserAndPassword("jimmy", "banana")
+      .single
 
   // a data model
   case class Country(name: String, code: String, population: Int)
@@ -376,12 +374,10 @@ object QueryExample2 extends IOApp {
 
   // a source of sessions
   val session: Resource[IO, Session[IO]] =
-    Session.single(
-      host     = "localhost",
-      user     = "jimmy",
-      database = "world",
-      password = Some("banana")
-    )
+    Session.Builder[IO]
+      .withDatabase("world")
+      .withUserAndPassword("jimmy", "banana")
+      .single
 
   // A source of services
   val service: Resource[IO, Service[IO]] =
