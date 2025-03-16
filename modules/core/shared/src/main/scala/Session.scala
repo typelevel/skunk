@@ -33,8 +33,8 @@ import skunk.net.protocol.Parse
  * scope of its owning `Resource`, as are any streams constructed here. If you `start` an operation
  * be sure to `join` its `Fiber` before releasing the resource.
  *
- * See the [[skunk.Session companion object]] for information on obtaining a pooled or single-use
- * instance.
+ * To create a session, use `Session.Builder[F]`, call various configuration methods, and then call
+ * either `single`, to create a single-use session, or `pooled`, to create a pool of sessions.
  *
  * @groupprio Queries 10
  * @groupdesc Queries A query is any SQL statement that returns rows; i.e., any `SELECT` or
@@ -301,11 +301,6 @@ trait Session[F[_]] {
   def closeEvictedPreparedStatements: F[Unit]
 }
 
-case class Credentials(user: String, password: Option[String] = none) {
-  override def toString: String =
-    s"""Credentials(user, ${if (password.isDefined) "<defined>" else "<undefined>"})"""
-}
-
 /** @group Companions */
 object Session {
 
@@ -342,6 +337,11 @@ object Session {
     override def pipe[A](command: Command[A]): Pipe[F, A, Completion] = fa =>
       Stream.eval(prepare(command)).flatMap(pc => fa.evalMap(pc.execute)).scope
 
+  }
+
+  case class Credentials(user: String, password: Option[String] = none) {
+    override def toString: String =
+      s"""Credentials(user, ${if (password.isDefined) "<defined>" else "<undefined>"})"""
   }
 
   val DefaultConnectionParameters: Map[String, String] =
@@ -394,6 +394,13 @@ object Session {
       Recycler(_.execute(Command("RESET ALL", Origin.unknown, Void.codec)).as(true))
   }
 
+  /**
+   * Supports creation of a `Session`.
+   *
+   * All parameters have sensible defaults (including host, which defaults to localhost, and database and username, which default to postgres).
+   *
+   * After overriding the various defaults, call `single` to create a single-use session or `pooled` to create a pool of sessions.
+   */
   final class Builder[F[_]: Temporal: Network: Console] private (
     val host: String,
     val port: Int,
@@ -462,14 +469,42 @@ object Session {
     def withParseCacheSize(newParseCacheSize: Int): Builder[F] =
       new Builder(host, port, database, credentials, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, newParseCacheSize)
     
+
+    /**
+     * Resource yielding logically unpooled sessions. This can be convenient for demonstrations and
+     * programs that only need a single session. In reality each session is managed by its own
+     * single-session pool.
+     * @see pooled
+     */
     def single(implicit T: Tracer[F]): Resource[F, Session[F]] = pooled(1).flatten
 
-    def singleExplicitTracer: Tracer[F] => Resource[F, Session[F]] =
-      { implicit t: Tracer[F] => pooled(1).flatten }
+    /**
+     * Like [[single]] but instead of taking `Tracer[F]` implicitly, a function is returned that
+     * accepts an explicit `Tracer[F]`.
+     */
+    def singleExplicitTracer: Tracer[F] => Resource[F, Session[F]] = single(_)
 
+    /**
+     * Resource yielding a `SessionPool` managing up to `max` concurrent `Session`s. Typically you
+     * will `use` this resource once on application startup and pass the resulting
+     * `Resource[F, Session[F]]` to the rest of your program.
+     *
+     * The pool maintains a cache of queries and commands that have been checked against the schema,
+     * eliminating the need to check them more than once. If your program is changing the schema on
+     * the fly than you probably don't want this behavior; you can disable it by setting the
+     * `commandCacheSize` and `queryCacheSize` parameters to zero.
+     *
+     * Note that calling `.flatten` on the nested `Resource` returned by this method may seem
+     * reasonable, but it will result in a resource that allocates a new pool for each session, which
+     * is probably not what you want.
+     */
     def pooled(max: Int)(implicit T: Tracer[F]): Resource[F, Resource[F, Session[F]]] =
       pooledExplicitTracer(max).map(_.apply(T))
 
+    /**
+     * Like [[pooled]] but instead of taking `Tracer[F]` implicitly, the inner resource is replaced
+     * by a function which accepts an explicit `Tracer[F]`.
+     */
     def pooledExplicitTracer(max: Int): Resource[F, Tracer[F] => Resource[F, Session[F]]] = {
       val logger: String => F[Unit] = s => Console[F].println(s"TLS: $s")
       for {
@@ -506,6 +541,25 @@ object Session {
     }
   }
 
+  /**
+   * Supports configurable construction of a `Session`.
+   *
+   * Create a `Builder` via `apply` and then call various configuration methods like `withDatabase` and `withUserAndPassword`.
+   * After configuration is complete, call either `single` to create a single-use session or `pooled` to create a pool of sessions.
+   *
+   * For example, the following pool connects to localhost:5432, uses the database named world, and authenticates via username and
+   * password. The resulting pool has a max of 10 concurrent sessions.
+   *
+   * @example {{{
+       val pool: Resource[IO, Resource[IO, Session[IO]]] =
+         Session.Builder[IO]
+           .withDatabase("world")
+           .withUserAndPassword("jimmy", "banana")
+           .pooled(10)
+   }}}
+   *
+   * All configuration parameters have sensible defaults. See the implementation of `apply` for those default values.
+   */
   object Builder {
     def apply[F[_]: Temporal: Network: Console]: Builder[F] =
       new Builder[F](
