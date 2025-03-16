@@ -17,13 +17,10 @@ object Minimal3 extends IOApp {
   implicit val trace: Tracer[IO] = Tracer.noop
 
   val session: Resource[IO, Session[IO]] =
-    Session.single(
-      host     = "localhost",
-      port     = 5432,
-      user     = "jimmy",
-      database = "world",
-      password = Some("banana")
-    )
+    Session.Builder.default[IO]
+      .withDatabase("world")
+      .withUserAndPassword("jimmy", "banana")
+      .single
 
   case class Country(code: String, name: String, pop: Int)
 

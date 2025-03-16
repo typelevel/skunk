@@ -16,13 +16,10 @@ object Transaction extends IOApp {
   implicit def tracer[F[_]: MonadCancelThrow]: Tracer[F] = Tracer.noop
 
   def session[F[_]: Temporal: Console: Network]: Resource[F, Session[F]] =
-    Session.single(
-      host     = "localhost",
-      port     = 5432,
-      user     = "jimmy",
-      database = "world",
-      password = Some("banana"),
-    )
+    Session.Builder.default[F]
+      .withDatabase("world")
+      .withUserAndPassword("jimmy", "banana")
+      .single
 
   def runS[F[_]: Temporal: Console: Network]: F[Int] =
     session[F].use { s =>

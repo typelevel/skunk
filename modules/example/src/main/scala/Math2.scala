@@ -17,14 +17,11 @@ object Math2 extends IOApp {
   implicit val tracer: Tracer[IO] = Tracer.noop
 
   val session: Resource[IO, Session[IO]] =
-    Session.single(
-      host     = "localhost",
-      port     = 5432,
-      user     = "jimmy",
-      database = "world",
-      password = Some("banana"),
-      debug    = true
-    )
+    Session.Builder.default[IO]
+      .withDatabase("world")
+      .withUserAndPassword("jimmy", "banana")
+      .withDebug(true)
+      .single
 
   // An algebra for doing math.
   trait Math[F[_]] {

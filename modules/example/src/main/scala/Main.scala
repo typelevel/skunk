@@ -57,15 +57,11 @@ object Main extends IOApp {
       .compile
       .drain
 
-  val pool: SessionPool[IO] =
-    Session.pooled(
-      host     = "localhost",
-      port     = 5432,
-      user     = "jimmy",
-      database = "world",
-      password = Some("banana"),
-      max      = 10,
-    )
+  val pool: Resource[IO, Resource[IO, Session[IO]]] =
+    Session.Builder.default[IO]
+      .withDatabase("world")
+      .withUserAndPassword("jimmy", "banana")
+      .pooled(10)
 
   def run(args: List[String]): IO[ExitCode] =
     pool.use { p =>

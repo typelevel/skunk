@@ -16,13 +16,10 @@ object Error extends IOApp {
   implicit val trace: Tracer[IO] = Tracer.noop
 
   val session: Resource[IO, Session[IO]] =
-    Session.single(
-      host     = "localhost",
-      port     = 5432,
-      user     = "jimmy",
-      database = "world",
-      password = Some("banana"),
-    )
+    Session.Builder.default[IO]
+      .withDatabase("world")
+      .withUserAndPassword("jimmy", "banana")
+      .single
 
   val query =
     sql"""

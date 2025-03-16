@@ -16,12 +16,10 @@ object AppliedFragments extends IOApp {
   implicit val tracer: Tracer[IO] = Tracer.noop
 
   val session: Resource[IO, Session[IO]] =
-    Session.single(
-      host     = "localhost",
-      user     = "jimmy",
-      database = "world",
-      password = Some("banana"),
-    )
+    Session.Builder.default[IO]
+      .withDatabase("world")
+      .withUserAndPassword("jimmy", "banana")
+      .single
 
   def countryQuery(name: Option[String], pop: Option[Int], capital: Option[Option[String]]): AppliedFragment = {
 

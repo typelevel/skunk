@@ -18,64 +18,57 @@ class SslTest extends ffstest.FTest {
   }
 
   tracedTest("successful login with SSL.Trusted (ssl available)") { implicit tracer: Tracer[IO] =>
-    Session.single[IO](
-      host     = "localhost",
-      user     = "jimmy",
-      database = "world",
-      password = Some("banana"),
-      ssl      = SSL.Trusted,
-    ).use(_ => IO.unit)
+    Session.Builder.default[IO]
+      .withDatabase("world")
+      .withUserAndPassword("jimmy", "banana")
+      .withSSL(SSL.Trusted)
+      .single
+      .use(_ => IO.unit)
   }
 
   tracedTest("successful login with SSL.None (ssl available)") { implicit tracer: Tracer[IO] =>
-    Session.single[IO](
-      host     = "localhost",
-      user     = "jimmy",
-      database = "world",
-      password = Some("banana"),
-      ssl      = SSL.None,
-    ).use(_ => IO.unit)
+    Session.Builder.default[IO]
+      .withDatabase("world")
+      .withUserAndPassword("jimmy", "banana")
+      .withSSL(SSL.None)
+      .single
+      .use(_ => IO.unit)
   }
 
   tracedTest("failed login with SSL.System (ssl available)") { implicit tracer: Tracer[IO] =>
-    Session.single[IO](
-      host     = "localhost",
-      user     = "jimmy",
-      database = "world",
-      password = Some("banana"),
-      ssl      = SSL.System,
-      debug = true
-    ).use(_ => IO.unit).assertFailsWith[SSLException].as("sigh") // TODO! Better failure!
+    Session.Builder.default[IO]
+      .withDatabase("world")
+      .withUserAndPassword("jimmy", "banana")
+      .withSSL(SSL.System)
+      .single
+      .use(_ => IO.unit).assertFailsWith[SSLException].as("sigh") // TODO! Better failure!
   }
 
   tracedTest("failed login with SSL.Trusted (ssl not available)") { implicit tracer: Tracer[IO] =>
-    Session.single[IO](
-      host     = "localhost",
-      user     = "postgres",
-      database = "world",
-      ssl      = SSL.Trusted,
-      port     = Port.Trust
-    ).use(_ => IO.unit).assertFailsWith[Exception].as("ok") // TODO! Better failure!
+    Session.Builder.default[IO]
+      .withDatabase("world")
+      .withSSL(SSL.Trusted)
+      .withPort(Port.Trust)
+      .single
+      .use(_ => IO.unit).assertFailsWith[Exception].as("ok") // TODO! Better failure!
   }
 
   tracedTest("successful login with SSL.Trusted.withFallback(true) (ssl not available)") { implicit tracer: Tracer[IO] =>
-    Session.single[IO](
-      host     = "localhost",
-      user     = "postgres",
-      database = "world",
-      ssl      = SSL.Trusted.withFallback(true),
-      port     = Port.Trust
-    ).use(_ => IO.unit)
+    Session.Builder.default[IO]
+      .withDatabase("world")
+      .withSSL(SSL.Trusted.withFallback(true))
+      .withPort(Port.Trust)
+      .single
+      .use(_ => IO.unit)
   }
 
   tracedTest("successful login with SSL.None (ssl not available)") { implicit tracer: Tracer[IO] =>
-    Session.single[IO](
-      host     = "localhost",
-      user     = "postgres",
-      database = "world",
-      ssl      = SSL.None,
-      port     = Port.Trust
-    ).use(_ => IO.unit)
+    Session.Builder.default[IO]
+      .withDatabase("world")
+      .withSSL(SSL.None)
+      .withPort(Port.Trust)
+      .single
+      .use(_ => IO.unit)
   }
 
   tracedTest("SSL.None cannot produce an SSLContext") { _ =>

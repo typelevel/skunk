@@ -2,7 +2,6 @@
 // This software is licensed under the MIT License (MIT).
 // For more information see LICENSE or https://opensource.org/licenses/MIT
 
-import cats.effect.Resource
 import org.typelevel.twiddles.TwiddleCompat
 
 /**
@@ -35,12 +34,9 @@ import org.typelevel.twiddles.TwiddleCompat
  * object Minimal extends IOApp {
  *
  *   val session: Resource[IO, Session[IO]] =
- *     Session.single(
- *       host     = "localhost",
- *       port     = 5432,
- *       user     = "postgres",
- *       database = "world",
- *     )
+ *     Session.Builder.default[IO]
+ *       .withDatabase("world")
+ *       .single
  *
  *   def run(args: List[String]): IO[ExitCode] =
  *     session.use { s =>
@@ -142,10 +138,8 @@ package object skunk extends TwiddleCompat {
     def unapply[A, B](t: A ~ B): Some[A ~ B] = Some(t)
   }
 
-  type SessionPool[F[_]] = Resource[F, Resource[F, Session[F]]]
-
-  type Strategy = skunk.util.Typer.Strategy
-  val  Strategy = skunk.util.Typer.Strategy
+  type TypingStrategy = skunk.util.Typer.Strategy
+  val  TypingStrategy = skunk.util.Typer.Strategy
 
   object implicits
     extends syntax.ToAllOps

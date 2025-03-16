@@ -11,15 +11,13 @@ import skunk._
 class Test238 extends ffstest.FTest {
 
   tracedTest("see (https://github.com/functional-streams-for-scala/fs2/pull/1989)") { implicit tracer: Tracer[IO] =>
-    Session.single[IO](
-      host     = "localhost",
-      user     = "jimmy",
-      database = "world",
-      password = Some("banana"),
-      strategy = Strategy.SearchPath,
-      ssl      = SSL.Trusted.withFallback(true),
-      // debug    = true
-    ).use(_ => IO.unit)
+    Session.Builder.default[IO]
+      .withDatabase("world")
+      .withUserAndPassword("jimmy", "banana")
+      .withTypingStrategy(TypingStrategy.SearchPath)
+      .withSSL(SSL.Trusted.withFallback(true))
+      .single
+      .use(_ => IO.unit)
   }
 
 }

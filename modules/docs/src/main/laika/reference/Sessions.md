@@ -19,16 +19,14 @@ See [§20.3](https://www.postgresql.org/docs/current/auth-methods.html) in the P
 
 ## Encryption with SSL
 
-To connect with SSL (disabled by default) provide the `ssl` named argument when constructing a `Session` resource.
+To connect with SSL (disabled by default) provide the `ssl` argument when building a `Session` resource.
 
 ```scala mdoc:compile-only
-Session.single[IO](
-  host     = "localhost",
-  user     = "jimmy",
-  database = "world",
-  password = Some("banana"),
-  debug    = true,
-  ssl      = SSL.System, // Use SSL with the system default SSLContext.
+Session.Builder.default[IO]
+  .withDatabase("world")
+  .withUserAndPassword("jimmy", "banana")
+  .withSSL(SSL.System)  // Use SSL with the system default SSLContext
+  .single
 )
 ```
 

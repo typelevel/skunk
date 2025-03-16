@@ -14,24 +14,18 @@ class RedshiftTest extends ffstest.FTest {
   object X86ArchOnly extends munit.Tag("X86ArchOnly")
 
   tracedTest("redshift - successfully connect".tag(X86ArchOnly)) { implicit tracer: Tracer[IO] =>
-    Session.single[IO](
-      host = "localhost",
-      user = "postgres",
-      database = "postgres",
-      password = None,
-      port = 5439, // redshift port
-      parameters = Session.DefaultConnectionParameters - "IntervalStyle"
-    ).use(_ => IO.unit)
+    Session.Builder.default[IO]
+      .withPort(5439) // redshift port
+      .withConnectionParameters(Session.DefaultConnectionParameters - "IntervalStyle")
+      .single
+      .use(_ => IO.unit)
   }
 
   tracedTest("redshift - cannot connect with default params".tag(X86ArchOnly)) { implicit tracer: Tracer[IO] =>
-    Session.single[IO](
-      host = "localhost",
-      user = "postgres",
-      database = "postgres",
-      password = None,
-      port = 5439, // redshift port
-    ).use(_ => IO.unit)
-    .assertFailsWith[StartupException]
+    Session.Builder.default[IO]
+      .withPort(5439) // redshift port
+      .single
+      .use(_ => IO.unit)
+      .assertFailsWith[StartupException]
   }
 }
