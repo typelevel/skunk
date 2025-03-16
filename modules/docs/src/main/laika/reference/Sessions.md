@@ -27,7 +27,6 @@ Session.Builder.default[IO]
   .withUserAndPassword("jimmy", "banana")
   .withSSL(SSL.System)  // Use SSL with the system default SSLContext
   .single
-)
 ```
 
 Skunk supports all TLS modes provided by fs2.
