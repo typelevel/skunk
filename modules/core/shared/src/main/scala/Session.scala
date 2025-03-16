@@ -507,7 +507,7 @@ object Session {
   }
 
   object Builder {
-    def default[F[_]: Temporal: Network: Console]: Builder[F] =
+    def apply[F[_]: Temporal: Network: Console]: Builder[F] =
       new Builder[F](
         host = "localhost",
         port = 5432,
@@ -550,7 +550,7 @@ object Session {
    * @param queryCache    Size of the cache for query checking
    * @group Constructors
    */
-  @deprecated("1.0.0-M11", "Use Session.Builder.default[F].pooled instead")
+  @deprecated("1.0.0-M11", "Use Session.Builder[F].pooled instead")
   def pooled[F[_]: Temporal: Tracer: Network: Console](
     host:          String,
     port:          Int            = 5432,
@@ -569,7 +569,7 @@ object Session {
     readTimeout:   Duration = Duration.Inf,
     redactionStrategy: RedactionStrategy = RedactionStrategy.OptIn,
   ): Resource[F, Resource[F, Session[F]]] =
-    Builder.default[F]
+    Builder[F]
       .withHost(host)
       .withPort(port)
       .withDatabase(database)
@@ -608,7 +608,7 @@ object Session {
    * @param queryCache    Size of the cache for query checking
    * @group Constructors
    */
-  @deprecated("1.0.0-M11", "Use Session.Builder.default[F].pooledExplicitTracer instead")
+  @deprecated("1.0.0-M11", "Use Session.Builder[F].pooledExplicitTracer instead")
   def pooledF[F[_]: Temporal: Network: Console](
     host:          String,
     port:          Int            = 5432,
@@ -627,7 +627,7 @@ object Session {
     readTimeout:   Duration = Duration.Inf,
     redactionStrategy: RedactionStrategy = RedactionStrategy.OptIn,
   ): Resource[F, Tracer[F] => Resource[F, Session[F]]] =
-    Builder.default[F]
+    Builder[F]
       .withHost(host)
       .withPort(port)
       .withDatabase(database)
@@ -650,7 +650,7 @@ object Session {
    * single-session pool. This method is shorthand for `Session.pooled(..., max = 1, ...).flatten`.
    * @see pooled
    */
-  @deprecated("1.0.0-M11", "Use Session.Builder.default[F].single instead")
+  @deprecated("1.0.0-M11", "Use Session.Builder[F].single instead")
   def single[F[_]: Temporal: Tracer: Network: Console](
     host:         String,
     port:         Int            = 5432,
@@ -667,7 +667,7 @@ object Session {
     readTimeout:  Duration = Duration.Inf,
     redactionStrategy: RedactionStrategy = RedactionStrategy.OptIn,
   ): Resource[F, Session[F]] =
-    Builder.default[F]
+    Builder[F]
       .withHost(host)
       .withPort(port)
       .withDatabase(database)
@@ -689,7 +689,7 @@ object Session {
    * single-session pool.
    * @see pooledF
    */
-  @deprecated("1.0.0-M11", "Use Session.Builder.default[F].singleExplicitTracer instead")
+  @deprecated("1.0.0-M11", "Use Session.Builder[F].singleExplicitTracer instead")
   def singleF[F[_]: Temporal: Network: Console](
     host:         String,
     port:         Int            = 5432,
@@ -706,7 +706,7 @@ object Session {
     readTimeout:  Duration = Duration.Inf,
     redactionStrategy: RedactionStrategy = RedactionStrategy.OptIn,
   ): Tracer[F] => Resource[F, Session[F]] =
-    Builder.default[F]
+    Builder[F]
       .withHost(host)
       .withPort(port)
       .withDatabase(database)

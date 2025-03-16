@@ -20,7 +20,7 @@ object Minimal2 extends IOApp {
 
 
   def session[F[_]: Temporal: Tracer: Console: Network]: Resource[F, Session[F]] =
-    Session.Builder.default[F]
+    Session.Builder[F]
       .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
       .single

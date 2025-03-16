@@ -20,7 +20,7 @@ object SelectBenchScope {
   val defaultChunkSize = 512
 
   val session: Resource[IO, skunk.Session[IO]] =
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
       .single

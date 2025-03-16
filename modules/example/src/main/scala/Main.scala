@@ -58,7 +58,7 @@ object Main extends IOApp {
       .drain
 
   val pool: Resource[IO, Resource[IO, Session[IO]]] =
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
       .pooled(10)

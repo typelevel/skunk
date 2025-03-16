@@ -18,7 +18,7 @@ class SslTest extends ffstest.FTest {
   }
 
   tracedTest("successful login with SSL.Trusted (ssl available)") { implicit tracer: Tracer[IO] =>
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
       .withSSL(SSL.Trusted)
@@ -27,7 +27,7 @@ class SslTest extends ffstest.FTest {
   }
 
   tracedTest("successful login with SSL.None (ssl available)") { implicit tracer: Tracer[IO] =>
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
       .withSSL(SSL.None)
@@ -36,7 +36,7 @@ class SslTest extends ffstest.FTest {
   }
 
   tracedTest("failed login with SSL.System (ssl available)") { implicit tracer: Tracer[IO] =>
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
       .withSSL(SSL.System)
@@ -45,7 +45,7 @@ class SslTest extends ffstest.FTest {
   }
 
   tracedTest("failed login with SSL.Trusted (ssl not available)") { implicit tracer: Tracer[IO] =>
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withDatabase("world")
       .withSSL(SSL.Trusted)
       .withPort(Port.Trust)
@@ -54,7 +54,7 @@ class SslTest extends ffstest.FTest {
   }
 
   tracedTest("successful login with SSL.Trusted.withFallback(true) (ssl not available)") { implicit tracer: Tracer[IO] =>
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withDatabase("world")
       .withSSL(SSL.Trusted.withFallback(true))
       .withPort(Port.Trust)
@@ -63,7 +63,7 @@ class SslTest extends ffstest.FTest {
   }
 
   tracedTest("successful login with SSL.None (ssl not available)") { implicit tracer: Tracer[IO] =>
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withDatabase("world")
       .withSSL(SSL.None)
       .withPort(Port.Trust)

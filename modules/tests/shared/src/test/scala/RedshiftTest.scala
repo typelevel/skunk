@@ -14,7 +14,7 @@ class RedshiftTest extends ffstest.FTest {
   object X86ArchOnly extends munit.Tag("X86ArchOnly")
 
   tracedTest("redshift - successfully connect".tag(X86ArchOnly)) { implicit tracer: Tracer[IO] =>
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withPort(5439) // redshift port
       .withConnectionParameters(Session.DefaultConnectionParameters - "IntervalStyle")
       .single
@@ -22,7 +22,7 @@ class RedshiftTest extends ffstest.FTest {
   }
 
   tracedTest("redshift - cannot connect with default params".tag(X86ArchOnly)) { implicit tracer: Tracer[IO] =>
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withPort(5439) // redshift port
       .single
       .use(_ => IO.unit)

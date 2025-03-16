@@ -11,7 +11,7 @@ import skunk._
 class Test238 extends ffstest.FTest {
 
   tracedTest("see (https://github.com/functional-streams-for-scala/fs2/pull/1989)") { implicit tracer: Tracer[IO] =>
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
       .withTypingStrategy(TypingStrategy.SearchPath)

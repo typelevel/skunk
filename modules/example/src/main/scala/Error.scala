@@ -16,7 +16,7 @@ object Error extends IOApp {
   implicit val trace: Tracer[IO] = Tracer.noop
 
   val session: Resource[IO, Session[IO]] =
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
       .single

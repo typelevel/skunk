@@ -15,7 +15,7 @@ object Minimal1 extends IOApp {
   implicit val tracer: Tracer[IO] = Tracer.noop[IO]
 
   val session: Resource[IO, Session[IO]] =
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
       .single

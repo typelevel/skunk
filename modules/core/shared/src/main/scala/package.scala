@@ -34,7 +34,7 @@ import org.typelevel.twiddles.TwiddleCompat
  * object Minimal extends IOApp {
  *
  *   val session: Resource[IO, Session[IO]] =
- *     Session.Builder.default[IO]
+ *     Session.Builder[IO]
  *       .withDatabase("world")
  *       .single
  *

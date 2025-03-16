@@ -17,7 +17,7 @@ object Join extends IOApp with StreamOps {
   implicit val tracer: Tracer[IO] = Tracer.noop
 
   val session: Resource[IO, Session[IO]] =
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
       .single

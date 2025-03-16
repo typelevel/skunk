@@ -24,7 +24,7 @@ class StartupTest extends ffstest.FTest {
   }
 
   tracedTest("md5 - successful login") { implicit tracer: Tracer[IO] =>
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
       .withPort(Port.MD5)
@@ -33,7 +33,7 @@ class StartupTest extends ffstest.FTest {
   }
 
   tracedTest("md5 - non-existent database") { implicit tracer: Tracer[IO] =>
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withDatabase("blah")
       .withUserAndPassword("jimmy", "banana")
       .withPort(Port.MD5)
@@ -44,7 +44,7 @@ class StartupTest extends ffstest.FTest {
   }
 
   tracedTest("md5 - missing password") { implicit tracer: Tracer[IO] =>
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withDatabase("blah")
       .withUser("jimmy")
       .withPort(Port.MD5)
@@ -55,7 +55,7 @@ class StartupTest extends ffstest.FTest {
   }
 
   tracedTest("md5 - incorrect user") { implicit tracer: Tracer[IO] =>
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withDatabase("blah")
       .withUserAndPassword("frank", "banana")
       .withPort(Port.MD5)
@@ -66,7 +66,7 @@ class StartupTest extends ffstest.FTest {
   }
 
   tracedTest("md5 - incorrect password") { implicit tracer: Tracer[IO] =>
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withDatabase("blah")
       .withUserAndPassword("jimmy", "apple")
       .withPort(Port.MD5)
@@ -77,7 +77,7 @@ class StartupTest extends ffstest.FTest {
   }
 
   tracedTest("trust - successful login") { implicit tracer: Tracer[IO] =>
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withDatabase("world")
       .withPort(Port.Trust)
       .single
@@ -86,7 +86,7 @@ class StartupTest extends ffstest.FTest {
 
   // TODO: should this be an error?
   tracedTest("trust - successful login, ignored password") { implicit tracer: Tracer[IO] =>
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withDatabase("world")
       .withUserAndPassword("postgres", "ignored")
       .withPort(Port.Trust)
@@ -95,7 +95,7 @@ class StartupTest extends ffstest.FTest {
   }
 
   tracedTest("trust - non-existent database") { implicit tracer: Tracer[IO] =>
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withDatabase("bogus")
       .withPort(Port.Trust)
       .single
@@ -105,7 +105,7 @@ class StartupTest extends ffstest.FTest {
   }
 
   tracedTest("trust - incorrect user") { implicit tracer: Tracer[IO] =>
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withDatabase("world")
       .withUser("bogus")
       .withPort(Port.Trust)
@@ -116,7 +116,7 @@ class StartupTest extends ffstest.FTest {
   }
 
   tracedTest("scram - successful login") { implicit tracer: Tracer[IO] =>
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
       .withPort(Port.Scram)
@@ -125,7 +125,7 @@ class StartupTest extends ffstest.FTest {
   }
 
   tracedTest("scram - non-existent database") { implicit tracer: Tracer[IO] =>
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withDatabase("blah")
       .withUserAndPassword("jimmy", "banana")
       .withPort(Port.Scram)
@@ -136,7 +136,7 @@ class StartupTest extends ffstest.FTest {
   }
 
   tracedTest("scram - missing password") { implicit tracer: Tracer[IO] =>
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withDatabase("world")
       .withUser("jimmy")
       .withPort(Port.Scram)
@@ -147,7 +147,7 @@ class StartupTest extends ffstest.FTest {
   }
 
   tracedTest("scram - incorrect user") { implicit tracer: Tracer[IO] =>
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withDatabase("world")
       .withUserAndPassword("frank", "banana")
       .withPort(Port.Scram)
@@ -158,7 +158,7 @@ class StartupTest extends ffstest.FTest {
   }
 
   tracedTest("scram - incorrect password") { implicit tracer: Tracer[IO] =>
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withDatabase("world")
       .withUserAndPassword("jimmy", "apple")
       .withPort(Port.Scram)
@@ -169,7 +169,7 @@ class StartupTest extends ffstest.FTest {
   }
 
   tracedTest("password - successful login") { implicit tracer: Tracer[IO] =>
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
       .withPort(Port.Password)
@@ -178,7 +178,7 @@ class StartupTest extends ffstest.FTest {
   }
 
   tracedTest("password - non-existent database") { implicit tracer: Tracer[IO] =>
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withDatabase("blah")
       .withUserAndPassword("jimmy", "banana")
       .withPort(Port.Password)
@@ -189,7 +189,7 @@ class StartupTest extends ffstest.FTest {
   }
 
   tracedTest("password - missing password") { implicit tracer: Tracer[IO] =>
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withDatabase("world")
       .withUser("jimmy")
       .withPort(Port.Password)
@@ -200,7 +200,7 @@ class StartupTest extends ffstest.FTest {
   }
 
   tracedTest("password - incorrect user") { implicit tracer: Tracer[IO] =>
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withDatabase("world")
       .withUserAndPassword("frank", "banana")
       .withPort(Port.Password)
@@ -211,7 +211,7 @@ class StartupTest extends ffstest.FTest {
   }
 
   tracedTest("password - incorrect password") { implicit tracer: Tracer[IO] =>
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withDatabase("world")
       .withUserAndPassword("jimmy", "apple")
       .withPort(Port.Password)
@@ -222,7 +222,7 @@ class StartupTest extends ffstest.FTest {
   }
 
   tracedTest("invalid port") { implicit tracer: Tracer[IO] =>
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
       .withPort(Port.Invalid)
@@ -231,7 +231,7 @@ class StartupTest extends ffstest.FTest {
   }
 
   tracedTest("invalid host") { implicit tracer: Tracer[IO] =>
-    Session.Builder.default[IO]
+    Session.Builder[IO]
       .withHost("blergh")
       .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")

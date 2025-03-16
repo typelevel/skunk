@@ -16,7 +16,7 @@ object Transaction extends IOApp {
   implicit def tracer[F[_]: MonadCancelThrow]: Tracer[F] = Tracer.noop
 
   def session[F[_]: Temporal: Console: Network]: Resource[F, Session[F]] =
-    Session.Builder.default[F]
+    Session.Builder[F]
       .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
       .single
