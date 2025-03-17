@@ -299,6 +299,14 @@ sealed trait Session[F[_]] {
    * Send a Close to server for each prepared statement that has been evicted.
    */
   def closeEvictedPreparedStatements: F[Unit]
+
+
+
+  /**
+   * Transform this `Session` by a given `FunctionK`.
+   * @group Transformations
+   */
+  def mapK[G[_]: MonadCancelThrow](fk: F ~> G)(implicit mcf: MonadCancel[F, _]): Session[G]
 }
 
 /** @group Companions */
@@ -307,7 +315,7 @@ object Session {
   /**
    * Abstract implementation that use the MonadCancelThrow constraint to implement prepared-if-needed API
    */
-  private abstract class Impl[F[_]: MonadCancelThrow] extends Session[F] {
+  private abstract class Impl[F[_]: MonadCancelThrow] extends Session[F] { outer =>
 
     override def execute[A, B](query: Query[A, B])(args: A): F[List[B]] =
       Monad[F].flatMap(prepare(query)) { pq =>
@@ -337,9 +345,53 @@ object Session {
     override def pipe[A](command: Command[A]): Pipe[F, A, Completion] = fa =>
       Stream.eval(prepare(command)).flatMap(pc => fa.evalMap(pc.execute)).scope
 
+    override def mapK[G[_]: MonadCancelThrow](fk: F ~> G)(
+      implicit mcf: MonadCancel[F, _]
+    ): Session[G] =
+      new Impl[G] {
+
+        override val typer: Typer = outer.typer
+
+        override def channel(name: Identifier): Channel[G,String,String] = outer.channel(name).mapK(fk)
+
+        override def execute(command: Command[Void]): G[Completion] = fk(outer.execute(command))
+
+        override def executeDiscard(statement: Statement[Void]): G[Unit] = fk(outer.executeDiscard(statement))
+
+        override def execute[A](query: Query[Void,A]): G[List[A]] = fk(outer.execute(query))
+
+        override def option[A](query: Query[Void,A]): G[Option[A]] = fk(outer.option(query))
+
+        override def parameter(key: String): Stream[G,String] = outer.parameter(key).translate(fk)
+
+        override def parameters: Signal[G,Map[String,String]] = outer.parameters.mapK(fk)
+
+        override def prepare[A, B](query: Query[A,B]): G[PreparedQuery[G,A,B]] = fk(outer.prepare(query)).map(_.mapK(fk))
+
+        override def prepare[A](command: Command[A]): G[PreparedCommand[G,A]] = fk(outer.prepare(command)).map(_.mapK(fk))
+
+        override def prepareR[A, B](query: Query[A, B]): Resource[G, PreparedQuery[G, A, B]] = outer.prepareR(query).mapK(fk).map(_.mapK(fk))
+
+        override def prepareR[A](command: Command[A]): Resource[G, PreparedCommand[G, A]] = outer.prepareR(command).mapK(fk).map(_.mapK(fk))
+
+        override def transaction[A]: Resource[G,Transaction[G]] = outer.transaction.mapK(fk).map(_.mapK(fk))
+
+        override def transaction[A](isolationLevel: TransactionIsolationLevel, accessMode: TransactionAccessMode): Resource[G,Transaction[G]] =
+          outer.transaction(isolationLevel, accessMode).mapK(fk).map(_.mapK(fk))
+
+        override def transactionStatus: Signal[G,TransactionStatus] = outer.transactionStatus.mapK(fk)
+
+        override def unique[A](query: Query[Void,A]): G[A] = fk(outer.unique(query))
+
+        override def describeCache: Describe.Cache[G] = outer.describeCache.mapK(fk)
+
+        override def parseCache: Parse.Cache[G] = outer.parseCache.mapK(fk)
+
+        override def closeEvictedPreparedStatements: G[Unit] = fk(outer.closeEvictedPreparedStatements)
+      }
   }
 
-  case class Credentials(user: String, password: Option[String] = none) {
+  final case class Credentials(user: String, password: Option[String] = none) {
     override def toString: String =
       s"""Credentials(user, ${if (password.isDefined) "<defined>" else "<undefined>"})"""
   }
@@ -895,55 +947,6 @@ object Session {
   }
 
   implicit class SessionSyntax[F[_]](outer: Session[F]) {
-
-    /**
-     * Transform this `Session` by a given `FunctionK`.
-     * @group Transformations
-     */
-    def mapK[G[_]: MonadCancelThrow](fk: F ~> G)(
-      implicit mcf: MonadCancel[F, _]
-    ): Session[G] =
-      new Impl[G] {
-
-        override val typer: Typer = outer.typer
-
-        override def channel(name: Identifier): Channel[G,String,String] = outer.channel(name).mapK(fk)
-
-        override def execute(command: Command[Void]): G[Completion] = fk(outer.execute(command))
-
-        override def executeDiscard(statement: Statement[Void]): G[Unit] = fk(outer.executeDiscard(statement))
-
-        override def execute[A](query: Query[Void,A]): G[List[A]] = fk(outer.execute(query))
-
-        override def option[A](query: Query[Void,A]): G[Option[A]] = fk(outer.option(query))
-
-        override def parameter(key: String): Stream[G,String] = outer.parameter(key).translate(fk)
-
-        override def parameters: Signal[G,Map[String,String]] = outer.parameters.mapK(fk)
-
-        override def prepare[A, B](query: Query[A,B]): G[PreparedQuery[G,A,B]] = fk(outer.prepare(query)).map(_.mapK(fk))
-
-        override def prepare[A](command: Command[A]): G[PreparedCommand[G,A]] = fk(outer.prepare(command)).map(_.mapK(fk))
-
-        override def prepareR[A, B](query: Query[A, B]): Resource[G, PreparedQuery[G, A, B]] = outer.prepareR(query).mapK(fk).map(_.mapK(fk))
-
-        override def prepareR[A](command: Command[A]): Resource[G, PreparedCommand[G, A]] = outer.prepareR(command).mapK(fk).map(_.mapK(fk))
-
-        override def transaction[A]: Resource[G,Transaction[G]] = outer.transaction.mapK(fk).map(_.mapK(fk))
-
-        override def transaction[A](isolationLevel: TransactionIsolationLevel, accessMode: TransactionAccessMode): Resource[G,Transaction[G]] =
-          outer.transaction(isolationLevel, accessMode).mapK(fk).map(_.mapK(fk))
-
-        override def transactionStatus: Signal[G,TransactionStatus] = outer.transactionStatus.mapK(fk)
-
-        override def unique[A](query: Query[Void,A]): G[A] = fk(outer.unique(query))
-
-        override def describeCache: Describe.Cache[G] = outer.describeCache.mapK(fk)
-
-        override def parseCache: Parse.Cache[G] = outer.parseCache.mapK(fk)
-
-        override def closeEvictedPreparedStatements: G[Unit] = fk(outer.closeEvictedPreparedStatements)
-      }
   }
 
 }
