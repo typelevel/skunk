@@ -7,7 +7,6 @@ package tests
 import skunk._
 import skunk.codec.all._
 import skunk.implicits._
-import tests.SkunkTest
 import cats.Eq
 import scala.concurrent.duration._
 import skunk.data.Type
@@ -133,12 +132,11 @@ class QueryTest extends SkunkTest {
       } yield "ok"
     }
 
-  sessionTest("explain query") { s =>
-    for {
-      c <- s.unique(sql"""EXPLAIN SELECT * FROM city""".query(skunk.codec.all.text))
-      _ <- assert("completion", c.startsWith("Seq Scan on city"))
-      _ <- s.assertHealthy
-    } yield "ok"
-  }
-
+    sessionTest("explain query") { s =>
+      for {
+        c <- s.unique(sql"""EXPLAIN SELECT * FROM city""".query(skunk.codec.all.text))
+        _ <- assert("completion", c.startsWith("Seq Scan on city"))
+        _ <- s.assertHealthy
+      } yield "ok"
+    }
 }

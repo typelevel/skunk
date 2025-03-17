@@ -18,7 +18,6 @@ import skunk.codec.all.bool
 import skunk.data._
 import skunk.net.Protocol
 import skunk.util._
-import skunk.util.Typer.Strategy.{ BuiltinsOnly, SearchPath }
 import skunk.net.SSLNegotiation
 import skunk.data.TransactionIsolationLevel
 import skunk.data.TransactionAccessMode
@@ -449,8 +448,7 @@ object Session {
   /**
    * Supports creation of a `Session`.
    *
-   * All parameters have sensible defaults (including host, which defaults to localhost, and username,
-   * which default to postgres, and database, which defaults to then configured username).
+   * All parameters have sensible defaults -- see parameter docs below for the defaults.
    *
    * After overriding the various defaults, call `single` to create a single-use session or `pooled`
    * to create a pool of sessions.
@@ -460,7 +458,7 @@ object Session {
    * @param credentials           user and optional password, evaluated for each session; defaults to user "postgres" with no password
    * @param database              database to use; defaults to None and hence whatever user is used to authenticate (e.g. "postgres" when using default user)
    * @param debug                 whether debug logs should be written to the console; defaults to false
-   * @param typingStrategy        typing strategy; defaults to `TypingStrategy.BuiltinsOnly`
+   * @param typingStrategy        typing strategy; defaults to [[TypingStrategy.BuiltinsOnly]]
    * @param redactionStrategy     redaction strategy; defaults to [[RedactionStrategy.OptIn]]
    * @param ssl                   ssl configuration; defaults to [[SSL.None]]
    * @param connectionParameters  Postgres connection parameters; defaults to [[DefaultConnectionParameters]] 
@@ -685,7 +683,7 @@ object Session {
     password:      Option[String] = none,
     max:           Int,
     debug:         Boolean        = false,
-    strategy:      Typer.Strategy = Typer.Strategy.BuiltinsOnly,
+    strategy:      TypingStrategy = TypingStrategy.BuiltinsOnly,
     ssl:           SSL            = SSL.None,
     parameters:    Map[String, String] = Session.DefaultConnectionParameters,
     socketOptions: List[SocketOption] = Session.DefaultSocketOptions,
@@ -743,7 +741,7 @@ object Session {
     password:      Option[String] = none,
     max:           Int,
     debug:         Boolean        = false,
-    strategy:      Typer.Strategy = Typer.Strategy.BuiltinsOnly,
+    strategy:      TypingStrategy = TypingStrategy.BuiltinsOnly,
     ssl:           SSL            = SSL.None,
     parameters:    Map[String, String] = Session.DefaultConnectionParameters,
     socketOptions: List[SocketOption] = Session.DefaultSocketOptions,
@@ -784,7 +782,7 @@ object Session {
     database:     String,
     password:     Option[String] = none,
     debug:        Boolean        = false,
-    strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly,
+    strategy:     TypingStrategy = TypingStrategy.BuiltinsOnly,
     ssl:          SSL            = SSL.None,
     parameters:   Map[String, String] = Session.DefaultConnectionParameters,
     commandCache: Int = 2048,
@@ -823,7 +821,7 @@ object Session {
     database:     String,
     password:     Option[String] = none,
     debug:        Boolean        = false,
-    strategy:     Typer.Strategy = Typer.Strategy.BuiltinsOnly,
+    strategy:     TypingStrategy = TypingStrategy.BuiltinsOnly,
     ssl:          SSL            = SSL.None,
     parameters:   Map[String, String] = Session.DefaultConnectionParameters,
     commandCache: Int = 2048,
@@ -856,14 +854,14 @@ object Session {
   def fromProtocol[F[_]](
     proto:             Protocol[F],
     namer:             Namer[F],
-    strategy:          Typer.Strategy,
+    typingStrategy:    TypingStrategy,
     redactionStrategy: RedactionStrategy
   )(implicit ev: MonadCancel[F, Throwable]): F[Session[F]] = {
 
     val ft: F[Typer] =
-      strategy match {
-        case BuiltinsOnly => Typer.Static.pure[F]
-        case SearchPath   => Typer.fromProtocol(proto)
+      typingStrategy match {
+        case TypingStrategy.BuiltinsOnly => Typer.Static.pure[F]
+        case TypingStrategy.SearchPath   => Typer.fromProtocol(proto)
       }
 
     ft.map { typ =>

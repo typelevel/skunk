@@ -138,11 +138,7 @@ package object skunk extends TwiddleCompat {
     def unapply[A, B](t: A ~ B): Some[A ~ B] = Some(t)
   }
 
-  type TypingStrategy = skunk.util.Typer.Strategy
-  val  TypingStrategy = skunk.util.Typer.Strategy
-
   object implicits
     extends syntax.ToAllOps
-
 }
 

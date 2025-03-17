@@ -5,12 +5,11 @@
 package tests
 package simulation
 
-import cats.effect.Deferred
 import cats.effect._
 import ffstest.FTest
 import fs2.concurrent.Signal
 import org.typelevel.otel4s.trace.Tracer
-import skunk.{Session, RedactionStrategy}
+import skunk.{Session, RedactionStrategy, TypingStrategy}
 import skunk.data.Notification
 import skunk.data.TransactionStatus
 import skunk.net._
@@ -19,7 +18,6 @@ import skunk.net.message.BackendMessage
 import skunk.net.message.FrontendMessage
 import skunk.util.Namer
 import skunk.util.Origin
-import skunk.util.Typer
 import skunk.net.protocol.Describe
 import skunk.net.protocol.Parse
 
@@ -48,7 +46,7 @@ trait SimTest extends FTest with SimMessageSocket.DSL {
       pc  <- Parse.Cache.empty[IO](1024)
       pro <- Protocol.fromMessageSocket(bms, nam, dc, pc, RedactionStrategy.None)
       _   <- pro.startup(user, database, password, Session.DefaultConnectionParameters)
-      ses <- Session.fromProtocol(pro, nam, Typer.Strategy.BuiltinsOnly, RedactionStrategy.None)
+      ses <- Session.fromProtocol(pro, nam, TypingStrategy.BuiltinsOnly, RedactionStrategy.None)
     } yield ses
 
   def simTest[A](name: String, sim: Simulator, user: String = "Bob", database: String = "db", password: Option[String] = None)(f: Session[IO] => IO[A]): Unit =
