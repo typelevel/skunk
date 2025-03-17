@@ -17,8 +17,8 @@ object Transaction extends IOApp {
 
   def session[F[_]: Temporal: Console: Network]: Resource[F, Session[F]] =
     Session.Builder[F]
-      .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
+      .withDatabase("world")
       .single
 
   def runS[F[_]: Temporal: Console: Network]: F[Int] =

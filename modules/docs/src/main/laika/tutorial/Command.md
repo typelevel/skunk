@@ -250,8 +250,8 @@ object CommandExample extends IOApp {
   // a source of sessions
   val session: Resource[IO, Session[IO]] =
     Session.Builder[IO]
-      .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
+      .withDatabase("world")
       .single
 
   // a resource that creates and drops a temporary table

@@ -25,18 +25,18 @@ class StartupTest extends ffstest.FTest {
 
   tracedTest("md5 - successful login") { implicit tracer: Tracer[IO] =>
     Session.Builder[IO]
-      .withDatabase("world")
-      .withUserAndPassword("jimmy", "banana")
       .withPort(Port.MD5)
+      .withUserAndPassword("jimmy", "banana")
+      .withDatabase("world")
       .single
       .use(_ => IO.unit)
   }
 
   tracedTest("md5 - non-existent database") { implicit tracer: Tracer[IO] =>
     Session.Builder[IO]
-      .withDatabase("blah")
-      .withUserAndPassword("jimmy", "banana")
       .withPort(Port.MD5)
+      .withUserAndPassword("jimmy", "banana")
+      .withDatabase("blah")
       .single
       .use(_ => IO.unit)
       .assertFailsWith[StartupException]
@@ -45,9 +45,9 @@ class StartupTest extends ffstest.FTest {
 
   tracedTest("md5 - missing password") { implicit tracer: Tracer[IO] =>
     Session.Builder[IO]
-      .withDatabase("blah")
-      .withUser("jimmy")
       .withPort(Port.MD5)
+      .withUser("jimmy")
+      .withDatabase("blah")
       .single
       .use(_ => IO.unit)
       .assertFailsWith[SkunkException]
@@ -56,9 +56,9 @@ class StartupTest extends ffstest.FTest {
 
   tracedTest("md5 - incorrect user") { implicit tracer: Tracer[IO] =>
     Session.Builder[IO]
-      .withDatabase("blah")
-      .withUserAndPassword("frank", "banana")
       .withPort(Port.MD5)
+      .withUserAndPassword("frank", "banana")
+      .withDatabase("blah")
       .single
       .use(_ => IO.unit)
       .assertFailsWith[StartupException]
@@ -67,9 +67,9 @@ class StartupTest extends ffstest.FTest {
 
   tracedTest("md5 - incorrect password") { implicit tracer: Tracer[IO] =>
     Session.Builder[IO]
-      .withDatabase("blah")
-      .withUserAndPassword("jimmy", "apple")
       .withPort(Port.MD5)
+      .withUserAndPassword("jimmy", "apple")
+      .withDatabase("blah")
       .single
       .use(_ => IO.unit)
       .assertFailsWith[StartupException]
@@ -78,8 +78,8 @@ class StartupTest extends ffstest.FTest {
 
   tracedTest("trust - successful login") { implicit tracer: Tracer[IO] =>
     Session.Builder[IO]
-      .withDatabase("world")
       .withPort(Port.Trust)
+      .withDatabase("world")
       .single
       .use(_ => IO.unit)
   }
@@ -87,17 +87,17 @@ class StartupTest extends ffstest.FTest {
   // TODO: should this be an error?
   tracedTest("trust - successful login, ignored password") { implicit tracer: Tracer[IO] =>
     Session.Builder[IO]
-      .withDatabase("world")
-      .withUserAndPassword("postgres", "ignored")
       .withPort(Port.Trust)
+      .withUserAndPassword("postgres", "ignored")
+      .withDatabase("world")
       .single
       .use(_ => IO.unit)
   }
 
   tracedTest("trust - non-existent database") { implicit tracer: Tracer[IO] =>
     Session.Builder[IO]
-      .withDatabase("bogus")
       .withPort(Port.Trust)
+      .withDatabase("bogus")
       .single
       .use(_ => IO.unit)
       .assertFailsWith[StartupException]
@@ -106,9 +106,9 @@ class StartupTest extends ffstest.FTest {
 
   tracedTest("trust - incorrect user") { implicit tracer: Tracer[IO] =>
     Session.Builder[IO]
-      .withDatabase("world")
-      .withUser("bogus")
       .withPort(Port.Trust)
+      .withUser("bogus")
+      .withDatabase("world")
       .single
       .use(_ => IO.unit)
       .assertFailsWith[StartupException]
@@ -117,18 +117,18 @@ class StartupTest extends ffstest.FTest {
 
   tracedTest("scram - successful login") { implicit tracer: Tracer[IO] =>
     Session.Builder[IO]
-      .withDatabase("world")
-      .withUserAndPassword("jimmy", "banana")
       .withPort(Port.Scram)
+      .withUserAndPassword("jimmy", "banana")
+      .withDatabase("world")
       .single
       .use(_ => IO.unit)
   }
 
   tracedTest("scram - non-existent database") { implicit tracer: Tracer[IO] =>
     Session.Builder[IO]
-      .withDatabase("blah")
-      .withUserAndPassword("jimmy", "banana")
       .withPort(Port.Scram)
+      .withUserAndPassword("jimmy", "banana")
+      .withDatabase("blah")
       .single
       .use(_ => IO.unit)
       .assertFailsWith[StartupException]
@@ -137,9 +137,9 @@ class StartupTest extends ffstest.FTest {
 
   tracedTest("scram - missing password") { implicit tracer: Tracer[IO] =>
     Session.Builder[IO]
-      .withDatabase("world")
-      .withUser("jimmy")
       .withPort(Port.Scram)
+      .withUser("jimmy")
+      .withDatabase("world")
       .single
       .use(_ => IO.unit)
       .assertFailsWith[SkunkException]
@@ -148,9 +148,9 @@ class StartupTest extends ffstest.FTest {
 
   tracedTest("scram - incorrect user") { implicit tracer: Tracer[IO] =>
     Session.Builder[IO]
-      .withDatabase("world")
-      .withUserAndPassword("frank", "banana")
       .withPort(Port.Scram)
+      .withUserAndPassword("frank", "banana")
+      .withDatabase("world")
       .single
       .use(_ => IO.unit)
       .assertFailsWith[StartupException]
@@ -159,9 +159,9 @@ class StartupTest extends ffstest.FTest {
 
   tracedTest("scram - incorrect password") { implicit tracer: Tracer[IO] =>
     Session.Builder[IO]
-      .withDatabase("world")
-      .withUserAndPassword("jimmy", "apple")
       .withPort(Port.Scram)
+      .withUserAndPassword("jimmy", "apple")
+      .withDatabase("world")
       .single
       .use(_ => IO.unit)
       .assertFailsWith[StartupException]
@@ -170,18 +170,18 @@ class StartupTest extends ffstest.FTest {
 
   tracedTest("password - successful login") { implicit tracer: Tracer[IO] =>
     Session.Builder[IO]
-      .withDatabase("world")
-      .withUserAndPassword("jimmy", "banana")
       .withPort(Port.Password)
+      .withUserAndPassword("jimmy", "banana")
+      .withDatabase("world")
       .single
       .use(_ => IO.unit)
   }
 
   tracedTest("password - non-existent database") { implicit tracer: Tracer[IO] =>
     Session.Builder[IO]
-      .withDatabase("blah")
-      .withUserAndPassword("jimmy", "banana")
       .withPort(Port.Password)
+      .withUserAndPassword("jimmy", "banana")
+      .withDatabase("blah")
       .single
       .use(_ => IO.unit)
       .assertFailsWith[StartupException]
@@ -190,9 +190,9 @@ class StartupTest extends ffstest.FTest {
 
   tracedTest("password - missing password") { implicit tracer: Tracer[IO] =>
     Session.Builder[IO]
-      .withDatabase("world")
-      .withUser("jimmy")
       .withPort(Port.Password)
+      .withUser("jimmy")
+      .withDatabase("world")
       .single
       .use(_ => IO.unit)
       .assertFailsWith[SkunkException]
@@ -201,9 +201,9 @@ class StartupTest extends ffstest.FTest {
 
   tracedTest("password - incorrect user") { implicit tracer: Tracer[IO] =>
     Session.Builder[IO]
-      .withDatabase("world")
-      .withUserAndPassword("frank", "banana")
       .withPort(Port.Password)
+      .withUserAndPassword("frank", "banana")
+      .withDatabase("world")
       .single
       .use(_ => IO.unit)
       .assertFailsWith[StartupException]
@@ -212,9 +212,9 @@ class StartupTest extends ffstest.FTest {
 
   tracedTest("password - incorrect password") { implicit tracer: Tracer[IO] =>
     Session.Builder[IO]
-      .withDatabase("world")
-      .withUserAndPassword("jimmy", "apple")
       .withPort(Port.Password)
+      .withUserAndPassword("jimmy", "apple")
+      .withDatabase("world")
       .single
       .use(_ => IO.unit)
       .assertFailsWith[StartupException]
@@ -223,9 +223,9 @@ class StartupTest extends ffstest.FTest {
 
   tracedTest("invalid port") { implicit tracer: Tracer[IO] =>
     Session.Builder[IO]
-      .withDatabase("world")
-      .withUserAndPassword("jimmy", "banana")
       .withPort(Port.Invalid)
+      .withUserAndPassword("jimmy", "banana")
+      .withDatabase("world")
       .single
       .use(_ => IO.unit).assertFailsWith[ConnectException]
   }
@@ -233,9 +233,9 @@ class StartupTest extends ffstest.FTest {
   tracedTest("invalid host") { implicit tracer: Tracer[IO] =>
     Session.Builder[IO]
       .withHost("blergh")
-      .withDatabase("world")
-      .withUserAndPassword("jimmy", "banana")
       .withPort(Port.Invalid)
+      .withUserAndPassword("jimmy", "banana")
+      .withDatabase("world")
       .single
       .use(_ => IO.unit).assertFailsWith[UnknownHostException]
   }

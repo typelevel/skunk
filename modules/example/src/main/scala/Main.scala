@@ -59,8 +59,8 @@ object Main extends IOApp {
 
   val pool: Resource[IO, Resource[IO, Session[IO]]] =
     Session.Builder[IO]
-      .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
+      .withDatabase("world")
       .pooled(10)
 
   def run(args: List[String]): IO[ExitCode] =

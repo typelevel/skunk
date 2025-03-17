@@ -21,8 +21,8 @@ object SelectBenchScope {
 
   val session: Resource[IO, skunk.Session[IO]] =
     Session.Builder[IO]
-      .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
+      .withDatabase("world")
       .single
 }
 

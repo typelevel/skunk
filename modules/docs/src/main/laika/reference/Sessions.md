@@ -23,8 +23,8 @@ To connect with SSL (disabled by default) provide the `ssl` argument when buildi
 
 ```scala mdoc:compile-only
 Session.Builder[IO]
-  .withDatabase("world")
   .withUserAndPassword("jimmy", "banana")
+  .withDatabase("world")
   .withSSL(SSL.System)  // Use SSL with the system default SSLContext
   .single
 ```
@@ -63,8 +63,8 @@ It is possible to modify default session parameters via the parameters session p
 
 ```scala mdoc:compile-only
 Session.Builder[IO]
-  .withDatabase("world")
   .withUserAndPassword("jimmy", "banana")
+  .withDatabase("world")
   .withPort(5439)
   .withConnectionParameters(Session.DefaultConnectionParameters - "IntervalStyle")
   .single

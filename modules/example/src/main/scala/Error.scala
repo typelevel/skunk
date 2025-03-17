@@ -17,8 +17,8 @@ object Error extends IOApp {
 
   val session: Resource[IO, Session[IO]] =
     Session.Builder[IO]
-      .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
+      .withDatabase("world")
       .single
 
   val query =

@@ -17,8 +17,8 @@ object AppliedFragments extends IOApp {
 
   val session: Resource[IO, Session[IO]] =
     Session.Builder[IO]
-      .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
+      .withDatabase("world")
       .single
 
   def countryQuery(name: Option[String], pop: Option[Int], capital: Option[Option[String]]): AppliedFragment = {

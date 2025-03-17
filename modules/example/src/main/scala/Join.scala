@@ -18,8 +18,8 @@ object Join extends IOApp with StreamOps {
 
   val session: Resource[IO, Session[IO]] =
     Session.Builder[IO]
-      .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
+      .withDatabase("world")
       .single
 
   // A data model

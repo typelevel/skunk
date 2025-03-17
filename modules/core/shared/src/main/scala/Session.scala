@@ -397,15 +397,17 @@ object Session {
   /**
    * Supports creation of a `Session`.
    *
-   * All parameters have sensible defaults (including host, which defaults to localhost, and database and username, which default to postgres).
+   * All parameters have sensible defaults (including host, which defaults to localhost, and username,
+   * which default to postgres, and database, which defaults to then configured username).
    *
-   * After overriding the various defaults, call `single` to create a single-use session or `pooled` to create a pool of sessions.
+   * After overriding the various defaults, call `single` to create a single-use session or `pooled`
+   * to create a pool of sessions.
    */
   final class Builder[F[_]: Temporal: Network: Console] private (
     val host: String,
     val port: Int,
-    val database: String,
     val credentials: F[Credentials],
+    val database: Option[String],
     val debug: Boolean,
     val typingStrategy: TypingStrategy,
     val redactionStrategy: RedactionStrategy,
@@ -419,16 +421,13 @@ object Session {
   ) {
 
     def withHost(newHost: String): Builder[F] =
-      new Builder(newHost, port, database, credentials, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
+      new Builder(newHost, port, credentials, database, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
 
     def withPort(newPort: Int): Builder[F] =
-      new Builder(host, newPort, database, credentials, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
-
-    def withDatabase(newDatabase: String): Builder[F] =
-      new Builder(host, port, newDatabase, credentials, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
+      new Builder(host, newPort, credentials, database, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
 
     def withCredentials(newCredentials: F[Credentials]): Builder[F] =
-      new Builder(host, port, database, newCredentials, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
+      new Builder(host, port, newCredentials, database, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
 
     def withCredentials(newCredentials: Credentials): Builder[F] =
       withCredentials(newCredentials.pure)
@@ -439,35 +438,41 @@ object Session {
     def withUserAndPassword(newUser: String, newPassword: String): Builder[F] =
       withCredentials(Credentials(newUser, Some(newPassword)))
 
+    def withDatabase(newDatabase: String): Builder[F] =
+      new Builder(host, port, credentials, Some(newDatabase), debug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
+
+    def withoutDatabase: Builder[F] =
+      new Builder(host, port, credentials, None, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
+
     def withDebug(newDebug: Boolean): Builder[F] =
-      new Builder(host, port, database, credentials, newDebug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
+      new Builder(host, port, credentials, database, newDebug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
 
     def withTypingStrategy(newTypingStrategy: TypingStrategy): Builder[F] =
-      new Builder(host, port, database, credentials, debug, newTypingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
+      new Builder(host, port, credentials, database, debug, newTypingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
 
     def withRedactionStrategy(newRedactionStrategy: RedactionStrategy): Builder[F] =
-      new Builder(host, port, database, credentials, debug, typingStrategy, newRedactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
+      new Builder(host, port, credentials, database, debug, typingStrategy, newRedactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
 
     def withSSL(newSSL: SSL): Builder[F] =
-      new Builder(host, port, database, credentials, debug, typingStrategy, redactionStrategy, newSSL, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
+      new Builder(host, port, credentials, database, debug, typingStrategy, redactionStrategy, newSSL, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
 
     def withConnectionParameters(newConnectionParameters: Map[String, String]): Builder[F] =
-      new Builder(host, port, database, credentials, debug, typingStrategy, redactionStrategy, ssl, newConnectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
+      new Builder(host, port, credentials, database, debug, typingStrategy, redactionStrategy, ssl, newConnectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
 
     def withSocketOptions(newSocketOptions: List[SocketOption]): Builder[F] =
-      new Builder(host, port, database, credentials, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, newSocketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
+      new Builder(host, port, credentials, database, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, newSocketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
 
     def withReadTimeout(newReadTimeout: Duration): Builder[F] =
-      new Builder(host, port, database, credentials, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, newReadTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
+      new Builder(host, port, credentials, database, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, newReadTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
 
     def withCommandCacheSize(newCommandCacheSize: Int): Builder[F] =
-      new Builder(host, port, database, credentials, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, newCommandCacheSize, queryCacheSize, parseCacheSize)
+      new Builder(host, port, credentials, database, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, newCommandCacheSize, queryCacheSize, parseCacheSize)
 
     def withQueryCacheSize(newQueryCacheSize: Int): Builder[F] =
-      new Builder(host, port, database, credentials, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, newQueryCacheSize, parseCacheSize)
+      new Builder(host, port, credentials, database, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, newQueryCacheSize, parseCacheSize)
 
     def withParseCacheSize(newParseCacheSize: Int): Builder[F] =
-      new Builder(host, port, database, credentials, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, newParseCacheSize)
+      new Builder(host, port, credentials, database, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, newParseCacheSize)
     
 
     /**
@@ -535,7 +540,7 @@ object Session {
         pc    <- Resource.eval(Parse.Cache.empty[F](parseCacheSize))
         proto <- Protocol[F](debug, namer, sockets, sslOptions, describeCache, pc, readTimeout, redactionStrategy)
         creds <- Resource.eval(credentials)
-        _     <- Resource.eval(proto.startup(creds.user, database, creds.password, connectionParameters))
+        _     <- Resource.eval(proto.startup(creds.user, database.getOrElse(creds.user), creds.password, connectionParameters))
         sess  <- Resource.make(fromProtocol(proto, namer, typingStrategy, redactionStrategy))(_ => proto.cleanup)
       } yield sess
     }
@@ -544,17 +549,17 @@ object Session {
   /**
    * Supports configurable construction of a `Session`.
    *
-   * Create a `Builder` via `apply` and then call various configuration methods like `withDatabase` and `withUserAndPassword`.
+   * Create a `Builder` via `apply` and then call various configuration methods like `withUserAndPassword` and `withDatabase`.
    * After configuration is complete, call either `single` to create a single-use session or `pooled` to create a pool of sessions.
    *
-   * For example, the following pool connects to localhost:5432, uses the database named world, and authenticates via username and
-   * password. The resulting pool has a max of 10 concurrent sessions.
+   * For example, the following pool connects to localhost:5432, authenticates via username and password, and uses the database
+   * named world. The resulting pool has a max of 10 concurrent sessions.
    *
    * @example {{{
        val pool: Resource[IO, Resource[IO, Session[IO]]] =
          Session.Builder[IO]
-           .withDatabase("world")
            .withUserAndPassword("jimmy", "banana")
+           .withDatabase("world")
            .pooled(10)
    }}}
    *
@@ -565,7 +570,7 @@ object Session {
       new Builder[F](
         host = "localhost",
         port = 5432,
-        database = "postgres",
+        database = None,
         credentials = Credentials("postgres", None).pure[F],
         debug = false,
         typingStrategy = TypingStrategy.BuiltinsOnly,
@@ -626,8 +631,8 @@ object Session {
     Builder[F]
       .withHost(host)
       .withPort(port)
-      .withDatabase(database)
       .withCredentials(Credentials(user, password))
+      .withDatabase(database)
       .withDebug(debug)
       .withTypingStrategy(strategy)
       .withRedactionStrategy(redactionStrategy)
@@ -684,8 +689,8 @@ object Session {
     Builder[F]
       .withHost(host)
       .withPort(port)
-      .withDatabase(database)
       .withCredentials(Credentials(user, password))
+      .withDatabase(database)
       .withDebug(debug)
       .withTypingStrategy(strategy)
       .withRedactionStrategy(redactionStrategy)
@@ -724,8 +729,8 @@ object Session {
     Builder[F]
       .withHost(host)
       .withPort(port)
-      .withDatabase(database)
       .withCredentials(Credentials(user, password))
+      .withDatabase(database)
       .withDebug(debug)
       .withTypingStrategy(strategy)
       .withRedactionStrategy(redactionStrategy)
@@ -763,8 +768,8 @@ object Session {
     Builder[F]
       .withHost(host)
       .withPort(port)
-      .withDatabase(database)
       .withCredentials(Credentials(user, password))
+      .withDatabase(database)
       .withDebug(debug)
       .withTypingStrategy(strategy)
       .withRedactionStrategy(redactionStrategy)

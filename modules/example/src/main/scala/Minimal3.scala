@@ -18,8 +18,8 @@ object Minimal3 extends IOApp {
 
   val session: Resource[IO, Session[IO]] =
     Session.Builder[IO]
-      .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
+      .withDatabase("world")
       .single
 
   case class Country(code: String, name: String, pop: Int)

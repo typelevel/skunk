@@ -20,8 +20,8 @@ abstract class SkunkTest(debug: Boolean = false, typingStrategy: TypingStrategy 
 
   def session(readTimeout: Duration)(implicit tracer: Tracer[IO]): Resource[IO, Session[IO]] =
     Session.Builder[IO]
-      .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
+      .withDatabase("world")
       .withTypingStrategy(typingStrategy)
       .withDebug(debug)
       .withReadTimeout(readTimeout)
@@ -32,8 +32,8 @@ abstract class SkunkTest(debug: Boolean = false, typingStrategy: TypingStrategy 
 
   def pooled(max: Int = 8, readTimeout: Duration = Duration.Inf, parseCacheSize: Int = 1024)(implicit tracer: Tracer[IO]): Resource[IO, Resource[IO, Session[IO]]] =
     Session.Builder[IO]
-      .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
+      .withDatabase("world")
       .withTypingStrategy(typingStrategy)
       .withDebug(debug)
       .withReadTimeout(readTimeout)

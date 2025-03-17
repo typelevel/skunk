@@ -19,8 +19,8 @@ class SslTest extends ffstest.FTest {
 
   tracedTest("successful login with SSL.Trusted (ssl available)") { implicit tracer: Tracer[IO] =>
     Session.Builder[IO]
-      .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
+      .withDatabase("world")
       .withSSL(SSL.Trusted)
       .single
       .use(_ => IO.unit)
@@ -28,8 +28,8 @@ class SslTest extends ffstest.FTest {
 
   tracedTest("successful login with SSL.None (ssl available)") { implicit tracer: Tracer[IO] =>
     Session.Builder[IO]
-      .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
+      .withDatabase("world")
       .withSSL(SSL.None)
       .single
       .use(_ => IO.unit)
@@ -37,8 +37,8 @@ class SslTest extends ffstest.FTest {
 
   tracedTest("failed login with SSL.System (ssl available)") { implicit tracer: Tracer[IO] =>
     Session.Builder[IO]
-      .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
+      .withDatabase("world")
       .withSSL(SSL.System)
       .single
       .use(_ => IO.unit).assertFailsWith[SSLException].as("sigh") // TODO! Better failure!
@@ -46,8 +46,8 @@ class SslTest extends ffstest.FTest {
 
   tracedTest("failed login with SSL.Trusted (ssl not available)") { implicit tracer: Tracer[IO] =>
     Session.Builder[IO]
-      .withDatabase("world")
       .withSSL(SSL.Trusted)
+      .withDatabase("world")
       .withPort(Port.Trust)
       .single
       .use(_ => IO.unit).assertFailsWith[Exception].as("ok") // TODO! Better failure!
@@ -55,18 +55,18 @@ class SslTest extends ffstest.FTest {
 
   tracedTest("successful login with SSL.Trusted.withFallback(true) (ssl not available)") { implicit tracer: Tracer[IO] =>
     Session.Builder[IO]
+      .withPort(Port.Trust)
       .withDatabase("world")
       .withSSL(SSL.Trusted.withFallback(true))
-      .withPort(Port.Trust)
       .single
       .use(_ => IO.unit)
   }
 
   tracedTest("successful login with SSL.None (ssl not available)") { implicit tracer: Tracer[IO] =>
     Session.Builder[IO]
+      .withPort(Port.Trust)
       .withDatabase("world")
       .withSSL(SSL.None)
-      .withPort(Port.Trust)
       .single
       .use(_ => IO.unit)
   }

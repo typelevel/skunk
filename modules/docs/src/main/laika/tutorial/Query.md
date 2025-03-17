@@ -259,8 +259,8 @@ object QueryExample extends IOApp {
   // a source of sessions
   val session: Resource[IO, Session[IO]] =
     Session.Builder[IO]
-      .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
+      .withDatabase("world")
       .single
 
   // a data model
@@ -375,8 +375,8 @@ object QueryExample2 extends IOApp {
   // a source of sessions
   val session: Resource[IO, Session[IO]] =
     Session.Builder[IO]
-      .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
+      .withDatabase("world")
       .single
 
   // A source of services

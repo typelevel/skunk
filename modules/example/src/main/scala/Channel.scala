@@ -15,8 +15,8 @@ object Channel extends IOApp {
 
   val session: Resource[IO, Session[IO]] =
     Session.Builder[IO]
-      .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
+      .withDatabase("world")
       .single
 
   def run(args: List[String]): IO[ExitCode] =
@@ -24,7 +24,7 @@ object Channel extends IOApp {
       s.channel(id"foo")
        .listen(42)
        .take(3)
-       .evalMap(n => IO(println(s"⭐️⭐  $n")))
+       .evalMap(n => IO.println(s"⭐️⭐  $n"))
        .compile
        .drain
     } as ExitCode.Success

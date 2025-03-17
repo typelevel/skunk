@@ -45,8 +45,8 @@ object Hello extends IOApp {
     Session.Builder[IO]                                      // (2)
       .withHost("localhost")
       .withPort(5432)
-      .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
+      .withDatabase("world")
       .single
 
   def run(args: List[String]): IO[ExitCode] =

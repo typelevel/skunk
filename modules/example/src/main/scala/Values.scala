@@ -18,8 +18,8 @@ object Values extends IOApp {
 
   val session: Resource[IO, Session[IO]] =
     Session.Builder[IO]
-      .withDatabase("world")
       .withUserAndPassword("jimmy", "banana")
+      .withDatabase("world")
       .single
 
   case class Data(n: Int, s: String, b: Boolean)
