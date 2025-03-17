@@ -936,7 +936,7 @@ object Session {
     }
   }
 
-  // TODO: upstream
+  // TODO: upstream - see https://github.com/typelevel/fs2/pull/3546
   implicit class SignalOps[F[_], A](outer: Signal[F, A]) {
     def mapK[G[_]](fk: F ~> G): Signal[G, A] =
       new Signal[G, A] {
@@ -945,8 +945,4 @@ object Session {
         def get: G[A] = fk(outer.get)
       }
   }
-
-  implicit class SessionSyntax[F[_]](outer: Session[F]) {
-  }
-
 }
