@@ -408,7 +408,7 @@ object Session {
    * @param credentials           user and optional password, evaluated for each session; defaults to user "postgres" with no password
    * @param database              database to use; defaults to None and hence whatever user is used to authenticate (e.g. "postgres" when using default user)
    * @param debug                 whether debug logs should be written to the console; defaults to false
-   * @param typingStrategy        typing strategy; defaults to [[TypingStrategy.BuiltinsOnly]]
+   * @param typingStrategy        typing strategy; defaults to `TypingStrategy.BuiltinsOnly`
    * @param redactionStrategy     redaction strategy; defaults to [[RedactionStrategy.OptIn]]
    * @param ssl                   ssl configuration; defaults to [[SSL.None]]
    * @param connectionParameters  Postgres connection parameters; defaults to [[DefaultConnectionParameters]] 
