@@ -307,7 +307,7 @@ object Session {
   /**
    * Abstract implementation that use the MonadCancelThrow constraint to implement prepared-if-needed API
    */
-  abstract class Impl[F[_]: MonadCancelThrow] extends Session[F] {
+  private abstract class Impl[F[_]: MonadCancelThrow] extends Session[F] {
 
     override def execute[A, B](query: Query[A, B])(args: A): F[List[B]] =
       Monad[F].flatMap(prepare(query)) { pq =>
