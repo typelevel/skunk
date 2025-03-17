@@ -33,7 +33,7 @@ import skunk.net.protocol.Parse
  * scope of its owning `Resource`, as are any streams constructed here. If you `start` an operation
  * be sure to `join` its `Fiber` before releasing the resource.
  *
- * To create a session, use `Session.Builder[F]`, call various configuration methods, and then call
+ * To create a session, use [[Session.Builder]], call various configuration methods, and then call
  * either `single`, to create a single-use session, or `pooled`, to create a pool of sessions.
  *
  * @groupprio Queries 10
@@ -63,7 +63,7 @@ import skunk.net.protocol.Parse
  *
  * @group Session
  */
-trait Session[F[_]] {
+sealed trait Session[F[_]] {
 
   /**
    * Signal representing the current state of all Postgres configuration variables announced to this
@@ -402,6 +402,21 @@ object Session {
    *
    * After overriding the various defaults, call `single` to create a single-use session or `pooled`
    * to create a pool of sessions.
+   *
+   * @param host                  Postgres server host; defaults to localhost
+   * @param port                  Postgres server port; defaults to 5432
+   * @param credentials           user and optional password, evaluated for each session; defaults to user "postgres" with no password
+   * @param database              database to use; defaults to None and hence whatever user is used to authenticate (e.g. "postgres" when using default user)
+   * @param debug                 whether debug logs should be written to the console; defaults to false
+   * @param typingStrategy        typing strategy; defaults to [[TypingStrategy.BuiltinsOnly]]
+   * @param redactionStrategy     redaction strategy; defaults to [[RedactionStrategy.OptIn]]
+   * @param ssl                   ssl configuration; defaults to [[SSL.None]]
+   * @param connectionParameters  Postgres connection parameters; defaults to [[DefaultConnectionParameters]] 
+   * @param socketOptions         options for TCP sockets; defaults to [[DefaultSocketOptions]]
+   * @param readTimeout           timeout when reading from a TCP socket; defaults to infinite
+   * @param commandCacheSize      size of the session-level cache for command checking; defaults to 2048
+   * @param queryCacheSize        size of the session-level cache for query checking; defaults to 2048
+   * @param parseCacheSize        size of the pool-level cache for parsing statements; defaults to 2048
    */
   final class Builder[F[_]: Temporal: Network: Console] private (
     val host: String,
@@ -552,6 +567,8 @@ object Session {
    * Create a `Builder` via `apply` and then call various configuration methods like `withUserAndPassword` and `withDatabase`.
    * After configuration is complete, call either `single` to create a single-use session or `pooled` to create a pool of sessions.
    *
+   * All configuration parameters have sensible defaults. See the implementation of `apply` for those default values.
+   *
    * For example, the following pool connects to localhost:5432, authenticates via username and password, and uses the database
    * named world. The resulting pool has a max of 10 concurrent sessions.
    *
@@ -562,8 +579,6 @@ object Session {
            .withDatabase("world")
            .pooled(10)
    }}}
-   *
-   * All configuration parameters have sensible defaults. See the implementation of `apply` for those default values.
    */
   object Builder {
     def apply[F[_]: Temporal: Network: Console]: Builder[F] =
@@ -574,14 +589,14 @@ object Session {
         credentials = Credentials("postgres", None).pure[F],
         debug = false,
         typingStrategy = TypingStrategy.BuiltinsOnly,
+        redactionStrategy = RedactionStrategy.OptIn,
         ssl = SSL.None,
         connectionParameters = DefaultConnectionParameters,
         socketOptions = DefaultSocketOptions,
+        readTimeout = Duration.Inf,
         commandCacheSize = 2048,
         queryCacheSize = 2048,
         parseCacheSize = 2048,
-        readTimeout = Duration.Inf,
-        redactionStrategy = RedactionStrategy.OptIn
       )
   }
 
