@@ -11,10 +11,10 @@ import tests.SkunkTest
 import skunk.data.Type
 import skunk.exception.UnknownOidException
 
-class UnknownOidExceptionTest1 extends SkunkTest(strategy = Strategy.SearchPath) {
+class UnknownOidExceptionTest1 extends SkunkTest(typingStrategy = TypingStrategy.SearchPath) {
 
     val mood = `enum`[String](identity, Option(_), Type("mood"))
-    sessionTest("raise UnknownOidException when referencing a new type, using Strategy.SearchPath") { s =>
+    sessionTest("raise UnknownOidException when referencing a new type, using TypingStrategy.SearchPath") { s =>
       for {
         _ <- s.execute(sql"DROP TYPE IF EXISTS mood".command)
         _ <- s.execute(sql"CREATE TYPE mood AS ENUM ('sad', 'ok', 'happy')".command)
@@ -24,10 +24,10 @@ class UnknownOidExceptionTest1 extends SkunkTest(strategy = Strategy.SearchPath)
 
 }
 
-class UnknownOidExceptionTest2 extends SkunkTest(strategy = Strategy.BuiltinsOnly) {
+class UnknownOidExceptionTest2 extends SkunkTest(typingStrategy = TypingStrategy.BuiltinsOnly) {
 
     val myenum = `enum`[String](identity, Option(_), Type("myenum"))
-    sessionTest("raise UnknownOidException when referencing a user-defined type with Strategy.BuiltinsOnly") { s =>
+    sessionTest("raise UnknownOidException when referencing a user-defined type with TypingStrategy.BuiltinsOnly") { s =>
       s.unique(sql"SELECT 'foo'::myenum AS blah".query(myenum)).assertFailsWith[UnknownOidException]
        .as("ok")
     }

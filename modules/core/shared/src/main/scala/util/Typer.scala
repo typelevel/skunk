@@ -10,11 +10,10 @@ import skunk._
 import skunk.codec.all._
 import skunk.data.Type
 import skunk.net.Protocol
-import skunk.util.Typer.Strategy
 
 trait Typer { self =>
 
-  def strategy: Strategy
+  def strategy: TypingStrategy
 
   def typeForOid(oid: Int, typeMod: Int): Option[Type]
 
@@ -22,7 +21,7 @@ trait Typer { self =>
 
   def orElse(that: Typer): Typer =
     new Typer {
-      override def strategy: Strategy =
+      override def strategy: TypingStrategy =
         self.strategy max that.strategy
       override def typeForOid(oid: Int, typeMod: Int): Option[Type] =
         self.typeForOid(oid, typeMod) orElse that.typeForOid(oid, typeMod)
@@ -34,35 +33,10 @@ trait Typer { self =>
 
 object Typer {
 
-  sealed trait Strategy
-  object Strategy {
-
-    /**
-     * This strategy supports built-in Postgres types only, and does not need a database round-trip
-     * for initialization. This is the fastest strategy and is appropriate when you are not using
-     * any user-defined types (this includes enums).
-     */
-    case object BuiltinsOnly extends Strategy
-
-    /**
-     * This strategy supports built-in Postgres types, as well as types that are defined in
-     * namespaces on the session search path. This is the default strategy.
-     */
-    case object SearchPath extends Strategy
-
-    implicit val OrderStrategy: Order[Strategy] =
-      Order.by {
-        case BuiltinsOnly => 0
-        case SearchPath   => 1
-      }
-
-  }
-
-
   val Static: Typer = new Typer {
     import Type._
 
-    val strategy: Strategy = Strategy.BuiltinsOnly
+    val strategy: TypingStrategy = TypingStrategy.BuiltinsOnly
 
     val staticByOid: Map[Int, Type] =
       Map(
@@ -235,7 +209,7 @@ object Typer {
     (p.typeInfoMap, p.relInfoMap).mapN { (tim, rim) =>
       Static orElse new Typer {
 
-        val strategy: Strategy = Strategy.SearchPath
+        val strategy: TypingStrategy = TypingStrategy.SearchPath
 
         val nameToOid: Map[String, Int] =
           tim.map { case (k, v) => v.name -> k }

@@ -5,17 +5,16 @@
 package skunk.exception
 
 import cats.syntax.foldable._
+import skunk.TypingStrategy
+import skunk.TypingStrategy.{BuiltinsOnly, SearchPath}
 import skunk.net.message.RowDescription
 import skunk.util.Text
 import skunk.data.Type
-import skunk.util.Typer
-import skunk.util.Typer.Strategy.BuiltinsOnly
-import skunk.util.Typer.Strategy.SearchPath
 
 case class UnknownTypeException(
   query:    skunk.Statement[_],
   types:    List[(Type, Option[Int])],
-  strategy: Typer.Strategy
+  strategy: TypingStrategy
 ) extends SkunkException(
   sql       = Some(query.sql),
   message   = "Type(s) not found.",

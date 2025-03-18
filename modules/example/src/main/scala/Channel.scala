@@ -14,20 +14,17 @@ object Channel extends IOApp {
   implicit val tracer: Tracer[IO] = Tracer.noop
 
   val session: Resource[IO, Session[IO]] =
-    Session.single(
-      host     = "localhost",
-      port     = 5432,
-      user     = "jimmy",
-      database = "world",
-      password = Some("banana")
-    )
+    Session.Builder[IO]
+      .withUserAndPassword("jimmy", "banana")
+      .withDatabase("world")
+      .single
 
   def run(args: List[String]): IO[ExitCode] =
     session.use { s =>
       s.channel(id"foo")
        .listen(42)
        .take(3)
-       .evalMap(n => IO(println(s"⭐️⭐  $n")))
+       .evalMap(n => IO.println(s"⭐️⭐  $n"))
        .compile
        .drain
     } as ExitCode.Success

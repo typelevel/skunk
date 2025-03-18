@@ -18,15 +18,12 @@ import cats.effect.std.Console
 
 object Minimal2 extends IOApp {
 
-  def session[F[_]: Temporal: Tracer: Network: Console]: Resource[F, Session[F]] =
-    Session.single(
-      host     = "localhost",
-      port     = 5432,
-      user     = "jimmy",
-      database = "world",
-      password = Some("banana"),
-      // debug    = true
-    )
+
+  def session[F[_]: Temporal: Tracer: Console: Network]: Resource[F, Session[F]] =
+    Session.Builder[F]
+      .withUserAndPassword("jimmy", "banana")
+      .withDatabase("world")
+      .single
 
   case class Country(code: String, name: String, pop: Int)
 

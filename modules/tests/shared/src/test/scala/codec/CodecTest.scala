@@ -10,7 +10,6 @@ import cats.syntax.all._
 import skunk._
 import skunk.codec.all._
 import skunk.implicits._
-import skunk.util.Typer
 import ffstest.FTest
 import cats.InvariantSemigroupal
 import cats.effect.IO
@@ -18,7 +17,7 @@ import cats.effect.IO
 /** Tests that we check if we can round-trip values via codecs. */
 abstract class CodecTest(
   debug:    Boolean = false,
-  strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly
+  strategy: TypingStrategy = TypingStrategy.BuiltinsOnly
 ) extends SkunkTest(debug, strategy) {
 
   case class Box[A](a: A)

@@ -6,7 +6,6 @@ package tests
 package codec
 import io.circe.Json
 import io.circe.jawn.parse
-import skunk._
 import skunk.circe.codec.all._
 
 class JsonCodecTest extends CodecTest {
@@ -18,7 +17,6 @@ class JsonCodecTest extends CodecTest {
   roundtripTest(jsonb)(j)
   roundtripTest(jsonb[(Int, String)])((42, "foo"))
   decodeFailureTest(jsonb[(Int, String)], List("woozle", "blah"))
-
 }
 
 

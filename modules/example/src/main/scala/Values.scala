@@ -17,12 +17,10 @@ object Values extends IOApp {
   implicit val tracer: Tracer[IO] = Tracer.noop
 
   val session: Resource[IO, Session[IO]] =
-    Session.single(
-      host     = "localhost",
-      user     = "jimmy",
-      database = "world",
-      password = Some("banana"),
-    )
+    Session.Builder[IO]
+      .withUserAndPassword("jimmy", "banana")
+      .withDatabase("world")
+      .single
 
   case class Data(n: Int, s: String, b: Boolean)
 

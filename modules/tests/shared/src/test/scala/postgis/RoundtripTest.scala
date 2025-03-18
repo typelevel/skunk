@@ -9,9 +9,8 @@ import skunk._
 import skunk.implicits._
 import skunk.postgis.codecs.all._
 import skunk.postgis.ewkt.EWKT
-import skunk.util.Typer
 
-class RoundtripTest extends SkunkTest(strategy = Typer.Strategy.SearchPath) {
+class RoundtripTest extends SkunkTest(typingStrategy = TypingStrategy.SearchPath) {
 
   roundtripEWKT("POINT EMPTY")
   roundtripEWKT("POINT Z EMPTY")

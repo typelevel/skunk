@@ -15,12 +15,10 @@ object Minimal1 extends IOApp {
   implicit val tracer: Tracer[IO] = Tracer.noop[IO]
 
   val session: Resource[IO, Session[IO]] =
-    Session.single(
-      host     = "localhost",
-      user     = "jimmy",
-      database = "world",
-      password = Some("banana"),
-    )
+    Session.Builder[IO]
+      .withUserAndPassword("jimmy", "banana")
+      .withDatabase("world")
+      .single
 
   def run(args: List[String]): IO[ExitCode] =
     session.use { s =>

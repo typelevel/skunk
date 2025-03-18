@@ -17,12 +17,10 @@ object Join extends IOApp with StreamOps {
   implicit val tracer: Tracer[IO] = Tracer.noop
 
   val session: Resource[IO, Session[IO]] =
-    Session.single(
-      host     = "localhost",
-      user     = "jimmy",
-      database = "world",
-      password = Some("banana"),
-    )
+    Session.Builder[IO]
+      .withUserAndPassword("jimmy", "banana")
+      .withDatabase("world")
+      .single
 
   // A data model
   case class City(name: String, population: Int)

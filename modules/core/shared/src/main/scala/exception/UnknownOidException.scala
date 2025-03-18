@@ -12,12 +12,12 @@ import skunk.util.Text
 import skunk.syntax.list._
 import cats.data.Ior
 import skunk.data.Type
-import Strategy._
+import TypingStrategy._
 
 case class UnknownOidException(
   query: Query[_, _],
   types: List[(RowDescription.Field, Option[TypedRowDescription.Field])],
-  strategy: Strategy
+  strategy: TypingStrategy
 ) extends SkunkException(
   sql       = Some(query.sql),
   message   = "Unknown oid(s) in row description.",
@@ -50,17 +50,17 @@ case class UnknownOidException(
   private def codeHint: String =
     strategy match {
       case SearchPath   =>
-        s"""|Your typing strategy is ${Console.GREEN}Strategy.SearchPath${Console.RESET} which can normally detect user-defined types; however Skunk
+        s"""|Your typing strategy is ${Console.GREEN}TypingStrategy.SearchPath${Console.RESET} which can normally detect user-defined types; however Skunk
             |only reads the system catalog once (when the Session is initialized) so user-created types are not
             |immediately usable. If you are creating a new type you might consider doing it on a single-use session,
             |before initializing other sessions that use it.
             |""".stripMargin
       case BuiltinsOnly =>
-        s"""|Your typing strategy is ${Console.GREEN}Strategy.BuiltinsOnly${Console.RESET} which does not know about user-defined
+        s"""|Your typing strategy is ${Console.GREEN}TypingStrategy.BuiltinsOnly${Console.RESET} which does not know about user-defined
             |types such as enums. To include user-defined types add the following argument when you
             |construct your session resource.
             |
-            |  ${Console.GREEN}strategy = Strategy.SearchPath${Console.RESET}
+            |  ${Console.GREEN}.withTypingStrategy(TypingStrategy.SearchPath)${Console.RESET}
             |
             |""".stripMargin
     }

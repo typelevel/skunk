@@ -5,11 +5,11 @@
 package tests
 package codec
 
+import skunk.TypingStrategy
 import skunk.postgis._
 import skunk.postgis.codecs.all._
-import skunk.util.Typer
 
-class PostGISCodecTest extends CodecTest(strategy = Typer.Strategy.SearchPath) {
+class PostGISCodecTest extends CodecTest(strategy = TypingStrategy.SearchPath) {
 
   roundtripTest(point)(Point.xy(1, 2))
   roundtripTest(point)(Point(SRID(4326), Coordinate.xy(1, 2)))

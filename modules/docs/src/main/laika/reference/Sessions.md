@@ -19,17 +19,14 @@ See [§20.3](https://www.postgresql.org/docs/current/auth-methods.html) in the P
 
 ## Encryption with SSL
 
-To connect with SSL (disabled by default) provide the `ssl` named argument when constructing a `Session` resource.
+To connect with SSL (disabled by default) provide the `ssl` argument when building a `Session` resource.
 
 ```scala mdoc:compile-only
-Session.single[IO](
-  host     = "localhost",
-  user     = "jimmy",
-  database = "world",
-  password = Some("banana"),
-  debug    = true,
-  ssl      = SSL.System, // Use SSL with the system default SSLContext.
-)
+Session.Builder[IO]
+  .withUserAndPassword("jimmy", "banana")
+  .withDatabase("world")
+  .withSSL(SSL.System)  // Use SSL with the system default SSLContext
+  .single
 ```
 
 Skunk supports all TLS modes provided by fs2.
@@ -65,14 +62,12 @@ println(Session.DefaultConnectionParameters.map { case (k, v) => s"| `$k` | `$v`
 It is possible to modify default session parameters via the parameters session property, which is unsupported in general but may be necessary when using nonstandard Postgres variants. Amazon Redshift, for example, does not support the `IntervalStyle` parameter, and this will cause startup negotiation to fail. A workaround is demonstrated below.
 
 ```scala mdoc:compile-only
-Session.single[IO](
-  host       = "localhost",
-  user       = "jimmy",
-  database   = "world",
-  password   = Some("banana"),
-  port       = 5439,
-  parameters = Session.DefaultConnectionParameters - "IntervalStyle"
-)
+Session.Builder[IO]
+  .withUserAndPassword("jimmy", "banana")
+  .withDatabase("world")
+  .withPort(5439)
+  .withConnectionParameters(Session.DefaultConnectionParameters - "IntervalStyle")
+  .single
 ```
 
 ## Error Conditions

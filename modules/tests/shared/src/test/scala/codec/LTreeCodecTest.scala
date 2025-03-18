@@ -4,17 +4,16 @@
 
 package tests
 package codec
+
+import skunk.TypingStrategy
 import skunk.codec.all._
 import skunk.data.LTree
-import skunk.util.Typer
 
-class LTreeCodecTest extends CodecTest(strategy = Typer.Strategy.SearchPath) {
+class LTreeCodecTest extends CodecTest(strategy = TypingStrategy.SearchPath) {
 
   roundtripTest(ltree)(LTree.Empty)
   roundtripTest(ltree)(LTree.fromLabels("abc", "def").toOption.get)
   roundtripTest(ltree)(LTree.fromLabels("abcdefghijklmnopqrstuvwxyz0123456789".toList.map(_.toString()) :_*).toOption.get)
   roundtripTest(ltree)(LTree.fromString("foo.βar.baz").toOption.get)
-
 }
-
 
