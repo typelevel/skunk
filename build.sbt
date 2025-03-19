@@ -2,8 +2,8 @@ ThisBuild / tlBaseVersion := "0.6"
 
 // Our Scala versions.
 lazy val `scala-2.12` = "2.12.20"
-lazy val `scala-2.13` = "2.13.15"
-lazy val `scala-3.0`  = "3.3.4"
+lazy val `scala-2.13` = "2.13.16"
+lazy val `scala-3.0`  = "3.3.5"
 
 ThisBuild / scalaVersion       := `scala-2.13`
 ThisBuild / crossScalaVersions :=
@@ -18,7 +18,6 @@ ThisBuild / developers   := List(
 ThisBuild / tlCiReleaseBranches += "series/0.6.x"
 ThisBuild / tlCiScalafmtCheck := false
 ThisBuild / tlSitePublishBranch := Some("series/0.6.x")
-ThisBuild / tlSonatypeUseLegacyHost := false
 ThisBuild / githubWorkflowOSes := Seq("ubuntu-latest")
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("11"))
 ThisBuild / tlJdkRelease := Some(8)
@@ -187,7 +186,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     tlFatalWarnings := false,
     libraryDependencies ++= Seq(
       "org.scalameta"     %%% "munit"                   % "1.0.0",
-      "org.scalameta"     % "junit-interface"           % "1.0.2",
+      "org.scalameta"     % "junit-interface"           % "1.1.0",
       "org.typelevel"     %%% "scalacheck-effect-munit" % "2.0.0-M2",
       "org.typelevel"     %%% "munit-cats-effect"       % "2.0.0",
       "org.typelevel"     %%% "cats-free"               % "2.11.0",
