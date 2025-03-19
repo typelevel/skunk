@@ -59,7 +59,7 @@ ThisBuild / mimaBinaryIssueFilters ++= List(
 )
 
 // This is used in a couple places
-lazy val fs2Version = "3.11.0"
+lazy val fs2Version = "3.12.0-RC2"
 lazy val natchezVersion = "0.3.7"
 
 // Global Settings
@@ -109,7 +109,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     description := "Tagless, non-blocking data access library for Postgres.",
     libraryDependencies ++= Seq(
       "org.typelevel"          %%% "cats-core"               % "2.11.0",
-      "org.typelevel"          %%% "cats-effect"             % "3.5.7",
+      "org.typelevel"          %%% "cats-effect"             % "3.6.0-RC2",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
       "org.scodec"             %%% "scodec-bits"             % "1.1.38",
@@ -208,7 +208,6 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   )
   .nativeEnablePlugins(ScalaNativeBrewedConfigPlugin)
   .nativeSettings(
-    libraryDependencies += "com.armanbilge" %%% "epollcat" % "0.1.6",
     Test / nativeBrewFormulas ++= Set("s2n", "utf8proc"),
     Test / envVars ++= Map("S2N_DONT_MLOCK" -> "1")
   )
