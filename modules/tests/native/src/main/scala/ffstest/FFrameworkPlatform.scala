@@ -4,9 +4,6 @@
 
 package ffstest
 
-import epollcat.unsafe.EpollRuntime
 import munit.CatsEffectSuite
 
-trait FTestPlatform extends CatsEffectSuite {
-  override def munitIORuntime = EpollRuntime.global
-}
+trait FTestPlatform extends CatsEffectSuite
