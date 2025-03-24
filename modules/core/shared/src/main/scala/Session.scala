@@ -483,16 +483,34 @@ object Session {
     val commandCacheSize: Int,
     val queryCacheSize: Int,
     val parseCacheSize: Int,
-  ) {
+  ) { self =>
+
+    private def copy(
+      host: String = self.host,
+      port: Int = self.port,
+      credentials: F[Credentials] = self.credentials,
+      database: Option[String] = self.database,
+      debug: Boolean = self.debug,
+      typingStrategy: TypingStrategy = self.typingStrategy,
+      redactionStrategy: RedactionStrategy = self.redactionStrategy,
+      ssl: SSL = self.ssl,
+      connectionParameters: Map[String, String] = self.connectionParameters,
+      socketOptions: List[SocketOption] = self.socketOptions,
+      readTimeout: Duration = self.readTimeout,
+      commandCacheSize: Int = self.commandCacheSize,
+      queryCacheSize: Int = self.queryCacheSize,
+      parseCacheSize: Int = self.parseCacheSize,
+    ): Builder[F] =
+      new Builder(host, port, credentials, database, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
 
     def withHost(newHost: String): Builder[F] =
-      new Builder(newHost, port, credentials, database, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
+      copy(host = newHost)
 
     def withPort(newPort: Int): Builder[F] =
-      new Builder(host, newPort, credentials, database, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
+      copy(port = newPort)
 
     def withCredentials(newCredentials: F[Credentials]): Builder[F] =
-      new Builder(host, port, newCredentials, database, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
+      copy(credentials = newCredentials)
 
     def withCredentials(newCredentials: Credentials): Builder[F] =
       withCredentials(newCredentials.pure)
@@ -504,42 +522,41 @@ object Session {
       withCredentials(Credentials(newUser, Some(newPassword)))
 
     def withDatabase(newDatabase: String): Builder[F] =
-      new Builder(host, port, credentials, Some(newDatabase), debug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
+      copy(database = Some(newDatabase))
 
     def withoutDatabase: Builder[F] =
-      new Builder(host, port, credentials, None, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
+      copy(database = None)
 
     def withDebug(newDebug: Boolean): Builder[F] =
-      new Builder(host, port, credentials, database, newDebug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
+      copy(debug = newDebug)
 
     def withTypingStrategy(newTypingStrategy: TypingStrategy): Builder[F] =
-      new Builder(host, port, credentials, database, debug, newTypingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
+      copy(typingStrategy = newTypingStrategy)
 
     def withRedactionStrategy(newRedactionStrategy: RedactionStrategy): Builder[F] =
-      new Builder(host, port, credentials, database, debug, typingStrategy, newRedactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
+      copy(redactionStrategy = newRedactionStrategy)
 
     def withSSL(newSSL: SSL): Builder[F] =
-      new Builder(host, port, credentials, database, debug, typingStrategy, redactionStrategy, newSSL, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
+      copy(ssl = newSSL)
 
     def withConnectionParameters(newConnectionParameters: Map[String, String]): Builder[F] =
-      new Builder(host, port, credentials, database, debug, typingStrategy, redactionStrategy, ssl, newConnectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
+      copy(connectionParameters = newConnectionParameters)
 
     def withSocketOptions(newSocketOptions: List[SocketOption]): Builder[F] =
-      new Builder(host, port, credentials, database, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, newSocketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
+      copy(socketOptions = newSocketOptions)
 
     def withReadTimeout(newReadTimeout: Duration): Builder[F] =
-      new Builder(host, port, credentials, database, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, newReadTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
+      copy(readTimeout = newReadTimeout)
 
     def withCommandCacheSize(newCommandCacheSize: Int): Builder[F] =
-      new Builder(host, port, credentials, database, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, newCommandCacheSize, queryCacheSize, parseCacheSize)
+      copy(commandCacheSize = newCommandCacheSize)
 
     def withQueryCacheSize(newQueryCacheSize: Int): Builder[F] =
-      new Builder(host, port, credentials, database, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, newQueryCacheSize, parseCacheSize)
+      copy(queryCacheSize = newQueryCacheSize)
 
     def withParseCacheSize(newParseCacheSize: Int): Builder[F] =
-      new Builder(host, port, credentials, database, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, newParseCacheSize)
-    
-
+      copy(parseCacheSize = newParseCacheSize)
+   
     /**
      * Resource yielding logically unpooled sessions. This can be convenient for demonstrations and
      * programs that only need a single session. In reality each session is managed by its own
