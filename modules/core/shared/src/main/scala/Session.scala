@@ -455,7 +455,7 @@ object Session {
     address: Option[UnixSocketAddress]
   ) {
     def addressOrDefault(directory: String, port: Int): UnixSocketAddress =
-      address.getOrElse(UnixSocketAddress(s"${directory}${java.io.File.separator}.s.PGSQL.${port}"))
+      address.getOrElse(UnixSocketAddress(s"${directory}/.s.PGSQL.${port}"))
   }
 
   /**
