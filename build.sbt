@@ -56,6 +56,7 @@ ThisBuild / mimaBinaryIssueFilters ++= List(
   ProblemFilters.exclude[DirectMissingMethodProblem]("skunk.net.BitVectorSocket.fromSocket")
 )
 
+
 // This is used in a couple places
 lazy val fs2Version = "3.12.0"
 lazy val openTelemetryVersion = "1.44.1"
@@ -199,7 +200,8 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       if(System.getProperty("os.arch").startsWith("aarch64")) {
         Tests.Argument(TestFrameworks.MUnit, "--exclude-tags=X86ArchOnly")
       } else Tests.Argument()
-    }
+    },
+    Test / baseDirectory := (ThisBuild / Test / run / baseDirectory).value
   )
   .jvmSettings(
     Test / fork := true,
