@@ -246,7 +246,7 @@ class StartupTest extends ffstest.FTest {
     Session.Builder[IO]
       .withUnixSocketsDirectory("test-unix-socket")
       .withUnixSockets
-      .withUserAndPassword("jimmy", "banana")
+      .withUser("jimmy")
       .withDatabase("world")
       .single
       .use(_ => IO.unit)

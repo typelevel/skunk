@@ -52,7 +52,7 @@ services:
     environment:
       POSTGRES_DB: world
       POSTGRES_USER: jimmy
-      POSTGRES_HOST_AUTH_METHOD: peer
+      POSTGRES_PASSWORD: banana
     volumes:
       - ./test-unix-socket:/var/run/postgresql
   # for testing redshift connections
