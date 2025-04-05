@@ -16,7 +16,6 @@ ThisBuild / developers   := List(
 ThisBuild / tlCiReleaseBranches += "series/0.6.x"
 ThisBuild / tlCiScalafmtCheck := false
 ThisBuild / tlSitePublishBranch := Some("series/0.6.x")
-ThisBuild / githubWorkflowOSes := Seq("ubuntu-latest")
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
 ThisBuild / tlJdkRelease := Some(8)
 
@@ -38,6 +37,7 @@ ThisBuild / githubWorkflowAddedJobs +=
     id = "coverage",
     name = s"Generate coverage report (2.13 JVM only)",
     scalas = Nil,
+    javas = githubWorkflowJavaVersions.value.toList,
     sbtStepPreamble = Nil,
     steps = githubWorkflowJobSetup.value.toList ++
       List(
