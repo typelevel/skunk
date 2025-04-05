@@ -165,7 +165,7 @@ object BufferedMessageSocket {
 
         override protected def terminate: F[Unit] =
           fib.cancel *>                // stop processing incoming messages
-          send(Terminate).attempt.void // server will close the socket when it sees this
+          send(Terminate).attempt.void // server will close the socket when it sees this; ignore failure as socket may be closed mid-write
 
         override def history(max: Int): F[List[Either[Any, Any]]] =
           ms.history(max)
