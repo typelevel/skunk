@@ -51,6 +51,7 @@ services:
     image: postgres:11
     environment:
       POSTGRES_DB: world
+      POSTGRES_USER: jimmy
       POSTGRES_HOST_AUTH_METHOD: trust
     volumes:
       - ./test-unix-socket:/var/run/postgresql
