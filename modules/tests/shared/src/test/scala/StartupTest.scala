@@ -243,10 +243,10 @@ class StartupTest extends ffstest.FTest {
   tracedTest("unix domain sockets - successful login") { implicit tracer: Tracer[IO] =>
     println("=== CONTENTS ===")
     println("================")
-    fs2.io.file.Files[IO].list(fs2.io.file.Path("target/unixsockets")).foreach(IO.println).compile.drain >>
+    fs2.io.file.Files[IO].list(fs2.io.file.Path("test-unix-socket")).foreach(IO.println).compile.drain >>
     Session.Builder[IO]
       .withDebug(true)
-      .withUnixSocketsDirectory("target/unixsockets")
+      .withUnixSocketsDirectory("test-unix-socket")
       .withUnixSockets
       .withUserAndPassword("jimmy", "banana")
       .withDatabase("world")
