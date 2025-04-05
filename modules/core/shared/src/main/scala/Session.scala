@@ -659,7 +659,9 @@ object Session {
           }
 
         case Some(usc) =>
-          usc.unixSockets.client(usc.addressOrDefault(unixSocketsDirectory, port))
+          val address = usc.addressOrDefault(unixSocketsDirectory, port)
+          val log = if (debug) Console[F].println(s"using unix socket address ${address}") else Monad[F].unit
+          Resource.eval(log) *> usc.unixSockets.client(address)
       }
       fromSockets(sockets, sslOptions, describeCache)
     }
