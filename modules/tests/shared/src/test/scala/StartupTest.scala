@@ -239,4 +239,16 @@ class StartupTest extends ffstest.FTest {
       .single
       .use(_ => IO.unit).assertFailsWith[UnknownHostException]
   }
+
+  object LinuxOnly extends munit.Tag("LinuxOnly")
+
+  tracedTest("unix domain sockets - successful login".tag(LinuxOnly)) { implicit tracer: Tracer[IO] =>
+    Session.Builder[IO]
+      .withUnixSocketsDirectory("test-unix-socket")
+      .withUnixSockets
+      .withUserAndPassword("jimmy", "banana")
+      .withDatabase("world")
+      .single
+      .use(_ => IO.unit)
+  }
 }
