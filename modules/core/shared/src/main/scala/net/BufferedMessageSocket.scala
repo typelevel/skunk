@@ -164,8 +164,8 @@ object BufferedMessageSocket {
           noTop.subscribeAwait(maxQueued)
 
         override protected def terminate: F[Unit] =
-          fib.cancel *>      // stop processing incoming messages
-          send(Terminate) // server will close the socket when it sees this
+          fib.cancel *>                // stop processing incoming messages
+          send(Terminate).attempt.void // server will close the socket when it sees this
 
         override def history(max: Int): F[List[Either[Any, Any]]] =
           ms.history(max)
