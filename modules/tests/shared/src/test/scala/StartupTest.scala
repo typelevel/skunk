@@ -240,12 +240,10 @@ class StartupTest extends ffstest.FTest {
       .use(_ => IO.unit).assertFailsWith[UnknownHostException]
   }
 
-  tracedTest("unix domain sockets - successful login") { implicit tracer: Tracer[IO] =>
-    println("=== CONTENTS ===")
-    fs2.io.file.Files[IO].list(fs2.io.file.Path("test-unix-socket")).foreach(IO.println).compile.drain >>
-    IO.println("================") >>
+  object LinuxOnly extends munit.Tag("LinuxOnly")
+
+  tracedTest("unix domain sockets - successful login".tag(LinuxOnly)) { implicit tracer: Tracer[IO] =>
     Session.Builder[IO]
-      .withDebug(true)
       .withUnixSocketsDirectory("test-unix-socket")
       .withUnixSockets
       .withUserAndPassword("jimmy", "banana")
@@ -253,5 +251,4 @@ class StartupTest extends ffstest.FTest {
       .single
       .use(_ => IO.unit)
   }
-
 }

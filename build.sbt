@@ -197,9 +197,14 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     ),
     testFrameworks += new TestFramework("munit.Framework"),
     testOptions += {
-      if(System.getProperty("os.arch").startsWith("aarch64")) {
-        Tests.Argument(TestFrameworks.MUnit, "--exclude-tags=X86ArchOnly")
-      } else Tests.Argument()
+      var excludedTags = List.empty[String]
+      if (System.getProperty("os.arch").startsWith("aarch64"))
+        excludedTags = "X86ArchOnly" :: excludedTags
+      if (!System.getProperty("os.name").contains("linux"))
+        excludedTags = "LinuxOnly" :: excludedTags
+      if (excludedTags.nonEmpty)
+        Tests.Argument(TestFrameworks.MUnit, "--exclude-tags=" + excludedTags.mkString(","))
+      else Tests.Argument()
     },
     Test / baseDirectory := (ThisBuild / Test / run / baseDirectory).value
   )
