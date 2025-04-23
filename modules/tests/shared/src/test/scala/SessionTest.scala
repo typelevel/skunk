@@ -12,12 +12,16 @@ import skunk.exception.SkunkException
 class SessionTest extends ffstest.FTest {
 
   test("Invalid host") {
-    Session.Builder[IO].withHost("").single.use(_ => IO.unit).assertFailsWith[SkunkException]
-      .flatMap(e => assertEqual("message", e.message, """Hostname: "" is not syntactically valid."""))
-  }
-  test("Invalid port") {
-    Session.Builder[IO].withPort(-1).single.use(_ => IO.unit).assertFailsWith[SkunkException]
-      .flatMap(e => assertEqual("message", e.message, "Port: -1 falls out of the allowed range."))
+    val e = intercept[SkunkException] {
+      Session.Builder[IO].withHost("")
+    }
+    assertEquals(e.message, """Hostname: "" is not syntactically valid.""")
   }
 
+  test("Invalid port") {
+    val e = intercept[SkunkException] {
+      Session.Builder[IO].withPort(-1).single.use(_ => IO.unit)
+    }
+    assertEquals(e.message, "Port: -1 falls out of the allowed range.")
+  }
 }
