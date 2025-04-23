@@ -244,8 +244,7 @@ class StartupTest extends ffstest.FTest {
 
   tracedTest("unix domain sockets - successful login".tag(LinuxOnly)) { implicit tracer: Tracer[IO] =>
     Session.Builder[IO]
-      .withUnixSocketsDirectory("test-unix-socket")
-      .withUnixSockets
+      .withUnixSocketDirectory("test-unix-socket")
       .withUser("jimmy")
       .withDatabase("world")
       .single

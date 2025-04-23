@@ -8,10 +8,9 @@ import cats._
 import cats.effect._
 import cats.effect.std.Console
 import cats.syntax.all._
-import com.comcast.ip4s.{Host, Port, SocketAddress}
+import com.comcast.ip4s.*
 import fs2.concurrent.Signal
 import fs2.io.net.{ Network, Socket, SocketOption }
-import fs2.io.net.unixsocket.{ UnixSockets, UnixSocketAddress }
 import fs2.Pipe
 import fs2.Stream
 import org.typelevel.otel4s.trace.Tracer
@@ -22,7 +21,6 @@ import skunk.util._
 import skunk.net.SSLNegotiation
 import skunk.data.TransactionIsolationLevel
 import skunk.data.TransactionAccessMode
-import skunk.exception.SkunkException
 import skunk.net.protocol.Describe
 import scala.concurrent.duration.Duration
 import skunk.net.protocol.Parse
@@ -444,18 +442,13 @@ object Session {
       Recycler(_.execute(Command("RESET ALL", Origin.unknown, Void.codec)).as(true))
   }
 
-  /**
-   * Configuration used to connect to a Postgres server via unix domain sockets.
-   *
-   * @param unixSockets UnixSockets instance for `F`
-   * @param address optional explicit address for the Postgres server domain socket
-   */
-  final case class UnixSocketsConfig[F[_]](
-    unixSockets: UnixSockets[F],
-    address: Option[UnixSocketAddress]
-  ) {
-    def addressOrDefault(directory: String, port: Int): UnixSocketAddress =
-      address.getOrElse(UnixSocketAddress(s"${directory}/.s.PGSQL.${port}"))
+  /** Enumeration of protocols that can be used to connect to a Postgres server. */
+  sealed trait ConnectionType
+  object ConnectionType {
+    /** Connect via TCP using a host and port. */
+    case object TCP extends ConnectionType
+    /** Connect via a Unix domain socket. */
+    case object Unix extends ConnectionType
   }
 
   /**
@@ -466,12 +459,13 @@ object Session {
    * After overriding the various defaults, call `single` to create a single-use session or `pooled`
    * to create a pool of sessions.
    *
+   * @param connectionType        type of connection to use to connect to server; defaults to TCP
    * @param host                  Postgres server host; defaults to localhost
    * @param port                  Postgres server port; defaults to 5432
    * @param credentials           user and optional password, evaluated for each session; defaults to user "postgres" with no password
    * @param database              database to use; defaults to None and hence whatever user is used to authenticate (e.g. "postgres" when using default user)
-   * @param unixSocketsConfig     if defined, server connection is made via a unix domain socket instead of a network socket; defaults to none
-   * @param unixSocketsDirectory  directory Postgres server uses for unix domain sockets; defaults to /tmp
+   * @param unixSocketAddress     explicit path to the Postgres server unix domain socket; if not defined and connection type is Unix, defaults to ${unixSocketsDirectory}/.s.PGSQL.nnnn where nnnn is the port
+   * @param unixSocketDirectory   directory Postgres server uses for unix domain sockets; defaults to /tmp
    * @param debug                 whether debug logs should be written to the console; defaults to false
    * @param typingStrategy        typing strategy; defaults to [[TypingStrategy.BuiltinsOnly]]
    * @param redactionStrategy     redaction strategy; defaults to [[RedactionStrategy.OptIn]]
@@ -484,12 +478,13 @@ object Session {
    * @param parseCacheSize        size of the pool-level cache for parsing statements; defaults to 2048
    */
   final class Builder[F[_]: Temporal: Network: Console] private (
-    val host: String,
-    val port: Int,
+    val connectionType: ConnectionType,
+    val host: Host,
+    val port: Port,
+    val unixSocketAddress: Option[UnixSocketAddress],
+    val unixSocketDirectory: String,
     val credentials: F[Credentials],
     val database: Option[String],
-    val unixSocketsConfig: Option[UnixSocketsConfig[F]],
-    val unixSocketsDirectory: String,
     val debug: Boolean,
     val typingStrategy: TypingStrategy,
     val redactionStrategy: RedactionStrategy,
@@ -503,12 +498,13 @@ object Session {
   ) { self =>
 
     private def copy(
-      host: String = self.host,
-      port: Int = self.port,
+      connectionType: ConnectionType = self.connectionType,
+      host: Host = self.host,
+      port: Port = self.port,
+      unixSocketAddress: Option[UnixSocketAddress] = self.unixSocketAddress,
+      unixSocketDirectory: String = self.unixSocketDirectory,
       credentials: F[Credentials] = self.credentials,
       database: Option[String] = self.database,
-      unixSocketsConfig: Option[UnixSocketsConfig[F]] = self.unixSocketsConfig,
-      unixSocketsDirectory: String = self.unixSocketsDirectory,
       debug: Boolean = self.debug,
       typingStrategy: TypingStrategy = self.typingStrategy,
       redactionStrategy: RedactionStrategy = self.redactionStrategy,
@@ -520,13 +516,47 @@ object Session {
       queryCacheSize: Int = self.queryCacheSize,
       parseCacheSize: Int = self.parseCacheSize,
     ): Builder[F] =
-      new Builder(host, port, credentials, database, unixSocketsConfig, unixSocketsDirectory, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
+      new Builder(connectionType, host, port, unixSocketAddress, unixSocketDirectory, credentials, database, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
 
+    /** Configures the connection type. */
+    def withConnectionType(newConnectionType: ConnectionType): Builder[F] =
+      copy(connectionType = newConnectionType)
+
+    /** Configures the host of the Postgres server. Throws `IllegalArgumentException` if the specified host is not syntactically valid. */
     def withHost(newHost: String): Builder[F] =
+      withHost(Host.fromString(newHost).getOrElse(throw new IllegalArgumentException(s"""Hostname: "$host" is not syntactically valid.""")))
+
+    /** Configures the host of the Postgres server. */
+    def withHost(newHost: Host): Builder[F] =
       copy(host = newHost)
 
+    /** Configures the post of the Postgres server. Throws `IllegalArgumentException` if the specified port is not a valid port number. */
     def withPort(newPort: Int): Builder[F] =
+      withPort(Port.fromInt(newPort).getOrElse(throw new IllegalArgumentException(s"Port: $port falls out of the allowed range.")))
+
+    /** Configures the port of the Postgres server. */
+    def withPort(newPort: Port): Builder[F] =
       copy(port = newPort)
+
+    /** Configures this session for connecting via unix domain sockets. */
+    def withUnixSockets: Builder[F] =
+      copy(connectionType = ConnectionType.Unix)
+
+    /** Configures the Postgres directory for unix domain sockets. */
+    def withUnixSocketDirectory(newUnixSocketDirectory: String): Builder[F] =
+      withUnixSockets.copy(unixSocketDirectory = newUnixSocketDirectory)
+
+    /** Configures this session for connecting via unix domain sockets using the specified path. */
+    def withUnixSocketAddress(path: String): Builder[F] =
+      withUnixSockets.withUnixSocketAddress(UnixSocketAddress(path))
+
+    /** Configures this session for connecting via unix domain sockets using the specified address. */
+    def withUnixSocketAddress(newUnixSocketAddress: UnixSocketAddress): Builder[F] =
+      withUnixSockets.copy(unixSocketAddress = Some(newUnixSocketAddress))
+
+    /** Clears the explicitly configured unix socket address. */
+    def withoutUnixSocketAddress: Builder[F] =
+      copy(unixSocketAddress = None)
 
     def withCredentials(newCredentials: F[Credentials]): Builder[F] =
       copy(credentials = newCredentials)
@@ -539,28 +569,6 @@ object Session {
 
     def withUserAndPassword(newUser: String, newPassword: String): Builder[F] =
       withCredentials(Credentials(newUser, Some(newPassword)))
-
-    /** Configures the Postgres directory for unix domain sockets. */
-    def withUnixSocketsDirectory(newUnixSocketsDirectory: String): Builder[F] =
-      copy(unixSocketsDirectory = newUnixSocketsDirectory)
-
-    /** Configures this session for connecting via unix domain sockets using the default path of ${unixSocketsDirectory}/.s.PGSQL.nnnn where nnnn is the port. */
-    def withUnixSockets(implicit U: UnixSockets[F]): Builder[F] =
-      withUnixSocketsConfig(UnixSocketsConfig(U, None))
-
-    /** Configures this session for connecting via unix domain sockets using the specified path. */
-    def withUnixSockets(path: String)(implicit U: UnixSockets[F]): Builder[F] =
-      withUnixSockets(UnixSocketAddress(path))
-
-    /** Configures this session for connecting via unix domain sockets using the specified address. */
-    def withUnixSockets(address: UnixSocketAddress)(implicit U: UnixSockets[F]): Builder[F] =
-      withUnixSocketsConfig(UnixSocketsConfig(U, Some(address)))
-
-    def withUnixSocketsConfig(newUnixSocketsConfig: UnixSocketsConfig[F]): Builder[F] =
-      copy(unixSocketsConfig = Some(newUnixSocketsConfig))
-
-    def withoutUnixSocketsConfig: Builder[F] =
-      copy(unixSocketsConfig = None)
 
     def withDatabase(newDatabase: String): Builder[F] =
       copy(database = Some(newDatabase))
@@ -646,22 +654,15 @@ object Session {
       sslOptions:    Option[SSLNegotiation.Options[F]],
       describeCache: Describe.Cache[F]
     )(implicit T: Tracer[F]): Resource[F, Session[F]] = {
-      val sockets = unixSocketsConfig match {
-        case None =>  
+      val sockets = connectionType match {
+        case ConnectionType.TCP =>
+          val address = SocketAddress(host, port)
+          Network[F].connect(address, socketOptions)
 
-          def fail[A](msg: String): Resource[F, A] =
-            Resource.eval(Temporal[F].raiseError(new SkunkException(message = msg, sql = None)))
-
-          (Host.fromString(host), Port.fromInt(port)) match {
-            case (Some(validHost), Some(validPort)) => Network[F].client(SocketAddress(validHost, validPort), socketOptions)
-            case (None, _) =>  fail(s"""Hostname: "$host" is not syntactically valid.""")
-            case (_, None) =>  fail(s"Port: $port falls out of the allowed range.")
-          }
-
-        case Some(usc) =>
-          val address = usc.addressOrDefault(unixSocketsDirectory, port)
-          val log = if (debug) Console[F].println(s"using unix socket address ${address}") else Monad[F].unit
-          Resource.eval(log) *> usc.unixSockets.client(address)
+        case ConnectionType.Unix =>
+          val address = unixSocketAddress.getOrElse(UnixSocketAddress(s"${unixSocketDirectory}/.s.PGSQL.${port}"))
+          val filteredSocketOptions = socketOptions.filter(o => o.key != SocketOption.NoDelay)
+          Network[F].connect(address, filteredSocketOptions)
       }
       fromSockets(sockets, sslOptions, describeCache)
     }
@@ -703,12 +704,13 @@ object Session {
   object Builder {
     def apply[F[_]: Temporal: Network: Console]: Builder[F] =
       new Builder[F](
-        host = "localhost",
-        port = 5432,
+        connectionType = ConnectionType.TCP,
+        host = host"localhost",
+        port = port"5432",
+        unixSocketAddress = None,
+        unixSocketDirectory = "/tmp",
         database = None,
         credentials = Credentials("postgres", None).pure[F],
-        unixSocketsConfig = None,
-        unixSocketsDirectory = "/tmp",
         debug = false,
         typingStrategy = TypingStrategy.BuiltinsOnly,
         redactionStrategy = RedactionStrategy.OptIn,
