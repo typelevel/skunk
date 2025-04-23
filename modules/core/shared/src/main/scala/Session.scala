@@ -16,6 +16,7 @@ import fs2.Stream
 import org.typelevel.otel4s.trace.Tracer
 import skunk.codec.all.bool
 import skunk.data._
+import skunk.exception.SkunkException
 import skunk.net.Protocol
 import skunk.util._
 import skunk.net.SSLNegotiation
@@ -524,7 +525,7 @@ object Session {
 
     /** Configures the host of the Postgres server. Throws `IllegalArgumentException` if the specified host is not syntactically valid. */
     def withHost(newHost: String): Builder[F] =
-      withHost(Host.fromString(newHost).getOrElse(throw new IllegalArgumentException(s"""Hostname: "$host" is not syntactically valid.""")))
+      withHost(Host.fromString(newHost).getOrElse(throw new SkunkException(sql = None, message = s"""Hostname: "$newHost" is not syntactically valid.""")))
 
     /** Configures the host of the Postgres server. */
     def withHost(newHost: Host): Builder[F] =
@@ -532,7 +533,7 @@ object Session {
 
     /** Configures the post of the Postgres server. Throws `IllegalArgumentException` if the specified port is not a valid port number. */
     def withPort(newPort: Int): Builder[F] =
-      withPort(Port.fromInt(newPort).getOrElse(throw new IllegalArgumentException(s"Port: $port falls out of the allowed range.")))
+      withPort(Port.fromInt(newPort).getOrElse(throw new SkunkException(sql = None, message = s"Port: $newPort falls out of the allowed range.")))
 
     /** Configures the port of the Postgres server. */
     def withPort(newPort: Port): Builder[F] =
