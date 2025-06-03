@@ -3,8 +3,8 @@ ThisBuild / libraryDependencySchemes ++= Seq(
   "org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always
 )
 
-addSbtPlugin("org.typelevel"      % "sbt-typelevel"                               % "0.7.7")
-addSbtPlugin("org.typelevel"      % "sbt-typelevel-site"                          % "0.7.7")
+addSbtPlugin("org.typelevel"      % "sbt-typelevel"                               % "0.8.0")
+addSbtPlugin("org.typelevel"      % "sbt-typelevel-site"                          % "0.8.0")
 addSbtPlugin("com.timushev.sbt"   % "sbt-updates"                                 % "0.6.4")
 addSbtPlugin("org.scoverage"      % "sbt-scoverage"                               % "2.3.1")
 addSbtPlugin("org.scala-js"       % "sbt-scalajs"                                 % "1.18.2")
