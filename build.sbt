@@ -3,7 +3,7 @@ ThisBuild / tlBaseVersion := "0.6"
 // Our Scala versions.
 lazy val `scala-2.12` = "2.12.20"
 lazy val `scala-2.13` = "2.13.16"
-lazy val `scala-3.0`  = "3.3.5"
+lazy val `scala-3.0`  = "3.3.6"
 
 ThisBuild / scalaVersion       := `scala-2.13`
 ThisBuild / crossScalaVersions :=
@@ -57,6 +57,8 @@ import com.typesafe.tools.mima.core._
 ThisBuild / mimaBinaryIssueFilters ++= List(
   ProblemFilters.exclude[DirectMissingMethodProblem]("skunk.net.BitVectorSocket.fromSocket")
 )
+
+ThisBuild / tlFatalWarnings := false
 
 // This is used in a couple places
 lazy val fs2Version = "3.12.0"
@@ -183,7 +185,6 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .enablePlugins(AutomateHeaderPlugin, NoPublishPlugin)
   .settings(commonSettings)
   .settings(
-    tlFatalWarnings := false,
     libraryDependencies ++= Seq(
       "org.scalameta"     %%% "munit"                   % "1.0.0",
       "org.scalameta"     % "junit-interface"           % "1.1.0",

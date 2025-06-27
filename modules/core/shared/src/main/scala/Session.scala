@@ -20,8 +20,6 @@ import skunk.net.Protocol
 import skunk.util._
 import skunk.util.Typer.Strategy.{ BuiltinsOnly, SearchPath }
 import skunk.net.SSLNegotiation
-import skunk.data.TransactionIsolationLevel
-import skunk.data.TransactionAccessMode
 import skunk.net.protocol.Describe
 import scala.concurrent.duration.Duration
 import skunk.net.protocol.Parse
