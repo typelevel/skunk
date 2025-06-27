@@ -70,7 +70,7 @@ When we run the program we see the current date.
 
 ```scala mdoc:passthrough
 println("```")
-import skunk.mdoc._
+import skunk.mdocext._
 Hello.run(Nil).unsafeRunSyncWithRedirect()
 println("```")
 ```

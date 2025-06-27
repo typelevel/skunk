@@ -313,7 +313,7 @@ Running this program yields the following.
 
 ```scala mdoc:passthrough
 println("```")
-import skunk.mdoc._
+import skunk.mdocext._
 QueryExample.run(Nil).unsafeRunSyncWithRedirect()
 println("```")
 ```
@@ -405,7 +405,7 @@ Running this program yields the same output as above.
 
 ```scala mdoc:passthrough
 println("```")
-import skunk.mdoc._
+import skunk.mdocext._
 QueryExample2.run(Nil).unsafeRunSyncWithRedirect()
 println("```")
 ```
