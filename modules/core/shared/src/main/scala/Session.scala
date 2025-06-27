@@ -16,12 +16,10 @@ import fs2.Stream
 import org.typelevel.otel4s.trace.Tracer
 import skunk.codec.all.bool
 import skunk.data._
+import skunk.exception.SkunkException
 import skunk.net.Protocol
 import skunk.util._
 import skunk.net.SSLNegotiation
-import skunk.data.TransactionIsolationLevel
-import skunk.data.TransactionAccessMode
-import skunk.exception.SkunkException
 import skunk.net.protocol.Describe
 import scala.concurrent.duration.Duration
 import skunk.net.protocol.Parse

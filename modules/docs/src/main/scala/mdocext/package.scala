@@ -7,7 +7,7 @@ package skunk
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 
-package object mdoc {
+package object mdocext {
 
   implicit class IOOps[A](fa: IO[A]) {
     def unsafeRunSyncWithRedirect(): A = {

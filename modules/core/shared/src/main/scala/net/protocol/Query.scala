@@ -12,13 +12,10 @@ import skunk.exception._
 import skunk.net.message.{ Query => QueryMessage, _ }
 import skunk.net.MessageSocket
 import skunk.util.Typer
-import skunk.exception.UnknownOidException
 import org.typelevel.otel4s.Attribute
 import org.typelevel.otel4s.trace.Span
 import org.typelevel.otel4s.trace.Tracer
 import skunk.Statement
-import skunk.exception.SkunkException
-import skunk.exception.EmptyStatementException
 
 trait Query[F[_]] {
   def apply(command: Command[Void]): F[Completion]

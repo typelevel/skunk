@@ -7,7 +7,6 @@ package simulation
 
 import cats._
 import cats.effect._
-import cats.effect.Ref
 import cats.free.Free
 import cats.syntax.all._
 import scala.annotation.tailrec

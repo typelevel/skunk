@@ -2,7 +2,7 @@ ThisBuild / tlBaseVersion := "1.0"
 
 // Our Scala versions.
 lazy val `scala-2.13` = "2.13.16"
-lazy val `scala-3.0`  = "3.3.5"
+lazy val `scala-3.0`  = "3.3.6"
 
 ThisBuild / scalaVersion       := `scala-2.13`
 ThisBuild / crossScalaVersions := Seq(`scala-2.13`, `scala-3.0`)
@@ -56,6 +56,8 @@ ThisBuild / mimaBinaryIssueFilters ++= List(
   ProblemFilters.exclude[DirectMissingMethodProblem]("skunk.net.BitVectorSocket.fromSocket")
 )
 
+ThisBuild / tlFatalWarnings := false
+
 // This is used in a couple places
 lazy val fs2Version = "3.12.0"
 lazy val openTelemetryVersion = "1.44.1"
@@ -64,10 +66,6 @@ lazy val refinedVersion = "0.11.0"
 
 // Global Settings
 lazy val commonSettings = Seq(
-
-  // Resolvers
-  resolvers ++= Resolver.sonatypeOssRepos("public"),
-  resolvers ++= Resolver.sonatypeOssRepos("snapshots"),
 
   // Headers
   headerMappings := headerMappings.value + (HeaderFileType.scala -> HeaderCommentStyle.cppStyleLineComment),
@@ -110,7 +108,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     description := "Tagless, non-blocking data access library for Postgres.",
     libraryDependencies ++= Seq(
       "org.typelevel"          %%% "cats-core"               % "2.11.0",
-      "org.typelevel"          %%% "cats-effect"             % "3.6.0",
+      "org.typelevel"          %%% "cats-effect"             % "3.6.1",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
       "org.scodec"             %%% "scodec-bits"             % "1.1.38",
@@ -179,15 +177,14 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .enablePlugins(AutomateHeaderPlugin, NoPublishPlugin)
   .settings(commonSettings)
   .settings(
-    tlFatalWarnings := false,
     libraryDependencies ++= Seq(
       "org.scalameta"     %%% "munit"                   % "1.0.0",
-      "org.scalameta"     % "junit-interface"           % "1.1.0",
+      "org.scalameta"     % "junit-interface"           % "1.1.1",
       "org.typelevel"     %%% "scalacheck-effect-munit" % "2.0.0-M2",
-      "org.typelevel"     %%% "munit-cats-effect"       % "2.0.0",
+      "org.typelevel"     %%% "munit-cats-effect"       % "2.1.0",
       "org.typelevel"     %%% "cats-free"               % "2.11.0",
       "org.typelevel"     %%% "cats-laws"               % "2.11.0",
-      "org.typelevel"     %%% "cats-effect-testkit"     % "3.6.0",
+      "org.typelevel"     %%% "cats-effect-testkit"     % "3.6.1",
       "org.typelevel"     %%% "discipline-munit"        % "2.0.0-M3",
       "org.typelevel"     %%% "cats-time"               % "0.5.1",
       "eu.timepit"        %%% "refined-cats"            % refinedVersion,
