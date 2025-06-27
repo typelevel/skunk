@@ -58,6 +58,8 @@ ThisBuild / mimaBinaryIssueFilters ++= List(
   ProblemFilters.exclude[DirectMissingMethodProblem]("skunk.net.BitVectorSocket.fromSocket")
 )
 
+ThisBuild / tlFatalWarnings := false
+
 // This is used in a couple places
 lazy val fs2Version = "3.12.0"
 lazy val natchezVersion = "0.3.7"
@@ -183,7 +185,6 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .enablePlugins(AutomateHeaderPlugin, NoPublishPlugin)
   .settings(commonSettings)
   .settings(
-    tlFatalWarnings := false,
     libraryDependencies ++= Seq(
       "org.scalameta"     %%% "munit"                   % "1.0.0",
       "org.scalameta"     % "junit-interface"           % "1.1.0",

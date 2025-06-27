@@ -6,7 +6,6 @@ package tests
 package codec
 import io.circe.Json
 import io.circe.jawn.parse
-import skunk._
 import skunk.circe.codec.all._
 
 class JsonCodecTest extends CodecTest {
