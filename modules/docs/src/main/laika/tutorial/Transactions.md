@@ -218,7 +218,7 @@ Running this program yields the following.
 
 ```scala mdoc:passthrough
 println("```")
-import skunk.mdoc._
+import skunk.mdocext._
 TransactionExample.run(Nil).unsafeRunSyncWithRedirect()
 println("```")
 ```
