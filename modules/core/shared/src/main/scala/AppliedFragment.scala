@@ -22,7 +22,7 @@ sealed trait AppliedFragment { outer =>
     AppliedFragment(fragment *: other.fragment, argument *: other.argument *: EmptyTuple)
 
   override def toString =
-    s"AppledFragment($fragment, $argument)"
+    s"AppliedFragment($fragment, $argument)"
 
 }
 

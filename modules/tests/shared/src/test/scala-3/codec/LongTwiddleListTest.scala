@@ -6,7 +6,6 @@ package tests
 package codec
 
 import skunk.codec.all._
-import skunk.implicits._
 import cats.Eq
 
 /** Test that we can roundtrip for a 16 length Twiddle List in Scala 3. */
