@@ -16,8 +16,7 @@ ThisBuild / developers   := List(
 ThisBuild / tlCiReleaseBranches += "series/0.6.x"
 ThisBuild / tlCiScalafmtCheck := false
 ThisBuild / tlSitePublishBranch := Some("series/0.6.x")
-ThisBuild / githubWorkflowOSes := Seq("ubuntu-latest")
-ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("11"))
+ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
 ThisBuild / tlJdkRelease := Some(8)
 
 ThisBuild / githubWorkflowBuildPreamble ++= nativeBrewInstallWorkflowSteps.value
@@ -38,6 +37,7 @@ ThisBuild / githubWorkflowAddedJobs +=
     id = "coverage",
     name = s"Generate coverage report (2.13 JVM only)",
     scalas = Nil,
+    javas = githubWorkflowJavaVersions.value.toList,
     sbtStepPreamble = Nil,
     steps = githubWorkflowJobSetup.value.toList ++
       List(
@@ -59,7 +59,7 @@ ThisBuild / mimaBinaryIssueFilters ++= List(
 ThisBuild / tlFatalWarnings := false
 
 // This is used in a couple places
-lazy val fs2Version = "3.12.0"
+lazy val fs2Version = "3.13.0-M5"
 lazy val openTelemetryVersion = "1.44.1"
 lazy val otel4sVersion = "0.11.1"
 lazy val refinedVersion = "0.11.0"
@@ -193,10 +193,16 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     ),
     testFrameworks += new TestFramework("munit.Framework"),
     testOptions += {
-      if(System.getProperty("os.arch").startsWith("aarch64")) {
-        Tests.Argument(TestFrameworks.MUnit, "--exclude-tags=X86ArchOnly")
-      } else Tests.Argument()
-    }
+      var excludedTags = List.empty[String]
+      if (System.getProperty("os.arch").startsWith("aarch64"))
+        excludedTags = "X86ArchOnly" :: excludedTags
+      if (!System.getProperty("os.name").contains("linux"))
+        excludedTags = "LinuxOnly" :: excludedTags
+      if (excludedTags.nonEmpty)
+        Tests.Argument(TestFrameworks.MUnit, "--exclude-tags=" + excludedTags.mkString(","))
+      else Tests.Argument()
+    },
+    Test / baseDirectory := (ThisBuild / Test / run / baseDirectory).value
   )
   .jvmSettings(
     Test / fork := true,
