@@ -60,8 +60,8 @@ ThisBuild / tlFatalWarnings := false
 
 // This is used in a couple places
 lazy val fs2Version = "3.12.0"
-lazy val openTelemetryVersion = "1.44.1"
-lazy val otel4sVersion = "0.11.1"
+lazy val openTelemetryVersion = "1.52.0"
+lazy val otel4sVersion = "0.13.1"
 lazy val refinedVersion = "0.11.0"
 
 // Global Settings
