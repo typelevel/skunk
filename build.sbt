@@ -61,7 +61,7 @@ ThisBuild / mimaBinaryIssueFilters ++= List(
 ThisBuild / tlFatalWarnings := false
 
 // This is used in a couple places
-lazy val fs2Version = "3.12.0"
+lazy val fs2Version = "3.12.1"
 lazy val natchezVersion = "0.3.8"
 
 // Global Settings
