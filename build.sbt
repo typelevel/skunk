@@ -59,7 +59,7 @@ ThisBuild / mimaBinaryIssueFilters ++= List(
 ThisBuild / tlFatalWarnings := false
 
 // This is used in a couple places
-lazy val fs2Version = "3.12.0"
+lazy val fs2Version = "3.12.2"
 lazy val openTelemetryVersion = "1.52.0"
 lazy val otel4sVersion = "0.13.1"
 lazy val refinedVersion = "0.11.0"
@@ -108,7 +108,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     description := "Tagless, non-blocking data access library for Postgres.",
     libraryDependencies ++= Seq(
       "org.typelevel"          %%% "cats-core"               % "2.11.0",
-      "org.typelevel"          %%% "cats-effect"             % "3.6.2",
+      "org.typelevel"          %%% "cats-effect"             % "3.6.3",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
       "org.scodec"             %%% "scodec-bits"             % "1.1.38",
@@ -184,7 +184,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.typelevel"     %%% "munit-cats-effect"       % "2.1.0",
       "org.typelevel"     %%% "cats-free"               % "2.11.0",
       "org.typelevel"     %%% "cats-laws"               % "2.11.0",
-      "org.typelevel"     %%% "cats-effect-testkit"     % "3.6.2",
+      "org.typelevel"     %%% "cats-effect-testkit"     % "3.6.3",
       "org.typelevel"     %%% "discipline-munit"        % "2.0.0-M3",
       "org.typelevel"     %%% "cats-time"               % "0.5.1",
       "eu.timepit"        %%% "refined-cats"            % refinedVersion,
