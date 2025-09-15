@@ -46,6 +46,15 @@ services:
       POSTGRES_PASSWORD: banana
       POSTGRES_HOST_AUTH_METHOD: password
       POSTGRES_INITDB_ARGS: --auth-host=password
+  # for testing domain sockets
+  unixsockets:
+    image: postgres:11
+    environment:
+      POSTGRES_DB: world
+      POSTGRES_USER: jimmy
+      POSTGRES_PASSWORD: banana
+    volumes:
+      - ./test-unix-socket:/var/run/postgresql
   # for testing redshift connections
   redshift:
     image: guildeducation/docker-amazon-redshift

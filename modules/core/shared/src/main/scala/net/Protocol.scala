@@ -208,19 +208,14 @@ object Protocol {
     def execute(maxRows: Int): F[List[B] ~ Boolean]
   }
 
-  /**
-   * Resource yielding a new `Protocol` with the given `host` and `port`.
-   * @param host  Postgres server host
-   * @param port  Postgres port, default 5432
-   */
   def apply[F[_]: Temporal: Tracer: Console](
-    debug:        Boolean,
-    nam:          Namer[F],
-    sockets: Resource[F, Socket[F]],
-    sslOptions:   Option[SSLNegotiation.Options[F]],
-    describeCache: Describe.Cache[F],
-    parseCache: Parse.Cache[F],
-    readTimeout:  Duration,
+    debug:             Boolean,
+    nam:               Namer[F],
+    sockets:           Resource[F, Socket[F]],
+    sslOptions:        Option[SSLNegotiation.Options[F]],
+    describeCache:     Describe.Cache[F],
+    parseCache:        Parse.Cache[F],
+    readTimeout:       Duration,
     redactionStrategy: RedactionStrategy
   ): Resource[F, Protocol[F]] =
     for {
