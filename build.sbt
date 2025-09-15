@@ -19,7 +19,7 @@ ThisBuild / tlSitePublishBranch := Some("series/0.6.x")
 ThisBuild / githubWorkflowOSes := Seq("ubuntu-latest")
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("11"))
 ThisBuild / tlJdkRelease := Some(8)
-
+ThisBuild / resolvers += Resolver.sonatypeCentralSnapshots
 ThisBuild / githubWorkflowBuildPreamble ++= nativeBrewInstallWorkflowSteps.value
 ThisBuild / nativeBrewInstallCond := Some("matrix.project == 'skunkNative'")
 
@@ -59,10 +59,10 @@ ThisBuild / mimaBinaryIssueFilters ++= List(
 ThisBuild / tlFatalWarnings := false
 
 // This is used in a couple places
-lazy val fs2Version = "3.12.2"
+lazy val fs2Version = "3.13.0-M7"
 lazy val openTelemetryVersion = "1.52.0"
-lazy val otel4sVersion = "0.13.1"
-lazy val refinedVersion = "0.11.0"
+lazy val otel4sVersion = "0.14-eadbb3d-SNAPSHOT"
+lazy val refinedVersion = "0.11.3"
 
 // Global Settings
 lazy val commonSettings = Seq(
@@ -107,16 +107,16 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     name := "skunk-core",
     description := "Tagless, non-blocking data access library for Postgres.",
     libraryDependencies ++= Seq(
-      "org.typelevel"          %%% "cats-core"               % "2.11.0",
-      "org.typelevel"          %%% "cats-effect"             % "3.6.3",
+      "org.typelevel"          %%% "cats-core"               % "2.13.0",
+      "org.typelevel"          %%% "cats-effect"             % "3.7.0-RC1",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
-      "org.scodec"             %%% "scodec-bits"             % "1.1.38",
-      "org.scodec"             %%% "scodec-core"             % (if (tlIsScala3.value) "2.2.2" else "1.11.10"),
-      "org.scodec"             %%% "scodec-cats"             % "1.2.0",
+      "org.scodec"             %%% "scodec-bits"             % "1.2.4",
+      "org.scodec"             %%% "scodec-core"             % (if (tlIsScala3.value) "2.3.3" else "1.11.11"),
+      "org.scodec"             %%% "scodec-cats"             % "1.3.0-RC1",
       "org.typelevel"          %%% "otel4s-core-trace"       % otel4sVersion,
-      "org.tpolecat"           %%% "sourcepos"               % "1.1.0",
-      "org.typelevel"          %%% "twiddles-core"           % "0.8.0",
+      "org.tpolecat"           %%% "sourcepos"               % "1.2.0",
+      "org.typelevel"          %%% "twiddles-core"           % "0.9.0",
     ) ++ Seq(
       "com.beachape"  %%% "enumeratum"   % "1.7.4",
     ).filterNot(_ => tlIsScala3.value)
@@ -124,9 +124,9 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     libraryDependencies += "com.ongres.scram" % "client" % "2.1",
   ).platformsSettings(JSPlatform, NativePlatform)(
     libraryDependencies ++= Seq(
-      "com.armanbilge" %%% "saslprep" % "0.1.1",
-      "io.github.cquiroz" %%% "scala-java-time" % "2.5.0",
-      "io.github.cquiroz" %%% "locales-minimal-en_us-db" % "1.5.3"
+      "com.armanbilge" %%% "saslprep" % "0.1.2",
+      "io.github.cquiroz" %%% "scala-java-time" % "2.6.0",
+      "io.github.cquiroz" %%% "locales-minimal-en_us-db" % "1.5.4"
     ),
   )
 
@@ -182,11 +182,11 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.scalameta"     % "junit-interface"           % "1.1.1",
       "org.typelevel"     %%% "scalacheck-effect-munit" % "2.0.0-M2",
       "org.typelevel"     %%% "munit-cats-effect"       % "2.1.0",
-      "org.typelevel"     %%% "cats-free"               % "2.11.0",
-      "org.typelevel"     %%% "cats-laws"               % "2.11.0",
-      "org.typelevel"     %%% "cats-effect-testkit"     % "3.6.3",
-      "org.typelevel"     %%% "discipline-munit"        % "2.0.0-M3",
-      "org.typelevel"     %%% "cats-time"               % "0.5.1",
+      "org.typelevel"     %%% "cats-free"               % "2.13.0",
+      "org.typelevel"     %%% "cats-laws"               % "2.13.0",
+      "org.typelevel"     %%% "cats-effect-testkit"     % "3.7.0-RC1",
+      "org.typelevel"     %%% "discipline-munit"        % "2.0.0",
+      "org.typelevel"     %%% "cats-time"               % "0.6.0",
       "eu.timepit"        %%% "refined-cats"            % refinedVersion,
       "org.typelevel"     %%% "otel4s-sdk-trace"        % otel4sVersion,
       "org.typelevel"     %%% "otel4s-sdk-exporter-trace" % otel4sVersion,
