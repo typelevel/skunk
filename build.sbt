@@ -18,7 +18,7 @@ ThisBuild / tlCiScalafmtCheck := false
 ThisBuild / tlSitePublishBranch := Some("series/0.6.x")
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
 ThisBuild / tlJdkRelease := Some(8)
-
+ThisBuild / resolvers += Resolver.sonatypeCentralSnapshots
 ThisBuild / githubWorkflowBuildPreamble ++= nativeBrewInstallWorkflowSteps.value
 ThisBuild / nativeBrewInstallCond := Some("matrix.project == 'skunkNative'")
 
@@ -64,7 +64,7 @@ ThisBuild / resolvers += Resolver.sonatypeCentralSnapshots
 lazy val fs2Version = "3.13.0-M7"
 lazy val openTelemetryVersion = "1.52.0"
 lazy val otel4sVersion = "0.14-eadbb3d-SNAPSHOT"
-lazy val refinedVersion = "0.11.0"
+lazy val refinedVersion = "0.11.3"
 
 // Global Settings
 lazy val commonSettings = Seq(
@@ -117,7 +117,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.scodec"             %%% "scodec-core"             % (if (tlIsScala3.value) "2.3.3" else "1.11.11"),
       "org.scodec"             %%% "scodec-cats"             % "1.3.0-RC1",
       "org.typelevel"          %%% "otel4s-core-trace"       % otel4sVersion,
-      "org.tpolecat"           %%% "sourcepos"               % "1.1.0",
+      "org.tpolecat"           %%% "sourcepos"               % "1.2.0",
       "org.typelevel"          %%% "twiddles-core"           % "0.9.0",
     ) ++ Seq(
       "com.beachape"  %%% "enumeratum"   % "1.9.0",
@@ -184,11 +184,11 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.scalameta"     % "junit-interface"           % "1.1.1",
       "org.typelevel"     %%% "scalacheck-effect-munit" % "2.0.0-M2",
       "org.typelevel"     %%% "munit-cats-effect"       % "2.1.0",
-      "org.typelevel"     %%% "cats-free"               % "2.11.0",
-      "org.typelevel"     %%% "cats-laws"               % "2.11.0",
-      "org.typelevel"     %%% "cats-effect-testkit"     % "3.6.3",
-      "org.typelevel"     %%% "discipline-munit"        % "2.0.0-M3",
-      "org.typelevel"     %%% "cats-time"               % "0.5.1",
+      "org.typelevel"     %%% "cats-free"               % "2.13.0",
+      "org.typelevel"     %%% "cats-laws"               % "2.13.0",
+      "org.typelevel"     %%% "cats-effect-testkit"     % "3.7.0-RC1",
+      "org.typelevel"     %%% "discipline-munit"        % "2.0.0",
+      "org.typelevel"     %%% "cats-time"               % "0.6.0",
       "eu.timepit"        %%% "refined-cats"            % refinedVersion,
       "org.typelevel"     %%% "otel4s-sdk-trace"        % otel4sVersion,
       "org.typelevel"     %%% "otel4s-sdk-exporter-trace" % otel4sVersion,
