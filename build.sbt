@@ -60,6 +60,9 @@ ThisBuild / tlFatalWarnings := false
 
 ThisBuild / resolvers += Resolver.sonatypeCentralSnapshots
 
+ThisBuild / libraryDependencySchemes +=
+  "org.scala-native" %% "test-interface_native0.5" % VersionScheme.Always
+
 // This is used in a couple places
 lazy val fs2Version = "3.13.0-M7"
 lazy val openTelemetryVersion = "1.52.0"
@@ -180,10 +183,8 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "org.scalameta"     %%% "munit"                   % "1.0.0",
-      "org.scalameta"     % "junit-interface"           % "1.1.1",
-      "org.typelevel"     %%% "scalacheck-effect-munit" % "2.0.0-M2",
-      "org.typelevel"     %%% "munit-cats-effect"       % "2.1.0",
+      "org.typelevel"     %%% "scalacheck-effect-munit" % "2.1.0-RC1",
+      "org.typelevel"     %%% "munit-cats-effect"       % "2.2.0-RC1",
       "org.typelevel"     %%% "cats-free"               % "2.13.0",
       "org.typelevel"     %%% "cats-laws"               % "2.13.0",
       "org.typelevel"     %%% "cats-effect-testkit"     % "3.7.0-RC1",
