@@ -168,7 +168,7 @@ lazy val postgis = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .settings(
     name := "skunk-postgis",
     libraryDependencies ++= Seq(
-      "org.typelevel" %%% "cats-parse" % "1.0.0"
+      "org.typelevel" %%% "cats-parse" % "1.1.0"
     ),
   )
 
