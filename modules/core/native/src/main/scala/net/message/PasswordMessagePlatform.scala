@@ -32,9 +32,9 @@ private[message] trait PasswordMessagePlatform {
       // First round
       if (EVP_DigestInit_ex(ctx, `type`, null) != 1)
         throw new RuntimeException("EVP_DigestInit_ex")
-      if (EVP_DigestUpdate(ctx, password.getBytes.atUnsafe(0), password.length.toULong) != 1)
+      if (EVP_DigestUpdate(ctx, password.getBytes.atUnsafe(0), password.length.toCSize) != 1)
         throw new RuntimeException("EVP_DigestUpdate")
-      if (EVP_DigestUpdate(ctx, user.getBytes.atUnsafe(0), user.length.toULong) != 1)
+      if (EVP_DigestUpdate(ctx, user.getBytes.atUnsafe(0), user.length.toCSize) != 1)
         throw new RuntimeException("EVP_DigestUpdate")
       if (EVP_DigestFinal_ex(ctx, md.atUnsafe(0), size) != 1)
         throw new RuntimeException("EVP_DigestFinal_ex")
@@ -48,9 +48,9 @@ private[message] trait PasswordMessagePlatform {
       // Second round
       if (EVP_DigestInit_ex(ctx, `type`, null) != 1)
         throw new RuntimeException("EVP_DigestInit_ex")
-      if (EVP_DigestUpdate(ctx, hex.getBytes.atUnsafe(0), 32.toULong) != 1)
+      if (EVP_DigestUpdate(ctx, hex.getBytes.atUnsafe(0), 32.toCSize) != 1)
         throw new RuntimeException("EVP_DigestUpdate")
-      if (EVP_DigestUpdate(ctx, salt.atUnsafe(0), salt.length.toULong) != 1)
+      if (EVP_DigestUpdate(ctx, salt.atUnsafe(0), salt.length.toCSize) != 1)
         throw new RuntimeException("EVP_DigestUpdate")
       if (EVP_DigestFinal_ex(ctx, md.atUnsafe(0), size) != 1)
         throw new RuntimeException("EVP_DigestFinal_ex")
