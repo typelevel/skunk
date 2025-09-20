@@ -18,10 +18,13 @@ import org.typelevel.otel4s.trace.Tracer
 trait FTest extends CatsEffectSuite with FTestPlatform {
 
   private def withinSpan[A](name: String)(body: Tracer[IO] => IO[A]): IO[A] =
-    SdkTraces
-      .autoConfigured[IO](_.addExporterConfigurer(OtlpSpanExporterAutoConfigure[IO]))
-      .evalMap(_.tracerProvider.get(getClass.getName()))
-      .use(tracer => tracer.span(spanNameForTest(name)).surround(body(tracer)))
+    if (isNative)
+      body(Tracer.Implicits.noop) // FIXME: With auto-configured traces, PoolTest fails on Native 
+    else
+      SdkTraces
+        .autoConfigured[IO](_.addExporterConfigurer(OtlpSpanExporterAutoConfigure[IO]))
+        .evalMap(_.tracerProvider.get(getClass.getName()))
+        .use(tracer => tracer.span(spanNameForTest(name)).surround(body(tracer)))
 
   private def spanNameForTest(name: String): String =
     s"${getClass.getSimpleName} - $name"
