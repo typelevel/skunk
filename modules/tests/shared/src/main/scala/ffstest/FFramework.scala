@@ -9,6 +9,7 @@ import cats.effect._
 import cats.syntax.all._
 import scala.reflect.ClassTag
 import munit.{CatsEffectSuite, Location, TestOptions}
+import munit.internal.PlatformCompat
 import org.typelevel.otel4s.sdk.exporter.otlp.trace.autoconfigure.OtlpSpanExporterAutoConfigure
 import skunk.exception._
 import org.typelevel.twiddles._
@@ -18,7 +19,7 @@ import org.typelevel.otel4s.trace.Tracer
 trait FTest extends CatsEffectSuite with FTestPlatform {
 
   private def withinSpan[A](name: String)(body: Tracer[IO] => IO[A]): IO[A] =
-    if (isNative)
+    if (PlatformCompat.isNative)
       body(Tracer.Implicits.noop) // FIXME: With auto-configured traces, PoolTest fails on Native 
     else
       SdkTraces

@@ -6,8 +6,4 @@ package ffstest
 
 import munit.CatsEffectSuite
 
-trait FTestPlatform extends CatsEffectSuite {
-  final val isJVM = false
-  final val isJS = false
-  final val isNative = true
-}
+trait FTestPlatform extends CatsEffectSuite
