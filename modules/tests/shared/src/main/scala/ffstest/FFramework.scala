@@ -19,7 +19,7 @@ import org.typelevel.otel4s.trace.Tracer
 trait FTest extends CatsEffectSuite with FTestPlatform {
 
   private def withinSpan[A](name: String)(body: Tracer[IO] => IO[A]): IO[A] =
-    if (PlatformCompat.isNative)
+    if (false)
       body(Tracer.Implicits.noop) // FIXME: With auto-configured traces, PoolTest fails on Native 
     else
       SdkTraces

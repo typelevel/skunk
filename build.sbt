@@ -220,7 +220,8 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .nativeSettings(
     Test / nativeBrewFormulas ++= Set("s2n", "utf8proc"),
     Test / envVars ++= Map("S2N_DONT_MLOCK" -> "1"),
-    Test / envVars ++= Map("OTEL_SERVICE_NAME" -> "SkunkTestsNative")
+    Test / envVars ++= Map("OTEL_SERVICE_NAME" -> "SkunkTestsNative"),
+    Test / envVars ++= Map("CATS_EFFECT_TRACING_EXCEPTIONS_ENHANCED" -> "false")
   )
 
 lazy val example = project
