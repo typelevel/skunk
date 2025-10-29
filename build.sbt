@@ -1,8 +1,8 @@
 ThisBuild / tlBaseVersion := "1.0"
 
 // Our Scala versions.
-lazy val `scala-2.13` = "2.13.16"
-lazy val `scala-3.0`  = "3.3.6"
+lazy val `scala-2.13` = "2.13.17"
+lazy val `scala-3.0`  = "3.3.7"
 
 ThisBuild / scalaVersion       := `scala-2.13`
 ThisBuild / crossScalaVersions := Seq(`scala-2.13`, `scala-3.0`)
@@ -179,7 +179,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .settings(
     libraryDependencies ++= Seq(
       "org.scalameta"     %%% "munit"                   % "1.0.0",
-      "org.scalameta"     % "junit-interface"           % "1.1.2",
+      "org.scalameta"     % "junit-interface"           % "1.2.1",
       "org.typelevel"     %%% "scalacheck-effect-munit" % "2.0.0-M2",
       "org.typelevel"     %%% "munit-cats-effect"       % "2.1.0",
       "org.typelevel"     %%% "cats-free"               % "2.11.0",
