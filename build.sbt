@@ -1,8 +1,8 @@
 ThisBuild / tlBaseVersion := "1.0"
 
 // Our Scala versions.
-lazy val `scala-2.13` = "2.13.16"
-lazy val `scala-3.0`  = "3.3.6"
+lazy val `scala-2.13` = "2.13.17"
+lazy val `scala-3.0`  = "3.3.7"
 
 ThisBuild / scalaVersion       := `scala-2.13`
 ThisBuild / crossScalaVersions := Seq(`scala-2.13`, `scala-3.0`)
@@ -65,8 +65,8 @@ ThisBuild / libraryDependencySchemes +=
 
 // This is used in a couple places
 lazy val fs2Version = "3.13.0-M7"
-lazy val openTelemetryVersion = "1.52.0"
-lazy val otel4sVersion = "0.14-eadbb3d-SNAPSHOT"
+lazy val openTelemetryVersion = "1.55.0"
+lazy val otel4sVersion = "0.14.0"
 lazy val refinedVersion = "0.11.3"
 
 // Global Settings
