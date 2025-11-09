@@ -74,6 +74,31 @@ object Completion {
   case object Analyze                   extends Completion
   // more ...
 
+  // weird Redshift variations
+
+  /**
+   * This is a variation on the protocol included to better support Redshift. Redshift
+   * doesn't return a count for a <code>SELECT</code> statement. The
+   * [[https://www.postgresql.org/docs/current/protocol-message-formats.html#PROTOCOL-MESSAGE-FORMATS-COMMANDCOMPLETE protocol documentation]]
+   * appears to say it should:
+   *
+   * <blockquote>For a <code>SELECT</code> or <code>CREATE TABLE AS</code> command, the tag is <code>SELECT rows</code> where <code>rows</code> is the number of rows retrieved.</blockquote>
+   *
+   * but comments in the [[https://github.com/pgjdbc/pgjdbc/blob/5d1f2e8cd399cedfdee86728f9044c0e32d74129/pgjdbc/src/main/java/org/postgresql/core/CommandCompleteParser.java#L37-L44 JDBC driver]]
+   * state
+   *
+   * <blockquote>
+   * Parses <code>CommandComplete (B)</code> message.
+   * Status is in the format of <code>COMMAND OID ROWS</code> where both <code>OID</code> and <code>ROWS</code> are optional
+   * and <code>COMMAND</code> can have spaces within it, like <code>CREATE TABLE</code>.
+   * </blockquote>
+   *
+   * so clients should probably be prepared to handle this.
+   *
+   * Practically speaking, true Postgres servers do return row counts, but Redshift does not.
+   */
+  case object SelectWithoutCount        extends Completion
+
   /**
    * Instead of crashing (which breaks the protocol and hangs everything) let's allow for unknown
    * completion messages and print out a stacktrace on construction.
