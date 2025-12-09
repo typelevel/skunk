@@ -101,7 +101,7 @@ jobs:
 
       - name: Upload target directories
         if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/series/0.6.x')
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: target-${{ matrix.os }}-${{ matrix.java }}-${{ matrix.scala }}-${{ matrix.project }}
           path: targets.tar
@@ -144,7 +144,7 @@ jobs:
           docker compose up -d
 
       - name: Download target directories (2.12, skunkJS)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: target-${{ matrix.os }}-${{ matrix.java }}-2.12-skunkJS
 
@@ -154,7 +154,7 @@ jobs:
           rm targets.tar
 
       - name: Download target directories (2.12, skunkJVM)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: target-${{ matrix.os }}-${{ matrix.java }}-2.12-skunkJVM
 
@@ -164,7 +164,7 @@ jobs:
           rm targets.tar
 
       - name: Download target directories (2.12, skunkNative)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: target-${{ matrix.os }}-${{ matrix.java }}-2.12-skunkNative
 
@@ -174,7 +174,7 @@ jobs:
           rm targets.tar
 
       - name: Download target directories (2.13, skunkJS)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: target-${{ matrix.os }}-${{ matrix.java }}-2.13-skunkJS
 
@@ -184,7 +184,7 @@ jobs:
           rm targets.tar
 
       - name: Download target directories (2.13, skunkJVM)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: target-${{ matrix.os }}-${{ matrix.java }}-2.13-skunkJVM
 
@@ -194,7 +194,7 @@ jobs:
           rm targets.tar
 
       - name: Download target directories (2.13, skunkNative)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: target-${{ matrix.os }}-${{ matrix.java }}-2.13-skunkNative
 
@@ -204,7 +204,7 @@ jobs:
           rm targets.tar
 
       - name: Download target directories (3, skunkJS)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: target-${{ matrix.os }}-${{ matrix.java }}-3-skunkJS
 
@@ -214,7 +214,7 @@ jobs:
           rm targets.tar
 
       - name: Download target directories (3, skunkJVM)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: target-${{ matrix.os }}-${{ matrix.java }}-3-skunkJVM
 
@@ -224,7 +224,7 @@ jobs:
           rm targets.tar
 
       - name: Download target directories (3, skunkNative)
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: target-${{ matrix.os }}-${{ matrix.java }}-3-skunkNative
 
