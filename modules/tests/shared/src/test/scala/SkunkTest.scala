@@ -6,7 +6,7 @@ package tests
 
 import cats.effect.{ IO, Resource }
 import cats.syntax.all._
-import skunk.{Session, TypingStrategy}
+import skunk.{Command, Session, TypingStrategy, Void}
 import skunk.data._
 import skunk.codec.all._
 import skunk.implicits._
@@ -29,6 +29,18 @@ abstract class SkunkTest(debug: Boolean = false, typingStrategy: TypingStrategy 
 
   def sessionTest[A](name: String, readTimeout: Duration = Duration.Inf)(fa: Session[IO] => IO[A])(implicit loc: Location): Unit =
     tracedTest(name)(tracer => session(readTimeout)(tracer).use(fa))
+
+  def sessionTestWithCleanup[A](name: String,
+                                readTimeout: Duration = Duration.Inf)
+                               (fa: Session[IO] => IO[A])
+                               (cleanup: Command[Void]*)
+                               (implicit loc: Location): Unit =
+    tracedTest(name) {
+      session(readTimeout)(_).use { s =>
+        (fa(s) >> s.assertHealthy)
+          .guarantee(cleanup.toList.traverse_(s.execute))
+      }
+    }
 
   def pooled(max: Int = 8, readTimeout: Duration = Duration.Inf, parseCacheSize: Int = 1024)(implicit tracer: Tracer[IO]): Resource[IO, Resource[IO, Session[IO]]] =
     Session.Builder[IO]
