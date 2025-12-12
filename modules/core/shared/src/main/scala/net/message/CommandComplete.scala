@@ -113,6 +113,9 @@ object CommandComplete {
     case "ANALYZE"                    => apply(Completion.Analyze)
     // more .. fill in as we hit them
 
+    // weird Redshift variations
+    case "SELECT"                     => apply(Completion.SelectWithoutCount)
+
     case s                  => apply(Completion.Unknown(s))
   }
 
