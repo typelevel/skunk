@@ -664,4 +664,23 @@ class CommandTest extends SkunkTest {
     } yield "ok"
   }
 
+  sessionTestWithCleanup("grant role, revoke role") { s =>
+    for {
+      _ <- s.execute(createRole)
+      _ <- s.execute(sql"""CREATE ROLE skunk_role2""".command)
+      c <- s.execute(sql"""GRANT skunk_role2 TO skunk_role""".command)
+      _ <- assertEqual("completion", c, Completion.GrantRole)
+      c <- s.execute(sql"""REVOKE skunk_role2 FROM skunk_role""".command)
+      _ <- assertEqual("completion", c, Completion.RevokeRole)
+    } yield "ok"
+  }(sql"""DROP ROLE IF EXISTS skunk_role2""".command, dropRole)
+
+  sessionTest("alter default privileges") { s =>
+    for {
+      c <- s.execute(sql"""ALTER DEFAULT PRIVILEGES GRANT SELECT ON TABLES TO PUBLIC""".command)
+      _ <- assertEqual("completion", c, Completion.AlterDefaultPrivileges)
+      _ <- s.assertHealthy
+    } yield "ok"
+  }
+
 }
