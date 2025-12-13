@@ -72,6 +72,10 @@ object Completion {
   case object DropPolicy                extends Completion
   case object Comment                   extends Completion
   case object Analyze                   extends Completion
+  case object AlterDefaultPrivileges    extends Completion
+  case object GrantRole                 extends Completion
+  case object RevokeRole                extends Completion
+
   // more ...
 
   // weird Redshift variations

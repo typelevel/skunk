@@ -4,15 +4,16 @@
 
 package tests
 
-import cats.effect.{ IO, Resource }
-import cats.syntax.all._
-import skunk.Session
-import skunk.data._
-import skunk.codec.all._
-import skunk.implicits._
+import cats.effect.{IO, Resource}
+import cats.syntax.all.*
+import skunk.{Command, Session, Void}
+import skunk.data.*
+import skunk.codec.all.*
+import skunk.implicits.*
 import skunk.util.Typer
 import natchez.Trace.Implicits.noop
 import munit.Location
+
 import scala.concurrent.duration.Duration
 
 abstract class SkunkTest(debug: Boolean = false, strategy: Typer.Strategy = Typer.Strategy.BuiltinsOnly) extends ffstest.FTest {
@@ -33,6 +34,18 @@ abstract class SkunkTest(debug: Boolean = false, strategy: Typer.Strategy = Type
 
   def sessionTest[A](name: String, readTimeout: Duration = Duration.Inf)(fa: Session[IO] => IO[A])(implicit loc: Location): Unit =
     test(name)(session(readTimeout).use(fa))
+
+  def sessionTestWithCleanup[A](name: String,
+                                readTimeout: Duration = Duration.Inf)
+                               (fa: Session[IO] => IO[A])
+                               (cleanup: Command[Void]*)
+                               (implicit loc: Location): Unit =
+    test(name) {
+      session(readTimeout).use { s =>
+        (fa(s) >> s.assertHealthy)
+          .guarantee(cleanup.toList.traverse_(s.execute))
+      }
+    }
 
   def pooled(readTimeout: Duration): Resource[IO, Resource[IO, Session[IO]]] =
     Session.pooled(
