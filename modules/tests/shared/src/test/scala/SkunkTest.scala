@@ -5,11 +5,11 @@
 package tests
 
 import cats.effect.{ IO, Resource }
-import cats.syntax.all._
+import cats.syntax.all.*
 import skunk.{Command, Session, TypingStrategy, Void}
-import skunk.data._
-import skunk.codec.all._
-import skunk.implicits._
+import skunk.data.*
+import skunk.codec.all.*
+import skunk.implicits.*
 import munit.Location
 import org.typelevel.otel4s.trace.Tracer
 import scala.concurrent.duration.Duration
