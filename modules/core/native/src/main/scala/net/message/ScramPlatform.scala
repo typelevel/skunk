@@ -27,7 +27,7 @@ private[message] trait ScramPlatform { this: Scram.type =>
       throw new RuntimeException("EVP_get_digestbyname")
     val md = new Array[Byte](EVP_MAX_MD_SIZE)
     val mdLen = stackalloc[CUnsignedInt]()
-    if (openssl.HMAC(evpMd, key.toArrayUnsafe.atUnsafe(0), key.size.toInt, str.toArrayUnsafe.atUnsafe(0), str.size.toULong, md.atUnsafe(0), mdLen) == null)
+    if (openssl.HMAC(evpMd, key.toArrayUnsafe.atUnsafe(0), key.size.toInt, str.toArrayUnsafe.atUnsafe(0), str.size.toCSize, md.atUnsafe(0), mdLen) == null)
       throw new RuntimeException("HMAC")
     ByteVector.view(md, 0, (!mdLen).toInt)
   }
@@ -38,7 +38,7 @@ private[message] trait ScramPlatform { this: Scram.type =>
     val `type` = EVP_get_digestbyname(c"SHA256")
     if (`type` == null)
       throw new RuntimeException("EVP_get_digestbyname")
-    if (EVP_Digest(input.toArrayUnsafe.atUnsafe(0), input.size.toULong, md.atUnsafe(0), size, `type`, null) != 1)
+    if (EVP_Digest(input.toArrayUnsafe.atUnsafe(0), input.size.toCSize, md.atUnsafe(0), size, `type`, null) != 1)
       throw new RuntimeException("EVP_Digest")
     ByteVector.view(md, 0, (!size).toInt)
   }
