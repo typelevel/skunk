@@ -112,7 +112,13 @@ object CommandComplete {
     case "ALTER POLICY"               => apply(Completion.AlterPolicy)
     case "DROP POLICY"                => apply(Completion.DropPolicy)
     case "ANALYZE"                    => apply(Completion.Analyze)
+    case "ALTER DEFAULT PRIVILEGES"   => apply(Completion.AlterDefaultPrivileges)
+    case "GRANT ROLE"                 => apply(Completion.GrantRole)
+    case "REVOKE ROLE"                => apply(Completion.RevokeRole)
     // more .. fill in as we hit them
+
+    // weird Redshift variations
+    case "SELECT"                     => apply(Completion.SelectWithoutCount)
 
     case s                  => apply(Completion.Unknown(s))
   }
