@@ -529,7 +529,7 @@ object Session {
     def withHost(newHost: Host): Builder[F] =
       copy(host = newHost)
 
-    /** Configures the post of the Postgres server. Throws `IllegalArgumentException` if the specified port is not a valid port number. */
+    /** Configures the port of the Postgres server. Throws `IllegalArgumentException` if the specified port is not a valid port number. */
     def withPort(newPort: Int): Builder[F] =
       withPort(Port.fromInt(newPort).getOrElse(throw new SkunkException(sql = None, message = s"Port: $newPort falls out of the allowed range.")))
 
