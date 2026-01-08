@@ -64,9 +64,9 @@ ThisBuild / libraryDependencySchemes +=
   "org.scala-native" %% "test-interface_native0.5" % VersionScheme.Always
 
 // This is used in a couple places
-lazy val fs2Version = "3.13.0-M7"
+lazy val fs2Version = "3.13.0-M8"
 lazy val openTelemetryVersion = "1.55.0"
-lazy val otel4sVersion = "0.14.0"
+lazy val otel4sVersion = "0.14-eadbb3d-SNAPSHOT"
 lazy val refinedVersion = "0.11.3"
 
 // Global Settings
@@ -121,7 +121,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.scodec"             %%% "scodec-cats"             % "1.3.0-RC1",
       "org.typelevel"          %%% "otel4s-core-trace"       % otel4sVersion,
       "org.tpolecat"           %%% "sourcepos"               % "1.2.0",
-      "org.typelevel"          %%% "twiddles-core"           % "0.9.0",
+      "org.typelevel"          %%% "twiddles-core"           % "1.0.0-RC2",
     ) ++ Seq(
       "com.beachape"  %%% "enumeratum"   % "1.9.0",
     ).filterNot(_ => tlIsScala3.value)
