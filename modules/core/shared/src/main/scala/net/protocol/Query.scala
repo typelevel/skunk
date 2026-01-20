@@ -12,7 +12,7 @@ import skunk.exception._
 import skunk.net.message.{ Query => QueryMessage, _ }
 import skunk.net.MessageSocket
 import skunk.util.Typer
-import org.typelevel.otel4s.Attribute
+import org.typelevel.otel4s.semconv.attributes.DbAttributes
 import org.typelevel.otel4s.trace.Span
 import org.typelevel.otel4s.trace.Tracer
 import skunk.Statement
@@ -72,7 +72,7 @@ object Query {
       override def apply[B](query: skunk.Query[Void, B], ty: Typer): F[List[B]] =
         exchange("query") { (span: Span[F]) =>
           span.addAttribute(
-            Attribute("query.sql", query.sql)
+            DbAttributes.DbQueryText(query.sql)
           ) *> send(QueryMessage(query.sql)) *> flatExpect {
 
             // If we get a RowDescription back it means we have a valid query as far as Postgres is
@@ -164,7 +164,7 @@ object Query {
       override def apply(command: Command[Void]): F[Completion] =
         exchange("query") { (span: Span[F]) =>
           span.addAttribute(
-            Attribute("command.sql", command.sql)
+            DbAttributes.DbQueryText(command.sql)
           ) *> send(QueryMessage(command.sql)) *> flatExpect {
 
             case CommandComplete(c) =>
@@ -247,7 +247,7 @@ object Query {
       override def applyDiscard(statement: Statement[Void]): F[Unit] =
         exchange("query") { (span: Span[F]) =>
           span.addAttribute(
-            Attribute("command.sql", statement.sql)
+            DbAttributes.DbQueryText(statement.sql)
           ) *> send(QueryMessage(statement.sql)) *> finishUpDiscard(statement, None)
         }
     }

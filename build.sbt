@@ -124,6 +124,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.scodec"             %%% "scodec-core"             % (if (tlIsScala3.value) "2.3.3" else "1.11.11"),
       "org.scodec"             %%% "scodec-cats"             % "1.3.0-RC1",
       "org.typelevel"          %%% "otel4s-core-trace"       % otel4sVersion,
+      "org.typelevel"          %%% "otel4s-semconv"          % otel4sVersion,
       "org.tpolecat"           %%% "sourcepos"               % "1.2.0",
       "org.typelevel"          %%% "twiddles-core"           % "1.0.0-RC2",
     ) ++ Seq(

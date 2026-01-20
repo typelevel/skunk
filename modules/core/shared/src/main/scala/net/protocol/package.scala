@@ -7,14 +7,22 @@ package skunk.net
 import skunk.net.message._
 import skunk.util.Namer
 import skunk.util.Origin
+import skunk.util.Otel
 import org.typelevel.otel4s.trace.Span
 import org.typelevel.otel4s.trace.Tracer
+import org.typelevel.otel4s.trace.SpanKind
 
 package object protocol {
 
   def exchange[F[_]: Tracer, A](label: String)(f: Span[F] => F[A])(
     implicit exchange: Exchange[F]
-  ): F[A] = Tracer[F].span(label).use(span => exchange(f(span)))
+  ): F[A] =
+    Tracer[F].spanBuilder(label)
+      .withSpanKind(SpanKind.Client)
+      .addAttribute(Otel.DbSystemName)
+      .withFinalizationStrategy(Otel.PostgresStrategy)
+      .build
+      .use(span => exchange(f(span)))
 
   def receive[F[_]](implicit ev: MessageSocket[F]): F[BackendMessage] =
     ev.receive
