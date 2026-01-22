@@ -28,7 +28,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        scala: [2.12, 2.13, 3]
+        scala: [2.12.21, 3.8.1, 3.3.7]
         java: [temurin@11]
         project: [skunkJS, skunkJVM, skunkNative]
     runs-on: ${{ matrix.os }}
@@ -143,92 +143,92 @@ jobs:
           export SERVER_CERT=$(cat world/server.crt)
           docker compose up -d
 
-      - name: Download target directories (2.12, skunkJS)
+      - name: Download target directories (2.12.21, skunkJS)
         uses: actions/download-artifact@v6
         with:
-          name: target-${{ matrix.os }}-${{ matrix.java }}-2.12-skunkJS
+          name: target-${{ matrix.os }}-${{ matrix.java }}-2.12.21-skunkJS
 
-      - name: Inflate target directories (2.12, skunkJS)
+      - name: Inflate target directories (2.12.21, skunkJS)
         run: |
           tar xf targets.tar
           rm targets.tar
 
-      - name: Download target directories (2.12, skunkJVM)
+      - name: Download target directories (2.12.21, skunkJVM)
         uses: actions/download-artifact@v6
         with:
-          name: target-${{ matrix.os }}-${{ matrix.java }}-2.12-skunkJVM
+          name: target-${{ matrix.os }}-${{ matrix.java }}-2.12.21-skunkJVM
 
-      - name: Inflate target directories (2.12, skunkJVM)
+      - name: Inflate target directories (2.12.21, skunkJVM)
         run: |
           tar xf targets.tar
           rm targets.tar
 
-      - name: Download target directories (2.12, skunkNative)
+      - name: Download target directories (2.12.21, skunkNative)
         uses: actions/download-artifact@v6
         with:
-          name: target-${{ matrix.os }}-${{ matrix.java }}-2.12-skunkNative
+          name: target-${{ matrix.os }}-${{ matrix.java }}-2.12.21-skunkNative
 
-      - name: Inflate target directories (2.12, skunkNative)
+      - name: Inflate target directories (2.12.21, skunkNative)
         run: |
           tar xf targets.tar
           rm targets.tar
 
-      - name: Download target directories (2.13, skunkJS)
+      - name: Download target directories (3.8.1, skunkJS)
         uses: actions/download-artifact@v6
         with:
-          name: target-${{ matrix.os }}-${{ matrix.java }}-2.13-skunkJS
+          name: target-${{ matrix.os }}-${{ matrix.java }}-3.8.1-skunkJS
 
-      - name: Inflate target directories (2.13, skunkJS)
+      - name: Inflate target directories (3.8.1, skunkJS)
         run: |
           tar xf targets.tar
           rm targets.tar
 
-      - name: Download target directories (2.13, skunkJVM)
+      - name: Download target directories (3.8.1, skunkJVM)
         uses: actions/download-artifact@v6
         with:
-          name: target-${{ matrix.os }}-${{ matrix.java }}-2.13-skunkJVM
+          name: target-${{ matrix.os }}-${{ matrix.java }}-3.8.1-skunkJVM
 
-      - name: Inflate target directories (2.13, skunkJVM)
+      - name: Inflate target directories (3.8.1, skunkJVM)
         run: |
           tar xf targets.tar
           rm targets.tar
 
-      - name: Download target directories (2.13, skunkNative)
+      - name: Download target directories (3.8.1, skunkNative)
         uses: actions/download-artifact@v6
         with:
-          name: target-${{ matrix.os }}-${{ matrix.java }}-2.13-skunkNative
+          name: target-${{ matrix.os }}-${{ matrix.java }}-3.8.1-skunkNative
 
-      - name: Inflate target directories (2.13, skunkNative)
+      - name: Inflate target directories (3.8.1, skunkNative)
         run: |
           tar xf targets.tar
           rm targets.tar
 
-      - name: Download target directories (3, skunkJS)
+      - name: Download target directories (3.3.7, skunkJS)
         uses: actions/download-artifact@v6
         with:
-          name: target-${{ matrix.os }}-${{ matrix.java }}-3-skunkJS
+          name: target-${{ matrix.os }}-${{ matrix.java }}-3.3.7-skunkJS
 
-      - name: Inflate target directories (3, skunkJS)
+      - name: Inflate target directories (3.3.7, skunkJS)
         run: |
           tar xf targets.tar
           rm targets.tar
 
-      - name: Download target directories (3, skunkJVM)
+      - name: Download target directories (3.3.7, skunkJVM)
         uses: actions/download-artifact@v6
         with:
-          name: target-${{ matrix.os }}-${{ matrix.java }}-3-skunkJVM
+          name: target-${{ matrix.os }}-${{ matrix.java }}-3.3.7-skunkJVM
 
-      - name: Inflate target directories (3, skunkJVM)
+      - name: Inflate target directories (3.3.7, skunkJVM)
         run: |
           tar xf targets.tar
           rm targets.tar
 
-      - name: Download target directories (3, skunkNative)
+      - name: Download target directories (3.3.7, skunkNative)
         uses: actions/download-artifact@v6
         with:
-          name: target-${{ matrix.os }}-${{ matrix.java }}-3-skunkNative
+          name: target-${{ matrix.os }}-${{ matrix.java }}-3.3.7-skunkNative
 
-      - name: Inflate target directories (3, skunkNative)
+      - name: Inflate target directories (3.3.7, skunkNative)
         run: |
           tar xf targets.tar
           rm targets.tar
@@ -296,7 +296,7 @@ jobs:
       - name: Submit Dependencies
         uses: scalacenter/sbt-dependency-submission@v2
         with:
-          modules-ignore: skunkjs_2.12 skunkjs_2.13 skunkjs_3 docs_2.12 docs_2.13 docs_3 skunkjvm_2.12 skunkjvm_2.13 skunkjvm_3 skunknative_2.12 skunknative_2.13 skunknative_3 tests_sjs1_2.12 tests_sjs1_2.13 tests_sjs1_3 tests_2.12 tests_2.13 tests_3 example_2.12 example_2.13 example_3 tests_native0.4_2.12 tests_native0.4_2.13 tests_native0.4_3
+          modules-ignore: skunkjs_2.12 skunkjs_3 skunkjs_3 docs_2.12 docs_3 docs_3 skunkjvm_2.12 skunkjvm_3 skunkjvm_3 skunknative_2.12 skunknative_3 skunknative_3 tests_sjs1_2.12 tests_sjs1_3 tests_sjs1_3 tests_2.12 tests_3 tests_3 example_2.12 example_3 example_3 tests_native0.4_2.12 tests_native0.4_3 tests_native0.4_3
           configs-ignore: test scala-tool scala-doc-tool test-internal
 
   validate-steward:
