@@ -66,11 +66,15 @@ ThisBuild / libraryDependencySchemes +=
 // This is used in a couple places
 lazy val fs2Version = "3.13.0-M8"
 lazy val openTelemetryVersion = "1.55.0"
-lazy val otel4sVersion = "0.14-eadbb3d-SNAPSHOT"
+lazy val otel4sVersion = "0.15-ca28b04-SNAPSHOT"
+lazy val otel4sSdkVersion = "0.15-f5df7b3-SNAPSHOT"
 lazy val refinedVersion = "0.11.3"
 
 // Global Settings
 lazy val commonSettings = Seq(
+
+  // Resolvers
+  resolvers += Resolver.sonatypeCentralSnapshots,
 
   // Headers
   headerMappings := headerMappings.value + (HeaderFileType.scala -> HeaderCommentStyle.cppStyleLineComment),
@@ -191,8 +195,8 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.typelevel"     %%% "discipline-munit"        % "2.0.0",
       "org.typelevel"     %%% "cats-time"               % "0.6.0",
       "eu.timepit"        %%% "refined-cats"            % refinedVersion,
-      "org.typelevel"     %%% "otel4s-sdk-trace"        % otel4sVersion,
-      "org.typelevel"     %%% "otel4s-sdk-exporter-trace" % otel4sVersion,
+      "org.typelevel"     %%% "otel4s-sdk-trace"        % otel4sSdkVersion,
+      "org.typelevel"     %%% "otel4s-sdk-exporter-trace" % otel4sSdkVersion,
     ),
     testFrameworks += new TestFramework("munit.Framework"),
     testOptions += {
