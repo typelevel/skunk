@@ -20,6 +20,8 @@ import skunk.exception.{
   SkunkException,
   UnsupportedAuthenticationSchemeException
 }
+import org.typelevel.otel4s.metrics.Histogram
+import cats.effect.MonadCancel
 
 trait Startup[F[_]] {
   def apply(user: String, database: String, password: Option[String], parameters: Map[String, String]): F[Unit]
@@ -27,12 +29,12 @@ trait Startup[F[_]] {
 
 object Startup extends StartupCompanionPlatform {
 
-  def apply[F[_]: Exchange: MessageSocket: Tracer](
-    implicit ev: MonadError[F, Throwable]
+  def apply[F[_]: Exchange: MessageSocket: Tracer](opDuration: Histogram[F, Double])(
+    implicit ev: MonadCancel[F, Throwable]
   ): Startup[F] =
     new Startup[F] {
       override def apply(user: String, database: String, password: Option[String], parameters: Map[String, String]): F[Unit] =
-        exchange("startup") { (span: Span[F]) =>
+        exchange("startup", opDuration) { (span: Span[F]) =>
           val sm = StartupMessage(user, database, parameters)
           for {
             _ <- span.addAttributes(

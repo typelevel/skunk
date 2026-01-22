@@ -23,6 +23,7 @@ import skunk.net.SSLNegotiation
 import skunk.net.protocol.Describe
 import scala.concurrent.duration.Duration
 import skunk.net.protocol.Parse
+import org.typelevel.otel4s.metrics.Meter
 
 /**
  * Represents a live connection to a Postgres database. Operations provided here are safe to use
@@ -476,7 +477,7 @@ object Session {
    * @param queryCacheSize        size of the session-level cache for query checking; defaults to 2048
    * @param parseCacheSize        size of the pool-level cache for parsing statements; defaults to 2048
    */
-  final class Builder[F[_]: Temporal: Network: Console] private (
+  final class Builder[F[_]: Temporal: Meter: Network: Console] private (
     val connectionType: ConnectionType,
     val host: Host,
     val port: Port,
@@ -701,7 +702,7 @@ object Session {
    }}}
    */
   object Builder {
-    def apply[F[_]: Temporal: Network: Console]: Builder[F] =
+    def apply[F[_]: Temporal: Meter: Network: Console]: Builder[F] =
       new Builder[F](
         connectionType = ConnectionType.TCP,
         host = host"localhost",
@@ -748,7 +749,7 @@ object Session {
    * @group Constructors
    */
   @deprecated("1.0.0-M11", "Use Session.Builder[F].pooled instead")
-  def pooled[F[_]: Temporal: Tracer: Network: Console](
+  def pooled[F[_]: Temporal: Tracer: Meter: Network: Console](
     host:          String,
     port:          Int            = 5432,
     user:          String,
@@ -806,7 +807,7 @@ object Session {
    * @group Constructors
    */
   @deprecated("1.0.0-M11", "Use Session.Builder[F].pooledExplicitTracer instead")
-  def pooledF[F[_]: Temporal: Network: Console](
+  def pooledF[F[_]: Temporal: Meter: Network: Console](
     host:          String,
     port:          Int            = 5432,
     user:          String,
@@ -848,7 +849,7 @@ object Session {
    * @see pooled
    */
   @deprecated("1.0.0-M11", "Use Session.Builder[F].single instead")
-  def single[F[_]: Temporal: Tracer: Network: Console](
+  def single[F[_]: Temporal: Tracer: Meter: Network: Console](
     host:         String,
     port:         Int            = 5432,
     user:         String,
@@ -887,7 +888,7 @@ object Session {
    * @see pooledF
    */
   @deprecated("1.0.0-M11", "Use Session.Builder[F].singleExplicitTracer instead")
-  def singleF[F[_]: Temporal: Network: Console](
+  def singleF[F[_]: Temporal: Meter: Network: Console](
     host:         String,
     port:         Int            = 5432,
     user:         String,

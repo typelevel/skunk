@@ -10,10 +10,12 @@ import skunk._, skunk.implicits._, skunk.codec.all.int4
 import org.typelevel.otel4s.trace.Tracer
 import cats.effect.std.Console
 import fs2.io.net.Network
+import org.typelevel.otel4s.metrics.Meter
 
 object Transaction extends IOApp {
 
   implicit def tracer[F[_]: MonadCancelThrow]: Tracer[F] = Tracer.noop
+  implicit def meter[F[_]: MonadCancelThrow]: Meter[F] = Meter.noop
 
   def session[F[_]: Temporal: Console: Network]: Resource[F, Session[F]] =
     Session.Builder[F]

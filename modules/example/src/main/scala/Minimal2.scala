@@ -12,6 +12,7 @@ import skunk.implicits._
 import skunk.codec.all._
 import org.typelevel.otel4s.Attribute
 import org.typelevel.otel4s.oteljava.OtelJava
+import org.typelevel.otel4s.metrics.Meter
 import org.typelevel.otel4s.trace.Tracer
 import fs2.io.net.Network
 import cats.effect.std.Console
@@ -19,7 +20,7 @@ import cats.effect.std.Console
 object Minimal2 extends IOApp {
 
 
-  def session[F[_]: Temporal: Tracer: Console: Network]: Resource[F, Session[F]] =
+  def session[F[_]: Temporal: Tracer: Meter: Console: Network]: Resource[F, Session[F]] =
     Session.Builder[F]
       .withUserAndPassword("jimmy", "banana")
       .withDatabase("world")
@@ -46,17 +47,21 @@ object Minimal2 extends IOApp {
       }
     }
 
-  def runF[F[_]: Temporal: Tracer: Console: Network]: F[ExitCode] =
+  def runF[F[_]: Temporal: Tracer: Meter: Console: Network]: F[ExitCode] =
     session.use { s =>
       List("A%", "B%").parTraverse(p => lookup(p, s))
     } as ExitCode.Success
 
-  def getTracer[F[_]: Async: LiftIO]: Resource[F, Tracer[F]] =
+  def getTelemetry[F[_]: Async: LiftIO]: Resource[F, (Tracer[F], Meter[F])] =
     OtelJava.autoConfigured[F]()
-      .evalMap(_.tracerProvider.tracer("skunk-http4s-example").get)
+      .evalMap{ otel =>
+        (otel.tracerProvider.tracer("skunk-http4s-example").get, otel.meterProvider.meter("skunk-http4s-example").get).tupled
+      }
 
   def run(args: List[String]): IO[ExitCode] =
-    getTracer[IO].use { implicit T =>
+    getTelemetry[IO].use { case (tracer, meter) =>
+      implicit val M = meter
+      implicit val T = tracer
       T.span("root").surround {
         runF[IO] *> runF[IO]
       }

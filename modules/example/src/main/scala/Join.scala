@@ -11,10 +11,12 @@ import skunk._
 import skunk.implicits._
 import skunk.codec.all._
 import org.typelevel.otel4s.trace.Tracer
+import org.typelevel.otel4s.metrics.Meter
 
 object Join extends IOApp with StreamOps {
 
   implicit val tracer: Tracer[IO] = Tracer.noop
+  implicit val meter: Meter[IO] = Meter.noop
 
   val session: Resource[IO, Session[IO]] =
     Session.Builder[IO]

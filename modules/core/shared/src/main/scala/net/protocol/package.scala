@@ -11,18 +11,25 @@ import skunk.util.Otel
 import org.typelevel.otel4s.trace.Span
 import org.typelevel.otel4s.trace.Tracer
 import org.typelevel.otel4s.trace.SpanKind
+import org.typelevel.otel4s.metrics.Histogram
+import java.util.concurrent.TimeUnit
+import cats.effect.MonadCancel
 
 package object protocol {
 
-  def exchange[F[_]: Tracer, A](label: String)(f: Span[F] => F[A])(
-    implicit exchange: Exchange[F]
+  def exchange[F[_]: Tracer, A](label: String, opDuration: Histogram[F, Double])(f: Span[F] => F[A])(
+    implicit exchange: Exchange[F], ev: MonadCancel[F, Throwable]
   ): F[A] =
     Tracer[F].spanBuilder(label)
       .withSpanKind(SpanKind.Client)
       .addAttribute(Otel.DbSystemName)
       .withFinalizationStrategy(Otel.PostgresStrategy)
       .build
-      .use(span => exchange(f(span)))
+      .use{span =>
+        opDuration.recordDuration(TimeUnit.SECONDS, Otel.opDurationAttributes(_)).surround {
+          exchange(f(span))
+        }
+      }
 
   def receive[F[_]](implicit ev: MessageSocket[F]): F[BackendMessage] =
     ev.receive

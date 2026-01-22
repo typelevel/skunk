@@ -20,6 +20,7 @@ import skunk.net.Protocol
 import skunk.data.Completion
 import skunk.net.protocol.exchange
 import cats.effect.kernel.Deferred
+import org.typelevel.otel4s.metrics.Histogram
 
 trait BindExecute[F[_]] {
 
@@ -41,7 +42,7 @@ trait BindExecute[F[_]] {
 
 object BindExecute {
   
-  def apply[F[_]: Exchange: MessageSocket: Namer: Tracer](
+  def apply[F[_]: Exchange: MessageSocket: Namer: Tracer](opDuration: Histogram[F, Double])(
     implicit ev: Concurrent[F]
   ): BindExecute[F] =
     new Unroll[F] with BindExecute[F] {
@@ -133,7 +134,7 @@ object BindExecute {
         }
 
         Resource.make {
-          exchange("bind+execute"){ (span: Span[F]) =>
+          exchange("bind+execute", opDuration){ (span: Span[F]) =>
             for {
               pn <- preBind(span)
               _  <- send(ExecuteMessage(pn.value, 0))
@@ -144,7 +145,7 @@ object BindExecute {
               def execute: F[Completion] = c.pure
             }
           }
-        } { portal => Close[F].apply(portal.id)}
+        } { portal => Close[F](opDuration).apply(portal.id)}
 
       }
 
@@ -158,7 +159,7 @@ object BindExecute {
         val (preBind, postBind) = bindExchange(statement, args, argsOrigin, redactionStrategy)
         Resource.eval(Deferred[F, Unit]).flatMap { prefetch =>
           Resource.make {
-            exchange("bind+execute"){ (span: Span[F]) =>
+            exchange("bind+execute", opDuration){ (span: Span[F]) =>
               for {
                 pn <- preBind(span)
                 _  <- span.addAttributes(
@@ -173,11 +174,11 @@ object BindExecute {
                 def execute(maxRows: Int): F[List[B] ~ Boolean] = 
                   prefetch.tryGet.flatMap {
                     case None => rs.pure <* prefetch.complete(())
-                    case Some(()) => Execute[F].apply(this, maxRows)
+                    case Some(()) => Execute[F](opDuration).apply(this, maxRows)
                   }
               }
             }
-          } { portal => Close[F].apply(portal.id)}
+          } { portal => Close[F](opDuration).apply(portal.id)}
         }
       }
   }

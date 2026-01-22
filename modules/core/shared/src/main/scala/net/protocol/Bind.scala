@@ -4,9 +4,9 @@
 
 package skunk.net.protocol
 
+import cats.effect.MonadCancel
 import cats.effect.Resource
 import cats.syntax.all._
-import cats.MonadError
 import skunk.exception.PostgresErrorException
 import skunk.net.message.{ Bind => BindMessage, Close => _, _ }
 import skunk.net.MessageSocket
@@ -15,6 +15,7 @@ import skunk.util.{ Origin, Namer }
 import org.typelevel.otel4s.Attribute
 import org.typelevel.otel4s.trace.{Span, Tracer}
 import skunk.RedactionStrategy
+import org.typelevel.otel4s.metrics.Histogram
 
 trait Bind[F[_]] {
 
@@ -29,8 +30,8 @@ trait Bind[F[_]] {
 
 object Bind {
 
-  def apply[F[_]: Exchange: MessageSocket: Namer: Tracer](
-    implicit ev: MonadError[F, Throwable]
+  def apply[F[_]: Exchange: MessageSocket: Namer: Tracer](opDuration: Histogram[F, Double])(
+    implicit ev: MonadCancel[F, Throwable]
   ): Bind[F] =
     new Bind[F] {
 
@@ -41,7 +42,7 @@ object Bind {
         redactionStrategy: RedactionStrategy
       ): Resource[F, PortalId] =
         Resource.make {
-          exchange("bind") { (span: Span[F]) =>
+          exchange("bind", opDuration) { (span: Span[F]) =>
             for {
               pn <- nextName("portal").map(PortalId(_))
               ea  = statement.statement.encoder.encode(args) // encoded args
@@ -70,7 +71,7 @@ object Bind {
                     }
             } yield pn
           }
-        } { Close[F].apply }
+        } { Close[F](opDuration).apply }
 
     }
 

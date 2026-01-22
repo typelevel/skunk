@@ -11,8 +11,10 @@ import fs2.concurrent.Signal
 import fs2.Stream
 import skunk.{ Command, Query, Statement, ~, Void, RedactionStrategy }
 import skunk.data._
-import skunk.util.{ Namer, Origin }
+import skunk.util.{ Namer, Origin, Otel }
 import skunk.util.Typer
+import org.typelevel.otel4s.metrics.Histogram
+import org.typelevel.otel4s.metrics.Meter
 import org.typelevel.otel4s.trace.Tracer
 import fs2.io.net.Socket
 import skunk.net.protocol.Describe
@@ -27,6 +29,13 @@ import skunk.net.protocol.Parse
  * not generally useful for end users.
  */
 trait Protocol[F[_]] {
+
+  /**
+    * Histogram tracking the duration of database operations.
+    *
+    * @see [[https://opentelemetry.io/docs/specs/semconv/db/database-metrics/#metric-dbclientoperationduration `db.client.operation.duration`]]
+    */
+  def opDuration: Histogram[F, Double]
 
   /**
    * Unfiltered stream of all asynchronous channel notifications sent to this session. In general
@@ -208,7 +217,7 @@ object Protocol {
     def execute(maxRows: Int): F[List[B] ~ Boolean]
   }
 
-  def apply[F[_]: Temporal: Tracer: Console](
+  def apply[F[_]: Temporal: Tracer: Meter: Console](
     debug:             Boolean,
     nam:               Namer[F],
     sockets:           Resource[F, Socket[F]],
@@ -223,73 +232,77 @@ object Protocol {
       p   <- Resource.eval(fromMessageSocket(bms, nam, describeCache, parseCache, redactionStrategy))
     } yield p
 
-  def fromMessageSocket[F[_]: Concurrent: Tracer](
+  def fromMessageSocket[F[_]: Concurrent: Tracer: Meter](
     bms: BufferedMessageSocket[F],
     nam: Namer[F],
     dc:  Describe.Cache[F],
     pc:  Parse.Cache[F],
     redactionStrategy: RedactionStrategy
   ): F[Protocol[F]] =
-    Exchange[F].map { ex =>
-      new Protocol[F] {
+    Otel.OpDurationHistogram[F].flatMap { opDurationHistogram =>
+      Exchange[F].map { ex =>
+        new Protocol[F] {
 
-        // Not super sure about this but it does make the sub-protocol implementations cleaner.
-        // We'll see how well it works out.
-        implicit val ms: MessageSocket[F] = bms
-        implicit val na: Namer[F] = nam
-        implicit val ExchangeF: protocol.Exchange[F] = ex
+          def opDuration: Histogram[F,Double] = opDurationHistogram
 
-        override def notifications(maxQueued: Int): Resource[F, Stream[F, Notification[String]]] =
-          bms.notifications(maxQueued)
+          // Not super sure about this but it does make the sub-protocol implementations cleaner.
+          // We'll see how well it works out.
+          implicit val ms: MessageSocket[F] = bms
+          implicit val na: Namer[F] = nam
+          implicit val ExchangeF: protocol.Exchange[F] = ex
 
-        override def parameters: Signal[F, Map[String, String]] =
-          bms.parameters
+          override def notifications(maxQueued: Int): Resource[F, Stream[F, Notification[String]]] =
+            bms.notifications(maxQueued)
 
-        override def prepare[A](command: Command[A], ty: Typer): F[PreparedCommand[F, A]] =
-          protocol.Prepare[F](describeCache, parseCache, redactionStrategy).apply(command, ty)
+          override def parameters: Signal[F, Map[String, String]] =
+            bms.parameters
 
-        override def prepare[A, B](query: Query[A, B], ty: Typer): F[PreparedQuery[F, A, B]] =
-          protocol.Prepare[F](describeCache, parseCache, redactionStrategy).apply(query, ty)
+          override def prepare[A](command: Command[A], ty: Typer): F[PreparedCommand[F, A]] =
+            protocol.Prepare[F](describeCache, parseCache, redactionStrategy, opDuration).apply(command, ty)
 
-        override def prepareR[A](command: Command[A], ty: Typer): Resource[F, Protocol.PreparedCommand[F, A]] = {
-          val acquire = Parse.Cache.empty[F](1).flatMap { pc =>
-            protocol.Prepare[F](describeCache, pc, redactionStrategy).apply(command, ty)
+          override def prepare[A, B](query: Query[A, B], ty: Typer): F[PreparedQuery[F, A, B]] =
+            protocol.Prepare[F](describeCache, parseCache, redactionStrategy, opDuration).apply(query, ty)
+
+          override def prepareR[A](command: Command[A], ty: Typer): Resource[F, Protocol.PreparedCommand[F, A]] = {
+            val acquire = Parse.Cache.empty[F](1).flatMap { pc =>
+              protocol.Prepare[F](describeCache, pc, redactionStrategy, opDuration).apply(command, ty)
+            }
+            Resource.make(acquire)(pc => protocol.Close[F](opDuration).apply(pc.id))
           }
-          Resource.make(acquire)(pc => protocol.Close[F].apply(pc.id))
-        }
 
-        override def prepareR[A, B](query: Query[A, B], ty: Typer): Resource[F, Protocol.PreparedQuery[F, A, B]] = {
-          val acquire = Parse.Cache.empty[F](1).flatMap { pc =>
-            protocol.Prepare[F](describeCache, pc, redactionStrategy).apply(query, ty)
+          override def prepareR[A, B](query: Query[A, B], ty: Typer): Resource[F, Protocol.PreparedQuery[F, A, B]] = {
+            val acquire = Parse.Cache.empty[F](1).flatMap { pc =>
+              protocol.Prepare[F](describeCache, pc, redactionStrategy, opDuration).apply(query, ty)
+            }
+            Resource.make(acquire)(pq => protocol.Close[F](opDuration).apply(pq.id))
           }
-          Resource.make(acquire)(pq => protocol.Close[F].apply(pq.id))
-        }
 
-        override def execute(command: Command[Void]): F[Completion] =
-          protocol.Query[F](redactionStrategy).apply(command)
+          override def execute(command: Command[Void]): F[Completion] =
+            protocol.Query[F](redactionStrategy, opDuration).apply(command)
 
-        override def execute[B](query: Query[Void, B], ty: Typer): F[List[B]] =
-          protocol.Query[F](redactionStrategy).apply(query, ty)
+          override def execute[B](query: Query[Void, B], ty: Typer): F[List[B]] =
+            protocol.Query[F](redactionStrategy, opDuration).apply(query, ty)
 
-        override def executeDiscard(statement: Statement[Void]): F[Unit] = protocol.Query[F](redactionStrategy).applyDiscard(statement)
+          override def executeDiscard(statement: Statement[Void]): F[Unit] = protocol.Query[F](redactionStrategy, opDuration).applyDiscard(statement)
 
-        override def startup(user: String, database: String, password: Option[String], parameters: Map[String, String]): F[Unit] =
-          protocol.Startup[F].apply(user, database, password, parameters)
+          override def startup(user: String, database: String, password: Option[String], parameters: Map[String, String]): F[Unit] =
+            protocol.Startup[F](opDuration).apply(user, database, password, parameters)
 
-        override def cleanup: F[Unit] =
-          parseCache.value.values.flatMap(_.traverse_(protocol.Close[F].apply))
+          override def cleanup: F[Unit] =
+            parseCache.value.values.flatMap(_.traverse_(protocol.Close[F](opDuration).apply))
         
-        override def transactionStatus: Signal[F, TransactionStatus] =
-          bms.transactionStatus
+          override def transactionStatus: Signal[F, TransactionStatus] =
+            bms.transactionStatus
 
-        override val describeCache: Describe.Cache[F] =
-          dc
+          override val describeCache: Describe.Cache[F] =
+            dc
 
-        override val parseCache: Parse.Cache[F] =
-          pc
+          override val parseCache: Parse.Cache[F] =
+           pc
 
-        override def closeEvictedPreparedStatements: F[Unit] = 
-          pc.value.clearEvicted.flatMap(_.traverse_(protocol.Close[F].apply))
+          override def closeEvictedPreparedStatements: F[Unit] = 
+            pc.value.clearEvicted.flatMap(_.traverse_(protocol.Close[F](opDuration).apply))
+        }
       }
     }
 
