@@ -68,8 +68,7 @@ lazy val natchezVersion = "0.3.8"
 lazy val commonSettings = Seq(
 
   // Resolvers
-  resolvers ++= Resolver.sonatypeOssRepos("public"),
-  resolvers ++= Resolver.sonatypeOssRepos("snapshots"),
+  resolvers += Resolver.sonatypeCentralSnapshots,
 
   // Headers
   headerMappings := headerMappings.value + (HeaderFileType.scala -> HeaderCommentStyle.cppStyleLineComment),
