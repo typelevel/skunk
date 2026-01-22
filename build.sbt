@@ -68,6 +68,9 @@ lazy val refinedVersion = "0.11.0"
 // Global Settings
 lazy val commonSettings = Seq(
 
+  // Resolvers
+  resolvers += Resolver.sonatypeCentralSnapshots,
+
   // Headers
   headerMappings := headerMappings.value + (HeaderFileType.scala -> HeaderCommentStyle.cppStyleLineComment),
   headerLicense  := Some(HeaderLicense.Custom(
