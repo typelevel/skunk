@@ -61,7 +61,8 @@ ThisBuild / tlFatalWarnings := false
 // This is used in a couple places
 lazy val fs2Version = "3.12.2"
 lazy val openTelemetryVersion = "1.55.0"
-lazy val otel4sVersion = "0.14.0"
+lazy val otel4sVersion = "0.15.0"
+lazy val otel4sSdkVersion = "0.16.0"
 lazy val refinedVersion = "0.11.0"
 
 // Global Settings
@@ -188,8 +189,8 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.typelevel"     %%% "discipline-munit"        % "2.0.0-M3",
       "org.typelevel"     %%% "cats-time"               % "0.5.1",
       "eu.timepit"        %%% "refined-cats"            % refinedVersion,
-      "org.typelevel"     %%% "otel4s-sdk-trace"        % otel4sVersion,
-      "org.typelevel"     %%% "otel4s-sdk-exporter-trace" % otel4sVersion,
+      "org.typelevel"     %%% "otel4s-sdk-trace"        % otel4sSdkVersion,
+      "org.typelevel"     %%% "otel4s-sdk-exporter-trace" % otel4sSdkVersion,
     ),
     testFrameworks += new TestFramework("munit.Framework"),
     testOptions += {
