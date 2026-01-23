@@ -13,7 +13,6 @@ import skunk.{ Command, Query, Statement, ~, Void, RedactionStrategy }
 import skunk.data._
 import skunk.util.{ Namer, Origin, Otel }
 import skunk.util.Typer
-import org.typelevel.otel4s.metrics.Histogram
 import org.typelevel.otel4s.metrics.Meter
 import org.typelevel.otel4s.trace.Tracer
 import fs2.io.net.Socket
@@ -29,13 +28,6 @@ import skunk.net.protocol.Parse
  * not generally useful for end users.
  */
 trait Protocol[F[_]] {
-
-  /**
-    * Histogram tracking the duration of database operations.
-    *
-    * @see [[https://opentelemetry.io/docs/specs/semconv/db/database-metrics/#metric-dbclientoperationduration `db.client.operation.duration`]]
-    */
-  def opDuration: Histogram[F, Double]
 
   /**
    * Unfiltered stream of all asynchronous channel notifications sent to this session. In general
@@ -239,11 +231,9 @@ object Protocol {
     pc:  Parse.Cache[F],
     redactionStrategy: RedactionStrategy
   ): F[Protocol[F]] =
-    Otel.OpDurationHistogram[F].flatMap { opDurationHistogram =>
+    Otel.OpDurationHistogram[F].flatMap { opDuration =>
       Exchange[F].map { ex =>
         new Protocol[F] {
-
-          def opDuration: Histogram[F,Double] = opDurationHistogram
 
           // Not super sure about this but it does make the sub-protocol implementations cleaner.
           // We'll see how well it works out.
