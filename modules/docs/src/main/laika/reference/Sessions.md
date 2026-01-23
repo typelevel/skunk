@@ -1,6 +1,7 @@
 ```scala mdoc:invisible
 import cats.effect._, skunk._
 implicit def dummyTrace: org.typelevel.otel4s.trace.Tracer[IO] = ???
+implicit def dummyMeter: org.typelevel.otel4s.metrics.Meter[IO] = ???
 ```
 
 # Sessions
