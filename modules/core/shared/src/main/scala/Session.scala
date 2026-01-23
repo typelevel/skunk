@@ -13,6 +13,8 @@ import fs2.concurrent.Signal
 import fs2.io.net.{ Network, Socket, SocketOption }
 import fs2.Pipe
 import fs2.Stream
+import org.typelevel.otel4s.metrics.Meter
+import org.typelevel.otel4s.metrics.Histogram
 import org.typelevel.otel4s.trace.Tracer
 import skunk.codec.all.bool
 import skunk.data._
@@ -23,7 +25,6 @@ import skunk.net.SSLNegotiation
 import skunk.net.protocol.Describe
 import scala.concurrent.duration.Duration
 import skunk.net.protocol.Parse
-import org.typelevel.otel4s.metrics.Meter
 
 /**
  * Represents a live connection to a Postgres database. Operations provided here are safe to use
@@ -646,13 +647,15 @@ object Session {
       for {
         dc      <- Resource.eval(Describe.Cache.empty[F](commandCacheSize, queryCacheSize))
         sslOp   <- ssl.toSSLNegotiationOptions(if (debug) logger.some else none)
-        pool    <- Pool.ofF({implicit T: Tracer[F] => sessions(sslOp, dc)}, max)(Recyclers.full)
+        opDuration <- Resource.eval(Otel.OpDurationHistogram[F])
+        pool    <- Pool.ofF({implicit T: Tracer[F] => sessions(sslOp, dc, opDuration)}, max)(Recyclers.full)
       } yield pool
     }
 
     private def sessions(
       sslOptions:    Option[SSLNegotiation.Options[F]],
-      describeCache: Describe.Cache[F]
+      describeCache: Describe.Cache[F],
+      opDuration:    Histogram[F, Double]
     )(implicit T: Tracer[F]): Resource[F, Session[F]] = {
       val sockets = connectionType match {
         case ConnectionType.TCP =>
@@ -664,18 +667,19 @@ object Session {
           val filteredSocketOptions = socketOptions.filter(o => o.key != SocketOption.NoDelay)
           Network[F].connect(address, filteredSocketOptions)
       }
-      fromSockets(sockets, sslOptions, describeCache)
+      fromSockets(sockets, sslOptions, describeCache, opDuration)
     }
 
     private def fromSockets(
       sockets:           Resource[F, Socket[F]],
       sslOptions:        Option[SSLNegotiation.Options[F]],
-      describeCache:     Describe.Cache[F]
+      describeCache:     Describe.Cache[F],
+      opDuration:        Histogram[F, Double]
     )(implicit T: Tracer[F]): Resource[F, Session[F]] =
        for {
         namer <- Resource.eval(Namer[F])
         pc    <- Resource.eval(Parse.Cache.empty[F](parseCacheSize))
-        proto <- Protocol[F](debug, namer, sockets, sslOptions, describeCache, pc, readTimeout, redactionStrategy)
+        proto <- Protocol[F](debug, namer, sockets, sslOptions, describeCache, pc, readTimeout, redactionStrategy, opDuration)
         creds <- Resource.eval(credentials)
         _     <- Resource.eval(proto.startup(creds.user, database.getOrElse(creds.user), creds.password, connectionParameters))
         sess  <- Resource.make(fromProtocol(proto, namer, typingStrategy, redactionStrategy))(_ => proto.cleanup)
