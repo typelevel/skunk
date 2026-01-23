@@ -16,7 +16,7 @@ class LargeResponseTest extends SkunkTest {
       for {
         res <- s.stream(query)(Void, 64000).compile.drain.timed
         // res <- s.execute(query).timed
-        (duration, r) = res
+        (duration, _) = res
         _ = println(s"Took ${duration.toMillis} to stream 500K rows to /dev/null")
       } yield "ok"
     }

@@ -49,6 +49,7 @@ object StringContextOps {
 
   def yell(s: String) = println(s"${Console.RED}$s${Console.RESET}")
 
+  @annotation.nowarn
   def sqlImpl(sc: Expr[StringContext], argsExpr: Expr[Seq[Any]])(using qc: Quotes): Expr[Any] = {
     import qc.reflect.report
 

@@ -6,9 +6,9 @@ package skunk
 
 import cats._
 import cats.effect.Resource
-import java.nio.file.Path
 import java.security.KeyStore
 import javax.net.ssl.SSLContext
+import fs2.io.file.Path
 import fs2.io.net.Network
 import fs2.io.net.tls.TLSContext
 
