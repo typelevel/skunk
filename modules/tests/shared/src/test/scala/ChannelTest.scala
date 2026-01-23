@@ -33,7 +33,7 @@ class ChannelTest extends SkunkTest {
       _ <- IO.sleep(1.second) // sigh
       _ <- data.traverse_(ch.notify)
       o <- f.join
-      Succeeded(fa) = o
+      Succeeded(fa) = o: @unchecked
       d <- fa
       _ <- assert(s"channel data $d $data", data.endsWith(d)) // we may miss the first few
     } yield "ok"

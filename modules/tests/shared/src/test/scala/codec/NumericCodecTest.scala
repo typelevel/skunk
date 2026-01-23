@@ -38,19 +38,19 @@ class NumericCodecTest extends CodecTest {
 
   {
     val arr1 = Arr.fromFoldable(List[Short](-1,-2,-3,-4,5,6,7,8))
-    val Some(arr2) = arr1.reshape(2,1,4)
+    val Some(arr2) = arr1.reshape(2,1,4): @unchecked
     roundtripTest(_int2)(Arr.empty, arr1, arr2)
   }
 
   {
     val arr1 = Arr.fromFoldable(List(-1,-2,-3,-4,5,6,7,8))
-    val Some(arr2) = arr1.reshape(2,1,4)
+    val Some(arr2) = arr1.reshape(2,1,4): @unchecked
     roundtripTest(_int4)(Arr.empty, arr1, arr2)
   }
 
   {
     val arr1 = Arr.fromFoldable(List[Long](-1,-2,-3,-4,5,6,7,8))
-    val Some(arr2) = arr1.reshape(2,1,4)
+    val Some(arr2) = arr1.reshape(2,1,4): @unchecked
     roundtripTest(_int8)(Arr.empty, arr1, arr2)
   }
 

@@ -257,6 +257,7 @@ class PoolTest extends FTest {
     } .handleErrorWith {
       // cleanup here may raise an exception, so we need to handle that
       case FreeFailure() => IO.unit
+      case t => throw t
     }
   }
 
@@ -273,6 +274,7 @@ class PoolTest extends FTest {
           IO.unit
         } handleErrorWith {
           case ResetFailure() => IO.unit
+          case t => throw t
         }
       }
     }

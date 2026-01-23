@@ -39,7 +39,7 @@ class TextCodecTest extends CodecTest {
   roundtripTest(varchar)("\n")
 
   // array types
-  val Some(arr) = Arr("", "ab", "föf", "🔥 and 🌈", "مرحبا", "שלום", "你好", "';--'", "ab\t\b\\cd", "ab\"cd").reshape(5,1,2)
+  val Some(arr) = Arr("", "ab", "föf", "🔥 and 🌈", "مرحبا", "שלום", "你好", "';--'", "ab\t\b\\cd", "ab\"cd").reshape(5,1,2): @unchecked
   roundtripTest(_varchar)(Arr.empty, arr)
   roundtripTest(_bpchar )(Arr.empty, arr)
   roundtripTest(_text   )(Arr.empty, arr)

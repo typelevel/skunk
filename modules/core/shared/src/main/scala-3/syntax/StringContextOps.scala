@@ -49,6 +49,7 @@ object StringContextOps {
 
   def yell(s: String) = println(s"${Console.RED}$s${Console.RESET}")
 
+  @annotation.nowarn
   def sqlImpl(sc: Expr[StringContext], argsExpr: Expr[Seq[Any]])(using qc: Quotes): Expr[Any] = {
     import qc.reflect.report
 
@@ -127,7 +128,10 @@ object StringContextOps {
           val last: Expr[Any] = encoders.last match {
             case '{$a: Encoder[a]} => '{$a.imap(_ *: EmptyTuple)(_.head)}
           }
-          encoders.init.foldRight(last) { case ('{$a: Encoder[a]}, '{$acc: Encoder[t & Tuple]}) => '{$a *: $acc} }
+          encoders.init.foldRight(last) { case ('{$a: Encoder[a]}, '{$acc: Encoder[t & Tuple]}) =>
+            // TODO Should be able to use *: but as of twiddles 1.0.0-RC2 that no longer works; see https://github.com/typelevel/twiddles/issues/146
+            '{_root_.org.typelevel.twiddles.Twiddles.prepend($a, $acc)}
+          }
         }
 
       finalEnc match {
