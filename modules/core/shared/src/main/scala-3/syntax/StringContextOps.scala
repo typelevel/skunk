@@ -129,7 +129,7 @@ object StringContextOps {
           }
           encoders.init.foldRight(last) { case ('{$a: Encoder[a]}, '{$acc: Encoder[t & Tuple]}) =>
             // TODO Should be able to use *: but as of twiddles 1.0.0-RC2 that no longer works; see https://github.com/typelevel/twiddles/issues/146
-            '{$a.product($acc).imap { case (h, t) => h *: t } { case h *: t => (h, t) } }
+            '{_root_.org.typelevel.twiddles.Twiddles.prepend($a, $acc)}
           }
         }
 
