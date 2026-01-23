@@ -19,7 +19,8 @@ sealed trait AppliedFragment { outer =>
 
   /** Concatenate this `AppliedFragment` with `other`, pairwise. */
   def |+|(other: AppliedFragment): AppliedFragment =
-    AppliedFragment(fragment *: other.fragment, argument *: other.argument *: EmptyTuple)
+    // TODO Cast is needed to workaround issue introduced by twiddles 1.0.0-RC2; see https://github.com/typelevel/twiddles/issues/146
+    AppliedFragment((fragment *: other.fragment).asInstanceOf[Fragment[A *: other.A *: EmptyTuple]], argument *: other.argument *: EmptyTuple)
 
   override def toString =
     s"AppliedFragment($fragment, $argument)"
