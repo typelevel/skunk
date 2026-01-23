@@ -64,7 +64,7 @@ object Hello extends IOApp {
 
 Let's examine the code above.
 
-- At ① we define the no-op `Tracer` and `Meter`, which allows us to run Skunk programs with execution tracing and metrics disabled. We will revisit [Tracing](Tracing.md) in a later section.
+- At ① we define the no-op `Tracer` and `Meter`, which allows us to run Skunk programs with execution tracing and metrics disabled. We will revisit [Telemetry](Telemetry.md) in a later section.
 - At ② we define a [Resource](https://typelevel.org/cats-effect/datatypes/resource.html) that yields un-pooled [Session](../reference/Sessions.md) values and ensures that they are closed after use. We specify the host, port, user, database, and password (note: we didn't actually need to specify the host and port as the default host is localhost and the default port is 5432 -- see [Session](../reference/Sessions.md) for information on ther connection options).
 - At ③ we `use` the resource, specifying a block to execute during the `Session`'s lifetime. No matter how the block terminates (success, failure, cancellation) the `Session` will be closed properly.
 - At ④ we use the [sql interpolator](../reference/Fragments.md) to construct a `Query` that selects a single column of schema type `date` (yielding `d`, a value of type `java.time.LocalDate`), then we ask the session to execute it, expecting a *unique* value back; i.e., exactly one row.
