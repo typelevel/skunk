@@ -14,13 +14,12 @@ import org.typelevel.otel4s.Attribute
 import org.typelevel.otel4s.trace.Span
 import org.typelevel.otel4s.trace.Tracer
 import cats.data.OptionT
-import cats.MonadError
+import cats.effect.MonadCancel
 import skunk.Statement
 import skunk.exception.*
 import skunk.util.Namer
 import skunk.net.protocol.exchange
 import org.typelevel.otel4s.metrics.Histogram
-import cats.effect.MonadCancel
 
 trait ParseDescribe[F[_]] {
   def command[A](cmd: skunk.Command[A], ty: Typer): F[StatementId]
