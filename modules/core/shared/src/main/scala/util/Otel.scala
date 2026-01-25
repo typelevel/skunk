@@ -19,10 +19,7 @@ import org.typelevel.otel4s.metrics.Histogram
 
 object Otel {
 
-  // TODO the current snapshot used does not have the new `From` instance,
-  // and I cannot update the otel4s dependency since skunk depends on SN 0.5
-  // only available in the snapshot
-  val DbSystemName = DbAttributes.DbSystemName(DbAttributes.DbSystemNameValue.Postgresql.value)
+  val DbSystemName = DbAttributes.DbSystemName(DbAttributes.DbSystemNameValue.Postgresql)
 
   // Similar to the default reportAbnormal strategy but records some
   // postgresql specific attributes in case it is a postgres error
