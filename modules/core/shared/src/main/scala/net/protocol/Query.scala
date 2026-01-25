@@ -4,7 +4,7 @@
 
 package skunk.net.protocol
 
-import cats.MonadError
+import cats.effect.MonadCancel
 import cats.syntax.all._
 import skunk.{ Command, Void, RedactionStrategy }
 import skunk.data.Completion
@@ -12,10 +12,11 @@ import skunk.exception._
 import skunk.net.message.{ Query => QueryMessage, _ }
 import skunk.net.MessageSocket
 import skunk.util.Typer
-import org.typelevel.otel4s.Attribute
+import org.typelevel.otel4s.semconv.attributes.DbAttributes
 import org.typelevel.otel4s.trace.Span
 import org.typelevel.otel4s.trace.Tracer
 import skunk.Statement
+import org.typelevel.otel4s.metrics.Histogram
 
 trait Query[F[_]] {
   def apply(command: Command[Void]): F[Completion]
@@ -25,8 +26,8 @@ trait Query[F[_]] {
 
 object Query {
 
-  def apply[F[_]: Exchange: MessageSocket: Tracer](redactionStrategy: RedactionStrategy)(
-    implicit ev: MonadError[F, Throwable]
+  def apply[F[_]: Exchange: MessageSocket: Tracer](redactionStrategy: RedactionStrategy, opDuration: Histogram[F, Double])(
+    implicit ev: MonadCancel[F, Throwable]
   ): Query[F] =
     new Unroll[F] with Query[F] {
 
@@ -70,9 +71,9 @@ object Query {
         }
 
       override def apply[B](query: skunk.Query[Void, B], ty: Typer): F[List[B]] =
-        exchange("query") { (span: Span[F]) =>
+        exchange("query", opDuration) { (span: Span[F]) =>
           span.addAttribute(
-            Attribute("query.sql", query.sql)
+            DbAttributes.DbQueryText(query.sql)
           ) *> send(QueryMessage(query.sql)) *> flatExpect {
 
             // If we get a RowDescription back it means we have a valid query as far as Postgres is
@@ -162,9 +163,9 @@ object Query {
         }
 
       override def apply(command: Command[Void]): F[Completion] =
-        exchange("query") { (span: Span[F]) =>
+        exchange("query", opDuration) { (span: Span[F]) =>
           span.addAttribute(
-            Attribute("command.sql", command.sql)
+            DbAttributes.DbQueryText(command.sql)
           ) *> send(QueryMessage(command.sql)) *> flatExpect {
 
             case CommandComplete(c) =>
@@ -245,9 +246,9 @@ object Query {
         }
 
       override def applyDiscard(statement: Statement[Void]): F[Unit] =
-        exchange("query") { (span: Span[F]) =>
+        exchange("query", opDuration) { (span: Span[F]) =>
           span.addAttribute(
-            Attribute("command.sql", statement.sql)
+            DbAttributes.DbQueryText(statement.sql)
           ) *> send(QueryMessage(statement.sql)) *> finishUpDiscard(statement, None)
         }
     }

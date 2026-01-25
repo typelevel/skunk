@@ -14,8 +14,11 @@ import skunk.exception._
 import org.typelevel.twiddles._
 import org.typelevel.otel4s.sdk.trace.SdkTraces
 import org.typelevel.otel4s.trace.Tracer
+import org.typelevel.otel4s.metrics.Meter
 
 trait FTest extends CatsEffectSuite with FTestPlatform {
+
+  implicit val meter: Meter[IO] = Meter.noop
 
   private def withinSpan[A](name: String)(body: Tracer[IO] => IO[A]): IO[A] =
     SdkTraces

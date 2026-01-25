@@ -9,6 +9,7 @@ import cats.effect._
 import ffstest.FTest
 import fs2.concurrent.Signal
 import org.typelevel.otel4s.trace.Tracer
+import org.typelevel.otel4s.metrics.Histogram
 import skunk.{Session, RedactionStrategy, TypingStrategy}
 import skunk.data.Notification
 import skunk.data.TransactionStatus
@@ -44,7 +45,7 @@ trait SimTest extends FTest with SimMessageSocket.DSL {
       nam <- Namer[IO]
       dc  <- Describe.Cache.empty[IO](1024, 1024)
       pc  <- Parse.Cache.empty[IO](1024)
-      pro <- Protocol.fromMessageSocket(bms, nam, dc, pc, RedactionStrategy.None)
+      pro <- Protocol.fromMessageSocket(bms, nam, dc, pc, RedactionStrategy.None, Histogram.noop[IO, Double])
       _   <- pro.startup(user, database, password, Session.DefaultConnectionParameters)
       ses <- Session.fromProtocol(pro, nam, TypingStrategy.BuiltinsOnly, RedactionStrategy.None)
     } yield ses

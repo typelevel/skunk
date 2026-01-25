@@ -13,6 +13,8 @@ import fs2.concurrent.Signal
 import fs2.io.net.{ Network, Socket, SocketOption }
 import fs2.Pipe
 import fs2.Stream
+import org.typelevel.otel4s.metrics.Meter
+import org.typelevel.otel4s.metrics.Histogram
 import org.typelevel.otel4s.trace.Tracer
 import skunk.codec.all.bool
 import skunk.data._
@@ -476,7 +478,7 @@ object Session {
    * @param queryCacheSize        size of the session-level cache for query checking; defaults to 2048
    * @param parseCacheSize        size of the pool-level cache for parsing statements; defaults to 2048
    */
-  final class Builder[F[_]: Temporal: Network: Console] private (
+  final class Builder[F[_]: Temporal: Meter: Network: Console] private (
     val connectionType: ConnectionType,
     val host: Host,
     val port: Port,
@@ -645,13 +647,15 @@ object Session {
       for {
         dc      <- Resource.eval(Describe.Cache.empty[F](commandCacheSize, queryCacheSize))
         sslOp   <- ssl.toSSLNegotiationOptions(if (debug) logger.some else none)
-        pool    <- Pool.ofF({implicit T: Tracer[F] => sessions(sslOp, dc)}, max)(Recyclers.full)
+        opDuration <- Resource.eval(Otel.OpDurationHistogram[F])
+        pool    <- Pool.ofF({implicit T: Tracer[F] => sessions(sslOp, dc, opDuration)}, max)(Recyclers.full)
       } yield pool
     }
 
     private def sessions(
       sslOptions:    Option[SSLNegotiation.Options[F]],
-      describeCache: Describe.Cache[F]
+      describeCache: Describe.Cache[F],
+      opDuration:    Histogram[F, Double]
     )(implicit T: Tracer[F]): Resource[F, Session[F]] = {
       val sockets = connectionType match {
         case ConnectionType.TCP =>
@@ -663,18 +667,19 @@ object Session {
           val filteredSocketOptions = socketOptions.filter(o => o.key != SocketOption.NoDelay)
           Network[F].connect(address, filteredSocketOptions)
       }
-      fromSockets(sockets, sslOptions, describeCache)
+      fromSockets(sockets, sslOptions, describeCache, opDuration)
     }
 
     private def fromSockets(
       sockets:           Resource[F, Socket[F]],
       sslOptions:        Option[SSLNegotiation.Options[F]],
-      describeCache:     Describe.Cache[F]
+      describeCache:     Describe.Cache[F],
+      opDuration:        Histogram[F, Double]
     )(implicit T: Tracer[F]): Resource[F, Session[F]] =
        for {
         namer <- Resource.eval(Namer[F])
         pc    <- Resource.eval(Parse.Cache.empty[F](parseCacheSize))
-        proto <- Protocol[F](debug, namer, sockets, sslOptions, describeCache, pc, readTimeout, redactionStrategy)
+        proto <- Protocol[F](debug, namer, sockets, sslOptions, describeCache, pc, readTimeout, redactionStrategy, opDuration)
         creds <- Resource.eval(credentials)
         _     <- Resource.eval(proto.startup(creds.user, database.getOrElse(creds.user), creds.password, connectionParameters))
         sess  <- Resource.make(fromProtocol(proto, namer, typingStrategy, redactionStrategy))(_ => proto.cleanup)
@@ -701,7 +706,7 @@ object Session {
    }}}
    */
   object Builder {
-    def apply[F[_]: Temporal: Network: Console]: Builder[F] =
+    def apply[F[_]: Temporal: Meter: Network: Console]: Builder[F] =
       new Builder[F](
         connectionType = ConnectionType.TCP,
         host = host"localhost",
@@ -748,7 +753,7 @@ object Session {
    * @group Constructors
    */
   @deprecated("1.0.0-M11", "Use Session.Builder[F].pooled instead")
-  def pooled[F[_]: Temporal: Tracer: Network: Console](
+  def pooled[F[_]: Temporal: Tracer: Meter: Network: Console](
     host:          String,
     port:          Int            = 5432,
     user:          String,
@@ -806,7 +811,7 @@ object Session {
    * @group Constructors
    */
   @deprecated("1.0.0-M11", "Use Session.Builder[F].pooledExplicitTracer instead")
-  def pooledF[F[_]: Temporal: Network: Console](
+  def pooledF[F[_]: Temporal: Meter: Network: Console](
     host:          String,
     port:          Int            = 5432,
     user:          String,
@@ -848,7 +853,7 @@ object Session {
    * @see pooled
    */
   @deprecated("1.0.0-M11", "Use Session.Builder[F].single instead")
-  def single[F[_]: Temporal: Tracer: Network: Console](
+  def single[F[_]: Temporal: Tracer: Meter: Network: Console](
     host:         String,
     port:         Int            = 5432,
     user:         String,
@@ -887,7 +892,7 @@ object Session {
    * @see pooledF
    */
   @deprecated("1.0.0-M11", "Use Session.Builder[F].singleExplicitTracer instead")
-  def singleF[F[_]: Temporal: Network: Console](
+  def singleF[F[_]: Temporal: Meter: Network: Console](
     host:         String,
     port:         Int            = 5432,
     user:         String,

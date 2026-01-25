@@ -11,12 +11,14 @@ import cats.effect._
 import cats.syntax.all._
 import fs2._
 import org.typelevel.otel4s.trace.Tracer
+import org.typelevel.otel4s.metrics.Meter
 
 // This does a lot of stuff and is mostly just to test features as they're being added. This class
 // will probably go away.
 object Main extends IOApp {
 
   implicit val trace: Tracer[IO] = Tracer.noop
+  implicit val meter: Meter[IO] = Meter.noop
 
   case class Country(name: String, code: String, indepyear: Option[Short], population: Int)
 

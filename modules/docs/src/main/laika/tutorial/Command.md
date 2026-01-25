@@ -5,9 +5,11 @@ import skunk._
 import skunk.implicits._
 import skunk.codec.all._
 import org.typelevel.otel4s.trace.Tracer
+import org.typelevel.otel4s.metrics.Meter
 import fs2.Stream
 val s: Session[IO] = null
 implicit val tracer: Tracer[IO] = Tracer.noop
+implicit val meter: Meter[IO] = Meter.noop
 ```
 
 # Commands
@@ -198,6 +200,7 @@ import cats.Monad
 import cats.effect._
 import cats.syntax.all._
 import org.typelevel.otel4s.trace.Tracer
+import org.typelevel.otel4s.metrics.Meter
 import skunk._
 import skunk.codec.all._
 import skunk.implicits._
@@ -246,6 +249,7 @@ object PetService {
 object CommandExample extends IOApp {
 
   implicit val tracer: Tracer[IO] = Tracer.noop
+  implicit val meter: Meter[IO] = Meter.noop
 
   // a source of sessions
   val session: Resource[IO, Session[IO]] =

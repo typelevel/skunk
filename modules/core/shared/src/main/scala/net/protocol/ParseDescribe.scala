@@ -14,11 +14,12 @@ import org.typelevel.otel4s.Attribute
 import org.typelevel.otel4s.trace.Span
 import org.typelevel.otel4s.trace.Tracer
 import cats.data.OptionT
-import cats.MonadError
+import cats.effect.MonadCancel
 import skunk.Statement
 import skunk.exception.*
 import skunk.util.Namer
 import skunk.net.protocol.exchange
+import org.typelevel.otel4s.metrics.Histogram
 
 trait ParseDescribe[F[_]] {
   def command[A](cmd: skunk.Command[A], ty: Typer): F[StatementId]
@@ -27,8 +28,8 @@ trait ParseDescribe[F[_]] {
 
 object ParseDescribe {
 
-  def apply[F[_]: Exchange: MessageSocket: Tracer: Namer](cache: Describe.Cache[F], parseCache: Parse.Cache[F])(
-    implicit ev: MonadError[F, Throwable]
+  def apply[F[_]: Exchange: MessageSocket: Tracer: Namer](cache: Describe.Cache[F], parseCache: Parse.Cache[F], opDuration: Histogram[F, Double])(
+    implicit ev: MonadCancel[F, Throwable]
   ): ParseDescribe[F] =
     new ParseDescribe[F] {
       def syncAndFail(statement: Statement[_], info: Map[Char, String]): F[Unit] =
@@ -109,7 +110,7 @@ object ParseDescribe {
             (pre, post)
           }
 
-        exchange("parse+describe") { (span: Span[F]) => 
+        exchange("parse+describe", opDuration) { (span: Span[F]) => 
           parseExchange(cmd, ty)(span).flatMap { case (preParse, postParse) =>
             describeExchange(span).flatMap { case (preDesc, postDesc) =>
               for {
@@ -155,7 +156,7 @@ object ParseDescribe {
           }
 
         
-        exchange("parse+describe") { (span: Span[F]) => 
+        exchange("parse+describe", opDuration) { (span: Span[F]) => 
           parseExchange(query, ty)(span).flatMap { case (preParse, postParse) =>
             describeExchange(span).flatMap { case (preDesc, postDesc) =>
               for {

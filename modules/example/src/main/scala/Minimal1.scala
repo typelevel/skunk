@@ -9,10 +9,12 @@ import skunk._
 import skunk.implicits._
 import skunk.codec.all._
 import org.typelevel.otel4s.trace.Tracer
+import org.typelevel.otel4s.metrics.Meter
 
 object Minimal1 extends IOApp {
 
   implicit val tracer: Tracer[IO] = Tracer.noop[IO]
+  implicit val mterj: Meter[IO] = Meter.noop[IO]
 
   val session: Resource[IO, Session[IO]] =
     Session.Builder[IO]
