@@ -20,6 +20,8 @@ class LTreeTest extends ffstest.FTest {
     assert(LTree.fromString("abc1.d_f2").isRight, "regex failed")
     assert(LTree.fromString("foo.βar.baΣΩ").isRight, "regex failed")
     assert(LTree.fromString("foo.βar.❤").isLeft, "regex failed")
+    assert(LTree.fromString("abc.d-f").isRight, "hyphen in label failed")
+    assert(LTree.fromString("a-b.c-d.e-f").isRight, "hyphens in multiple labels failed")
 
     assert(LTree.fromString(List.fill(LTree.MaxTreeLength)("a").mkString(".")).isRight, "max tree len failed")
     assert(LTree.fromString(List.fill(LTree.MaxTreeLength + 1)("a").mkString(".")).isLeft, "max tree len failed")
