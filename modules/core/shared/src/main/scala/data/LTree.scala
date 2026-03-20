@@ -39,7 +39,7 @@ object LTree {
 
       labels.foreach(l => l match {
         case ValidLabelRegex() => ()
-        case _ => fail(s"invalid ltree label '$l'. Only alphanumeric characters and '_' are allowed.")
+        case _ => fail(s"invalid ltree label '$l'. Only alphanumeric characters, '_' and '-' are allowed.")
       })
 
       if(failure != null)
@@ -49,11 +49,11 @@ object LTree {
     }
   }
 
-  final val MaxLabelLength = 255
+  final val MaxLabelLength = 1000
   final val MaxTreeLength = 65535
 
   private final val Separator = '.'
-  private final val ValidLabelRegex = s"""^[\\p{L}0-9_]{1,$MaxLabelLength}$$""".r
+  private final val ValidLabelRegex = s"""^[\\p{L}0-9_-]{1,$MaxLabelLength}$$""".r
 
   implicit val ltreeEq: Eq[LTree] = Eq.fromUniversalEquals[LTree]
 }
