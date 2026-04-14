@@ -11,5 +11,3 @@ addSbtPlugin("org.scoverage"      % "sbt-scoverage"                             
 addSbtPlugin("org.scala-js"       % "sbt-scalajs"                                 % "1.21.0")
 addSbtPlugin("org.scala-native"   % "sbt-scala-native"                            % "0.5.11")
 addSbtPlugin("com.armanbilge"     % "sbt-scala-native-config-brew-github-actions" % "0.4.0")
-
-addSbtPlugin("com.github.sbt" % "sbt-unidoc" % "0.6.1") // TODO: Remove once this is merged and released: https://github.com/typelevel/sbt-typelevel/pull/862
