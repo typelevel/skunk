@@ -64,7 +64,7 @@ ThisBuild / libraryDependencySchemes +=
   "org.scala-native" %% "test-interface_native0.5" % VersionScheme.Always
 
 // This is used in a couple places
-lazy val fs2Version = "3.13.0-M8"
+lazy val fs2Version = "3.13.0"
 lazy val openTelemetryVersion = "1.55.0"
 lazy val otel4sVersion = "0.16-83b6f7b-SNAPSHOT"
 lazy val otel4sSdkVersion = "0.17-c767f1d-SNAPSHOT"
@@ -117,7 +117,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     description := "Tagless, non-blocking data access library for Postgres.",
     libraryDependencies ++= Seq(
       "org.typelevel"          %%% "cats-core"               % "2.13.0",
-      "org.typelevel"          %%% "cats-effect"             % "3.7.0-RC1",
+      "org.typelevel"          %%% "cats-effect"             % "3.7.0",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
       "org.scodec"             %%% "scodec-bits"             % "1.2.4",
