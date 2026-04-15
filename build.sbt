@@ -66,8 +66,8 @@ ThisBuild / libraryDependencySchemes +=
 // This is used in a couple places
 lazy val fs2Version = "3.13.0"
 lazy val openTelemetryVersion = "1.55.0"
-lazy val otel4sVersion = "0.16-83b6f7b-SNAPSHOT"
-lazy val otel4sSdkVersion = "0.17-c767f1d-SNAPSHOT"
+lazy val otel4sVersion = "0.16.0"
+lazy val otel4sSdkVersion = "0.18.0"
 lazy val refinedVersion = "0.11.3"
 
 // Global Settings
@@ -122,7 +122,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
       "org.scodec"             %%% "scodec-bits"             % "1.2.4",
       "org.scodec"             %%% "scodec-core"             % (if (tlIsScala3.value) "2.3.3" else "1.11.11"),
-      "org.scodec"             %%% "scodec-cats"             % "1.3.0-RC1",
+      "org.scodec"             %%% "scodec-cats"             % "1.3.0",
       "org.typelevel"          %%% "otel4s-core"             % otel4sVersion,
       "org.typelevel"          %%% "otel4s-semconv"          % otel4sVersion,
       "org.typelevel"          %%% "otel4s-semconv-metrics"  % otel4sVersion,
@@ -189,11 +189,11 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "org.typelevel"     %%% "scalacheck-effect-munit" % "2.1.0-RC1",
-      "org.typelevel"     %%% "munit-cats-effect"       % "2.2.0-RC1",
+      "org.typelevel"     %%% "scalacheck-effect-munit" % "2.1.0",
+      "org.typelevel"     %%% "munit-cats-effect"       % "2.2.0",
       "org.typelevel"     %%% "cats-free"               % "2.13.0",
       "org.typelevel"     %%% "cats-laws"               % "2.13.0",
-      "org.typelevel"     %%% "cats-effect-testkit"     % "3.7.0-RC1",
+      "org.typelevel"     %%% "cats-effect-testkit"     % "3.7.0",
       "org.typelevel"     %%% "discipline-munit"        % "2.0.0",
       "org.typelevel"     %%% "cats-time"               % "0.6.0",
       "eu.timepit"        %%% "refined-cats"            % refinedVersion,

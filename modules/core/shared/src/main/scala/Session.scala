@@ -752,7 +752,7 @@ object Session {
    * @param queryCache    Size of the cache for query checking
    * @group Constructors
    */
-  @deprecated("1.0.0-M11", "Use Session.Builder[F].pooled instead")
+  @deprecated("Use Session.Builder[F].pooled instead", "1.0.0-M11")
   def pooled[F[_]: Temporal: Tracer: Meter: Network: Console](
     host:          String,
     port:          Int            = 5432,
@@ -810,7 +810,7 @@ object Session {
    * @param queryCache    Size of the cache for query checking
    * @group Constructors
    */
-  @deprecated("1.0.0-M11", "Use Session.Builder[F].pooledExplicitTracer instead")
+  @deprecated("Use Session.Builder[F].pooledExplicitTracer instead", "1.0.0-M11")
   def pooledF[F[_]: Temporal: Meter: Network: Console](
     host:          String,
     port:          Int            = 5432,
@@ -852,7 +852,7 @@ object Session {
    * single-session pool. This method is shorthand for `Session.pooled(..., max = 1, ...).flatten`.
    * @see pooled
    */
-  @deprecated("1.0.0-M11", "Use Session.Builder[F].single instead")
+  @deprecated("Use Session.Builder[F].single instead", "1.0.0-M11")
   def single[F[_]: Temporal: Tracer: Meter: Network: Console](
     host:         String,
     port:         Int            = 5432,
@@ -891,7 +891,7 @@ object Session {
    * single-session pool.
    * @see pooledF
    */
-  @deprecated("1.0.0-M11", "Use Session.Builder[F].singleExplicitTracer instead")
+  @deprecated("Use Session.Builder[F].singleExplicitTracer instead", "1.0.0-M11")
   def singleF[F[_]: Temporal: Meter: Network: Console](
     host:         String,
     port:         Int            = 5432,
