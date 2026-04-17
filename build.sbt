@@ -62,7 +62,7 @@ ThisBuild / tlFatalWarnings := false
 
 // This is used in a couple places
 lazy val fs2Version = "3.12.2"
-lazy val natchezVersion = "0.3.9"
+lazy val natchezVersion = "0.3.10"
 
 // Global Settings
 lazy val commonSettings = Seq(
