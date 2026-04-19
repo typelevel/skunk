@@ -37,7 +37,7 @@ class StartupSimTest extends SimTest {
 
   test(s"unsupported sasl mechanism") {
     val sim = flatExpect { case StartupMessage(_, _, _) => send(AuthenticationSASL(List("Foo", "Bar"))) *> halt }
-    simSession(sim,"bob", "db", None)
+    simSession(sim,"bob", "db", Some("password"))
       .assertFailsWith[UnsupportedSASLMechanismsException]
       .as("ok")
   }
