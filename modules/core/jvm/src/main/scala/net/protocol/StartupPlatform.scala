@@ -5,7 +5,7 @@
 package skunk.net.protocol
 
 import com.ongres.scram.client.ScramClient
-import com.ongres.scram.common.stringprep.StringPreparations
+import com.ongres.scram.common.StringPreparation
 
 import cats.MonadError
 import cats.syntax.all._
@@ -19,7 +19,7 @@ import skunk.exception.{
 }
 
 private[protocol] trait StartupCompanionPlatform { this: Startup.type =>
-  
+
   private[protocol] def authenticationSASL[F[_]: MessageSocket: Tracer](
     sm:         StartupMessage,
     password:   Option[String],
@@ -28,34 +28,35 @@ private[protocol] trait StartupCompanionPlatform { this: Startup.type =>
     implicit ev: MonadError[F, Throwable]
   ): F[Unit] =
     Tracer[F].span("authenticationSASL").surround {
+        import scala.jdk.CollectionConverters._
+
         for {
+          pw <- requirePassword[F](sm, password)
           client <- {
-            try ScramClient.
-              channelBinding(ScramClient.ChannelBinding.NO).
-              stringPreparation(StringPreparations.SASL_PREPARATION).
-              selectMechanismBasedOnServerAdvertised(mechanisms.toArray: _*).
-              setup().pure[F]
+            try ScramClient.builder().
+              advertisedMechanisms(mechanisms.asJava).
+              username(sm.user).
+              password(pw.toCharArray).
+              stringPreparation(StringPreparation.POSTGRESQL_PREPARATION).
+              build().pure[F]
             catch {
               case _: IllegalArgumentException => new UnsupportedSASLMechanismsException(mechanisms).raiseError[F, ScramClient]
               case NonFatal(t) => new SCRAMProtocolException(t.getMessage).raiseError[F, ScramClient]
             }
           }
-          session = client.scramSession("*")
-          _ <- send(SASLInitialResponse(client.getScramMechanism.getName, bytesUtf8(session.clientFirstMessage)))
+          _ <- send(SASLInitialResponse(client.getScramMechanism.getName, bytesUtf8(client.clientFirstMessage().toString)))
           serverFirstBytes <- flatExpectStartup(sm) {
             case AuthenticationSASLContinue(serverFirstBytes) => serverFirstBytes.pure[F]
           }
-          serverFirst <- guardScramAction {
-            session.receiveServerFirstMessage(new String(serverFirstBytes.toArray, "UTF-8"))
+          _ <- guardScramAction {
+            client.serverFirstMessage(new String(serverFirstBytes.toArray, "UTF-8")).pure[F]
           }
-          pw <- requirePassword[F](sm, password)
-          clientFinal = serverFirst.clientFinalProcessor(pw)
-          _ <- send(SASLResponse(bytesUtf8(clientFinal.clientFinalMessage)))
+          _ <- send(SASLResponse(bytesUtf8(client.clientFinalMessage().toString)))
           serverFinalBytes <- flatExpectStartup(sm) {
             case AuthenticationSASLFinal(serverFinalBytes) => serverFinalBytes.pure[F]
           }
           _ <- guardScramAction {
-            clientFinal.receiveServerFinalMessage(new String(serverFinalBytes.toArray, "UTF-8")).pure[F]
+            client.serverFinalMessage(new String(serverFinalBytes.toArray, "UTF-8")).pure[F]
           }
           _ <- flatExpectStartup(sm) { case AuthenticationOk => ().pure[F] }
         } yield ()

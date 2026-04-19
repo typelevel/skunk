@@ -132,7 +132,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "com.beachape"  %%% "enumeratum"   % "1.9.0",
     ).filterNot(_ => tlIsScala3.value)
   ).jvmSettings(
-    libraryDependencies += "com.ongres.scram" % "client" % "2.1",
+    libraryDependencies += "com.ongres.scram" % "scram-client" % "3.2",
   ).platformsSettings(JSPlatform, NativePlatform)(
     libraryDependencies ++= Seq(
       "com.armanbilge" %%% "saslprep" % "0.1.2",
