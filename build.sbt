@@ -53,7 +53,10 @@ ThisBuild / libraryDependencySchemes ++= Seq(
 
 import com.typesafe.tools.mima.core._
 ThisBuild / mimaBinaryIssueFilters ++= List(
-  ProblemFilters.exclude[DirectMissingMethodProblem]("skunk.net.BitVectorSocket.fromSocket")
+  ProblemFilters.exclude[DirectMissingMethodProblem]("skunk.net.BitVectorSocket.fromSocket"),
+  ProblemFilters.exclude[MissingTypesProblem]("skunk.net.protocol.Startup$"),
+  ProblemFilters.exclude[DirectMissingMethodProblem]("skunk.net.protocol.Startup.authenticationSASL"),
+  ProblemFilters.exclude[MissingClassProblem]("skunk.net.protocol.StartupCompanionPlatform"),
 )
 
 ThisBuild / tlFatalWarnings := false
