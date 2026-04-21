@@ -4,7 +4,7 @@
 
 package skunk.net.message
 
-import com.armanbilge.SaslPrep
+import org.typelevel.SaslPrep
 import scodec.bits.ByteVector
 import scodec.codecs.utf8
 
