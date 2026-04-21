@@ -1,4 +1,4 @@
-ThisBuild / tlBaseVersion := "1.0"
+ThisBuild / tlBaseVersion := "1.1"
 
 // Our Scala versions.
 lazy val `scala-2.13` = "2.13.18"
@@ -130,7 +130,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.typelevel"          %%% "otel4s-semconv"          % otel4sVersion,
       "org.typelevel"          %%% "otel4s-semconv-metrics"  % otel4sVersion,
       "org.tpolecat"           %%% "sourcepos"               % "1.2.0",
-      "org.typelevel"          %%% "twiddles-core"           % "1.0.0",
+      "org.typelevel"          %%% "twiddles-core"           % "1.1.0-RC1",
       "com.armanbilge"         %%% "saslprep"                % "0.1.2",
     ) ++ Seq(
       "com.beachape"  %%% "enumeratum"   % "1.9.0",
