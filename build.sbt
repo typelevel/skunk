@@ -53,7 +53,10 @@ ThisBuild / libraryDependencySchemes ++= Seq(
 
 import com.typesafe.tools.mima.core._
 ThisBuild / mimaBinaryIssueFilters ++= List(
-  ProblemFilters.exclude[DirectMissingMethodProblem]("skunk.net.BitVectorSocket.fromSocket")
+  ProblemFilters.exclude[DirectMissingMethodProblem]("skunk.net.BitVectorSocket.fromSocket"),
+  ProblemFilters.exclude[MissingTypesProblem]("skunk.net.protocol.Startup$"),
+  ProblemFilters.exclude[DirectMissingMethodProblem]("skunk.net.protocol.Startup.authenticationSASL"),
+  ProblemFilters.exclude[MissingClassProblem]("skunk.net.protocol.StartupCompanionPlatform"),
 )
 
 ThisBuild / tlFatalWarnings := false
@@ -128,14 +131,12 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.typelevel"          %%% "otel4s-semconv-metrics"  % otel4sVersion,
       "org.tpolecat"           %%% "sourcepos"               % "1.2.0",
       "org.typelevel"          %%% "twiddles-core"           % "1.0.0",
+      "com.armanbilge"         %%% "saslprep"                % "0.1.2",
     ) ++ Seq(
       "com.beachape"  %%% "enumeratum"   % "1.9.0",
     ).filterNot(_ => tlIsScala3.value)
-  ).jvmSettings(
-    libraryDependencies += "com.ongres.scram" % "client" % "2.1",
   ).platformsSettings(JSPlatform, NativePlatform)(
     libraryDependencies ++= Seq(
-      "com.armanbilge" %%% "saslprep" % "0.1.2",
       "io.github.cquiroz" %%% "scala-java-time" % "2.6.0",
       "io.github.cquiroz" %%% "locales-minimal-en_us-db" % "1.5.4"
     ),

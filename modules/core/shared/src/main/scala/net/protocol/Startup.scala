@@ -4,7 +4,7 @@
 
 package skunk.net.protocol
 
-import cats.{ApplicativeError, MonadError}
+import cats.{ApplicativeError, MonadError, MonadThrow}
 import cats.syntax.all._
 import org.typelevel.otel4s.Attribute
 import org.typelevel.otel4s.trace.Span
@@ -18,7 +18,8 @@ import skunk.exception.{
   SCRAMProtocolException,
   StartupException,
   SkunkException,
-  UnsupportedAuthenticationSchemeException
+  UnsupportedAuthenticationSchemeException,
+  UnsupportedSASLMechanismsException
 }
 import org.typelevel.otel4s.metrics.Histogram
 import cats.effect.MonadCancel
@@ -27,7 +28,7 @@ trait Startup[F[_]] {
   def apply(user: String, database: String, password: Option[String], parameters: Map[String, String]): F[Unit]
 }
 
-object Startup extends StartupCompanionPlatform {
+object Startup {
 
   def apply[F[_]: Exchange: MessageSocket: Tracer](opDuration: Histogram[F, Double])(
     implicit ev: MonadCancel[F, Throwable]
@@ -90,6 +91,51 @@ object Startup extends StartupCompanionPlatform {
           _ <- send(PasswordMessage.md5(sm.user, pw, salt))
           _ <- flatExpectStartup(sm) { case AuthenticationOk => ().pure[F] }
         } yield ()
+      }
+    }
+
+  private def authenticationSASL[F[_]: MonadThrow: MessageSocket: Tracer](
+    sm:         StartupMessage,
+    password:   Option[String],
+    mechanisms: List[String]
+  ): F[Unit] =
+    Tracer[F].span("authenticationSASL").surround {
+      if (mechanisms.contains(Scram.SaslMechanism)) {
+        for {
+          pw <- requirePassword[F](sm, password)
+          channelBinding = Scram.NoChannelBinding
+          clientFirstBare = Scram.clientFirstBareWithRandomNonce
+          _ <- send(Scram.saslInitialResponse(channelBinding, clientFirstBare))
+          serverFirstBytes <- flatExpectStartup(sm) {
+            case AuthenticationSASLContinue(serverFirstBytes) => serverFirstBytes.pure[F]
+          }
+          serverFirst <- Scram.ServerFirst.decode(serverFirstBytes) match {
+            case Some(serverFirst) => serverFirst.pure[F]
+            case None =>
+              new SCRAMProtocolException(
+                s"Failed to parse server-first-message in SASLInitialResponse: ${serverFirstBytes.toHex}."
+              ).raiseError[F, Scram.ServerFirst]
+          }
+          (response, expectedVerifier) = Scram.saslChallenge(pw, channelBinding, serverFirst, clientFirstBare, serverFirstBytes)
+          _ <- send(response)
+          serverFinalBytes <- flatExpectStartup(sm) {
+            case AuthenticationSASLFinal(serverFinalBytes) => serverFinalBytes.pure[F]
+          }
+          _ <- Scram.ServerFinal.decode(serverFinalBytes) match {
+            case Some(serverFinal) =>
+              if (serverFinal.verifier == expectedVerifier) ().pure[F]
+              else new SCRAMProtocolException(
+                s"Expected verifier ${expectedVerifier.value.toHex} but received ${serverFinal.verifier.value.toHex}."
+              ).raiseError[F, Unit]
+            case None =>
+              new SCRAMProtocolException(
+                s"Failed to parse server-final-message in AuthenticationSASLFinal: ${serverFinalBytes.toHex}."
+              ).raiseError[F, Unit]
+          }
+          _ <- flatExpectStartup(sm) { case AuthenticationOk => ().pure[F] }
+        } yield ()
+      } else {
+        new UnsupportedSASLMechanismsException(mechanisms).raiseError[F, Unit]
       }
     }
 
