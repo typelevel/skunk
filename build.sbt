@@ -135,7 +135,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.typelevel"          %%% "otel4s-semconv-metrics"  % otel4sVersion,
       "org.tpolecat"           %%% "sourcepos"               % "1.2.0",
       "org.typelevel"          %%% "twiddles-core"           % "1.1.0-RC1",
-      "com.armanbilge"         %%% "saslprep"                % "0.1.2",
+      "org.typelevel"          %%% "saslprep"                % "1.0.0",
     ) ++ Seq(
       "com.beachape"  %%% "enumeratum"   % "1.9.0",
     ).filterNot(_ => tlIsScala3.value)
