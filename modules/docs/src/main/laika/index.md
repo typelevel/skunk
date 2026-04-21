@@ -7,9 +7,8 @@
 - Skunk is purely functional, non-blocking, and provides a tagless-final API.
 - Skunk gives very good error messages.
 - Skunk embraces the [Scala Code of Conduct](http://scala-lang.org/conduct.html).
-- **Skunk is pre-release software!** Code and documentation are under active development!
 
-Skunk is published for Scala 2.12, 2.13, and 3 on JVM, Node.js, and Native. It can be included in your project thus:
+Skunk is published for Scala 2.13, and 3 on JVM, Node.js, and Native. It can be included in your project thus:
 
 ```scala
 libraryDependencies += "org.tpolecat" %% "skunk-core" % "@VERSION@"
