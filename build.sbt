@@ -57,6 +57,10 @@ ThisBuild / mimaBinaryIssueFilters ++= List(
   ProblemFilters.exclude[MissingTypesProblem]("skunk.net.protocol.Startup$"),
   ProblemFilters.exclude[DirectMissingMethodProblem]("skunk.net.protocol.Startup.authenticationSASL"),
   ProblemFilters.exclude[MissingClassProblem]("skunk.net.protocol.StartupCompanionPlatform"),
+  ProblemFilters.exclude[DirectMissingMethodProblem]("skunk.Codec.twiddlesPrependOps"),
+  ProblemFilters.exclude[DirectMissingMethodProblem]("skunk.Decoder.twiddlesPrependOps"),
+  ProblemFilters.exclude[DirectMissingMethodProblem]("skunk.Encoder.twiddlesPrependOps"),
+  ProblemFilters.exclude[DirectMissingMethodProblem]("skunk.Fragment.twiddlesPrependOps"),
 )
 
 ThisBuild / tlFatalWarnings := false
