@@ -137,7 +137,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.typelevel"          %%% "twiddles-core"           % "1.1.0-RC1",
       "org.typelevel"          %%% "saslprep"                % "1.0.0",
     ) ++ Seq(
-      "com.beachape"  %%% "enumeratum"   % "1.9.0",
+      "com.beachape"  %%% "enumeratum"   % "1.9.7",
     ).filterNot(_ => tlIsScala3.value)
   ).platformsSettings(JSPlatform, NativePlatform)(
     libraryDependencies ++= Seq(
