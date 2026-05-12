@@ -73,8 +73,8 @@ ThisBuild / libraryDependencySchemes +=
 // This is used in a couple places
 lazy val fs2Version = "3.13.0"
 lazy val openTelemetryVersion = "1.62.0"
-lazy val otel4sVersion = "0.16.0"
-lazy val otel4sSdkVersion = "0.18.0"
+lazy val otel4sVersion = "1.0.0"
+lazy val otel4sSdkVersion = "0.19.0"
 lazy val refinedVersion = "0.11.3"
 
 // Global Settings
