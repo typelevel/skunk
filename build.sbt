@@ -72,7 +72,7 @@ ThisBuild / libraryDependencySchemes +=
 
 // This is used in a couple places
 lazy val fs2Version = "3.13.0"
-lazy val openTelemetryVersion = "1.55.0"
+lazy val openTelemetryVersion = "1.62.0"
 lazy val otel4sVersion = "1.0.0"
 lazy val otel4sSdkVersion = "0.19.0"
 lazy val refinedVersion = "0.11.3"
@@ -127,7 +127,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.typelevel"          %%% "cats-effect"             % "3.7.0",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
-      "org.scodec"             %%% "scodec-bits"             % "1.2.4",
+      "org.scodec"             %%% "scodec-bits"             % "1.2.5",
       "org.scodec"             %%% "scodec-core"             % (if (tlIsScala3.value) "2.3.3" else "1.11.11"),
       "org.scodec"             %%% "scodec-cats"             % "1.3.0",
       "org.typelevel"          %%% "otel4s-core"             % otel4sVersion,
@@ -137,7 +137,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.typelevel"          %%% "twiddles-core"           % "1.1.0-RC1",
       "org.typelevel"          %%% "saslprep"                % "1.0.0",
     ) ++ Seq(
-      "com.beachape"  %%% "enumeratum"   % "1.9.0",
+      "com.beachape"  %%% "enumeratum"   % "1.9.7",
     ).filterNot(_ => tlIsScala3.value)
   ).platformsSettings(JSPlatform, NativePlatform)(
     libraryDependencies ++= Seq(
@@ -168,8 +168,8 @@ lazy val circe = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .settings(
     name := "skunk-circe",
     libraryDependencies ++= Seq(
-      "io.circe" %%% "circe-core"   % "0.14.14",
-      "io.circe" %%% "circe-jawn" % "0.14.14"
+      "io.circe" %%% "circe-core"   % "0.14.15",
+      "io.circe" %%% "circe-jawn" % "0.14.15"
     )
   )
 
@@ -263,7 +263,7 @@ lazy val bench = project
   .dependsOn(core.jvm)
   .settings(commonSettings)
   .settings(
-    libraryDependencies += "org.postgresql" % "postgresql" % "42.7.4"
+    libraryDependencies += "org.postgresql" % "postgresql" % "42.7.11"
   )
 
 lazy val unidocs = project
