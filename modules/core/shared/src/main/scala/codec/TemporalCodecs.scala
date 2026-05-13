@@ -138,7 +138,7 @@ trait TemporalCodecs {
     if (precision >= 0 && precision <= 6)
       temporal(offsetDateTimeFormatter(precision), OffsetDateTime.parse, Type.timestamptz(precision))
     else
-      throw new IllegalArgumentException(s"timestampz($precision): invalid precision, expected 0-6")
+      throw new IllegalArgumentException(s"timestamptz($precision): invalid precision, expected 0-6")
 
   private def intervalCodec(tpe: Type): Codec[Duration] =
     Codec.simple(
