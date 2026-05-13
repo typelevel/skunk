@@ -51,5 +51,70 @@ class IdentifierTest extends ffstest.FTest {
     assertEqual("value", id"foo".toString, "foo")
   }
 
+  test("quoted - valid with dots") {
+    Identifier.fromStringQuoted("q_my_queue.INSERT") match {
+      case Left(err) => fail(err)
+      case Right(id) =>
+        for {
+          _ <- assertEqual("value", id.value, "q_my_queue.INSERT")
+          _ <- assertEqual("asSql", id.asSql, "\"q_my_queue.INSERT\"")
+          _ <- assertEqual("quoted", id.quoted, true)
+        } yield ()
+    }
+  }
+
+  test("quoted - escapes embedded double quotes") {
+    Identifier.fromStringQuoted("with\"quote") match {
+      case Left(err) => fail(err)
+      case Right(id) => assertEqual("asSql", id.asSql, "\"with\"\"quote\"")
+    }
+  }
+
+  test("quoted - empty rejected") {
+    Identifier.fromStringQuoted("") match {
+      case Left(err) => err.pure[IO]
+      case Right(value) => fail(s"expected error, got $value")
+    }
+  }
+
+  test("quoted - null byte rejected") {
+    val nullByte = '\u0000'
+    Identifier.fromStringQuoted(s"a${nullByte}b") match {
+      case Left(err) => err.pure[IO]
+      case Right(value) => fail(s"expected error, got $value")
+    }
+  }
+
+  test("quoted - too long in bytes") {
+    Identifier.fromStringQuoted("é" * 32) match {
+      case Left(err) => err.pure[IO]
+      case Right(value) => fail(s"expected error, got $value")
+    }
+  }
+
+  test("quoted - keywords allowed") {
+    Identifier.fromStringQuoted("SELECT") match {
+      case Left(err) => fail(err)
+      case Right(id) =>
+        for {
+          _ <- assertEqual("value", id.value, "SELECT")
+          _ <- assertEqual("asSql", id.asSql, "\"SELECT\"")
+        } yield ()
+    }
+  }
+
+  test("unquoted - asSql equals value") {
+    assertEqual("asSql", id"foo".asSql, "foo")
+  }
+
+  test("Eq distinguishes quoted from unquoted with same value") {
+    val unquoted = Identifier.fromString("foo").toOption.get
+    val quoted = Identifier.fromStringQuoted("foo").toOption.get
+    for {
+      _ <- IO(assert(unquoted =!= quoted))
+      _ <- IO(assert(unquoted != quoted))
+    } yield ()
+  }
+
 }
 
