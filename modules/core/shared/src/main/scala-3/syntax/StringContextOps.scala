@@ -154,6 +154,21 @@ object StringContextOps {
         return '{???}
     }
 
+  def qidImpl(sc: Expr[StringContext])(using qc: Quotes): Expr[Identifier] =
+    import qc.reflect.report
+    sc match {
+      case '{ StringContext(${Varargs(Exprs(Seq(part)))}: _*) } =>
+        Identifier.fromStringQuoted(part) match {
+          case Right(Identifier(s)) => '{ Identifier.fromStringQuoted(${Expr(s)}).fold(sys.error, identity) }
+          case Left(s) =>
+            report.error(s)
+            return '{???}
+        }
+      case _ =>
+        report.error(s"Identifiers cannot have interpolated arguments")
+        return '{???}
+    }
+
 }
 
 trait ToStringContextOps {
@@ -163,6 +178,9 @@ trait ToStringContextOps {
 
   extension (inline sc: StringContext) inline def id(): Identifier =
     ${ StringContextOps.idImpl('sc) }
+
+  extension (inline sc: StringContext) inline def qid(): Identifier =
+    ${ StringContextOps.qidImpl('sc) }
 
   implicit def toStringOps(sc: StringContext): StringContextOps =
     new StringContextOps(sc)
