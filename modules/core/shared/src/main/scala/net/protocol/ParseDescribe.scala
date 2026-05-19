@@ -53,16 +53,18 @@ object ParseDescribe {
 
           case Right(os) =>
 
-            OptionT(parseCache.value.get(stmt)).map(id => (id.pure, (_:StatementId) => ().pure)).getOrElse {
+            def addStatement(id: StatementId): F[Unit] =
+              span.addAttributes(
+                Attribute("statement-name", id.value),
+                Attribute("statement-sql",  stmt.sql),
+                Attribute("statement-parameter-types", os.map(n => ty.typeForOid(n, -1).fold(n.toString)(_.toString)).mkString("[", ", ", "]"))
+              )
+
+            OptionT(parseCache.value.get(stmt)).map(id => (addStatement(id).as(id), (_:StatementId) => ().pure)).getOrElse {
               val pre = for {
                 id <- nextName("statement").map(StatementId(_))
-                _  <- span.addAttributes(
-                        Attribute("statement-name", id.value),
-                        Attribute("statement-sql",  stmt.sql),
-                        Attribute("statement-parameter-types", os.map(n => ty.typeForOid(n, -1).fold(n.toString)(_.toString)).mkString("[", ", ", "]"))
-                      )
+                _  <- addStatement(id)
                 _  <- send(ParseMessage(id.value, stmt.sql, os))
-
               } yield id
               val post = (id: StatementId) => for {
                 _  <- flatExpect {
@@ -81,13 +83,16 @@ object ParseDescribe {
 
       override def command[A](cmd: skunk.Command[A], ty: Typer): F[StatementId] = {
 
-        def describeExchange(span: Span[F]): F[(StatementId => F[Unit], F[Unit])] = 
-          OptionT(cache.commandCache.get(cmd)).as(((_: StatementId) => ().pure, ().pure)).getOrElse {
+        def describeExchange(span: Span[F]): F[(StatementId => F[Unit], F[Unit])] = {
+          def addStatementId(id: StatementId): F[Unit] =
+            span.addAttribute(Attribute("statement-id", id.value))
+
+          OptionT(cache.commandCache.get(cmd)).as(((id: StatementId) => addStatementId(id), ().pure[F])).getOrElse {
             val pre = (id: StatementId) => for {
-              _  <- span.addAttribute(Attribute("statement-id", id.value))
+              _  <- addStatementId(id)
               _  <- send(DescribeMessage.statement(id.value))
             } yield ()
-            
+
             val post: F[Unit] = for {
               _  <- expect { case ParameterDescription(_) => } // always ok
               _  <- flatExpect {
@@ -109,8 +114,9 @@ object ParseDescribe {
 
             (pre, post)
           }
+        }
 
-        exchange("parse+describe", opDuration) { (span: Span[F]) => 
+        exchange("parse+describe", opDuration) { (span: Span[F]) =>
           parseExchange(cmd, ty)(span).flatMap { case (preParse, postParse) =>
             describeExchange(span).flatMap { case (preDesc, postDesc) =>
               for {
@@ -127,17 +133,27 @@ object ParseDescribe {
       }
 
       override def apply[A, B](query: skunk.Query[A, B], ty: Typer): F[(StatementId, TypedRowDescription)] = {
-        
-        def describeExchange(span: Span[F]): F[(StatementId => F[Unit], F[TypedRowDescription])] = 
-          OptionT(cache.queryCache.get(query)).map(rd => ((_:StatementId) => ().pure, rd.pure)).getOrElse {
+
+        def describeExchange(span: Span[F]): F[(StatementId => F[Unit], F[TypedRowDescription])] = {
+          def addStatementId(id: StatementId): F[Unit] =
+            span.addAttribute(Attribute("statement-id", id.value))
+
+          def addColumnTypes(td: TypedRowDescription): F[Unit] =
+            span.addAttribute(Attribute("column-types", td.fields.map(_.tpe).mkString("[", ", ", "]")))
+
+          OptionT(cache.queryCache.get(query)).map { rd =>
+            val pre  = (id: StatementId) => addStatementId(id)
+            val post = addColumnTypes(rd).as(rd)
+            (pre, post)
+          }.getOrElse {
             val pre = (id: StatementId) =>
               for {
-                _  <- span.addAttribute(Attribute("statement-id", id.value))
+                _  <- addStatementId(id)
                 _  <- send(DescribeMessage.statement(id.value))
               } yield ()
 
             val post =
-              for {   
+              for {
                 _  <- expect { case ParameterDescription(_) => } // always ok
                 rd <- flatExpect {
                         case rd @ RowDescription(_) => rd.pure[F]
@@ -145,8 +161,7 @@ object ParseDescribe {
                       }
                 td <- rd.typed(ty) match {
                         case Left(err) => UnknownOidException(query, err, ty.strategy).raiseError[F, TypedRowDescription]
-                        case Right(td) =>
-                          span.addAttribute(Attribute("column-types", td.fields.map(_.tpe).mkString("[", ", ", "]"))).as(td)
+                        case Right(td) => addColumnTypes(td).as(td)
                       }
                 _  <- ColumnAlignmentException(query, td).raiseError[F, Unit].unlessA(query.isDynamic || query.decoder.types === td.types)
                 _  <- cache.queryCache.put(query, td) // on success
@@ -154,6 +169,7 @@ object ParseDescribe {
 
             (pre, post)
           }
+        }
 
         
         exchange("parse+describe", opDuration) { (span: Span[F]) => 
