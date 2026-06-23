@@ -9,7 +9,15 @@ import cats.Eq
 import scala.util.matching.Regex
 
 sealed abstract case class Identifier(value: String) {
-  override def toString: String = value // ok?
+  def quoted: Boolean = false
+  def asSql: String = if (quoted) s"\"${value.replace("\"", "\"\"")}\"" else value
+  override def toString: String = asSql
+
+  override def equals(other: Any): Boolean = other match {
+    case that: Identifier => this.value == that.value && this.quoted == that.quoted
+    case _                => false
+  }
+  override def hashCode: Int = (value, quoted).##
 }
 
 object Identifier {
@@ -20,7 +28,7 @@ object Identifier {
   val pat: Regex = "([A-Za-z_][A-Za-z_0-9$]*)".r
 
   implicit val EqIdentifier: Eq[Identifier] =
-    Eq.by(_.value)
+    Eq.instance((a, b) => a.value == b.value && a.quoted == b.quoted)
 
   def fromString(s: String): Either[String, Identifier] =
     s match {
@@ -33,6 +41,20 @@ object Identifier {
           Right(new Identifier(s) {})
       case _ => Left(s"Malformed identifier: does not match ${pat.regex}")
     }
+
+  def fromStringQuoted(s: String): Either[String, Identifier] = {
+    if (s.isEmpty)
+      Left("Illegal identifier: zero-length delimited identifier.")
+    else if (s.contains('\u0000'))
+      Left("Illegal identifier: cannot contain the null byte (\\u0000).")
+    else {
+      val byteLen = s.getBytes(java.nio.charset.StandardCharsets.UTF_8).length
+      if (byteLen > maxLen)
+        Left(s"Identifier too long: $byteLen bytes (max allowed is $maxLen)")
+      else
+        Right(new Identifier(s) { override val quoted: Boolean = true })
+    }
+  }
 
   val keywords: Set[String] =
     Set(

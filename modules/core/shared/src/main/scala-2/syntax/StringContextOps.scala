@@ -19,6 +19,9 @@ class StringContextOps private[skunk](sc: StringContext) {
   def id(): Identifier =
     macro StringContextOps.StringOpsMacros.identifier_impl
 
+  def qid(): Identifier =
+    macro StringContextOps.StringOpsMacros.quotedIdentifier_impl
+
   /** Construct a constant `Fragment` with no interpolated values. */
   def const()(implicit or: Origin): Fragment[Void] =
     Fragment(sc.parts.toList.map(Left(_)), Void.codec, or)
@@ -153,6 +156,14 @@ object StringContextOps {
       Identifier.fromString(part) match {
         case Left(s) => c.abort(c.enclosingPosition, s)
         case Right(Identifier(s)) => q"_root_.skunk.data.Identifier.fromString($s).fold(sys.error, identity)"
+      }
+    }
+
+    def quotedIdentifier_impl(): Tree = {
+      val Apply(_, List(Apply(_, List(Literal(Constant(part: String)))))) = c.prefix.tree: @unchecked
+      Identifier.fromStringQuoted(part) match {
+        case Left(s) => c.abort(c.enclosingPosition, s)
+        case Right(Identifier(s)) => q"_root_.skunk.data.Identifier.fromStringQuoted($s).fold(sys.error, identity)"
       }
     }
 
