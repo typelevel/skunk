@@ -72,7 +72,7 @@ ThisBuild / libraryDependencySchemes +=
 
 // This is used in a couple places
 lazy val fs2Version = "3.13.0"
-lazy val openTelemetryVersion = "1.62.0"
+lazy val openTelemetryVersion = "1.63.0"
 lazy val otel4sVersion = "1.0.0"
 lazy val otel4sSdkVersion = "0.19.0"
 lazy val refinedVersion = "0.11.3"
@@ -137,11 +137,11 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.typelevel"          %%% "twiddles-core"           % "1.1.0-RC1",
       "org.typelevel"          %%% "saslprep"                % "1.0.0",
     ) ++ Seq(
-      "com.beachape"  %%% "enumeratum"   % "1.9.7",
+      "com.beachape"  %%% "enumeratum"   % "1.9.8",
     ).filterNot(_ => tlIsScala3.value)
   ).platformsSettings(JSPlatform, NativePlatform)(
     libraryDependencies ++= Seq(
-      "io.github.cquiroz" %%% "scala-java-time" % "2.6.0",
+      "io.github.cquiroz" %%% "scala-java-time" % "2.7.0",
       "io.github.cquiroz" %%% "locales-minimal-en_us-db" % "1.5.4"
     ),
   )
