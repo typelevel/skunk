@@ -56,5 +56,16 @@ class ChannelTest extends SkunkTest {
     }
   }
 
+  sessionTest("channel with quoted identifier round-trips through LISTEN/NOTIFY/UNLISTEN") { s =>
+    val data = List("foo", "bar", "baz")
+    val ch = s.channel(qid"q_my_queue.INSERT")
+    ch.listenR(42).use { r =>
+      for {
+        _ <- data.traverse_(ch.notify)
+        d <- r.map(_.value).takeThrough(_ != data.last).compile.toList
+        _ <- assert(s"channel data $d $data", data == d)
+      } yield "ok"
+    }
+  }
 
 }
