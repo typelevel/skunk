@@ -263,7 +263,7 @@ lazy val bench = project
   .dependsOn(core.jvm)
   .settings(commonSettings)
   .settings(
-    libraryDependencies += "org.postgresql" % "postgresql" % "42.7.11"
+    libraryDependencies += "org.postgresql" % "postgresql" % "42.7.12"
   )
 
 lazy val unidocs = project
