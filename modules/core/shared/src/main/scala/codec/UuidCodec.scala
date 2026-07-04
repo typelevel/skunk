@@ -8,16 +8,18 @@ package codec
 import cats.syntax.all._
 import java.util.UUID
 import skunk.data.Type
+import skunk.data.Arr
 
 trait UuidCodec {
 
-  val uuid: Codec[UUID] =
-    Codec.simple[UUID](
-      u => u.toString,
-      s => Either.catchOnly[IllegalArgumentException](UUID.fromString(s)).leftMap(_.getMessage),
-      Type.uuid
-    )
+  private def parse(s: String): Either[String, UUID] =
+      Either.catchOnly[IllegalArgumentException](UUID.fromString(s)).leftMap(_.getMessage)
 
+  val uuid: Codec[UUID] =
+    Codec.simple[UUID](_.toString, parse, Type.uuid)
+
+  val _uuid: Codec[Arr[UUID]] =
+    Codec.array[UUID](_.toString, parse, Type._uuid)
 }
 
 object uuid extends UuidCodec
