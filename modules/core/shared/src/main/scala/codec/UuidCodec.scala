@@ -12,14 +12,16 @@ import skunk.data.Arr
 
 trait UuidCodec {
 
-  private def parse(s: String): Either[String, UUID] =
-      Either.catchOnly[IllegalArgumentException](UUID.fromString(s)).leftMap(_.getMessage)
-
   val uuid: Codec[UUID] =
-    Codec.simple[UUID](_.toString, parse, Type.uuid)
+    Codec.simple[UUID](_.toString, codec.uuid.parse, Type.uuid)
 
-  val _uuid: Codec[Arr[UUID]] =
-    Codec.array[UUID](_.toString, parse, Type._uuid)
+  def _uuid: Codec[Arr[UUID]] = codec.uuid._uuidImpl
 }
 
-object uuid extends UuidCodec
+object uuid extends UuidCodec {
+  private[codec] def parse(s: String): Either[String, UUID] =
+      Either.catchOnly[IllegalArgumentException](UUID.fromString(s)).leftMap(_.getMessage)
+
+  private[codec] val _uuidImpl: Codec[Arr[UUID]] =
+    Codec.array[UUID](_.toString, parse, Type._uuid)
+}
