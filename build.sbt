@@ -16,6 +16,8 @@ ThisBuild / developers   := List(
 ThisBuild / tlCiReleaseBranches += "series/0.6.x"
 ThisBuild / tlCiScalafmtCheck := false
 ThisBuild / tlSitePublishBranch := Some("series/0.6.x")
+
+ThisBuild / githubWorkflowOSes := Seq("ubuntu-latest")
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
 ThisBuild / tlJdkRelease := Some(8)
 ThisBuild / resolvers += Resolver.sonatypeCentralSnapshots
