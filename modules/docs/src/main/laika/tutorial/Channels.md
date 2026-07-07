@@ -18,7 +18,7 @@ Use the `channel` method on `Session` to construct a channel.
 
 ```scala mdoc:compile-only
 // assume s: Session[IO]
-val ch = s.channel(id"my_channel") // Channel[IO, String, String]
+val ch = s.channel(ident"my_channel") // Channel[IO, String, String]
 ```
 
 Observe the following:
@@ -26,15 +26,6 @@ Observe the following:
 - The argument to `channel` is an `Identifier`. See [Identifiers](../reference/Identifiers.md) for more information.
 - `ch` is a `Channel` which consumes `String`s and emits `Notification[String]`s. A notification is a structure that includes the process ID and channel identifier as well as the payload.
 - `Channel` is a profunctor and thus can be contramapped to change the input type, and mapped to change the output type.
-
-If the channel name contains characters that are not valid in an unquoted identifier, use the `qid"…"` interpolator (or `Identifier.fromStringQuoted`) to build a quoted identifier:
-
-```scala mdoc:compile-only
-// assume s: Session[IO]
-val ch = s.channel(qid"q_my_queue.INSERT")
-```
-
-The resulting `LISTEN`/`UNLISTEN`/`NOTIFY` statements wrap the name in double quotes so Postgres parses it correctly.
 
 ## Listening to a Channel
 
@@ -72,7 +63,7 @@ Every `Channel` is also an fs2 `Pipe` that consumes messages.
 // select all the country names and stream them to the country_names channel.
 s.prepare(sql"select name from country".query(varchar)).flatMap { ps =>
   ps.stream(Void, 512)
-    .through(s.channel(id"country_names"))
+    .through(s.channel(ident"country_names"))
     .compile
     .drain
 }

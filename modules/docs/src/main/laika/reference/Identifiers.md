@@ -4,49 +4,48 @@ import skunk.implicits._
 ```
 # Identifiers
 
-`skunk.data.Identifier` represents a Postgres SQL identifier — the name of a table, column, schema, channel, etc. Skunk validates identifiers up front so they can be safely spliced into SQL without risking injection.
+`skunk.data.Identifier` represents a Postgres name, such as the name of a table, column, schema, or channel. It keeps the name separate from its SQL representation so that Skunk can validate and escape it correctly.
 
-Postgres recognises two flavours of identifier, and `Identifier` supports both.
+## Constructing an Identifier
 
-## Unquoted identifiers
-
-An *unquoted* identifier matches `[A-Za-z_][A-Za-z_0-9$]*`, is at most 63 characters, and is not a reserved keyword. Postgres folds unquoted identifiers to lower case, so `FOO`, `Foo`, and `foo` all refer to the same object.
-
-Construct one with `Identifier.fromString` or the `id"…"` interpolator:
+Use the `ident"..."` interpolator for names known at compile time. It validates the literal, preserves it verbatim, and rejects invalid identifiers during compilation.
 
 ```scala mdoc:compile-only
-val a: Either[String, Identifier] = Identifier.fromString("my_table")
-val b: Identifier                 = id"my_table"
+val table: Identifier   = ident"country"
+val column: Identifier  = ident"Country.Code"
+val keyword: Identifier = ident"SELECT"
 ```
 
-The `id"…"` form validates at compile time and fails the build for malformed input.
-
-## Quoted (delimited) identifiers
-
-A *quoted* (delimited) identifier is any non-empty character sequence that does not contain the NUL byte. Quoting preserves case and lets you use characters or reserved words that an unquoted identifier cannot.
-
-Construct one with `Identifier.fromStringQuoted` or the `qid"…"` interpolator:
+Use `Identifier.fromValue` when the name is available only at run time.
 
 ```scala mdoc:compile-only
-val a: Either[String, Identifier] = Identifier.fromStringQuoted("MyTable")  // case preserved
-val b: Identifier                 = qid"q_my_queue.INSERT"                  // keywords allowed
+def identifier(name: String): Either[String, Identifier] =
+  Identifier.fromValue(name)
 ```
 
-Like `id"…"`, the `qid"…"` form validates at compile time and fails the build for malformed input (empty string, embedded space, or > 63 bytes).
+An identifier must be non-empty, contain no NUL byte, and occupy at most 63 bytes when encoded as UTF-8. The byte limit matters for names containing multibyte characters.
 
-Length is checked in **bytes** (Postgres' `NAMEDATALEN-1` is byte-counted), so multibyte characters are accounted for correctly.
+## SQL Rendering
 
-## Rendering as SQL
+Postgres accepts simple lower-case names as bare SQL identifiers. Other names, including mixed-case names, reserved words, and names containing punctuation, must be enclosed in double quotes. `Identifier` handles this distinction automatically.
 
-`Identifier#asSql` returns the SQL-ready form: the bare value for unquoted identifiers, or the value wrapped in double quotes (with any embedded `"` doubled) for quoted ones. `toString` returns `asSql`, so logged identifiers show their SQL-correct form. `value` always returns the bare, unescaped name.
+The `sql` member returns the SQL-ready representation. It leaves a name bare when that is safe, otherwise it adds double quotes and escapes any double quotes contained in the name. `toString` returns the same representation, while `value` returns the original, unescaped name.
 
 ```scala mdoc:compile-only
-val unq = id"my_table"
-val unqRendered = unq.asSql       // "my_table"
+val plain = ident"my_table"
+val plainValue = plain.value // "my_table"
+val plainSql = plain.sql     // "my_table"
 
-val q = qid"My.Channel"
-val qBare = q.value               // "My.Channel"
-val qRendered = q.asSql           // "\"My.Channel\""
+val mixedCase = ident"My.Channel"
+val mixedCaseValue = mixedCase.value // "My.Channel"
+val mixedCaseSql = mixedCase.sql     // "\"My.Channel\""
+
+val embeddedQuote = ident"""say"hello"""
+val embeddedQuoteSql = embeddedQuote.sql // "\"say\"\"hello\""
 ```
 
-`Channel` uses `asSql` internally when issuing `LISTEN`/`UNLISTEN`/`NOTIFY`, so quoted channel names round-trip correctly.
+`Channel` uses `sql` internally when issuing `LISTEN`/`UNLISTEN`/`NOTIFY`, so quoted channel names round-trip correctly.
+
+## Legacy Construction
+
+The deprecated `Identifier.fromString` method accepts only names matching `[A-Za-z_][A-Za-z_0-9$]*`, rejects keywords, and folds accepted names to lower case. The deprecated `id"..."` interpolator performs the same operation at compile time. New code should use `Identifier.fromValue` or `ident"..."`, which preserve the supplied name. To retain the legacy case-folding behavior, pass an already lower-case value.

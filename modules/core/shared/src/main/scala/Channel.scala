@@ -120,16 +120,16 @@ object Channel {
     new Channel[F, String, String] {
 
     val listen: F[Unit] =
-      proto.execute(Command(s"LISTEN ${name.asSql}", Origin.unknown, Void.codec)).void
+      proto.execute(Command(s"LISTEN ${name.sql}", Origin.unknown, Void.codec)).void
 
     val unlisten: F[Unit] =
-      proto.execute(Command(s"UNLISTEN ${name.asSql}", Origin.unknown, Void.codec)).void
+      proto.execute(Command(s"UNLISTEN ${name.sql}", Origin.unknown, Void.codec)).void
 
     def listen(maxQueued: Int): Stream[F, Notification[String]] =
       for {
         _ <- Stream.resource(Resource.make(listen)(_ => unlisten))
         s <- Stream.resource(proto.notifications(maxQueued))
-        n <- s.filter(_.channel.value === name.value)
+        n <- s.filter(_.channel === name)
       } yield n
 
 
@@ -137,12 +137,12 @@ object Channel {
       for {
         _      <- Resource.make(listen)(_ => unlisten)
         stream <- proto.notifications(maxQueued)
-      } yield stream.filter(_.channel.value === name.value)
+      } yield stream.filter(_.channel === name)
 
 
     def notify(message: String): F[Unit] =
       // TODO: escape the message
-      proto.execute(Command(s"NOTIFY ${name.asSql}, '$message'", Origin.unknown, Void.codec)).void
+      proto.execute(Command(s"NOTIFY ${name.sql}, '$message'", Origin.unknown, Void.codec)).void
 
   }
 

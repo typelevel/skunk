@@ -73,12 +73,12 @@ object Main extends IOApp {
           st  <- s.transactionStatus.get
           enc <- s.parameters.get.map(_.get("client_encoding"))
           _   <- IO.println(s"Logged in! Transaction status is $st and client_encoding is $enc")
-          f2  <- s.channel(id"foo").listen(10).through(anyLinesStdOut).compile.drain.start
+          f2  <- s.channel(ident"foo").listen(10).through(anyLinesStdOut).compile.drain.start
           rs  <- s.execute(sql"select name, code, indepyear, population from country limit 20".query(country))
           _   <- rs.traverse(IO.println)
           _   <- s.execute(sql"set seed = 0.123".command)
           _   <- s.execute(sql"set client_encoding = ISO8859_1".command)
-          _   <- s.channel(id"foo").notify("here is a message")
+          _   <- s.channel(ident"foo").notify("here is a message")
           _   <- s.execute(sql"select current_user".query(name))
           _   <- s.prepare(q).flatMap(hmm(_))
           _   <- s.prepare(in(3)).flatMap { _.stream(List("FRA", "USA", "GAB"), 100).through(anyLinesStdOut).compile.drain }
@@ -99,5 +99,4 @@ object Main extends IOApp {
     }
 
 }
-
 
