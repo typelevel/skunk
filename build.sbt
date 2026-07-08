@@ -2,7 +2,7 @@ ThisBuild / tlBaseVersion := "1.1"
 
 // Our Scala versions.
 lazy val `scala-2.13` = "2.13.18"
-lazy val `scala-3.0`  = "3.3.8"
+lazy val `scala-3.0`  = "3.8.4"
 
 ThisBuild / scalaVersion       := `scala-2.13`
 ThisBuild / crossScalaVersions := Seq(`scala-2.13`, `scala-3.0`)
