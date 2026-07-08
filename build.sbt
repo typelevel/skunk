@@ -2,7 +2,7 @@ ThisBuild / tlBaseVersion := "1.1"
 
 // Our Scala versions.
 lazy val `scala-2.13` = "2.13.18"
-lazy val `scala-3.0`  = "3.3.7"
+lazy val `scala-3.0`  = "3.3.8"
 
 ThisBuild / scalaVersion       := `scala-2.13`
 ThisBuild / crossScalaVersions := Seq(`scala-2.13`, `scala-3.0`)
@@ -16,6 +16,8 @@ ThisBuild / developers   := List(
 ThisBuild / tlCiReleaseBranches += "series/0.6.x"
 ThisBuild / tlCiScalafmtCheck := false
 ThisBuild / tlSitePublishBranch := Some("series/0.6.x")
+
+ThisBuild / githubWorkflowOSes := Seq("ubuntu-latest")
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
 ThisBuild / tlJdkRelease := Some(8)
 ThisBuild / resolvers += Resolver.sonatypeCentralSnapshots
@@ -73,7 +75,7 @@ ThisBuild / libraryDependencySchemes +=
 // This is used in a couple places
 lazy val fs2Version = "3.13.0"
 lazy val openTelemetryVersion = "1.63.0"
-lazy val otel4sVersion = "1.0.0"
+lazy val otel4sVersion = "1.0.1"
 lazy val otel4sSdkVersion = "0.19.0"
 lazy val refinedVersion = "0.11.4"
 
