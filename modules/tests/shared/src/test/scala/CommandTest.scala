@@ -379,6 +379,24 @@ class CommandTest extends SkunkTest {
   val analyzeVerbose: Command[Void] =
     sql"ANALYZE VERBOSE city".command
 
+  val createServer: Command[Void] =
+    sql"CREATE SERVER my_server FOREIGN DATA WRAPPER postgres_fdw".command
+
+  val alterServer: Command[Void] =
+    sql"ALTER SERVER my_server OPTIONS (ADD host 'example.com')".command
+
+  val dropServer: Command[Void] =
+    sql"DROP SERVER my_server".command
+
+  val createUserMapping: Command[Void] =
+    sql"CREATE USER MAPPING FOR skunk_role SERVER my_server".command
+
+  val alterUserMapping: Command[Void] =
+    sql"ALTER USER MAPPING FOR skunk_role SERVER my_server OPTIONS (ADD password_required 'false')".command
+
+  val dropUserMapping: Command[Void] =
+    sql"DROP USER MAPPING FOR skunk_role SERVER my_server".command
+
   private implicit val eq: Eq[Completion] = Eq.fromUniversalEquals
 
   sessionTest("create table, create index, alter table, alter index, drop index and drop table") { s =>
@@ -700,4 +718,26 @@ class CommandTest extends SkunkTest {
     } yield "ok"
   }
 
+  sessionTest("create, alter and drop server, user mapping") { s =>
+    for {
+      _ <- s.execute(sql"CREATE EXTENSION IF NOT EXISTS postgres_fdw".command)
+
+      c <- s.execute(createServer)
+      _ <- assertEqual("completion", c, Completion.CreateServer)
+      c <- s.execute(alterServer)
+      _ <- assertEqual("completion", c, Completion.AlterServer)
+
+      _ <- s.execute(createRole)
+      c <- s.execute(createUserMapping)
+      _ <- assertEqual("completion", c, Completion.CreateUserMapping)
+      c <- s.execute(alterUserMapping)
+      _ <- assertEqual("completion", c, Completion.AlterUserMapping)
+      c <- s.execute(dropUserMapping)
+      _ <- assertEqual("completion", c, Completion.DropUserMapping)
+      _ <- s.execute(dropRole)
+
+      c <- s.execute(dropServer)
+      _ <- assertEqual("completion", c, Completion.DropServer)
+    } yield "ok"
+  }
 }
