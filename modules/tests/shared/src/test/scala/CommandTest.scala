@@ -392,7 +392,7 @@ class CommandTest extends SkunkTest {
     sql"CREATE USER MAPPING FOR skunk_role SERVER my_server".command
 
   val alterUserMapping: Command[Void] =
-    sql"ALTER USER MAPPING FOR skunk_role SERVER my_server OPTIONS (ADD password_required 'false')".command
+    sql"ALTER USER MAPPING FOR skunk_role SERVER my_server OPTIONS (ADD user 'test_user')".command
 
   val dropUserMapping: Command[Void] =
     sql"DROP USER MAPPING FOR skunk_role SERVER my_server".command
@@ -719,25 +719,31 @@ class CommandTest extends SkunkTest {
   }
 
   sessionTest("create, alter and drop server, user mapping") { s =>
-    for {
-      _ <- s.execute(sql"CREATE EXTENSION IF NOT EXISTS postgres_fdw".command)
+    s.unique(sql"SHOW server_version".query(skunk.codec.all.text))
+      .flatMap { version =>
+        val majorVersion = version.substring(0, 2).toInt
+        if (majorVersion >= 13) {
+          for {
+            _ <- s.execute(sql"CREATE EXTENSION IF NOT EXISTS postgres_fdw".command)
 
-      c <- s.execute(createServer)
-      _ <- assertEqual("completion", c, Completion.CreateServer)
-      c <- s.execute(alterServer)
-      _ <- assertEqual("completion", c, Completion.AlterServer)
+            c <- s.execute(createServer)
+            _ <- assertEqual("completion", c, Completion.CreateServer)
+            c <- s.execute(alterServer)
+            _ <- assertEqual("completion", c, Completion.AlterServer)
 
-      _ <- s.execute(createRole)
-      c <- s.execute(createUserMapping)
-      _ <- assertEqual("completion", c, Completion.CreateUserMapping)
-      c <- s.execute(alterUserMapping)
-      _ <- assertEqual("completion", c, Completion.AlterUserMapping)
-      c <- s.execute(dropUserMapping)
-      _ <- assertEqual("completion", c, Completion.DropUserMapping)
-      _ <- s.execute(dropRole)
+            _ <- s.execute(createRole)
+            c <- s.execute(createUserMapping)
+            _ <- assertEqual("completion", c, Completion.CreateUserMapping)
+            c <- s.execute(alterUserMapping)
+            _ <- assertEqual("completion", c, Completion.AlterUserMapping)
+            c <- s.execute(dropUserMapping)
+            _ <- assertEqual("completion", c, Completion.DropUserMapping)
+            _ <- s.execute(dropRole)
 
-      c <- s.execute(dropServer)
-      _ <- assertEqual("completion", c, Completion.DropServer)
-    } yield "ok"
+            c <- s.execute(dropServer)
+            _ <- assertEqual("completion", c, Completion.DropServer)
+          } yield "ok"
+        } else IO.pure("skip")
+      }
   }
 }
