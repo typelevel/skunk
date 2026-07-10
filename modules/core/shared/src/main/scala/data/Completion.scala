@@ -67,7 +67,7 @@ object Completion {
   case object Grant                     extends Completion
   case object Revoke                    extends Completion
   case object AlterIndex                extends Completion
-  case class Merge(count: Int)          extends Completion
+  case class  Merge(count: Int)         extends Completion
   case object CreatePolicy              extends Completion
   case object AlterPolicy               extends Completion
   case object DropPolicy                extends Completion
@@ -76,6 +76,12 @@ object Completion {
   case object AlterDefaultPrivileges    extends Completion
   case object GrantRole                 extends Completion
   case object RevokeRole                extends Completion
+  case object CreateServer              extends Completion
+  case object AlterServer               extends Completion
+  case object DropServer                extends Completion
+  case object CreateUserMapping         extends Completion
+  case object AlterUserMapping          extends Completion
+  case object DropUserMapping           extends Completion
 
   // more ...
 
