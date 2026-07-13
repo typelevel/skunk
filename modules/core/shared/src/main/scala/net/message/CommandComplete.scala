@@ -115,6 +115,12 @@ object CommandComplete {
     case "ALTER DEFAULT PRIVILEGES"   => apply(Completion.AlterDefaultPrivileges)
     case "GRANT ROLE"                 => apply(Completion.GrantRole)
     case "REVOKE ROLE"                => apply(Completion.RevokeRole)
+    case "CREATE SERVER"              => apply(Completion.CreateServer)
+    case "ALTER SERVER"               => apply(Completion.AlterServer)
+    case "DROP SERVER"                => apply(Completion.DropServer)
+    case "CREATE USER MAPPING"        => apply(Completion.CreateUserMapping)
+    case "ALTER USER MAPPING"         => apply(Completion.AlterUserMapping)
+    case "DROP USER MAPPING"          => apply(Completion.DropUserMapping)
     // more .. fill in as we hit them
 
     // weird Redshift variations

@@ -5,6 +5,7 @@
 package tests
 package codec
 import skunk.codec.all._
+import skunk.data.Arr
 import java.util.UUID
 
 /** Test that we can round=trip values via codecs. */
@@ -17,6 +18,8 @@ class UuidCodecTest extends CodecTest {
   roundtripTest(uuid.opt)(Some(u1), Some(u2), None)
   decodeFailureTest(time, List("x"))
 
+  val Some(arr) = Arr(u1, u2).reshape(2,1): @unchecked
+  roundtripTest(_uuid)(Arr.empty, arr)
 }
 
 
