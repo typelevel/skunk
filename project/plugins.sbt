@@ -5,7 +5,7 @@ ThisBuild / libraryDependencySchemes ++= Seq(
 
 addSbtPlugin("org.typelevel"      % "sbt-typelevel"                               % "0.8.6")
 addSbtPlugin("org.typelevel"      % "sbt-typelevel-site"                          % "0.8.6")
-addSbtPlugin("com.timushev.sbt"   % "sbt-updates"                                 % "0.6.4")
+addSbtPlugin("com.timushev.sbt"   % "sbt-updates"                                 % "0.7.0")
 addSbtPlugin("pl.project13.scala" % "sbt-jmh"                                     % "0.4.8")
 addSbtPlugin("org.scoverage"      % "sbt-scoverage"                               % "2.4.4")
 addSbtPlugin("org.scala-js"       % "sbt-scalajs"                                 % "1.22.0")
