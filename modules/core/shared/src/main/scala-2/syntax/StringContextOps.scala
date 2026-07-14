@@ -16,8 +16,12 @@ class StringContextOps private[skunk](sc: StringContext) {
   def sql(argSeq: Any*): Any =
     macro StringContextOps.StringOpsMacros.sql_impl
 
+  @deprecated("Use ident\"…\", which preserves the identifier verbatim. For the old case-folding behavior, pass a lower-cased literal.", "1.1.0")
   def id(): Identifier =
     macro StringContextOps.StringOpsMacros.identifier_impl
+
+  def ident(): Identifier =
+    macro StringContextOps.StringOpsMacros.ident_impl
 
   /** Construct a constant `Fragment` with no interpolated values. */
   def const()(implicit or: Origin): Fragment[Void] =
@@ -40,6 +44,12 @@ object StringContextOps {
   case class Str(s: String)                     extends Part
   case class Par(n: State[Int, String])         extends Part // n parameters
   case class Emb(ps: List[Either[String, State[Int, String]]]) extends Part
+
+  // Scala 2 drops macro method references before deprecation checking, so `id` expands to this
+  // deprecated helper to produce a standard warning at the call site.
+  @deprecated("Use ident\"…\", which preserves the identifier verbatim. For the old case-folding behavior, pass a lower-cased literal.", "1.1.0")
+  def legacyIdentifier(s: String): Identifier =
+    Identifier.fromStringLegacy(s).fold(sys.error, identity)
 
   def fragmentFromParts[A](ps: List[Part], enc: Encoder[A], or: Origin): Fragment[A] =
     Fragment(
@@ -150,9 +160,17 @@ object StringContextOps {
 
     def identifier_impl(): Tree = {
       val Apply(_, List(Apply(_, List(Literal(Constant(part: String)))))) = c.prefix.tree: @unchecked
-      Identifier.fromString(part) match {
+      Identifier.fromStringLegacy(part) match {
         case Left(s) => c.abort(c.enclosingPosition, s)
-        case Right(Identifier(s)) => q"_root_.skunk.data.Identifier.fromString($s).fold(sys.error, identity)"
+        case Right(Identifier(s)) => q"_root_.skunk.syntax.StringContextOps.legacyIdentifier($s)"
+      }
+    }
+
+    def ident_impl(): Tree = {
+      val Apply(_, List(Apply(_, List(Literal(Constant(part: String)))))) = c.prefix.tree: @unchecked
+      Identifier.fromValue(part) match {
+        case Left(s) => c.abort(c.enclosingPosition, s)
+        case Right(Identifier(s)) => q"_root_.skunk.data.Identifier.fromValue($s).fold(sys.error, identity)"
       }
     }
 

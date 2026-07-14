@@ -18,7 +18,7 @@ class ChannelTest extends SkunkTest {
 
   sessionTest("channel (coverage)") { s =>
     val data = List("foo", "bar", "baz")
-    val ch0 = s.channel(id"channel_test")
+    val ch0 = s.channel(ident"channel_test")
     val ch1 = ch0.mapK(FunctionK.id)
     val ch2 = Functor[Channel[IO, String, *]].map(ch1)(identity[String])
     val ch3 = Contravariant[Channel[IO, *, String]].contramap(ch2)(identity[String])
@@ -41,7 +41,7 @@ class ChannelTest extends SkunkTest {
 
   sessionTest("channel with resource (coverage)") { s =>
     val data = List("foo", "bar", "baz")
-    val ch0 = s.channel(id"channel_test")
+    val ch0 = s.channel(ident"channel_test")
     val ch1 = ch0.mapK(FunctionK.id)
     val ch2 = Functor[Channel[IO, String, *]].map(ch1)(identity[String])
     val ch3 = Contravariant[Channel[IO, *, String]].contramap(ch2)(identity[String])
@@ -56,5 +56,17 @@ class ChannelTest extends SkunkTest {
     }
   }
 
+  sessionTest("channel with quoted identifier round-trips through LISTEN/NOTIFY/UNLISTEN") { s =>
+    val data = List("foo", "bar", "baz")
+    val ch = s.channel(ident"q_my_queue.INSERT")
+
+    ch.listenR(42).use { r =>
+        for {
+          _ <- data.traverse_(ch.notify)
+          d <- r.map(_.value).takeThrough(_ != data.last).compile.toList
+          _ <- assert(s"channel data $d $data", data == d)
+        } yield "ok"
+    }
+  }
 
 }

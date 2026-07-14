@@ -18,7 +18,7 @@ Use the `channel` method on `Session` to construct a channel.
 
 ```scala mdoc:compile-only
 // assume s: Session[IO]
-val ch = s.channel(id"my_channel") // Channel[IO, String, String]
+val ch = s.channel(ident"my_channel") // Channel[IO, String, String]
 ```
 
 Observe the following:
@@ -63,7 +63,7 @@ Every `Channel` is also an fs2 `Pipe` that consumes messages.
 // select all the country names and stream them to the country_names channel.
 s.prepare(sql"select name from country".query(varchar)).flatMap { ps =>
   ps.stream(Void, 512)
-    .through(s.channel(id"country_names"))
+    .through(s.channel(ident"country_names"))
     .compile
     .drain
 }

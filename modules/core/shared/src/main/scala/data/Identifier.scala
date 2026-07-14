@@ -9,7 +9,9 @@ import cats.Eq
 import scala.util.matching.Regex
 
 sealed abstract case class Identifier(value: String) {
-  override def toString: String = value // ok?
+  lazy val sql: String = Identifier.render(value)
+
+  override def toString: String = sql
 }
 
 object Identifier {
@@ -18,11 +20,16 @@ object Identifier {
 
   val maxLen = 63
   val pat: Regex = "([A-Za-z_][A-Za-z_0-9$]*)".r
+  private val unquotedPat: Regex = "([a-z_][a-z_0-9$]*)".r
 
   implicit val EqIdentifier: Eq[Identifier] =
     Eq.by(_.value)
 
+  @deprecated("Use fromValue, which preserves the identifier value and quotes it when necessary.", "1.1.0")
   def fromString(s: String): Either[String, Identifier] =
+    fromStringLegacy(s)
+
+  private[skunk] def fromStringLegacy(s: String): Either[String, Identifier] =
     s match {
       case pat(s) =>
         if (s.length > maxLen)
@@ -30,9 +37,33 @@ object Identifier {
         else if (keywords(s.toUpperCase))
           Left(s"Illegal identifier: ${s.toUpperCase} is a keyword.")
         else
-          Right(new Identifier(s) {})
+          // Postgres folds unquoted identifiers to lower case, so we do the same up front. This
+          // keeps `value` consistent with what Postgres sees and ensures `sql` renders it unquoted.
+          Right(new Identifier(s.toLowerCase) {})
       case _ => Left(s"Malformed identifier: does not match ${pat.regex}")
     }
+
+  def fromValue(s: String): Either[String, Identifier] =
+    if (s.isEmpty)
+      Left("Illegal identifier: zero-length delimited identifier.")
+    else if (s.contains('\u0000'))
+      Left("Illegal identifier: cannot contain the null byte (\\u0000).")
+    else {
+      val byteLen = s.getBytes(java.nio.charset.StandardCharsets.UTF_8).length
+      if (byteLen > maxLen)
+        Left(s"Identifier too long: $byteLen bytes (max allowed is $maxLen)")
+      else
+        Right(new Identifier(s) {})
+    }
+
+  private[data] def render(s: String): String =
+    s match {
+      case unquotedPat(_) if !keywords(s.toUpperCase) => s
+      case _                                          => quote(s)
+    }
+
+  private def quote(s: String): String =
+    "\"" + s.replace("\"", "\"\"") + "\""
 
   val keywords: Set[String] =
     Set(

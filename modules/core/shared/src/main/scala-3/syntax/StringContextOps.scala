@@ -143,8 +143,23 @@ object StringContextOps {
     import qc.reflect.report
     sc match {
       case '{ StringContext(${Varargs(Exprs(Seq(part)))}: _*) } =>
-        Identifier.fromString(part) match {
-          case Right(Identifier(s)) => '{ Identifier.fromString(${Expr(s)}).fold(sys.error, identity) }
+        Identifier.fromStringLegacy(part) match {
+          case Right(Identifier(s)) => '{ Identifier.fromValue(${Expr(s)}).fold(sys.error, identity) }
+          case Left(s) =>
+            report.error(s)
+            return '{???}
+        }
+      case _ =>
+        report.error(s"Identifiers cannot have interpolated arguments")
+        return '{???}
+    }
+
+  def identImpl(sc: Expr[StringContext])(using qc: Quotes): Expr[Identifier] =
+    import qc.reflect.report
+    sc match {
+      case '{ StringContext(${Varargs(Exprs(Seq(part)))}: _*) } =>
+        Identifier.fromValue(part) match {
+          case Right(Identifier(s)) => '{ Identifier.fromValue(${Expr(s)}).fold(sys.error, identity) }
           case Left(s) =>
             report.error(s)
             return '{???}
@@ -161,8 +176,13 @@ trait ToStringContextOps {
   extension (inline sc: StringContext) transparent inline def sql(inline args: Any*): Any =
     ${ StringContextOps.sqlImpl('sc, 'args) }
 
-  extension (inline sc: StringContext) inline def id(): Identifier =
-    ${ StringContextOps.idImpl('sc) }
+  extension (inline sc: StringContext)
+    @deprecated("Use ident\"…\", which preserves the identifier verbatim. For the old case-folding behavior, pass a lower-cased literal.", "1.1.0")
+    inline def id(): Identifier =
+      ${ StringContextOps.idImpl('sc) }
+
+  extension (inline sc: StringContext) inline def ident(): Identifier =
+    ${ StringContextOps.identImpl('sc) }
 
   implicit def toStringOps(sc: StringContext): StringContextOps =
     new StringContextOps(sc)

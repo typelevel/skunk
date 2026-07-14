@@ -23,7 +23,7 @@ object Channel extends IOApp {
 
   def run(args: List[String]): IO[ExitCode] =
     session.use { s =>
-      s.channel(id"foo")
+      s.channel(ident"foo")
        .listen(42)
        .take(3)
        .evalMap(n => IO.println(s"⭐️⭐  $n"))
