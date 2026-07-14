@@ -177,7 +177,7 @@ trait ToStringContextOps {
     ${ StringContextOps.sqlImpl('sc, 'args) }
 
   extension (inline sc: StringContext)
-    @deprecated("Use ident\"…\", which preserves the identifier verbatim. For the old case-folding behavior, pass a lower-cased literal.", "1.1.0")
+    @deprecated("Use ident\"…\", which preserves the identifier verbatim. For the old case-folding behavior, pass a lower-cased literal.", "2.0.0")
     inline def id(): Identifier =
       ${ StringContextOps.idImpl('sc) }
 
