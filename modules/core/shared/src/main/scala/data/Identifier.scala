@@ -25,7 +25,7 @@ object Identifier {
   implicit val EqIdentifier: Eq[Identifier] =
     Eq.by(_.value)
 
-  @deprecated("Use fromValue, which preserves the identifier value and quotes it when necessary.", "1.1.0")
+  @deprecated("Use fromValue, which preserves the identifier value and quotes it when necessary.", "2.0.0")
   def fromString(s: String): Either[String, Identifier] =
     fromStringLegacy(s)
 

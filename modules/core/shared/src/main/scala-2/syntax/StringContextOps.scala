@@ -16,7 +16,7 @@ class StringContextOps private[skunk](sc: StringContext) {
   def sql(argSeq: Any*): Any =
     macro StringContextOps.StringOpsMacros.sql_impl
 
-  @deprecated("Use ident\"…\", which preserves the identifier verbatim. For the old case-folding behavior, pass a lower-cased literal.", "1.1.0")
+  @deprecated("Use ident\"…\", which preserves the identifier verbatim. For the old case-folding behavior, pass a lower-cased literal.", "2.0.0")
   def id(): Identifier =
     macro StringContextOps.StringOpsMacros.identifier_impl
 
@@ -47,7 +47,7 @@ object StringContextOps {
 
   // Scala 2 drops macro method references before deprecation checking, so `id` expands to this
   // deprecated helper to produce a standard warning at the call site.
-  @deprecated("Use ident\"…\", which preserves the identifier verbatim. For the old case-folding behavior, pass a lower-cased literal.", "1.1.0")
+  @deprecated("Use ident\"…\", which preserves the identifier verbatim. For the old case-folding behavior, pass a lower-cased literal.", "2.0.0")
   def legacyIdentifier(s: String): Identifier =
     Identifier.fromStringLegacy(s).fold(sys.error, identity)
 
