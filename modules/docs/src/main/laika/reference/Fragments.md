@@ -71,7 +71,7 @@ strings, by escaping it with `#$`.
 
 @:callout(warning)
 Interpolating a literal string into a `Fragment` is a SQL injection risk. Never interpolate values
-that have been supplied by the user.
+that have been supplied by the user. See the section on interpolating identifiers for a safer alternative.
 @:@
 
 Here is an example with an iterpolated literal string, as well as a normal parameter.
@@ -85,6 +85,16 @@ The resulting SQL will contain `table` verbatim.
 
 ```scala mdoc
 frag.sql
+```
+
+## Interpolating identifiers
+
+[Identifiers](Identifiers.md) can also be interpolated. An interpolated identifier is injected
+directly into SQL. Quoting is used for identifiers that warrant it, making SQL injection impossible.
+
+```scala mdoc:silent
+val tableIdent = ident"my_table"
+sql"SELECT foo, bar FROM $tableIdent where foo = $int4"
 ```
 
 ## Composing Fragments

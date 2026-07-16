@@ -84,11 +84,12 @@ object StringContextOps {
       // The interpolated args are a list of size `parts.length - 1`. We also just know this.
       val args = argSeq.toList
 
-      // Every arg must conform with Encoder[_] or String
+      // Every arg must conform with Encoder[_], Identifier, Fragment[_] or String
       val EncoderType      = typeOf[Encoder[_]]
       val VoidFragmentType = typeOf[Fragment[Void]]
       val FragmentType     = typeOf[Fragment[_]]
       val StringType       = typeOf[String]
+      val IdentifierType   = typeOf[Identifier]
 
       // Assemble a single list of Either[string tree, encoder int] by interleaving the stringy parts
       // and the args' lengths, as well as a list of the args. If the arg is an interpolated string
@@ -113,6 +114,11 @@ object StringContextOps {
               } else
                 c.abort(arg.pos, s"type mismatch;\n  found   : $argType\n  required: $StringType")
 
+            } else if (argType <:< IdentifierType) {
+
+                val p1 = q"_root_.skunk.syntax.StringContextOps.Str($str.concat($arg.sql))"
+                (p1 :: tail, es)
+
             } else if (argType <:< EncoderType) {
 
                 val p1 = q"_root_.skunk.syntax.StringContextOps.Str($part)"
@@ -133,7 +139,7 @@ object StringContextOps {
 
             } else {
 
-              c.abort(arg.pos, s"type mismatch;\n  found   : $argType\n  required: $EncoderType or $FragmentType")
+              c.abort(arg.pos, s"type mismatch;\n  found   : $argType\n  required: $EncoderType, $IdentifierType or $FragmentType")
 
             }
 
