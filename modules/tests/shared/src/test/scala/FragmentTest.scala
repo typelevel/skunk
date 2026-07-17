@@ -31,8 +31,18 @@ class FragmentTest extends SkunkTest {
     }
   }
 
-  sessionTest("~") { s =>
+  sessionTest("*:") { s =>
     val f = sql"select $int4" *: sql", $varchar"
+    s.prepare(f.query(int4 *: varchar)).flatMap { ps =>
+      for {
+        n <- ps.unique((123, "456"))
+        _ <- assertEqual("(123, \"456\")", n, 123 *: "456" *: EmptyTuple)
+      } yield "ok"
+    }
+  }
+
+  sessionTest("~") { s =>
+    val f = sql"select $int4" ~ sql", $varchar"
     s.prepare(f.query(int4 *: varchar)).flatMap { ps =>
       for {
         n <- ps.unique((123, "456"))

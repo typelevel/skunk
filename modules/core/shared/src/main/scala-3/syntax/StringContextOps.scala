@@ -107,9 +107,14 @@ object StringContextOps {
                 val newEncoders = '{ $f.encoder : Encoder[a] } :: es
                 Right((newParts, newEncoders))
 
+              // The interpolated thing is an Identifier
+              case '{ $f: Identifier } =>
+                val newParts    = '{Str(${Expr(str)})} :: '{Str($f.sql)} :: parts
+                Right((newParts, es))
+
               case '{ $a: t } =>
-                report.error(s"Found ${Type.show[t]}, expected String, Encoder, or Fragment.", a)
-                Left('{compiletime.error("Expected String, Encoder, or Fragment.")})
+                report.error(s"Found ${Type.show[t]}, expected Encoder, Identifier or Fragment.", a)
+                Left('{compiletime.error("Expected Encoder, Identifier or Fragment.")})
             }
           }
       }
