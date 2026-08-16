@@ -94,7 +94,7 @@ object BufferedMessageSocket {
    */
   private def next[F[_]: MonadThrow](
     ms:    MessageSocket[F],
-    term:  Ref[F, Option[Throwable]],
+    noErr: Ref[F, Option[Throwable]],
     xaSig: Ref[F, TransactionStatus],
     paSig: Ref[F, Map[String, String]],
     bkDef: Deferred[F, BackendKeyData],
@@ -116,11 +116,12 @@ object BufferedMessageSocket {
       case m                           => queue.offer(m)
     } >> step
 
-    // Publish the failure to synchronous exchanges (via the queue) and to notification
-    // subscribers (via the topic, which is then closed so `listen` streams terminate
-    // instead of hanging silently on a dead connection).
+    // Publish the failure to synchronous exchanges (via the queue, behind any messages already
+    // buffered, so in-flight exchanges still see them) and to notification subscribers (via the
+    // topic, which is then closed so `listen` streams terminate instead of hanging silently on a
+    // dead connection).
     step.attempt.flatMap {
-      case Left(e)  => term.set(Some(e)) *> queue.offer(NetworkError(e)) *> noTop.publish1(Left(e)) *> noTop.close.void
+      case Left(e)  => noErr.set(Some(e)) *> queue.offer(NetworkError(e)) *> noTop.publish1(Left(e)) *> noTop.close.void
       case Right(_) => Monad[F].unit
     }
   }
@@ -134,12 +135,13 @@ object BufferedMessageSocket {
   ): F[BufferedMessageSocket[F]] =
     for {
       term  <- Ref[F].of[Option[Throwable]](None) // terminal error
+      noErr <- Ref[F].of[Option[Throwable]](None) // terminal error for notification subscribers
       queue <- Queue.bounded[F, BackendMessage](queueSize)
       xaSig <- SignallingRef[F, TransactionStatus](TransactionStatus.Idle) // initial state (ok)
       paSig <- SignallingRef[F, Map[String, String]](Map.empty)
       bkSig <- Deferred[F, BackendKeyData]
       noTop <- Topic[F, Either[Throwable, Notification[String]]]
-      fib   <- next(ms, term, xaSig, paSig, bkSig, noTop, queue).start
+      fib   <- next(ms, noErr, xaSig, paSig, bkSig, noTop, queue).start
     } yield
       new AbstractMessageSocket[F] with BufferedMessageSocket[F] {
 
@@ -168,7 +170,7 @@ object BufferedMessageSocket {
           noTop.subscribeAwait(maxQueued).map { s =>
             // The topic closes after the terminal error is published; the trailing check covers
             // subscribers that arrive after the failure and would otherwise see an empty stream.
-            s.rethrow ++ Stream.exec(term.get.flatMap(_.traverse_(Concurrent[F].raiseError[Unit](_))))
+            s.rethrow ++ Stream.exec(noErr.get.flatMap(_.traverse_(Concurrent[F].raiseError[Unit](_))))
           }
 
         override protected def terminate: F[Unit] =
