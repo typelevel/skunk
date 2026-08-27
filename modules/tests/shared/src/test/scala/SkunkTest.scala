@@ -11,14 +11,14 @@ import skunk.data.*
 import skunk.codec.all.*
 import skunk.implicits.*
 import munit.Location
-import org.typelevel.otel4s.trace.Tracer
+import org.typelevel.otel4s.trace.TracerProvider
 import scala.concurrent.duration.Duration
 
 abstract class SkunkTest(debug: Boolean = false, typingStrategy: TypingStrategy = TypingStrategy.BuiltinsOnly) extends ffstest.FTest {
 
-  def session(implicit tracer: Tracer[IO]): Resource[IO, Session[IO]] = session(Duration.Inf)
+  def session(implicit tracerProvider: TracerProvider[IO]): Resource[IO, Session[IO]] = session(Duration.Inf)
 
-  def session(readTimeout: Duration)(implicit tracer: Tracer[IO]): Resource[IO, Session[IO]] =
+  def session(readTimeout: Duration)(implicit tracerProvider: TracerProvider[IO]): Resource[IO, Session[IO]] =
     Session.Builder[IO]
       .withUserAndPassword("jimmy", "banana")
       .withDatabase("world")
@@ -42,7 +42,7 @@ abstract class SkunkTest(debug: Boolean = false, typingStrategy: TypingStrategy 
       }
     }
 
-  def pooled(max: Int = 8, readTimeout: Duration = Duration.Inf, parseCacheSize: Int = 1024)(implicit tracer: Tracer[IO]): Resource[IO, Resource[IO, Session[IO]]] =
+  def pooled(max: Int = 8, readTimeout: Duration = Duration.Inf, parseCacheSize: Int = 1024)(implicit tracerProvider: TracerProvider[IO]): Resource[IO, Resource[IO, Session[IO]]] =
     Session.Builder[IO]
       .withUserAndPassword("jimmy", "banana")
       .withDatabase("world")

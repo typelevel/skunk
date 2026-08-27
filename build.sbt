@@ -21,7 +21,13 @@ ThisBuild / githubWorkflowOSes := Seq("ubuntu-latest")
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
 ThisBuild / tlJdkRelease := Some(8)
 ThisBuild / resolvers += Resolver.sonatypeCentralSnapshots
-ThisBuild / githubWorkflowBuildPreamble ++= nativeBrewInstallWorkflowSteps.value
+ThisBuild / githubWorkflowBuildPreamble ++= Seq(
+  WorkflowStep.Run(
+    commands = List("/home/linuxbrew/.linuxbrew/bin/brew update"),
+    name = Some("Update brew"),
+    cond = Some("startsWith(matrix.os, 'ubuntu')")
+  )
+) ++ nativeBrewInstallWorkflowSteps.value
 ThisBuild / nativeBrewInstallCond := Some("matrix.project == 'skunkNative'")
 
 lazy val setupCertAndDocker = Seq(
@@ -119,11 +125,14 @@ lazy val skunk = tlCrossRootProject
 lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .crossType(CrossType.Full)
   .in(file("modules/core"))
-  .enablePlugins(AutomateHeaderPlugin)
+  .enablePlugins(AutomateHeaderPlugin, BuildInfoPlugin)
   .settings(commonSettings)
   .settings(
     name := "skunk-core",
     description := "Tagless, non-blocking data access library for Postgres.",
+    buildInfoKeys := Seq[BuildInfoKey](version),
+    buildInfoPackage := "skunk",
+    buildInfoOptions += BuildInfoOption.PackagePrivate,
     libraryDependencies ++= Seq(
       "org.typelevel"          %%% "cats-core"               % "2.13.0",
       "org.typelevel"          %%% "cats-effect"             % "3.7.0",

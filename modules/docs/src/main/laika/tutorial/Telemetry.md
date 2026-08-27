@@ -1,6 +1,6 @@
 # Telemetry
 
-Skunk uses [OpenTelemtry](https://opentelemetry.io/), using the [otel4s](https://github.com/typelevel/otel4s) implementation.
+Skunk uses [OpenTelemetry](https://opentelemetry.io/), using the [otel4s](https://github.com/typelevel/otel4s). Session construction requires a `TracerProvider` and a `MeterProvider`; Skunk uses them to acquire its own versioned tracer and meter.
 
 ## Metrics
 
@@ -8,7 +8,7 @@ Skunk provides the [`db.client.operation.duration`](https://opentelemetry.io/doc
 
 ### I Don't Care
 
-If you don't care about metrics you can use the **no-op meter** to disable metrics entirely (`org.typelevel.otel4s.metrics.Meter`).
+If you don't care about metrics you can use the **no-op meter** to disable metrics entirely (`org.typelevel.otel4s.metrics.MeterProvider.noop`).
 
 ## Tracing
 
@@ -16,7 +16,7 @@ If you don't care about metrics you can use the **no-op meter** to disable metri
 
 If you don't care about tracing you have two choices:
 
-- Use the **no-op tracer** to disable tracing entirely (`org.typelevel.otel4s.Tracer.noop`).
+- Use the **no-op tracer** to disable tracing entirely (`org.typelevel.otel4s.TracerProvider.noop`).
 - Use the **log tracer** to log completed traces to a [log4cats](https://typelevel.org/log4cats/) logger.
 
 ### Tracing with Jaeger
