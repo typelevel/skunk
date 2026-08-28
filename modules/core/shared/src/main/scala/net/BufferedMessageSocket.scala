@@ -68,6 +68,18 @@ trait BufferedMessageSocket[F[_]] extends MessageSocket[F] {
    */
   def notifications(maxQueued: Int): Resource[F, Stream[F, Notification[String]]]
 
+  /**
+   * Returns `false` once an error has been detected on
+   * the underlying network connection; otherwise `true`.
+   *
+   * Since incoming messages are read continuously, even
+   * while the session is idle, errored connections will
+   * be detected as soon as they happen. However, if the
+   * connection is not closed cleanly, this function can
+   * not detect the error and continue to report healthy.
+   */
+  def isHealthy: F[Boolean]
+
 
   // TODO: this is an implementation leakage, fold into the factory below
   protected def terminate: F[Unit]
@@ -98,7 +110,8 @@ object BufferedMessageSocket {
     paSig: Ref[F, Map[String, String]],
     bkDef: Deferred[F, BackendKeyData],
     noTop: Topic[F, Notification[String]],
-    queue: Queue[F, BackendMessage]
+    queue: Queue[F, BackendMessage],
+    netEx: Ref[F, Option[Throwable]]
   ): F[Unit] = {
     def step: F[Unit] =  ms.receive.flatMap {
       // RowData is really the only hot spot so we special-case it to avoid the linear search. This
@@ -116,7 +129,7 @@ object BufferedMessageSocket {
     } >> step
 
     step.attempt.flatMap {
-      case Left(e)  => queue.offer(NetworkError(e)) // publish the failure
+      case Left(e)  => netEx.set(Some(e)) >> queue.offer(NetworkError(e)) // publish the failure
       case Right(_) => Monad[F].unit
     }
   }
@@ -129,13 +142,14 @@ object BufferedMessageSocket {
     queueSize: Int
   ): F[BufferedMessageSocket[F]] =
     for {
-      term  <- Ref[F].of[Option[Throwable]](None) // terminal error
+      term  <- Ref[F].of[Option[Throwable]](None) // terminal error, as observed by the front end
+      netEx <- Ref[F].of[Option[Throwable]](None) // terminal error, as observed by the read fiber
       queue <- Queue.bounded[F, BackendMessage](queueSize)
       xaSig <- SignallingRef[F, TransactionStatus](TransactionStatus.Idle) // initial state (ok)
       paSig <- SignallingRef[F, Map[String, String]](Map.empty)
       bkSig <- Deferred[F, BackendKeyData]
       noTop <- Topic[F, Notification[String]]
-      fib   <- next(ms, xaSig, paSig, bkSig, noTop, queue).start
+      fib   <- next(ms, xaSig, paSig, bkSig, noTop, queue, netEx).start
     } yield
       new AbstractMessageSocket[F] with BufferedMessageSocket[F] {
 
@@ -163,6 +177,9 @@ object BufferedMessageSocket {
         override def notifications(maxQueued: Int): Resource[F, Stream[F, Notification[String]]] =
           noTop.subscribeAwait(maxQueued)
 
+        override def isHealthy: F[Boolean] =
+          netEx.get.map(_.isEmpty)
+
         override protected def terminate: F[Unit] =
           fib.cancel *>                // stop processing incoming messages
           send(Terminate).attempt.void // server will close the socket when it sees this; ignore failure as socket may be closed mid-write
@@ -178,5 +195,3 @@ object BufferedMessageSocket {
   private case class NetworkError(cause: Throwable) extends BackendMessage
 
 }
-
-
