@@ -300,6 +300,12 @@ sealed trait Session[F[_]] {
   def closeEvictedPreparedStatements: F[Unit]
 
   /**
+   * Returns `false` once an error has been detected
+   * in the underlying protocol; otherwise `true`.
+   */
+  def isHealthy: F[Boolean]
+
+  /**
    * Transform this `Session` by a given `FunctionK`.
    * @group Transformations
    */
@@ -385,6 +391,8 @@ object Session {
         override def parseCache: Parse.Cache[G] = outer.parseCache.mapK(fk)
 
         override def closeEvictedPreparedStatements: G[Unit] = fk(outer.closeEvictedPreparedStatements)
+
+        override def isHealthy: G[Boolean] = fk(outer.isHealthy)
       }
   }
 
@@ -1008,6 +1016,9 @@ object Session {
 
         override def closeEvictedPreparedStatements: F[Unit] = 
           proto.closeEvictedPreparedStatements
+
+        override def isHealthy: F[Boolean] =
+          proto.isHealthy
       }
     }
   }
