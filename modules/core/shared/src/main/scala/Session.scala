@@ -436,6 +436,13 @@ object Session {
       Recycler(_.closeEvictedPreparedStatements.as(true))
     
     /**
+     * Yields `false` once an error has been detected
+     * in the underlying protocol; otherwise `false`.
+     */
+    def ensureHealthy[F[_]]: Recycler[F, Session[F]] =
+      Recycler(_.isHealthy)
+
+    /**
      * Yield `true` the session is idle (i.e., that there is no ongoing transaction), otherwise
      * yield false. This check does not require network IO.
      */
