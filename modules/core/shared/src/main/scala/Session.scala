@@ -218,7 +218,7 @@ sealed trait Session[F[_]] {
    * times with different arguments.
    *
    * The prepared query is not cached and is closed upon resource cleanup.
-   * 
+   *
    * @group Queries
    */
   def prepareR[A, B](query: Query[A, B]): Resource[F, PreparedQuery[F, A, B]]
@@ -228,7 +228,7 @@ sealed trait Session[F[_]] {
    * `PreparedCommand` can be executed multiple times with different arguments.
    *
    * The prepared command is not cached and is closed upon resource cleanup.
-   * 
+   *
    * @group Commands
    */
   def prepareR[A](command: Command[A]): Resource[F, PreparedCommand[F, A]]
@@ -434,7 +434,7 @@ object Session {
      */
     def closeEvictedPreparedStatements[F[_]: Monad]: Recycler[F, Session[F]] =
       Recycler(_.closeEvictedPreparedStatements.as(true))
-    
+
     /**
      * Yields `false` once an error has been detected
      * in the underlying protocol; otherwise `false`.
@@ -486,7 +486,7 @@ object Session {
    * @param typingStrategy        typing strategy; defaults to [[TypingStrategy.BuiltinsOnly]]
    * @param redactionStrategy     redaction strategy; defaults to [[RedactionStrategy.OptIn]]
    * @param ssl                   ssl configuration; defaults to [[SSL.None]]
-   * @param connectionParameters  Postgres connection parameters; defaults to [[DefaultConnectionParameters]] 
+   * @param connectionParameters  Postgres connection parameters; defaults to [[DefaultConnectionParameters]]
    * @param socketOptions         options for TCP sockets; defaults to [[DefaultSocketOptions]]
    * @param readTimeout           timeout when reading from a TCP socket; defaults to infinite
    * @param commandCacheSize      size of the session-level cache for command checking; defaults to 2048
@@ -621,7 +621,7 @@ object Session {
 
     def withParseCacheSize(newParseCacheSize: Int): Builder[F] =
       copy(parseCacheSize = newParseCacheSize)
-   
+
     /**
      * Resource yielding logically unpooled sessions. This can be convenient for demonstrations and
      * programs that only need a single session. In reality each session is managed by its own
@@ -663,7 +663,7 @@ object Session {
         dc      <- Resource.eval(Describe.Cache.empty[F](commandCacheSize, queryCacheSize))
         sslOp   <- ssl.toSSLNegotiationOptions(if (debug) logger.some else none)
         opDuration <- Resource.eval(Otel.OpDurationHistogram[F])
-        pool    <- Pool.ofF({implicit T: Tracer[F] => sessions(sslOp, dc, opDuration)}, max)(Recyclers.full)
+        pool    <- Pool.ofF({implicit T: Tracer[F] => sessions(sslOp, dc, opDuration)}, max, checkout = Recyclers.ensureHealthy[F], checkin = Recyclers.full)
       } yield pool
     }
 
@@ -802,7 +802,7 @@ object Session {
       .withQueryCacheSize(queryCache)
       .withParseCacheSize(parseCache)
       .pooled(max)
-      
+
 
   /**
    * Resource yielding a function from Tracer to `SessionPool` managing up to `max` concurrent `Session`s. Typically you
@@ -964,7 +964,7 @@ object Session {
 
         override def execute(command: Command[Void]): F[Completion] =
           proto.execute(command)
-        
+
         override def executeDiscard(statement: Statement[Void]): F[Unit] =
           proto.executeDiscard(statement)
 
@@ -1021,7 +1021,7 @@ object Session {
         override def parseCache: Parse.Cache[F] =
           proto.parseCache
 
-        override def closeEvictedPreparedStatements: F[Unit] = 
+        override def closeEvictedPreparedStatements: F[Unit] =
           proto.closeEvictedPreparedStatements
 
         override def isHealthy: F[Boolean] =
