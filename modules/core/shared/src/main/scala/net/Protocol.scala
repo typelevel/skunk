@@ -286,7 +286,10 @@ object Protocol {
           protocol.Startup[F](opDuration).apply(user, database, password, parameters)
 
         override def cleanup: F[Unit] =
-          parseCache.value.values.flatMap(_.traverse_(protocol.Close[F](opDuration).apply))
+          isHealthy.ifM(
+            parseCache.value.values.flatMap(_.traverse_(protocol.Close[F](opDuration).apply)),
+            Concurrent[F].unit
+          )
 
         override def isHealthy: F[Boolean] =
           bms.isHealthy
