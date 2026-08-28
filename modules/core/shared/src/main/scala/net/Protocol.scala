@@ -96,7 +96,7 @@ trait Protocol[F[_]] {
   def execute[A](query: Query[Void, A], ty: Typer): F[List[A]]
 
   /**
-   * Execute any non-parameterized statement containing single or multi-query statements, 
+   * Execute any non-parameterized statement containing single or multi-query statements,
    * discarding returned completions and rows.
    */
   def executeDiscard(statement: Statement[Void]): F[Unit]
@@ -110,7 +110,13 @@ trait Protocol[F[_]] {
    * Cleanup the session. This will close any cached prepared statements.
    */
   def cleanup: F[Unit]
-  
+
+  /**
+   * Returns `false` once an error has been detected
+   * on the underlying socket; otherwise `true`.
+   */
+  def isHealthy: F[Boolean]
+
   /**
    * Signal representing the current transaction status as reported by `ReadyForQuery`. It's not
    * clear that this is a useful thing to expose.
@@ -281,7 +287,10 @@ object Protocol {
 
         override def cleanup: F[Unit] =
           parseCache.value.values.flatMap(_.traverse_(protocol.Close[F](opDuration).apply))
-      
+
+        override def isHealthy: F[Boolean] =
+          bms.isHealthy
+
         override def transactionStatus: Signal[F, TransactionStatus] =
           bms.transactionStatus
 
@@ -291,11 +300,9 @@ object Protocol {
         override val parseCache: Parse.Cache[F] =
          pc
 
-        override def closeEvictedPreparedStatements: F[Unit] = 
+        override def closeEvictedPreparedStatements: F[Unit] =
           pc.value.clearEvicted.flatMap(_.traverse_(protocol.Close[F](opDuration).apply))
       }
     }
 
 }
-
-
