@@ -280,6 +280,36 @@ class PoolTest extends FTest {
     }
   }
 
+  tracedTest("unhealthy pooled resource is discarded and replaced on checkout") { implicit tracer: Tracer[IO] =>
+    for {
+      healthy <- Ref[IO].of(true)
+      freed   <- Ref[IO].of(List.empty[Int])
+      counter <- Ref[IO].of(1)
+      rsrc     = Resource.make(counter.getAndUpdate(_ + 1))(n => freed.update(_ :+ n))
+      _       <- Pool.ofF({(_: Tracer[IO]) => rsrc}, 1, Recycler[IO, Int](_ => healthy.get), Recycler.success[IO, Int]).use { pool =>
+                   for {
+                     _ <- pool(tracer).use(n => assertEqual("first checkout", n, 1))
+                     _ <- healthy.set(false)
+                     _ <- pool(tracer).use(n => assertEqual("second checkout", n, 2))
+                     _ <- freed.get.flatMap(assertEqual("the dead resource was freed", _, List(1)))
+                   } yield ()
+                 }
+    } yield ()
+  }
+
+  tracedTest("health check that raises discards the resource rather than failing the checkout") { implicit tracer: Tracer[IO] =>
+    for {
+      first   <- Ref[IO].of(true)
+      counter <- Ref[IO].of(1)
+      rsrc     = Resource.make(counter.getAndUpdate(_ + 1))(_ => IO.unit)
+      check    = Recycler[IO, Int](_ => first.getAndSet(false).ifM(IO.raiseError[Boolean](AllocFailure()), true.pure[IO]))
+      _       <- Pool.ofF({(_: Tracer[IO]) => rsrc}, 1, check, Recycler.success[IO, Int]).use { pool =>
+                   pool(tracer).use_ *>
+                   pool(tracer).use(n => assertEqual("second checkout", n, 2))
+                 }
+    } yield ()
+  }
+
   test("cancel while waiting") { implicit tracer: Tracer[IO] =>
     TestControl.executeEmbed {
       Pool.of(Resource.unit[IO], 1)(Recycler.success).use { pool =>
