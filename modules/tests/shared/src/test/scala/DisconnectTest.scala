@@ -4,9 +4,12 @@
 
 package tests
 
+import cats.effect.IO
+import cats.syntax.all._
 import skunk.implicits._
 import skunk.codec.all._
 import skunk.exception.EofException
+import scala.concurrent.duration._
 
 class DisconnectTest extends SkunkTest {
 
@@ -19,4 +22,25 @@ class DisconnectTest extends SkunkTest {
     }
   }
 
+  sessionTest("isHealthy becomes false once the connection is terminated") { s =>
+    for {
+      _ <- s.isHealthy.flatMap(assert("a fresh session is healthy", _))
+      _ <- s.execute(sql"select pg_terminate_backend(pg_backend_pid())".query(bool))
+             .assertFailsWith[EofException]
+      _ <- s.isHealthy.flatMap(h => assert("a terminated session is not healthy", !h))
+    } yield ()
+  }
+
+  tracedTest("disconnect while idle in pool") { implicit tracer =>
+    pooled(max = 1).use { p =>
+      for {
+        sp        <- p.use(s => s.unique(sql"select pg_backend_pid()".query(int4)).tupleLeft(s))
+        (s, pid)   = sp
+        _         <- session.use(_.unique(sql"select pg_terminate_backend($int4)".query(bool))(pid))
+        _         <- (IO.sleep(10.millis) *> s.isHealthy).iterateWhile(identity).timeout(10.seconds)
+        pid2      <- p.use(_.unique(sql"select pg_backend_pid()".query(int4)))
+        _         <- assert(s"expected a new backend, got $pid twice", pid =!= pid2)
+      } yield ()
+    }
+  }
 }
