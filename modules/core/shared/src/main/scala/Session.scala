@@ -420,14 +420,14 @@ object Session {
      * isn't running arbitrary statements then `minimal` might be more efficient.
      */
     def full[F[_]: Monad]: Recycler[F, Session[F]] =
-      closeEvictedPreparedStatements[F] <+> ensureIdle[F] <+> unlistenAll <+> resetAll
+      ensureHealthy[F] <+> closeEvictedPreparedStatements[F] <+> ensureIdle[F] <+> unlistenAll <+> resetAll
 
     /**
      * Ensure the session is idle, then run a trivial query to ensure the connection is in working
      * order. In most cases this check is sufficient.
      */
     def minimal[F[_]: Monad]: Recycler[F, Session[F]] =
-      closeEvictedPreparedStatements[F] <+> ensureIdle[F] <+> Recycler(_.unique(Query("VALUES (true)", Origin.unknown, Void.codec, bool)))
+      ensureHealthy[F] <+> closeEvictedPreparedStatements[F] <+> ensureIdle[F] <+> Recycler(_.unique(Query("VALUES (true)", Origin.unknown, Void.codec, bool)))
 
     /**
      * Send a Close to server for each prepared statement that was evicted during this session.
