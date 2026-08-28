@@ -9,10 +9,7 @@ import cats.effect.MonadCancel
 import skunk.~
 import skunk.net.{ Protocol, MessageSocket }
 import skunk.net.message.{ Execute => ExecuteMessage, _ }
-import org.typelevel.otel4s.Attribute
-import org.typelevel.otel4s.trace.Span
-import org.typelevel.otel4s.trace.Tracer
-import org.typelevel.otel4s.metrics.Histogram
+import skunk.telemetry.{SkunkAttributes, Telemetry}
 
 trait Execute[F[_]] {
   def apply[A, B](portal: Protocol.QueryPortal[F, A, B], maxRows: Int): F[List[B] ~ Boolean]
@@ -20,22 +17,28 @@ trait Execute[F[_]] {
 
 object Execute {
 
-  def apply[F[_]: Exchange: MessageSocket: Tracer](opDuration: Histogram[F, Double])(
+  def apply[F[_]: Exchange: MessageSocket: Telemetry](
     implicit ev: MonadCancel[F, Throwable]
   ): Execute[F] =
     new Unroll[F] with Execute[F] {
 
       override def apply[A, B](portal: Protocol.QueryPortal[F, A, B], maxRows: Int): F[List[B] ~ Boolean] =
-        exchange("execute", opDuration) { (span: Span[F]) =>
-          for {
-            _  <- span.addAttributes(
-                    Attribute("max-rows",    maxRows.toLong),
-                    Attribute("portal-id", portal.id.value)
-                  )
-            _  <- send(ExecuteMessage(portal.id.value, maxRows))
-            _  <- send(Flush)
-            rs <- unroll(portal)
-          } yield rs
+        database(
+          "execute",
+          portal.preparedStatement.statement,
+          portal.preparedStatement.statement.encoder.encode(portal.arguments),
+          portal.redactionStrategy,
+        ) {
+            for {
+              _  <- Telemetry[F].addAttributes(
+                      SkunkAttributes.fetchMaxRows(maxRows.toLong),
+                      SkunkAttributes.portalId(portal.id.value),
+                      SkunkAttributes.statementId(portal.preparedStatement.id.value)
+                    )
+              _  <- send(ExecuteMessage(portal.id.value, maxRows))
+              _  <- send(Flush)
+              rs <- unroll(portal)
+            } yield rs
         }
 
     }

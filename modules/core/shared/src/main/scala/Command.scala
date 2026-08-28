@@ -5,6 +5,7 @@
 package skunk
 
 import cats.Contravariant
+import org.typelevel.otel4s.{Attribute, Attributes}
 import org.typelevel.twiddles.Iso
 import skunk.util.Origin
 import skunk.util.Twiddler
@@ -34,8 +35,24 @@ import skunk.util.Twiddler
 final case class Command[A](
   override val sql:     String,
   override val origin:  Origin,
-  override val encoder: Encoder[A]
+  override val encoder: Encoder[A],
+  override val telemetry: Statement.Telemetry = Statement.Telemetry.empty,
 ) extends Statement[A] {
+
+  /** Attaches a low-cardinality summary used as `db.query.summary` and as the span name. Statement
+    * summaries take precedence over summaries returned by a configured query analyzer. The
+    * method is a shortcut for `addAttributes(DbAttributes.DbQuerySummary(summary))`.
+    */
+  def withQuerySummary(summary: String): Command[A] =
+    copy(telemetry = telemetry.withQuerySummary(summary))
+
+  /** Replaces the additional attributes exported on the logical database span. */
+  def withAttributes(attributes: Attributes): Command[A] =
+    copy(telemetry = telemetry.withAttributes(attributes))
+
+  /** Adds or replaces additional logical database span attributes by key. */
+  def addAttributes(attributes: Attribute[_]*): Command[A] =
+    copy(telemetry = telemetry.addAttributes(attributes: _*))
 
   /**
    * Command is a [[https://typelevel.org/cats/typeclasses/contravariant.html contravariant
@@ -43,7 +60,7 @@ final case class Command[A](
    * @group Transformations
    */
   def contramap[B](f: B => A): Command[B] =
-    Command(sql, origin, encoder.contramap(f))
+    Command(sql, origin, encoder.contramap(f), telemetry)
 
   @deprecated("Use .to[CaseClass] instead of .gcontramap[CaseClass]", "0.6")
   def gcontramap[B](implicit ev: Twiddler.Aux[B, A]): Command[B] =
