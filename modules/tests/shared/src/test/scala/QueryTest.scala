@@ -77,6 +77,15 @@ class QueryTest extends SkunkTest {
     } >> s.assertHealthy.as("ok")
   }
 
+  sessionTest("fetchAll") { s =>
+    val query = sql"select * from (values ($int4), ($int4), ($int4)) as t(i)".query(int4)
+    for {
+      ns <- s.prepare(query).flatMap(_.fetchAll((123, 456, 789)))
+      _  <- assertEqual("rows", ns, List(123, 456, 789))
+      _  <- s.assertHealthy
+    } yield "ok"
+  }
+
   // option and unique ask for 2 rows to tell whether more exist. When more do, the portal suspends
   // rather than completing, and the ReadyForQuery still has to be read or the next operation picks
   // it up. So what matters is not that these fail, but that the session works afterwards.

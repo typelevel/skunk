@@ -314,13 +314,8 @@ object Session {
    */
   private abstract class Impl[F[_]: MonadCancelThrow] extends Session[F] { outer =>
 
-    // Portable but four exchanges wide; sessions built on a Protocol override it below.
     override def execute[A, B](query: Query[A, B])(args: A): F[List[B]] =
-      Monad[F].flatMap(prepare(query)) { pq =>
-        pq.cursor(args).use {
-         _.fetch(Int.MaxValue).map { case (rows, _) => rows }
-        }
-      }
+      Monad[F].flatMap(prepare(query))(_.fetchAll(args))
 
     override def unique[A, B](query: Query[A, B])(args: A): F[B] =
       Monad[F].flatMap(prepare(query))(_.unique(args))
@@ -357,9 +352,6 @@ object Session {
         override def executeDiscard(statement: Statement[Void]): G[Unit] = fk(outer.executeDiscard(statement))
 
         override def execute[A](query: Query[Void,A]): G[List[A]] = fk(outer.execute(query))
-
-        // Delegated, so the wrapped session's implementation runs rather than Impl's portable one.
-        override def execute[A, B](query: Query[A, B])(args: A): G[List[B]] = fk(outer.execute(query)(args))
 
         override def option[A](query: Query[Void,A]): G[Option[A]] = fk(outer.option(query))
 
@@ -971,13 +963,6 @@ object Session {
 
         override def execute[A](query: Query[Void, A]): F[List[A]] =
           proto.execute(query, typer)
-
-        // One exchange. maxRows = 0 is the protocol's "no limit", which also guarantees the portal
-        // completes rather than suspending.
-        override def execute[A, B](query: Query[A, B])(args: A): F[List[B]] =
-          proto.prepare(query, typer)
-            .flatMap(_.executeSized(args, implicitly[Origin], 0))
-            .map { case (rows, _) => rows }
 
         override def unique[A](query: Query[Void, A]): F[A] =
           execute(query).flatMap {

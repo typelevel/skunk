@@ -5,7 +5,6 @@
 package tests
 package simulation
 
-import cats.arrow.FunctionK
 import cats.effect.IO
 import cats.syntax.all._
 import ffstest.FTest
@@ -44,8 +43,7 @@ class ExchangeCountTest extends FTest with SimMessageSocket.DSL {
     * @param rows what a portal yields; `Execute` honours `maxRows` and suspends when more remain.
     * @param completion the `CommandComplete` payload.
     * @param simpleCount how many `CommandComplete`s a simple query produces, for multi-statement.
-    * @param status what every `ReadyForQuery` reports. `Active` stands in for running inside an
-    *   explicit transaction, where a portal outlives `Sync` and so must still be closed.
+    * @param status what every `ReadyForQuery` reports; `Active` stands in for an open transaction.
     * @param executeFails answer `Execute` with an `ErrorResponse` rather than rows.
     */
   private def backend(
@@ -236,23 +234,30 @@ class ExchangeCountTest extends FTest with SimMessageSocket.DSL {
     }
   }
 
-  // A mapK'd session is a fresh Impl, so it must delegate or it inherits the portable four-exchange
-  // version. Nothing about the rows would look wrong, hence asserting the count.
-  test("a mapK'd session keeps the one-exchange path") {
+  // Both counts in one test: the method exists because the four-exchange spelling is the one that
+  // looks natural.
+  test("fetchAll costs one exchange where cursor + fetch costs four") {
     val qry = sql"select $int4".query(int4)
     val sim = backend(Some(List(int4Column)), List(row(1), row(2), row(3)), Completion.Select(3), 1, TransactionStatus.Idle)
     session(sim).flatMap { case (s, ctr) =>
-      val t = s.mapK(FunctionK.id[IO])
       for {
-        _  <- t.execute(qry)(42)
-        _  <- ctr.reset
-        rs <- t.execute(qry)(42)
-        _  <- assertEqual("rows", rs, List(1, 2, 3))
-        c  <- ctr.counts
-        _  <- assertEqual("exchanges", c.exchanges, 1)
+        pq  <- s.prepare(qry)
+        _   <- pq.fetchAll(42)
+        _   <- ctr.reset
+        fast <- pq.fetchAll(42)
+        c1  <- ctr.counts
+        _   <- ctr.reset
+        slow <- pq.cursor(42).use(_.fetch(Int.MaxValue).map { case (rows, _) => rows })
+        c2  <- ctr.counts
+        _   <- assertEqual("same rows either way", fast, slow)
+        _   <- assertEqual("rows", fast, List(1, 2, 3))
+        _   <- assertEqual("fetchAll exchanges", c1.exchanges, 1)
+        _   <- assertEqual("cursor + fetch exchanges", c2.exchanges, 4)
       } yield ()
     }
   }
+
+
 
   // The suspended-portal path. option asks for 2 rows; with 3 available the portal suspends rather
   // than completing, and the ReadyForQuery still has to be read. The follow-up query is the
@@ -274,10 +279,7 @@ class ExchangeCountTest extends FTest with SimMessageSocket.DSL {
   }
 
 
-  // The counter observes ReadyForQuery on its way past and reports the status it carries, which is
-  // what lets a harness scenario touch Session.transaction at all. The signal starts Idle, so
-  // reading Active back can only have come from the wire. Self-contained rather than built on
-  // `backend`, since what it needs is one specific reply.
+  // The signal starts Idle, so reading Active back can only have come from the wire.
   test("transaction status is tracked, not stubbed") {
     lazy val loop: Simulator = flatExpect {
       case Query(_) =>
