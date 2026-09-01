@@ -48,6 +48,8 @@ object Prepare {
               }
             def bindSized(args: A, origin: Origin, maxRows: Int): Resource[F, QueryPortal[F, A, B]] =
               BindExecute[F](opDuration).query(this, args, origin, redactionStrategy, maxRows)
+            def executeSized(args: A, origin: Origin, maxRows: Int): F[List[B] ~ Boolean] =
+              BindExecute[F](opDuration).executeSized(this, args, origin, redactionStrategy, maxRows)
           }
         }
 

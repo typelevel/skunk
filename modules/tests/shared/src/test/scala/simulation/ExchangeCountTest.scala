@@ -5,6 +5,7 @@
 package tests
 package simulation
 
+import cats.arrow.FunctionK
 import cats.effect.IO
 import cats.syntax.all._
 import ffstest.FTest
@@ -13,6 +14,7 @@ import org.typelevel.otel4s.trace.Tracer
 import skunk.{ RedactionStrategy, Session, TypingStrategy }
 import skunk.codec.all._
 import skunk.data.{ Completion, TransactionStatus, Type }
+import skunk.exception.{ DecodeException, PostgresErrorException }
 import skunk.implicits._
 import skunk.net.Protocol
 import skunk.net.message._
@@ -44,13 +46,15 @@ class ExchangeCountTest extends FTest with SimMessageSocket.DSL {
     * @param simpleCount how many `CommandComplete`s a simple query produces, for multi-statement.
     * @param status what every `ReadyForQuery` reports. `Active` stands in for running inside an
     *   explicit transaction, where a portal outlives `Sync` and so must still be closed.
+    * @param executeFails answer `Execute` with an `ErrorResponse` rather than rows.
     */
   private def backend(
     columns:     Option[List[RowDescription.Field]],
     rows:        List[RowData],
     completion:  Completion,
     simpleCount: Int,
-    status:      TransactionStatus
+    status:      TransactionStatus,
+    executeFails: Boolean = false
   ): Simulator = {
 
     def loop(remaining: List[RowData]): Simulator =
@@ -69,7 +73,11 @@ class ExchangeCountTest extends FTest with SimMessageSocket.DSL {
           send(BindComplete) *> loop(rows)
 
         case Execute(_, maxRows) =>
-          if (maxRows > 0 && remaining.length > maxRows) {
+          if (executeFails) {
+            // The backend then discards until the Sync the client already sent; the Sync case below
+            // queues its ReadyForQuery, so the wire order is ErrorResponse then ReadyForQuery.
+            send(ErrorResponse(Map('M' -> "boom", 'S' -> "ERROR", 'C' -> "42601"))) *> loop(Nil)
+          } else if (maxRows > 0 && remaining.length > maxRows) {
             val (chunk, rest) = remaining.splitAt(maxRows)
             chunk.traverse_(send) *> send(PortalSuspended) *> loop(rest)
           } else {
@@ -85,9 +93,11 @@ class ExchangeCountTest extends FTest with SimMessageSocket.DSL {
         case Flush =>
           loop(remaining)
 
+        // A fixed decodable row rather than the scenario's, so a simple query works as a
+        // "still synchronized?" probe in tests whose rows are deliberately broken.
         case Query(_) =>
           columns.traverse_(fs => send(RowDescription(fs)))                *>
-          rows.traverse_(send)                                             *>
+          columns.traverse_(_ => send(RowData(List(Some("1")))))            *>
           List.fill(simpleCount)(CommandComplete(completion)).traverse_(send) *>
           send(ReadyForQuery(status))                                      *>
           loop(rows)
@@ -160,6 +170,7 @@ class ExchangeCountTest extends FTest with SimMessageSocket.DSL {
       cmdCold  <- measure(warm = false)(_.execute(cmd)(42))
       cmdInTx  <- measure(status = TransactionStatus.Active)(_.execute(cmd)(42))
       qAll     <- measure(oneCol, threeRow, Completion.Select(3))(_.execute(qry)(42))
+      qAllInTx <- measure(oneCol, threeRow, Completion.Select(3), status = TransactionStatus.Active)(_.execute(qry)(42))
       qUnique  <- measure(oneCol, oneRow, Completion.Select(1))(_.unique(qry)(42))
       qOption  <- measure(oneCol, oneRow, Completion.Select(1))(_.option(qry)(42))
       qStream  <- measure(oneCol, threeRow, Completion.Select(3))(_.stream(qry)(42, 2).compile.toList)
@@ -172,9 +183,10 @@ class ExchangeCountTest extends FTest with SimMessageSocket.DSL {
         ("parameterized command, warm",     cmdWarm, 1),
         ("parameterized command, cold",     cmdCold, 2),
         ("parameterized command, in tx",    cmdInTx, 2),
-        ("parameterized query, all rows",   qAll,    4),
-        ("parameterized query, unique",     qUnique, 3),
-        ("parameterized query, option",     qOption, 3),
+        ("parameterized query, all rows",   qAll,    1),
+        ("parameterized query, all rows/tx", qAllInTx, 2),
+        ("parameterized query, unique",     qUnique, 1),
+        ("parameterized query, option",     qOption, 1),
         ("streaming query, 3 rows / 2",     qStream, 4),
         ("parameterless command (simple)",  simpCmd, 1),
         ("parameterless query (simple)",    simpQry, 1),
@@ -188,6 +200,77 @@ class ExchangeCountTest extends FTest with SimMessageSocket.DSL {
            }
     } yield ()
 
+  }
+
+  // The two resync paths success does not reach. Both consume the ReadyForQuery themselves, since
+  // the error propagates past the caller's read. Getting it wrong damages the *next* operation, so
+  // the follow-up query is the real assertion.
+  test("an error during execute leaves the session synchronized") {
+    val qry = sql"select $int4".query(int4)
+    val sim = backend(Some(List(int4Column)), List(row(1)), Completion.Select(1), 1, TransactionStatus.Idle, executeFails = true)
+    session(sim).flatMap { case (s, _) =>
+      for {
+        _  <- s.unique(qry)(42).assertFailsWith[PostgresErrorException]
+        rs <- s.execute(sql"select 1".query(int4))
+        _  <- assertEqual("follow-up query still works", rs, List(1))
+      } yield ()
+    }
+  }
+
+  test("a decode failure leaves the session synchronized") {
+    val qry = sql"select $int4".query(int4)
+    // A row that is not an int4, so decoding blows up after the rows have been read.
+    val sim = backend(Some(List(int4Column)), List(RowData(List(Some("nope")))), Completion.Select(1), 1, TransactionStatus.Idle)
+    session(sim).flatMap { case (s, ctr) =>
+      for {
+        _  <- s.unique(qry)(42).attempt   // warm the caches; this attempt fails too
+        _  <- ctr.reset
+        _  <- s.unique(qry)(42).assertFailsWith[DecodeException[IO, _, _]]
+        // Two exchanges: the fetch, then the Close the decode failure would otherwise skip. A
+        // leaked portal is invisible from the client, so the count is the only handle on it.
+        c  <- ctr.counts
+        _  <- assertEqual("decode failure still closes the portal", c.exchanges, 2)
+        rs <- s.execute(sql"select 1".query(int4))
+        _  <- assertEqual("follow-up query still works", rs, List(1))
+      } yield ()
+    }
+  }
+
+  // A mapK'd session is a fresh Impl, so it must delegate or it inherits the portable four-exchange
+  // version. Nothing about the rows would look wrong, hence asserting the count.
+  test("a mapK'd session keeps the one-exchange path") {
+    val qry = sql"select $int4".query(int4)
+    val sim = backend(Some(List(int4Column)), List(row(1), row(2), row(3)), Completion.Select(3), 1, TransactionStatus.Idle)
+    session(sim).flatMap { case (s, ctr) =>
+      val t = s.mapK(FunctionK.id[IO])
+      for {
+        _  <- t.execute(qry)(42)
+        _  <- ctr.reset
+        rs <- t.execute(qry)(42)
+        _  <- assertEqual("rows", rs, List(1, 2, 3))
+        c  <- ctr.counts
+        _  <- assertEqual("exchanges", c.exchanges, 1)
+      } yield ()
+    }
+  }
+
+  // The suspended-portal path. option asks for 2 rows; with 3 available the portal suspends rather
+  // than completing, and the ReadyForQuery still has to be read. The follow-up query is the
+  // assertion: a leftover reply would be read as its first message and fail with a protocol error.
+  test("a suspended portal leaves the session synchronized") {
+    val qry = sql"select $int4".query(int4)
+    val sim = backend(Some(List(int4Column)), List(row(1), row(2), row(3)), Completion.Select(3), 1, TransactionStatus.Idle)
+    session(sim).flatMap { case (s, ctr) =>
+      for {
+        e  <- s.option(qry)(42).attempt
+        _  <- assert("option should have failed on 3 rows", e.isLeft)
+        _  <- ctr.reset
+        rs <- s.execute(sql"select 1".query(int4))
+        _  <- assertEqual("follow-up query still works", rs, List(1))
+        c  <- ctr.counts
+        _  <- assertEqual("follow-up cost one exchange", c.exchanges, 1)
+      } yield ()
+    }
   }
 
 

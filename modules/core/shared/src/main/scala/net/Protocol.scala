@@ -175,6 +175,16 @@ object Protocol {
     def statement: Statement[A] = query
     def bind(args: A, argsOrigin: Origin): Resource[F, QueryPortal[F, A, B]]
     def bindSized(args: A, argsOrigin: Origin, maxRows: Int): Resource[F, QueryPortal[F, A, B]]
+
+    /**
+     * Bind, execute and `Sync` in a single write, yielding up to `maxRows` rows and whether more
+     * remain. Pass `maxRows = 0` for no limit.
+     *
+     * Unlike `bindSized` this exposes no portal, because the `Sync` ends the implicit transaction
+     * that owned it. That is what makes it one exchange rather than four, and why no further fetch
+     * is possible.
+     */
+    def executeSized(args: A, argsOrigin: Origin, maxRows: Int): F[List[B] ~ Boolean]
   }
 
   /**

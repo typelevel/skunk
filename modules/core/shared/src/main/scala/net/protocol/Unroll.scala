@@ -61,6 +61,34 @@ private[protocol] class Unroll[F[_]: MessageSocket: Tracer](
       redactionStrategy = redactionStrategy
     )
 
+  /** Receive rows for a portal whose `Sync` has already been written, so the `ReadyForQuery` it
+    * elicits is in flight and resynchronisation is the caller's business:
+    *
+    *   - On success it is left unread, since the caller needs the transaction status it carries.
+    *   - On failure it is consumed here, since the error propagates past the caller's own read.
+    *   - Nothing here sends a `Sync`; a second would leave a second `ReadyForQuery` in the buffer.
+    *
+    * Those are the semantics of `extended = false` below; this is a name for them, since "not the
+    * extended protocol" is not what is meant.
+    */
+  def unrollPresynced[A, B](
+    preparedQuery: PreparedQuery[F, A, B],
+    arguments: A,
+    argumentsOrigin: Origin,
+    redactionStrategy: RedactionStrategy
+  ): F[(List[B], Boolean)] =
+    unroll(
+      extended       = false,
+      sql            = preparedQuery.query.sql,
+      sqlOrigin      = preparedQuery.query.origin,
+      args           = arguments,
+      argsOrigin     = Some(argumentsOrigin),
+      encoder        = preparedQuery.query.encoder,
+      rowDescription = preparedQuery.rowDescription,
+      decoder        = preparedQuery.query.decoder,
+      redactionStrategy = redactionStrategy
+    )
+
   // When we do a quick query there's no statement to hang onto all the error-reporting context
   // so we have to pass everything in manually.
   def unroll[A, B](

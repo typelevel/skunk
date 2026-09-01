@@ -9,7 +9,7 @@ import cats.syntax.all._
 import cats.effect.Concurrent
 import skunk.~
 import skunk.exception._
-import skunk.net.message.{ Bind => BindMessage, Execute => ExecuteMessage, Close => _, _ }
+import skunk.net.message.{ Bind => BindMessage, Execute => ExecuteMessage, Close => CloseMessage, _ }
 import skunk.net.MessageSocket
 import skunk.net.Protocol.PortalId
 import skunk.util.{ Origin, Namer }
@@ -38,6 +38,14 @@ trait BindExecute[F[_]] {
     redactionStrategy: RedactionStrategy,
     initialSize: Int
   ): Resource[F, Protocol.QueryPortal[F, A, B]]
+
+  def executeSized[A, B](
+    statement:  Protocol.PreparedQuery[F, A, B],
+    args:       A,
+    argsOrigin: Origin,
+    redactionStrategy: RedactionStrategy,
+    maxRows: Int
+  ): F[List[B] ~ Boolean]
 }
 
 object BindExecute {
@@ -173,6 +181,63 @@ object BindExecute {
           // once CopyInResponse has been read.
           Close[F](opDuration).apply(portal.id).whenA(xa =!= TransactionStatus.Idle)
         } .map(_._1)
+
+      }
+
+      def executeSized[A, B](
+        statement:  Protocol.PreparedQuery[F, A, B],
+        args:       A,
+        argsOrigin: Origin,
+        redactionStrategy: RedactionStrategy,
+        maxRows: Int
+      ): F[List[B] ~ Boolean] = {
+
+        // Sync goes out with Bind and Execute, as for a command. Safe here and not in `query`
+        // because this path fetches once, so no second Execute can be stranded.
+        val (preBind, postBind) = bindExchange(statement, args, argsOrigin, redactionStrategy, syncSent = true)
+
+        // A span name distinct from `command` and `query`, which share "bind+execute".
+        val fetch: F[(List[B] ~ Boolean, PortalId, TransactionStatus)] =
+          exchange("bind+execute+sync", opDuration){ (span: Span[F]) =>
+            for {
+              pn <- preBind(span)
+              _  <- span.addAttributes(
+                      Attribute("max-rows",  maxRows.toLong),
+                      Attribute("portal-id", pn.value)
+                    )
+              _  <- send(ExecuteMessage(pn.value, maxRows))
+              _  <- send(Sync)
+              _  <- postBind
+              // Leaves the ReadyForQuery unread on success -- see unrollPresynced -- since we need
+              // the status it carries. It must be read on the PortalSuspended path too, taken
+              // whenever maxRows is reached, or the reply is left for the next operation.
+              rs <- unrollPresynced(statement, args, argsOrigin, redactionStrategy)
+                      // A decode failure is raised here, so the Close below never runs. A server
+                      // error would have dropped the portal itself; a decode failure leaves the
+                      // server happy and, inside a transaction, the portal open. The status is not
+                      // known at this point, so close unconditionally -- legal either way. Inline,
+                      // because the mutex is not reentrant, and attempted so that failing to close
+                      // cannot mask the decode error.
+                      .onError { case _: DecodeException[_, _, _] =>
+                        (send(CloseMessage.portal(pn.value)) *>
+                         send(Flush)                        *>
+                         expect { case CloseComplete => }).attempt.void
+                      }
+              xa <- expect { case ReadyForQuery(s) => s }
+            } yield (rs, pn, xa)
+          }
+
+        // Uncancelable across both exchanges, not just each one: `exchange` is individually
+        // uncancelable but the join between them is a cancellation point, and being cancelled there
+        // would skip the Close. Errors take the same route, which is why the decode path above
+        // closes the portal itself.
+        ev.uncancelable { _ =>
+          fetch.flatMap { case (rs, pn, xa) =>
+            // As in `command`: nothing to close outside an explicit transaction. Outside the
+            // exchange above, because Close opens its own and the mutex is not reentrant.
+            Close[F](opDuration).apply(pn).whenA(xa =!= TransactionStatus.Idle).as(rs)
+          }
+        }
 
       }
 

@@ -84,7 +84,7 @@ object PreparedQuery {
       // We have a few operations that only want the first row. In order to do this AND
       // know if there are more we need to ask for 2 rows.
       private def fetch2(args: A)(implicit or: Origin): F[(List[B], Boolean)] =
-        proto.bindSized(args, or, 2).use(_.execute(2))
+        proto.executeSized(args, or, 2)
 
       override def option(args: A)(implicit or: Origin): F[Option[B]] =
         fetch2(args).flatMap { case (bs, _) =>
