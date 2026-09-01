@@ -47,11 +47,16 @@ object BindExecute {
   ): BindExecute[F] =
     new Unroll[F] with BindExecute[F] {
       
+      /** @param syncSent whether the caller has already sent Sync. If so the backend discards to it
+        *   and emits one ReadyForQuery, so the error path must consume that rather than send a second
+        *   Sync.
+        */
       def bindExchange[A](
         statement: Protocol.PreparedStatement[F, A],
         args: A,
         argsOrigin: Origin,
-        redactionStrategy: RedactionStrategy
+        redactionStrategy: RedactionStrategy,
+        syncSent: Boolean
       ):(Span[F] => F[PortalId], F[Unit]) = {
         val ea  = statement.statement.encoder.encode(args) // encoded args
         
@@ -69,7 +74,7 @@ object BindExecute {
           case ErrorResponse(info) =>
             for {
               hi <- history(Int.MaxValue)
-              _  <- send(Sync)
+              _  <- send(Sync).unlessA(syncSent)
               _  <- expect { case ReadyForQuery(_) => }
               a  <- PostgresErrorException.raiseError[F, Unit](
                       sql             = statement.statement.sql,
@@ -91,23 +96,30 @@ object BindExecute {
         redactionStrategy: RedactionStrategy
       ): Resource[F, Protocol.CommandPortal[F, A]] = {
 
-        val (preBind, postBind) = bindExchange(statement, args, argsOrigin, redactionStrategy)
+        val (preBind, postBind) = bindExchange(statement, args, argsOrigin, redactionStrategy, syncSent = true)
 
         val postExec: F[Completion] = flatExpect {
-          case CommandComplete(c) => send(Sync) *> expect { case ReadyForQuery(_) => c } // https://github.com/tpolecat/skunk/issues/210
+          // Sync went out with Bind and Execute, so ReadyForQuery is already on its way. Issue 210
+          // requires that Sync be sent, not that it be sent here.
+          // https://github.com/tpolecat/skunk/issues/210
+          case CommandComplete(c) => expect { case ReadyForQuery(_) => c }
 
           case EmptyQueryResponse =>
-            send(Sync) *>
             expect { case ReadyForQuery(_) => } *>
             new EmptyStatementException(statement.command).raiseError[F, Completion]
 
+          // The backend performs the whole copy inside its handling of Execute, so it reaches our
+          // Sync only afterwards and replies ReadyForQuery, which has to be consumed.
           case CopyOutResponse(_) =>
             receive.iterateUntil {
               case CommandComplete(_) => true
               case _                  => false
             } *>
+            expect { case ReadyForQuery(_) => } *>
             new CopyNotSupportedException(statement.command).raiseError[F, Completion]
 
+          // The backend ignores Flush and Sync in copy-in mode, so ours was swallowed and this
+          // branch has to send its own.
           case CopyInResponse(_) =>
             send(CopyFail) *>
             expect { case ErrorResponse(_) => } *>
@@ -118,7 +130,6 @@ object BindExecute {
           case ErrorResponse(info) =>
             for {
               hi <- history(Int.MaxValue)
-              _  <- send(Sync)
               _  <- expect { case ReadyForQuery(_) => }
               redactedArgs = statement.command.encoder.types.zip(
                 redactionStrategy.redactArguments(statement.command.encoder.encode(args)))
@@ -138,7 +149,9 @@ object BindExecute {
             for {
               pn <- preBind(span)
               _  <- send(ExecuteMessage(pn.value, 0))
-              _  <- send(Flush)
+              // Sync rather than Flush: a command never pages, so there is no portal to keep alive
+              // between Executes, and all three replies come back from one flush.
+              _  <- send(Sync)
               _  <- postBind
               c  <- postExec
             } yield new Protocol.CommandPortal[F, A](pn, statement, args, argsOrigin) {
@@ -156,7 +169,9 @@ object BindExecute {
         redactionStrategy: RedactionStrategy,
         initialSize: Int
       ): Resource[F, Protocol.QueryPortal[F, A, B]] = {
-        val (preBind, postBind) = bindExchange(statement, args, argsOrigin, redactionStrategy)
+        // Queries keep Flush: the portal must stay open for further Executes, which Sync would
+        // prevent by ending the transaction that owns it.
+        val (preBind, postBind) = bindExchange(statement, args, argsOrigin, redactionStrategy, syncSent = false)
         Resource.eval(Deferred[F, Unit]).flatMap { prefetch =>
           Resource.make {
             exchange("bind+execute", opDuration){ (span: Span[F]) =>

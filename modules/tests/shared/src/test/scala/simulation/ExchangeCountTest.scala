@@ -164,8 +164,8 @@ class ExchangeCountTest extends FTest with SimMessageSocket.DSL {
       begin    <- measure(completion = Completion.Begin)(_.execute(sql"begin".command))
 
       table = List(
-        ("parameterized command, warm",     cmdWarm, 3),
-        ("parameterized command, cold",     cmdCold, 4),
+        ("parameterized command, warm",     cmdWarm, 2),
+        ("parameterized command, cold",     cmdCold, 3),
         ("parameterized query, all rows",   qAll,    4),
         ("parameterized query, unique",     qUnique, 3),
         ("parameterized query, option",     qOption, 3),
