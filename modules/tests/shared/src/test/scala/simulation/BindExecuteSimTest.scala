@@ -40,8 +40,8 @@ class BindExecuteSimTest extends SimTest {
           error(s"Unsupported: $other") *> mainLoop
       }
 
-    // Bind, Execute and Sync go out together, so all three replies come back from one exchange; the
-    // portal Close is a second.
+    // Bind, Execute and Sync go out together, so all three replies come back from one exchange. That
+    // ReadyForQuery reports an idle transaction, so the portal is already gone and no Close follows.
     lazy val bindExecuteLoop: Simulator =
       flatExpect {
         case Bind(_, _, _) =>
@@ -50,9 +50,6 @@ class BindExecuteSimTest extends SimTest {
           send(BindComplete)                                *>
           send(CommandComplete(Completion.Insert(1)))       *>
           send(ReadyForQuery(TransactionStatus.Idle))       *>
-          expect { case Close(_, _) => }                    *>
-          expect { case Flush       => }                    *>
-          send(CloseComplete)                               *>
           bindExecuteLoop
 
         case other =>
@@ -64,7 +61,7 @@ class BindExecuteSimTest extends SimTest {
     }
   }
 
-  simTest("command: parse+describe, bind+execute+sync, close", sim) { s =>
+  simTest("command: parse+describe, then bind+execute+sync in one exchange", sim) { s =>
     for {
       c <- s.execute(sql"insert into foo values ($int4)".command)(42)
       _ <- assert("completion", c == Completion.Insert(1))

@@ -17,7 +17,7 @@ import org.typelevel.otel4s.Attribute
 import org.typelevel.otel4s.trace.{Span, Tracer}
 import skunk.RedactionStrategy
 import skunk.net.Protocol
-import skunk.data.Completion
+import skunk.data.{ Completion, TransactionStatus }
 import skunk.net.protocol.exchange
 import cats.effect.kernel.Deferred
 import org.typelevel.otel4s.metrics.Histogram
@@ -98,15 +98,17 @@ object BindExecute {
 
         val (preBind, postBind) = bindExchange(statement, args, argsOrigin, redactionStrategy, syncSent = true)
 
-        val postExec: F[Completion] = flatExpect {
+        val postExec: F[(Completion, TransactionStatus)] = flatExpect {
           // Sync went out with Bind and Execute, so ReadyForQuery is already on its way. Issue 210
           // requires that Sync be sent, not that it be sent here.
           // https://github.com/tpolecat/skunk/issues/210
-          case CommandComplete(c) => expect { case ReadyForQuery(_) => c }
+          //
+          // Keep the transaction status: it says whether the portal still exists.
+          case CommandComplete(c) => expect { case ReadyForQuery(s) => (c, s) }
 
           case EmptyQueryResponse =>
             expect { case ReadyForQuery(_) => } *>
-            new EmptyStatementException(statement.command).raiseError[F, Completion]
+            new EmptyStatementException(statement.command).raiseError[F, (Completion, TransactionStatus)]
 
           // The backend performs the whole copy inside its handling of Execute, so it reaches our
           // Sync only afterwards and replies ReadyForQuery, which has to be consumed.
@@ -116,7 +118,7 @@ object BindExecute {
               case _                  => false
             } *>
             expect { case ReadyForQuery(_) => } *>
-            new CopyNotSupportedException(statement.command).raiseError[F, Completion]
+            new CopyNotSupportedException(statement.command).raiseError[F, (Completion, TransactionStatus)]
 
           // The backend ignores Flush and Sync in copy-in mode, so ours was swallowed and this
           // branch has to send its own.
@@ -125,7 +127,7 @@ object BindExecute {
             expect { case ErrorResponse(_) => } *>
             send(Sync) *>
             expect { case ReadyForQuery(_) => } *>
-            new CopyNotSupportedException(statement.command).raiseError[F, Completion]
+            new CopyNotSupportedException(statement.command).raiseError[F, (Completion, TransactionStatus)]
 
           case ErrorResponse(info) =>
             for {
@@ -140,7 +142,7 @@ object BindExecute {
                       history         = hi,
                       arguments       = redactedArgs,
                       argumentsOrigin = Some(argsOrigin)
-                    ).raiseError[F, Completion]
+                    ).raiseError[F, (Completion, TransactionStatus)]
             } yield a
         }
 
@@ -153,12 +155,24 @@ object BindExecute {
               // between Executes, and all three replies come back from one flush.
               _  <- send(Sync)
               _  <- postBind
-              c  <- postExec
-            } yield new Protocol.CommandPortal[F, A](pn, statement, args, argsOrigin) {
-              def execute: F[Completion] = c.pure
+              ca <- postExec
+            } yield {
+              val (c, xa) = ca
+              (new Protocol.CommandPortal[F, A](pn, statement, args, argsOrigin) {
+                def execute: F[Completion] = c.pure
+              }, xa)
             }
           }
-        } { portal => Close[F](opDuration).apply(portal.id)}
+        } { case (portal, xa) =>
+          // Sync ended the implicit transaction and took the portal with it, so outside an explicit
+          // transaction there is nothing to close. Inside one the portal lives until COMMIT and must
+          // be closed or portals accumulate.
+          //
+          // Close cannot be folded into the write above: the backend ignores Flush and Sync during
+          // copy-in but errors on anything else, and a command is only known to be COPY FROM STDIN
+          // once CopyInResponse has been read.
+          Close[F](opDuration).apply(portal.id).whenA(xa =!= TransactionStatus.Idle)
+        } .map(_._1)
 
       }
 

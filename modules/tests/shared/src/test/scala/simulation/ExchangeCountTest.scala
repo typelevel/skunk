@@ -42,12 +42,15 @@ class ExchangeCountTest extends FTest with SimMessageSocket.DSL {
     * @param rows what a portal yields; `Execute` honours `maxRows` and suspends when more remain.
     * @param completion the `CommandComplete` payload.
     * @param simpleCount how many `CommandComplete`s a simple query produces, for multi-statement.
+    * @param status what every `ReadyForQuery` reports. `Active` stands in for running inside an
+    *   explicit transaction, where a portal outlives `Sync` and so must still be closed.
     */
   private def backend(
     columns:     Option[List[RowDescription.Field]],
     rows:        List[RowData],
     completion:  Completion,
-    simpleCount: Int
+    simpleCount: Int,
+    status:      TransactionStatus
   ): Simulator = {
 
     def loop(remaining: List[RowData]): Simulator =
@@ -77,7 +80,7 @@ class ExchangeCountTest extends FTest with SimMessageSocket.DSL {
           send(CloseComplete) *> loop(remaining)
 
         case Sync =>
-          send(ReadyForQuery(TransactionStatus.Idle)) *> loop(remaining)
+          send(ReadyForQuery(status)) *> loop(remaining)
 
         case Flush =>
           loop(remaining)
@@ -86,7 +89,7 @@ class ExchangeCountTest extends FTest with SimMessageSocket.DSL {
           columns.traverse_(fs => send(RowDescription(fs)))                *>
           rows.traverse_(send)                                             *>
           List.fill(simpleCount)(CommandComplete(completion)).traverse_(send) *>
-          send(ReadyForQuery(TransactionStatus.Idle))                      *>
+          send(ReadyForQuery(status))                                      *>
           loop(rows)
 
         case other =>
@@ -123,9 +126,10 @@ class ExchangeCountTest extends FTest with SimMessageSocket.DSL {
     rows:        List[RowData]                      = Nil,
     completion:  Completion                         = Completion.Insert(1),
     simpleCount: Int                                = 1,
+    status:      TransactionStatus                  = TransactionStatus.Idle,
     warm:        Boolean                            = true
   )(f: Session[IO] => IO[A]): IO[ExchangeCounts] =
-    session(backend(columns, rows, completion, simpleCount)).flatMap { case (s, ctr) =>
+    session(backend(columns, rows, completion, simpleCount, status)).flatMap { case (s, ctr) =>
       f(s).void.whenA(warm) *> ctr.reset *> f(s) *> ctr.counts
     }
 
@@ -154,6 +158,7 @@ class ExchangeCountTest extends FTest with SimMessageSocket.DSL {
     for {
       cmdWarm  <- measure()(_.execute(cmd)(42))
       cmdCold  <- measure(warm = false)(_.execute(cmd)(42))
+      cmdInTx  <- measure(status = TransactionStatus.Active)(_.execute(cmd)(42))
       qAll     <- measure(oneCol, threeRow, Completion.Select(3))(_.execute(qry)(42))
       qUnique  <- measure(oneCol, oneRow, Completion.Select(1))(_.unique(qry)(42))
       qOption  <- measure(oneCol, oneRow, Completion.Select(1))(_.option(qry)(42))
@@ -164,8 +169,9 @@ class ExchangeCountTest extends FTest with SimMessageSocket.DSL {
       begin    <- measure(completion = Completion.Begin)(_.execute(sql"begin".command))
 
       table = List(
-        ("parameterized command, warm",     cmdWarm, 2),
-        ("parameterized command, cold",     cmdCold, 3),
+        ("parameterized command, warm",     cmdWarm, 1),
+        ("parameterized command, cold",     cmdCold, 2),
+        ("parameterized command, in tx",    cmdInTx, 2),
         ("parameterized query, all rows",   qAll,    4),
         ("parameterized query, unique",     qUnique, 3),
         ("parameterized query, option",     qOption, 3),
