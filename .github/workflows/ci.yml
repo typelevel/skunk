@@ -28,7 +28,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        scala: [2.13, 3]
+        scala: [3.9.0, 3.3.8]
         java: [temurin@17]
         project: [skunkJS, skunkJVM, skunkNative]
     runs-on: ${{ matrix.os }}
@@ -143,62 +143,62 @@ jobs:
           export SERVER_CERT=$(cat world/server.crt)
           docker compose up -d
 
-      - name: Download target directories (2.13, skunkJS)
+      - name: Download target directories (3.9.0, skunkJS)
         uses: actions/download-artifact@v6
         with:
-          name: target-${{ matrix.os }}-${{ matrix.java }}-2.13-skunkJS
+          name: target-${{ matrix.os }}-${{ matrix.java }}-3.9.0-skunkJS
 
-      - name: Inflate target directories (2.13, skunkJS)
+      - name: Inflate target directories (3.9.0, skunkJS)
         run: |
           tar xf targets.tar
           rm targets.tar
 
-      - name: Download target directories (2.13, skunkJVM)
+      - name: Download target directories (3.9.0, skunkJVM)
         uses: actions/download-artifact@v6
         with:
-          name: target-${{ matrix.os }}-${{ matrix.java }}-2.13-skunkJVM
+          name: target-${{ matrix.os }}-${{ matrix.java }}-3.9.0-skunkJVM
 
-      - name: Inflate target directories (2.13, skunkJVM)
+      - name: Inflate target directories (3.9.0, skunkJVM)
         run: |
           tar xf targets.tar
           rm targets.tar
 
-      - name: Download target directories (2.13, skunkNative)
+      - name: Download target directories (3.9.0, skunkNative)
         uses: actions/download-artifact@v6
         with:
-          name: target-${{ matrix.os }}-${{ matrix.java }}-2.13-skunkNative
+          name: target-${{ matrix.os }}-${{ matrix.java }}-3.9.0-skunkNative
 
-      - name: Inflate target directories (2.13, skunkNative)
+      - name: Inflate target directories (3.9.0, skunkNative)
         run: |
           tar xf targets.tar
           rm targets.tar
 
-      - name: Download target directories (3, skunkJS)
+      - name: Download target directories (3.3.8, skunkJS)
         uses: actions/download-artifact@v6
         with:
-          name: target-${{ matrix.os }}-${{ matrix.java }}-3-skunkJS
+          name: target-${{ matrix.os }}-${{ matrix.java }}-3.3.8-skunkJS
 
-      - name: Inflate target directories (3, skunkJS)
+      - name: Inflate target directories (3.3.8, skunkJS)
         run: |
           tar xf targets.tar
           rm targets.tar
 
-      - name: Download target directories (3, skunkJVM)
+      - name: Download target directories (3.3.8, skunkJVM)
         uses: actions/download-artifact@v6
         with:
-          name: target-${{ matrix.os }}-${{ matrix.java }}-3-skunkJVM
+          name: target-${{ matrix.os }}-${{ matrix.java }}-3.3.8-skunkJVM
 
-      - name: Inflate target directories (3, skunkJVM)
+      - name: Inflate target directories (3.3.8, skunkJVM)
         run: |
           tar xf targets.tar
           rm targets.tar
 
-      - name: Download target directories (3, skunkNative)
+      - name: Download target directories (3.3.8, skunkNative)
         uses: actions/download-artifact@v6
         with:
-          name: target-${{ matrix.os }}-${{ matrix.java }}-3-skunkNative
+          name: target-${{ matrix.os }}-${{ matrix.java }}-3.3.8-skunkNative
 
-      - name: Inflate target directories (3, skunkNative)
+      - name: Inflate target directories (3.3.8, skunkNative)
         run: |
           tar xf targets.tar
           rm targets.tar
@@ -266,7 +266,7 @@ jobs:
       - name: Submit Dependencies
         uses: scalacenter/sbt-dependency-submission@v2
         with:
-          modules-ignore: skunk_2.13 skunk_3 docs_2.13 docs_3 skunk_2.13 skunk_3 skunk_2.13 skunk_3 tests_sjs1_2.13 tests_sjs1_3 tests_2.13 tests_3 example_2.13 example_3 tests_native0.5_2.13 tests_native0.5_3 bench_2.13 bench_3
+          modules-ignore: skunk_3 skunk_3 docs_3 docs_3 skunk_3 skunk_3 skunk_3 skunk_3 tests_sjs1_3 tests_sjs1_3 tests_3 tests_3 example_3 example_3 tests_native0.5_3 tests_native0.5_3 bench_3 bench_3
           configs-ignore: test scala-tool scala-doc-tool test-internal
 
   site:
