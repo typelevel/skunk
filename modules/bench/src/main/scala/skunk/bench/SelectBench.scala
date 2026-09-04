@@ -11,13 +11,13 @@ import skunk.codec.all._
 
 import java.sql.DriverManager
 import org.openjdk.jmh.annotations._
-import org.typelevel.otel4s.trace.Tracer
-import org.typelevel.otel4s.metrics.Meter
+import org.typelevel.otel4s.trace.TracerProvider
+import org.typelevel.otel4s.metrics.MeterProvider
 
 @State(Scope.Benchmark)
 object SelectBenchScope {
-  implicit val tracer: Tracer[IO] = Tracer.noop[IO]
-  implicit val meter: Meter[IO] = Meter.noop[IO]
+  implicit val tracerProvider: TracerProvider[IO] = TracerProvider.noop[IO]
+  implicit val meterProvider: MeterProvider[IO] = MeterProvider.noop[IO]
 
   val defaultChunkSize = 512
 

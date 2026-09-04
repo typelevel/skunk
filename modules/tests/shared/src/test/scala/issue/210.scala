@@ -10,7 +10,7 @@ import skunk.codec.all._
 import skunk.implicits._
 import tests.SkunkTest
 import cats.effect._
-import org.typelevel.otel4s.trace.Tracer
+import org.typelevel.otel4s.trace.TracerProvider
 
 // https://github.com/tpolecat/skunk/issues/210
 class Test210 extends SkunkTest {
@@ -47,7 +47,7 @@ class Test210 extends SkunkTest {
   val bob     = Pet("Bob", 12)
   val beatles = List(Pet("John", 2), Pet("George", 3), Pet("Paul", 6), Pet("Ringo", 3))
 
-  def doInserts(ready: Deferred[IO, Unit], done: Deferred[IO, Unit])(implicit tracer: Tracer[IO]): IO[Unit] =
+  def doInserts(ready: Deferred[IO, Unit], done: Deferred[IO, Unit])(implicit tracerProvider: TracerProvider[IO]): IO[Unit] =
     session.flatTap(withPetsTable).use { s =>
       for {
         _ <- s.prepare(insertOne).flatMap(pc => pc.execute(Pet("Bob", 12)))
@@ -57,7 +57,7 @@ class Test210 extends SkunkTest {
       } yield ()
     }
 
-  def check(implicit tracer: Tracer[IO]): IO[Unit] =
+  def check(implicit tracerProvider: TracerProvider[IO]): IO[Unit] =
     session.use { s =>
       for {
         ns <- s.execute(sql"select name from Test210_pets".query(varchar))
@@ -65,7 +65,7 @@ class Test210 extends SkunkTest {
       } yield ()
     }
 
-  tracedTest("issue/210") { implicit tracer: Tracer[IO] =>
+  tracedTest("issue/210") { implicit tracerProvider: TracerProvider[IO] =>
     for {
       ready <- Deferred[IO, Unit]
       done  <- Deferred[IO, Unit]

@@ -61,6 +61,10 @@ jobs:
           export SERVER_CERT=$(cat world/server.crt)
           docker compose up -d
 
+      - name: Update brew
+        if: startsWith(matrix.os, 'ubuntu')
+        run: /home/linuxbrew/.linuxbrew/bin/brew update
+
       - name: Install brew formulae (ubuntu)
         if: (matrix.project == 'skunkNative') && startsWith(matrix.os, 'ubuntu')
         run: /home/linuxbrew/.linuxbrew/bin/brew install s2n utf8proc

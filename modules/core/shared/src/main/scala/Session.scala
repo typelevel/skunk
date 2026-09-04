@@ -14,8 +14,10 @@ import fs2.io.net.{ Network, Socket, SocketOption }
 import fs2.Pipe
 import fs2.Stream
 import org.typelevel.otel4s.metrics.Meter
+import org.typelevel.otel4s.metrics.MeterProvider
 import org.typelevel.otel4s.metrics.Histogram
 import org.typelevel.otel4s.trace.Tracer
+import org.typelevel.otel4s.trace.TracerProvider
 import skunk.codec.all.bool
 import skunk.data._
 import skunk.exception.SkunkException
@@ -478,7 +480,7 @@ object Session {
    * @param queryCacheSize        size of the session-level cache for query checking; defaults to 2048
    * @param parseCacheSize        size of the pool-level cache for parsing statements; defaults to 2048
    */
-  final class Builder[F[_]: Temporal: Meter: Network: Console] private (
+  final class Builder[F[_]: Temporal: TracerProvider: MeterProvider: Network: Console] private (
     val connectionType: ConnectionType,
     val host: Host,
     val port: Port,
@@ -613,13 +615,7 @@ object Session {
      * single-session pool.
      * @see pooled
      */
-    def single(implicit T: Tracer[F]): Resource[F, Session[F]] = pooled(1).flatten
-
-    /**
-     * Like [[single]] but instead of taking `Tracer[F]` implicitly, a function is returned that
-     * accepts an explicit `Tracer[F]`.
-     */
-    def singleExplicitTracer: Tracer[F] => Resource[F, Session[F]] = single(_)
+    def single: Resource[F, Session[F]] = pooled(1).flatten
 
     /**
      * Resource yielding a `SessionPool` managing up to `max` concurrent `Session`s. Typically you
@@ -635,14 +631,14 @@ object Session {
      * reasonable, but it will result in a resource that allocates a new pool for each session, which
      * is probably not what you want.
      */
-    def pooled(max: Int)(implicit T: Tracer[F]): Resource[F, Resource[F, Session[F]]] =
-      pooledExplicitTracer(max).map(_.apply(T))
+    def pooled(max: Int): Resource[F, Resource[F, Session[F]]] =
+      for {
+        tracer <- Resource.eval(TracerProvider[F].tracer("org.typelevel.skunk").withVersion(BuildInfo.version).get)
+        meter  <- Resource.eval(MeterProvider[F].meter("org.typelevel.skunk").withVersion(BuildInfo.version).get)
+        pool   <- pooledWithTracer(max)(meter)
+      } yield pool(tracer)
 
-    /**
-     * Like [[pooled]] but instead of taking `Tracer[F]` implicitly, the inner resource is replaced
-     * by a function which accepts an explicit `Tracer[F]`.
-     */
-    def pooledExplicitTracer(max: Int): Resource[F, Tracer[F] => Resource[F, Session[F]]] = {
+    private def pooledWithTracer(max: Int)(implicit M: Meter[F]): Resource[F, Tracer[F] => Resource[F, Session[F]]] = {
       val logger: String => F[Unit] = s => Console[F].println(s"TLS: $s")
       for {
         dc      <- Resource.eval(Describe.Cache.empty[F](commandCacheSize, queryCacheSize))
@@ -706,7 +702,7 @@ object Session {
    }}}
    */
   object Builder {
-    def apply[F[_]: Temporal: Meter: Network: Console]: Builder[F] =
+    def apply[F[_]: Temporal: TracerProvider: MeterProvider: Network: Console]: Builder[F] =
       new Builder[F](
         connectionType = ConnectionType.TCP,
         host = host"localhost",
@@ -753,7 +749,7 @@ object Session {
    * @group Constructors
    */
   @deprecated("Use Session.Builder[F].pooled instead", "1.0.0-M11")
-  def pooled[F[_]: Temporal: Tracer: Meter: Network: Console](
+  def pooled[F[_]: Temporal: TracerProvider: MeterProvider: Network: Console](
     host:          String,
     port:          Int            = 5432,
     user:          String,
@@ -790,70 +786,13 @@ object Session {
       
 
   /**
-   * Resource yielding a function from Tracer to `SessionPool` managing up to `max` concurrent `Session`s. Typically you
-   * will `use` this resource once on application startup and pass the resulting
-   * `Resource[F, Session[F]]` to the rest of your program.
-   *
-   * The pool maintains a cache of queries and commands that have been checked against the schema,
-   * eliminating the need to check them more than once. If your program is changing the schema on
-   * the fly than you probably don't want this behavior; you can disable it by setting the
-   * `commandCache` and `queryCache` parameters to zero.
-   *
-   * @param host          Postgres server host
-   * @param port          Postgres port, default 5432
-   * @param user          Postgres user
-   * @param database      Postgres database
-   * @param max           Maximum concurrent sessions
-   * @param debug
-   * @param strategy
-   * @param commandCache  Size of the cache for command checking
-   * @param queryCache    Size of the cache for query checking
-   * @group Constructors
-   */
-  @deprecated("Use Session.Builder[F].pooledExplicitTracer instead", "1.0.0-M11")
-  def pooledF[F[_]: Temporal: Meter: Network: Console](
-    host:          String,
-    port:          Int            = 5432,
-    user:          String,
-    database:      String,
-    password:      Option[String] = none,
-    max:           Int,
-    debug:         Boolean        = false,
-    strategy:      TypingStrategy = TypingStrategy.BuiltinsOnly,
-    ssl:           SSL            = SSL.None,
-    parameters:    Map[String, String] = Session.DefaultConnectionParameters,
-    socketOptions: List[SocketOption] = Session.DefaultSocketOptions,
-    commandCache:  Int = 2048,
-    queryCache:    Int = 2048,
-    parseCache:    Int = 2048,
-    readTimeout:   Duration = Duration.Inf,
-    redactionStrategy: RedactionStrategy = RedactionStrategy.OptIn,
-  ): Resource[F, Tracer[F] => Resource[F, Session[F]]] =
-    Builder[F]
-      .withHost(host)
-      .withPort(port)
-      .withCredentials(Credentials(user, password))
-      .withDatabase(database)
-      .withDebug(debug)
-      .withTypingStrategy(strategy)
-      .withRedactionStrategy(redactionStrategy)
-      .withSSL(ssl)
-      .withConnectionParameters(parameters)
-      .withSocketOptions(socketOptions)
-      .withReadTimeout(readTimeout)
-      .withCommandCacheSize(commandCache)
-      .withQueryCacheSize(queryCache)
-      .withParseCacheSize(parseCache)
-      .pooledExplicitTracer(max)
-
-  /**
    * Resource yielding logically unpooled sessions. This can be convenient for demonstrations and
    * programs that only need a single session. In reality each session is managed by its own
    * single-session pool. This method is shorthand for `Session.pooled(..., max = 1, ...).flatten`.
    * @see pooled
    */
   @deprecated("Use Session.Builder[F].single instead", "1.0.0-M11")
-  def single[F[_]: Temporal: Tracer: Meter: Network: Console](
+  def single[F[_]: Temporal: TracerProvider: MeterProvider: Network: Console](
     host:         String,
     port:         Int            = 5432,
     user:         String,
@@ -884,45 +823,6 @@ object Session {
       .withQueryCacheSize(queryCache)
       .withParseCacheSize(parseCache)
       .single
-
-  /**
-   * Resource yielding logically unpooled sessions given a Tracer. This can be convenient for demonstrations and
-   * programs that only need a single session. In reality each session is managed by its own
-   * single-session pool.
-   * @see pooledF
-   */
-  @deprecated("Use Session.Builder[F].singleExplicitTracer instead", "1.0.0-M11")
-  def singleF[F[_]: Temporal: Meter: Network: Console](
-    host:         String,
-    port:         Int            = 5432,
-    user:         String,
-    database:     String,
-    password:     Option[String] = none,
-    debug:        Boolean        = false,
-    strategy:     TypingStrategy = TypingStrategy.BuiltinsOnly,
-    ssl:          SSL            = SSL.None,
-    parameters:   Map[String, String] = Session.DefaultConnectionParameters,
-    commandCache: Int = 2048,
-    queryCache:   Int = 2048,
-    parseCache:   Int = 2048,
-    readTimeout:  Duration = Duration.Inf,
-    redactionStrategy: RedactionStrategy = RedactionStrategy.OptIn,
-  ): Tracer[F] => Resource[F, Session[F]] =
-    Builder[F]
-      .withHost(host)
-      .withPort(port)
-      .withCredentials(Credentials(user, password))
-      .withDatabase(database)
-      .withDebug(debug)
-      .withTypingStrategy(strategy)
-      .withRedactionStrategy(redactionStrategy)
-      .withSSL(ssl)
-      .withConnectionParameters(parameters)
-      .withReadTimeout(readTimeout)
-      .withCommandCacheSize(commandCache)
-      .withQueryCacheSize(queryCache)
-      .withParseCacheSize(parseCache)
-      .singleExplicitTracer
 
   /**
    * Construct a `Session` by wrapping an existing `Protocol`, which we assume has already been

@@ -5,11 +5,13 @@
 package tests
 
 import cats.effect._
-import org.typelevel.otel4s.trace.Tracer.Implicits.noop
+import org.typelevel.otel4s.trace.TracerProvider
 import skunk.Session
 import skunk.exception.SkunkException
 
 class SessionTest extends ffstest.FTest {
+
+  implicit val tracerProvider: TracerProvider[IO] = TracerProvider.noop
 
   test("Invalid host") {
     val e = intercept[SkunkException] {

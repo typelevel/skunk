@@ -14,26 +14,37 @@ import skunk.exception._
 import org.typelevel.twiddles._
 import org.typelevel.otel4s.sdk.trace.SdkTraces
 import org.typelevel.otel4s.trace.Tracer
-import org.typelevel.otel4s.metrics.Meter
+import org.typelevel.otel4s.trace.TracerProvider
+import org.typelevel.otel4s.metrics.MeterProvider
 
 trait FTest extends CatsEffectSuite with FTestPlatform {
 
-  implicit val meter: Meter[IO] = Meter.noop
+  implicit val meterProvider: MeterProvider[IO] = MeterProvider.noop
 
-  private def withinSpan[A](name: String)(body: Tracer[IO] => IO[A]): IO[A] =
+  private def withinSpan[A](name: String)(body: (TracerProvider[IO], Tracer[IO]) => IO[A]): IO[A] =
     SdkTraces
       .autoConfigured[IO](_.addExporterConfigurer(OtlpSpanExporterAutoConfigure[IO]))
-      .evalMap(_.tracerProvider.get(getClass.getName()))
-      .use(tracer => tracer.span(spanNameForTest(name)).surround(body(tracer)))
+      .use { traces =>
+        val tracerProvider = traces.tracerProvider
+        tracerProvider
+          .get(getClass.getName())
+          .flatMap(tracer => tracer.span(spanNameForTest(name)).surround(body(tracerProvider, tracer)))
+      }
 
   private def spanNameForTest(name: String): String =
     s"${getClass.getSimpleName} - $name"
 
-  def tracedTest[A](name: String)(body: Tracer[IO] => IO[A])(implicit loc: Location): Unit =
-    test(name)(withinSpan(name)(body))
+  def tracedTest[A](name: String)(body: TracerProvider[IO] => IO[A])(implicit loc: Location): Unit =
+    test(name)(withinSpan(name)((provider, _) => body(provider)))
 
-  def tracedTest[A](options: TestOptions)(body: Tracer[IO] => IO[A])(implicit loc: Location): Unit =
-    test(options)(withinSpan(options.name)(body))
+  def tracedTest[A](options: TestOptions)(body: TracerProvider[IO] => IO[A])(implicit loc: Location): Unit =
+    test(options)(withinSpan(options.name)((provider, _) => body(provider)))
+
+  def tracedTestWithTracer[A](name: String)(body: Tracer[IO] => IO[A])(implicit loc: Location): Unit =
+    test(name)(withinSpan(name)((_, tracer) => body(tracer)))
+
+  def tracedTestWithTracer[A](options: TestOptions)(body: Tracer[IO] => IO[A])(implicit loc: Location): Unit =
+    test(options)(withinSpan(options.name)((_, tracer) => body(tracer)))
 
   def pureTest(name: String)(f: => Boolean): Unit = test(name)(assert(name, f))
   def fail[A](msg: String): IO[A] = IO.raiseError(new AssertionError(msg))
