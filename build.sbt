@@ -135,7 +135,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     buildInfoOptions += BuildInfoOption.PackagePrivate,
     libraryDependencies ++= Seq(
       "org.typelevel"          %%% "cats-core"               % "2.13.0",
-      "org.typelevel"          %%% "cats-effect"             % "3.7.0",
+      "org.typelevel"          %%% "cats-effect"             % "3.7.1",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
       "org.scodec"             %%% "scodec-bits"             % "1.2.5",
@@ -209,7 +209,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.typelevel"     %%% "munit-cats-effect"       % "2.2.0",
       "org.typelevel"     %%% "cats-free"               % "2.13.0",
       "org.typelevel"     %%% "cats-laws"               % "2.13.0",
-      "org.typelevel"     %%% "cats-effect-testkit"     % "3.7.0",
+      "org.typelevel"     %%% "cats-effect-testkit"     % "3.7.1",
       "org.typelevel"     %%% "discipline-munit"        % "2.0.0",
       "org.typelevel"     %%% "cats-time"               % "0.6.0",
       "eu.timepit"        %%% "refined-cats"            % refinedVersion,
