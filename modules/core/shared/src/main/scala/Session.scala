@@ -8,15 +8,12 @@ import cats._
 import cats.effect._
 import cats.effect.std.Console
 import cats.syntax.all._
-import com.comcast.ip4s.*
+import com.comcast.ip4s._
 import fs2.concurrent.Signal
-import fs2.io.net.{ Network, Socket, SocketOption }
+import fs2.io.net.{Network, Socket, SocketOption}
 import fs2.Pipe
 import fs2.Stream
-import org.typelevel.otel4s.metrics.Meter
 import org.typelevel.otel4s.metrics.MeterProvider
-import org.typelevel.otel4s.metrics.Histogram
-import org.typelevel.otel4s.trace.Tracer
 import org.typelevel.otel4s.trace.TracerProvider
 import skunk.codec.all.bool
 import skunk.data._
@@ -27,6 +24,7 @@ import skunk.net.SSLNegotiation
 import skunk.net.protocol.Describe
 import scala.concurrent.duration.Duration
 import skunk.net.protocol.Parse
+import skunk.telemetry.{ConnectionInfo, Telemetry, TelemetryConfig}
 
 /**
  * Represents a live connection to a Postgres database. Operations provided here are safe to use
@@ -491,6 +489,7 @@ object Session {
     val debug: Boolean,
     val typingStrategy: TypingStrategy,
     val redactionStrategy: RedactionStrategy,
+    val telemetryConfig: TelemetryConfig,
     val ssl: SSL,
     val connectionParameters: Map[String, String],
     val socketOptions: List[SocketOption],
@@ -511,6 +510,7 @@ object Session {
       debug: Boolean = self.debug,
       typingStrategy: TypingStrategy = self.typingStrategy,
       redactionStrategy: RedactionStrategy = self.redactionStrategy,
+      telemetryConfig: TelemetryConfig = self.telemetryConfig,
       ssl: SSL = self.ssl,
       connectionParameters: Map[String, String] = self.connectionParameters,
       socketOptions: List[SocketOption] = self.socketOptions,
@@ -519,7 +519,7 @@ object Session {
       queryCacheSize: Int = self.queryCacheSize,
       parseCacheSize: Int = self.parseCacheSize,
     ): Builder[F] =
-      new Builder(connectionType, host, port, unixSocketAddress, unixSocketDirectory, credentials, database, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
+      new Builder(connectionType, host, port, unixSocketAddress, unixSocketDirectory, credentials, database, debug, typingStrategy, redactionStrategy, telemetryConfig, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
 
     /** Configures the connection type. */
     def withConnectionType(newConnectionType: ConnectionType): Builder[F] =
@@ -588,6 +588,10 @@ object Session {
     def withRedactionStrategy(newRedactionStrategy: RedactionStrategy): Builder[F] =
       copy(redactionStrategy = newRedactionStrategy)
 
+    /** Configures query capture, query analysis, protocol spans, and pool spans. */
+    def withTelemetryConfig(newTelemetryConfig: TelemetryConfig): Builder[F] =
+      copy(telemetryConfig = newTelemetryConfig)
+
     def withSSL(newSSL: SSL): Builder[F] =
       copy(ssl = newSSL)
 
@@ -633,26 +637,23 @@ object Session {
      */
     def pooled(max: Int): Resource[F, Resource[F, Session[F]]] =
       for {
-        tracer <- Resource.eval(TracerProvider[F].tracer("org.typelevel.skunk").withVersion(BuildInfo.version).get)
-        meter  <- Resource.eval(MeterProvider[F].meter("org.typelevel.skunk").withVersion(BuildInfo.version).get)
-        pool   <- pooledWithTracer(max)(meter)
-      } yield pool(tracer)
+        telemetry <- Resource.eval(Telemetry.create(telemetryConfig, connectionInfo(database.getOrElse(""))))
+        pool      <- pooledWithTelemetry(max)
+      } yield pool(telemetry)
 
-    private def pooledWithTracer(max: Int)(implicit M: Meter[F]): Resource[F, Tracer[F] => Resource[F, Session[F]]] = {
+    private def pooledWithTelemetry(max: Int): Resource[F, Telemetry[F] => Resource[F, Session[F]]] = {
       val logger: String => F[Unit] = s => Console[F].println(s"TLS: $s")
       for {
         dc      <- Resource.eval(Describe.Cache.empty[F](commandCacheSize, queryCacheSize))
         sslOp   <- ssl.toSSLNegotiationOptions(if (debug) logger.some else none)
-        opDuration <- Resource.eval(Otel.OpDurationHistogram[F])
-        pool    <- Pool.ofF({implicit T: Tracer[F] => sessions(sslOp, dc, opDuration)}, max)(Recyclers.full)
+        pool    <- Pool.ofF({implicit T: Telemetry[F] => sessions(sslOp, dc)}, max)(Recyclers.full)
       } yield pool
     }
 
     private def sessions(
       sslOptions:    Option[SSLNegotiation.Options[F]],
       describeCache: Describe.Cache[F],
-      opDuration:    Histogram[F, Double]
-    )(implicit T: Tracer[F]): Resource[F, Session[F]] = {
+    )(implicit T: Telemetry[F]): Resource[F, Session[F]] = {
       val sockets = connectionType match {
         case ConnectionType.TCP =>
           val address = SocketAddress(host, port)
@@ -663,23 +664,45 @@ object Session {
           val filteredSocketOptions = socketOptions.filter(o => o.key != SocketOption.NoDelay)
           Network[F].connect(address, filteredSocketOptions)
       }
-      fromSockets(sockets, sslOptions, describeCache, opDuration)
+
+      for {
+        resolvedCredentials <- Resource.eval(credentials)
+        telemetry = T.withConnection(connectionInfo(database.getOrElse(resolvedCredentials.user)))
+        session <- fromSockets(sockets, sslOptions, describeCache, resolvedCredentials)(telemetry)
+      } yield session
     }
 
     private def fromSockets(
       sockets:           Resource[F, Socket[F]],
       sslOptions:        Option[SSLNegotiation.Options[F]],
       describeCache:     Describe.Cache[F],
-      opDuration:        Histogram[F, Double]
-    )(implicit T: Tracer[F]): Resource[F, Session[F]] =
+      creds:             Credentials,
+    )(implicit T: Telemetry[F]): Resource[F, Session[F]] =
        for {
         namer <- Resource.eval(Namer[F])
         pc    <- Resource.eval(Parse.Cache.empty[F](parseCacheSize))
-        proto <- Protocol[F](debug, namer, sockets, sslOptions, describeCache, pc, readTimeout, redactionStrategy, opDuration)
-        creds <- Resource.eval(credentials)
+        proto <- Protocol[F](debug, namer, sockets, sslOptions, describeCache, pc, readTimeout, redactionStrategy)
         _     <- Resource.eval(proto.startup(creds.user, database.getOrElse(creds.user), creds.password, connectionParameters))
         sess  <- Resource.make(fromProtocol(proto, namer, typingStrategy, redactionStrategy))(_ => proto.cleanup)
       } yield sess
+
+
+    private def connectionInfo(databaseName: String): ConnectionInfo =
+      connectionType match {
+        case ConnectionType.TCP =>
+          ConnectionInfo(
+            databaseName,
+            host.toString,
+            Option.when(port.value != 5432)(port.value.toLong),
+          )
+        case ConnectionType.Unix =>
+          ConnectionInfo(
+            databaseName,
+            unixSocketAddress.fold(s"$unixSocketDirectory/.s.PGSQL.$port")(_.path),
+            None,
+          )
+      }
+
   }
 
   /**
@@ -714,6 +737,7 @@ object Session {
         debug = false,
         typingStrategy = TypingStrategy.BuiltinsOnly,
         redactionStrategy = RedactionStrategy.OptIn,
+        telemetryConfig = TelemetryConfig.default,
         ssl = SSL.None,
         connectionParameters = DefaultConnectionParameters,
         socketOptions = DefaultSocketOptions,

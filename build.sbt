@@ -231,7 +231,8 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   )
   .jvmSettings(
     Test / fork := true,
-    javaOptions += "-Dotel.service.name=SkunkTests"
+    javaOptions += "-Dotel.service.name=SkunkTests",
+    libraryDependencies += "org.typelevel" %% "otel4s-sdk-testkit" % otel4sSdkVersion % Test,
   )
   .jsSettings(
     scalaJSLinkerConfig ~= { _.withESFeatures(_.withESVersion(org.scalajs.linker.interface.ESVersion.ES2018)) },

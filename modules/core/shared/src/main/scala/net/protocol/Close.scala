@@ -8,10 +8,7 @@ package protocol
 import cats.effect.MonadCancelThrow
 import cats.syntax.all._
 import skunk.net.message.{ Close => CloseMessage, Flush, CloseComplete }
-import org.typelevel.otel4s.Attribute
-import org.typelevel.otel4s.trace.Span
-import org.typelevel.otel4s.trace.Tracer
-import org.typelevel.otel4s.metrics.Histogram
+import skunk.telemetry.{SkunkAttributes, Telemetry}
 
 trait Close[F[_]] {
   def apply(portalId: Protocol.PortalId): F[Unit]
@@ -20,18 +17,18 @@ trait Close[F[_]] {
 
 object Close {
 
-  def apply[F[_]: MonadCancelThrow: Exchange: MessageSocket: Tracer](opDuration: Histogram[F, Double]): Close[F] =
+  def apply[F[_]: MonadCancelThrow: Exchange: MessageSocket: Telemetry]: Close[F] =
     new Close[F] {
 
       override def apply(portalId: Protocol.PortalId): F[Unit] =
-        exchange("close-portal", opDuration) { (span: Span[F]) =>
-          span.addAttribute(Attribute("portal", portalId.value)) *>
+        exchange("close-portal") {
+          Telemetry[F].addProtocolAttributes(SkunkAttributes.portalId(portalId.value)) *>
           close(CloseMessage.portal(portalId.value))
         }
 
       override def apply(statementId: Protocol.StatementId): F[Unit] =
-        exchange("close-statement", opDuration) { (span: Span[F]) =>
-          span.addAttribute(Attribute("statement", statementId.value)) *>
+        exchange("close-statement") {
+          Telemetry[F].addProtocolAttributes(SkunkAttributes.statementId(statementId.value)) *>
           close(CloseMessage.statement(statementId.value))
         }
 
