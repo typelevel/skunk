@@ -79,7 +79,7 @@ ThisBuild / libraryDependencySchemes +=
   "org.scala-native" %% "test-interface_native0.5" % VersionScheme.Always
 
 // This is used in a couple places
-lazy val fs2Version = "3.13.0"
+lazy val fs2Version = "3.14.0"
 lazy val openTelemetryVersion = "1.64.0"
 lazy val otel4sVersion = "1.0.1"
 lazy val otel4sSdkVersion = "0.19.2"
