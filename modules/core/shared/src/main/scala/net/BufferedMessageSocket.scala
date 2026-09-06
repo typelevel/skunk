@@ -106,10 +106,11 @@ object BufferedMessageSocket {
    */
   private def next[F[_]: MonadThrow](
     ms:    MessageSocket[F],
+    noErr: Ref[F, Option[Throwable]],
     xaSig: Ref[F, TransactionStatus],
     paSig: Ref[F, Map[String, String]],
     bkDef: Deferred[F, BackendKeyData],
-    noTop: Topic[F, Notification[String]],
+    noTop: Topic[F, Either[Throwable, Notification[String]]],
     queue: Queue[F, BackendMessage],
     netEx: Ref[F, Option[Throwable]]
   ): F[Unit] = {
@@ -121,15 +122,19 @@ object BufferedMessageSocket {
       case m @ ReadyForQuery(s)        => xaSig.set(s) >> queue.offer(m) // observe and then emit
       // These are handled here and are never seen by the higher-level API.
       case     ParameterStatus(k, v)   => paSig.update(_ + (k -> v))
-      case     NotificationResponse(n) => noTop.publish1(n).void // TODO -- what if it's closed?
+      case     NotificationResponse(n) => noTop.publish1(Right(n)).void // topic only closes after a terminal error, at which point dropping is correct
       case     NoticeResponse(_)       => Monad[F].unit // TODO -- we're throwing these away!
       case m @ BackendKeyData(_, _)    => bkDef.complete(m).void
       // Everything else is passed through.
       case m                           => queue.offer(m)
     } >> step
 
+    // Publish the failure to synchronous exchanges (via the queue, behind any messages already
+    // buffered, so in-flight exchanges still see them) and to notification subscribers (via the
+    // topic, which is then closed so `listen` streams terminate instead of hanging silently on a
+    // dead connection).
     step.attempt.flatMap {
-      case Left(e)  => netEx.set(Some(e)) >> queue.offer(NetworkError(e)) // publish the failure
+      case Left(e)  => netEx.set(Some(e)) *> noErr.set(Some(e)) *> queue.offer(NetworkError(e)) *> noTop.publish1(Left(e)) *> noTop.close.void
       case Right(_) => Monad[F].unit
     }
   }
@@ -144,12 +149,13 @@ object BufferedMessageSocket {
     for {
       term  <- Ref[F].of[Option[Throwable]](None) // terminal error, as observed by the front end
       netEx <- Ref[F].of[Option[Throwable]](None) // terminal error, as observed by the read fiber
+      noErr <- Ref[F].of[Option[Throwable]](None) // terminal error for notification subscribers
       queue <- Queue.bounded[F, BackendMessage](queueSize)
       xaSig <- SignallingRef[F, TransactionStatus](TransactionStatus.Idle) // initial state (ok)
       paSig <- SignallingRef[F, Map[String, String]](Map.empty)
       bkSig <- Deferred[F, BackendKeyData]
-      noTop <- Topic[F, Notification[String]]
-      fib   <- next(ms, xaSig, paSig, bkSig, noTop, queue, netEx).start
+      noTop <- Topic[F, Either[Throwable, Notification[String]]]
+      fib   <- next(ms, noErr, xaSig, paSig, bkSig, noTop, queue, netEx).start
     } yield
       new AbstractMessageSocket[F] with BufferedMessageSocket[F] {
 
@@ -175,7 +181,11 @@ object BufferedMessageSocket {
         override def backendKeyData: Deferred[F, BackendKeyData] = bkSig
 
         override def notifications(maxQueued: Int): Resource[F, Stream[F, Notification[String]]] =
-          noTop.subscribeAwait(maxQueued)
+          noTop.subscribeAwait(maxQueued).map { s =>
+            // The topic closes after the terminal error is published; the trailing check covers
+            // subscribers that arrive after the failure and would otherwise see an empty stream.
+            s.rethrow ++ Stream.exec(noErr.get.flatMap(_.traverse_(Concurrent[F].raiseError[Unit](_))))
+          }
 
         override def isHealthy: F[Boolean] =
           netEx.get.map(_.isEmpty)

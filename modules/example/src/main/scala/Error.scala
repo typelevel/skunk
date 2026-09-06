@@ -9,13 +9,13 @@ import cats.syntax.all._
 import skunk._
 import skunk.implicits._
 import skunk.codec.all._
-import org.typelevel.otel4s.trace.Tracer
-import org.typelevel.otel4s.metrics.Meter
+import org.typelevel.otel4s.trace.TracerProvider
+import org.typelevel.otel4s.metrics.MeterProvider
 
 object Error extends IOApp {
 
-  implicit val trace: Tracer[IO] = Tracer.noop
-  implicit val meter: Meter[IO] = Meter.noop
+  implicit val tracerProvider: TracerProvider[IO] = TracerProvider.noop
+  implicit val meterProvider: MeterProvider[IO] = MeterProvider.noop
 
   val session: Resource[IO, Session[IO]] =
     Session.Builder[IO]

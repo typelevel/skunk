@@ -5,7 +5,7 @@
 package tests
 
 import cats.effect._
-import org.typelevel.otel4s.trace.Tracer
+import org.typelevel.otel4s.trace.TracerProvider
 import skunk._
 import skunk.exception.StartupException
 
@@ -13,7 +13,7 @@ class RedshiftTest extends ffstest.FTest {
 
   object X86ArchOnly extends munit.Tag("X86ArchOnly")
 
-  tracedTest("redshift - successfully connect".tag(X86ArchOnly)) { implicit tracer: Tracer[IO] =>
+  tracedTest("redshift - successfully connect".tag(X86ArchOnly)) { implicit tracerProvider: TracerProvider[IO] =>
     Session.Builder[IO]
       .withPort(5439) // redshift port
       .withConnectionParameters(Session.DefaultConnectionParameters - "IntervalStyle")
@@ -21,7 +21,7 @@ class RedshiftTest extends ffstest.FTest {
       .use(_ => IO.unit)
   }
 
-  tracedTest("redshift - cannot connect with default params".tag(X86ArchOnly)) { implicit tracer: Tracer[IO] =>
+  tracedTest("redshift - cannot connect with default params".tag(X86ArchOnly)) { implicit tracerProvider: TracerProvider[IO] =>
     Session.Builder[IO]
       .withPort(5439) // redshift port
       .single

@@ -12,7 +12,7 @@ import cats.effect.implicits._
 import cats.effect.Resource
 import cats.syntax.all._
 import skunk.exception.SkunkException
-import org.typelevel.otel4s.trace.Tracer
+import skunk.telemetry.Telemetry
 
 object Pool {
 
@@ -45,11 +45,11 @@ object Pool {
 
   // Preserved for previous use, and specifically simpler use for
   // Tracer systems that are universal rather than shorter scoped.
-  def of[F[_]: Concurrent: Tracer, A](
+  def of[F[_]: Concurrent: Telemetry, A](
     rsrc: Resource[F, A],
     size:  Int)(
     recycler: Recycler[F, A]
-  ): Resource[F, Resource[F, A]] = ofF({(_: Tracer[F]) => rsrc}, size)(recycler).map(_.apply(Tracer[F]))
+  ): Resource[F, Resource[F, A]] = ofF({(_: Telemetry[F]) => rsrc}, size)(recycler).map(_.apply(Telemetry[F]))
 
   /**
    * A pooled resource (which is itself a managed resource).
@@ -59,10 +59,10 @@ object Pool {
    *   yielding false here means the element should be freed and removed from the pool.
    */
   def ofF[F[_]: Concurrent, A](
-    rsrc:  Tracer[F] => Resource[F, A],
+    rsrc:  Telemetry[F] => Resource[F, A],
     size:  Int)(
     recycler: Recycler[F, A]
-  ): Resource[F, Tracer[F] => Resource[F, A]] =
+  ): Resource[F, Telemetry[F] => Resource[F, A]] =
     ofF(rsrc, size, checkout = Recycler.success[F, A], checkin = recycler)
 
   /**
@@ -75,11 +75,11 @@ object Pool {
    *   yielding false here means the element should be freed and removed from the pool.
    */
   def ofF[F[_]: Concurrent, A](
-    rsrc:  Tracer[F] => Resource[F, A],
+    rsrc:  Telemetry[F] => Resource[F, A],
     size:  Int,
     checkout: Recycler[F, A],
     checkin: Recycler[F, A]
-  ): Resource[F, Tracer[F] => Resource[F, A]] = {
+  ): Resource[F, Telemetry[F] => Resource[F, A]] = {
 
     // Just in case.
     assert(size > 0, s"Pool size must be positive (you passed $size).")
@@ -95,14 +95,14 @@ object Pool {
     )
 
     // We can construct a pool given a Ref containing our initial state.
-    def poolImpl(ref: Ref[F, State])(implicit T: Tracer[F]): Resource[F, A] = {
+    def poolImpl(ref: Ref[F, State])(implicit T: Telemetry[F]): Resource[F, A] = {
 
       // To give out an alloc we create a deferral first, which we will need if there are no slots
       // available. If there is a filled slot, remove it and yield its alloc. If there is an empty
       // slot, remove it and allocate. If there are no slots, enqueue the deferral and wait on it,
       // which will [semantically] block the caller until an alloc is returned to the pool.
       def give(poll: Poll[F]): F[Alloc] =
-        Tracer[F].span("pool.allocate").surround(giveLoop(poll))
+        Telemetry[F].poolSpan("pool.allocate")(giveLoop(poll))
 
       def giveLoop(poll: Poll[F]): F[Alloc] =
         Deferred[F, Either[Throwable, Alloc]].flatMap { d =>
@@ -114,11 +114,36 @@ object Pool {
             case _ => ref.update { case (os, ds) => (os :+ None, ds) }
           }
 
+          // Here we go. The cases are a full slot (done), an empty slot (alloc), and no slots at
+          // all (defer and wait).
+          ref.modify {
+            case (Some(a) :: os, ds) => ((os, ds), a.pure[F])
+            case (None    :: os, ds) => ((os, ds), Concurrent[F].onError(rsrc(Telemetry[F]).allocated)(restore))
+            case (Nil,           ds) =>
+              val cancel = ref.flatModify { // try to remove our deferred
+                case (os, ds) =>
+                  val canRemove = ds.contains(d)
+                  val cleanupMaybe = if (canRemove) // we'll pull it out before anyone can complete it
+                    ().pure[F]
+                  else // someone got to it first and will complete it, so we wait and then return it
+                    d.get.flatMap(_.liftTo[F]).onError(restore).flatMap(take(_))
+
+                  ((os, if (canRemove) ds.filterNot(_ == d) else ds), cleanupMaybe)
+              }
+
+              val wait =
+                poll(d.get)
+                  .onCancel(cancel)
+                  .flatMap(_.liftTo[F].onError(restore))
+              ((Nil, ds :+ d), wait)
+          } .flatten
+
+
           // Here we go. The cases are a full slot (check and done), an empty slot (alloc), and no
           // slots at all (defer and wait).
           ref.modify {
             case (Some(a) :: os, ds) => ((os, ds), reuse(poll, a))
-            case (None    :: os, ds) => ((os, ds), Concurrent[F].onError(rsrc(Tracer[F]).allocated)(restore))
+            case (None    :: os, ds) => ((os, ds), Concurrent[F].onError(rsrc(Telemetry[F]).allocated)(restore))
             case (Nil,           ds) =>
               val cancel = ref.flatModify { // try to remove our deferred
                 case (os, ds) =>
@@ -156,7 +181,7 @@ object Pool {
       // there are a bunch of error conditions to consider. This operation is a finalizer and
       // cannot be canceled, so we don't need to worry about that case here.
       def take(a: Alloc): F[Unit] =
-        Tracer[F].span("pool.free").surround {
+        Telemetry[F].poolSpan("pool.free") {
           checkin(a._1).onError { case _ => dispose(a) } flatMap {
             case true  => recycle(a)
             case false => dispose(a)
@@ -166,7 +191,7 @@ object Pool {
       // Return `a` to the pool. If there are awaiting deferrals, complete the next one. Otherwise
       // push a filled slot into the queue.
       def recycle(a: Alloc): F[Unit] =
-        Tracer[F].span("recycle").surround {
+        Telemetry[F].poolSpan("recycle") {
           ref.modify {
             case (os, d :: ds) => ((os, ds), d.complete(a.asRight).void)  // hand it back out
             case (os, Nil)     => ((Some(a) :: os, Nil), ().pure[F]) // return to pool
@@ -178,10 +203,10 @@ object Pool {
       // of `a`. If there are deferrals, remove the next one and complete it (failures in allocation
       // are handled by the awaiting deferral in `give` above). Always finalize `a`
       def dispose(a: Alloc): F[Unit] =
-        Tracer[F].span("dispose").surround {
+        Telemetry[F].poolSpan("dispose") {
           ref.modify {
             case (os, Nil) =>  ((os :+ None, Nil), ().pure[F]) // new empty slot
-            case (os, d :: ds) =>  ((os, ds), Concurrent[F].attempt(rsrc(Tracer[F]).allocated).flatMap(d.complete).void) // alloc now!
+            case (os, d :: ds) =>  ((os, ds), Concurrent[F].attempt(rsrc(Telemetry[F]).allocated).flatMap(d.complete).void) // alloc now!
           }.flatMap(next => a._2.guarantee(next)) // first finalize the original alloc then potentially do new alloc
         }
 
@@ -214,7 +239,7 @@ object Pool {
 
       }
 
-    Resource.make(alloc)(free).map(a => {implicit T: Tracer[F] => poolImpl(a)})
+    Resource.make(alloc)(free).map(a => {implicit T: Telemetry[F] => poolImpl(a)})
 
   }
 

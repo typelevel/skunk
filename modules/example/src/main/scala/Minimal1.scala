@@ -8,13 +8,13 @@ import cats.effect._
 import skunk._
 import skunk.implicits._
 import skunk.codec.all._
-import org.typelevel.otel4s.trace.Tracer
-import org.typelevel.otel4s.metrics.Meter
+import org.typelevel.otel4s.trace.TracerProvider
+import org.typelevel.otel4s.metrics.MeterProvider
 
 object Minimal1 extends IOApp {
 
-  implicit val tracer: Tracer[IO] = Tracer.noop[IO]
-  implicit val mterj: Meter[IO] = Meter.noop[IO]
+  implicit val tracerProvider: TracerProvider[IO] = TracerProvider.noop[IO]
+  implicit val meterProvider: MeterProvider[IO] = MeterProvider.noop[IO]
 
   val session: Resource[IO, Session[IO]] =
     Session.Builder[IO]

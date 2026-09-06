@@ -5,12 +5,12 @@
 package tests.issue
 
 import cats.effect._
-import org.typelevel.otel4s.trace.Tracer
+import org.typelevel.otel4s.trace.TracerProvider
 import skunk._
 
 class Test238 extends ffstest.FTest {
 
-  tracedTest("see (https://github.com/functional-streams-for-scala/fs2/pull/1989)") { implicit tracer: Tracer[IO] =>
+  tracedTest("see (https://github.com/functional-streams-for-scala/fs2/pull/1989)") { implicit tracerProvider: TracerProvider[IO] =>
     Session.Builder[IO]
       .withUserAndPassword("jimmy", "banana")
       .withDatabase("world")
