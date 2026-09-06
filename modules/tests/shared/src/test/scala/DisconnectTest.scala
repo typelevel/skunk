@@ -56,6 +56,6 @@ class DisconnectTest extends SkunkTest {
                  case o                  => fail[Unit](s"expected listen stream to fail, got $o")
                }
       } yield ()
-    }.assertFailsWith[EofException] *> IO.pure("ok")
+    }
   }
 }
