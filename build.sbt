@@ -79,8 +79,8 @@ ThisBuild / libraryDependencySchemes +=
   "org.scala-native" %% "test-interface_native0.5" % VersionScheme.Always
 
 // This is used in a couple places
-lazy val fs2Version = "3.13.0"
-lazy val openTelemetryVersion = "1.64.0"
+lazy val fs2Version = "3.14.0"
+lazy val openTelemetryVersion = "1.65.0"
 lazy val otel4sVersion = "1.1.0"
 lazy val otel4sSdkVersion = "0.19.2"
 lazy val refinedVersion = "0.11.4"
@@ -135,7 +135,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     buildInfoOptions += BuildInfoOption.PackagePrivate,
     libraryDependencies ++= Seq(
       "org.typelevel"          %%% "cats-core"               % "2.13.0",
-      "org.typelevel"          %%% "cats-effect"             % "3.7.0",
+      "org.typelevel"          %%% "cats-effect"             % "3.7.1",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
       "org.scodec"             %%% "scodec-bits"             % "1.2.5",
@@ -209,7 +209,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.typelevel"     %%% "munit-cats-effect"       % "2.2.0",
       "org.typelevel"     %%% "cats-free"               % "2.13.0",
       "org.typelevel"     %%% "cats-laws"               % "2.13.0",
-      "org.typelevel"     %%% "cats-effect-testkit"     % "3.7.0",
+      "org.typelevel"     %%% "cats-effect-testkit"     % "3.7.1",
       "org.typelevel"     %%% "discipline-munit"        % "2.0.0",
       "org.typelevel"     %%% "cats-time"               % "0.6.0",
       "eu.timepit"        %%% "refined-cats"            % refinedVersion,
