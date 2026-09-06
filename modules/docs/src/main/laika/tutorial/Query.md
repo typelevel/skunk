@@ -252,8 +252,8 @@ import skunk._
 import skunk.implicits._
 import skunk.codec.all._
 import java.time.OffsetDateTime
-implicit def dummyTrace: org.typelevel.otel4s.trace.Tracer[IO] = org.typelevel.otel4s.trace.Tracer.noop
-implicit def dummyMeter: org.typelevel.otel4s.metrics.Meter[IO] = org.typelevel.otel4s.metrics.Meter.noop
+implicit def dummyTracerProvider: org.typelevel.otel4s.trace.TracerProvider[IO] = org.typelevel.otel4s.trace.TracerProvider.noop
+implicit def dummyMeterProvider: org.typelevel.otel4s.metrics.MeterProvider[IO] = org.typelevel.otel4s.metrics.MeterProvider.noop
 
 object QueryExample extends IOApp {
 
@@ -328,8 +328,8 @@ import skunk._
 import skunk.implicits._
 import skunk.codec.all._
 import java.time.OffsetDateTime
-import org.typelevel.otel4s.trace.Tracer
-import org.typelevel.otel4s.metrics.Meter
+import org.typelevel.otel4s.trace.TracerProvider
+import org.typelevel.otel4s.metrics.MeterProvider
 import fs2.Stream
 import cats.Applicative
 
@@ -372,8 +372,8 @@ object Service {
 
 object QueryExample2 extends IOApp {
 
-  implicit val tracer: Tracer[IO] = Tracer.noop
-  implicit val meter: Meter[IO] = Meter.noop
+  implicit val tracerProvider: TracerProvider[IO] = TracerProvider.noop
+  implicit val meterProvider: MeterProvider[IO] = MeterProvider.noop
 
   // a source of sessions
   val session: Resource[IO, Session[IO]] =
@@ -442,4 +442,3 @@ For reference, the `country` table looks like this.
 | headofstate    | character varying |           |
 | capital        | integer           |           |
 | code2          | character(2)      | not null  |
-

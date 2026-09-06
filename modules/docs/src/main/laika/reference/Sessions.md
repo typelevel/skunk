@@ -1,7 +1,7 @@
 ```scala mdoc:invisible
 import cats.effect._, skunk._
-implicit def dummyTrace: org.typelevel.otel4s.trace.Tracer[IO] = ???
-implicit def dummyMeter: org.typelevel.otel4s.metrics.Meter[IO] = ???
+implicit def dummyTracerProvider: org.typelevel.otel4s.trace.TracerProvider[IO] = ???
+implicit def dummyMeterProvider: org.typelevel.otel4s.metrics.MeterProvider[IO] = ???
 ```
 
 # Sessions
@@ -82,4 +82,3 @@ A `Session` is ultimately a TCP Socket, and as such a number of error conditions
 | Disconnection | `EofException` | The underlying socket has been closed. |
 
 Note that if you wish to **limit statement execution time**, it's best to use the `statement_timeout` session parameter (settable via SQL or via `parameters` above), which will raise a server-side exception on expiration and will _not_ invalidate the session.
-

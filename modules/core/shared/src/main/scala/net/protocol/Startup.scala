@@ -6,9 +6,6 @@ package skunk.net.protocol
 
 import cats.{ApplicativeError, MonadError, MonadThrow}
 import cats.syntax.all._
-import org.typelevel.otel4s.Attribute
-import org.typelevel.otel4s.trace.Span
-import org.typelevel.otel4s.trace.Tracer
 import scala.util.control.NonFatal
 import scodec.bits.ByteVector
 import skunk.net.MessageSocket
@@ -21,7 +18,7 @@ import skunk.exception.{
   UnsupportedAuthenticationSchemeException,
   UnsupportedSASLMechanismsException
 }
-import org.typelevel.otel4s.metrics.Histogram
+import skunk.telemetry.Telemetry
 import cats.effect.MonadCancel
 
 trait Startup[F[_]] {
@@ -30,18 +27,14 @@ trait Startup[F[_]] {
 
 object Startup {
 
-  def apply[F[_]: Exchange: MessageSocket: Tracer](opDuration: Histogram[F, Double])(
+  def apply[F[_]: Exchange: MessageSocket: Telemetry](
     implicit ev: MonadCancel[F, Throwable]
   ): Startup[F] =
     new Startup[F] {
       override def apply(user: String, database: String, password: Option[String], parameters: Map[String, String]): F[Unit] =
-        exchange("startup", opDuration) { (span: Span[F]) =>
+        exchange("startup") {
           val sm = StartupMessage(user, database, parameters)
           for {
-            _ <- span.addAttributes(
-              Attribute("user", user),
-              Attribute("database", database)
-            )
             _ <- send(sm)
             _ <- flatExpectStartup(sm) {
                     case AuthenticationOk                => ().pure[F]
@@ -63,13 +56,13 @@ object Startup {
     }
 
   // already inside an exchange
-  private def authenticationCleartextPassword[F[_]: MessageSocket: Tracer](
+  private def authenticationCleartextPassword[F[_]: MessageSocket: Telemetry](
     sm:       StartupMessage,
     password: Option[String]
   )(
     implicit ev: MonadError[F, Throwable]
   ): F[Unit] =
-    Tracer[F].span("authenticationCleartextPassword").surround {
+    Telemetry[F].internalSpan("authenticationCleartextPassword") {
       requirePassword[F](sm, password).flatMap { pw =>
         for {
           _ <- send(PasswordMessage.cleartext(pw))
@@ -78,14 +71,14 @@ object Startup {
       }
     }
 
-  private def authenticationMD5Password[F[_]: MessageSocket: Tracer](
+  private def authenticationMD5Password[F[_]: MessageSocket: Telemetry](
     sm:       StartupMessage,
     password: Option[String],
     salt:     Array[Byte]
   )(
     implicit ev: MonadError[F, Throwable]
   ): F[Unit] =
-    Tracer[F].span("authenticationMD5Password").surround {
+    Telemetry[F].internalSpan("authenticationMD5Password") {
       requirePassword[F](sm, password).flatMap { pw =>
         for {
           _ <- send(PasswordMessage.md5(sm.user, pw, salt))
@@ -94,12 +87,12 @@ object Startup {
       }
     }
 
-  private def authenticationSASL[F[_]: MonadThrow: MessageSocket: Tracer](
+  private def authenticationSASL[F[_]: MonadThrow: MessageSocket: Telemetry](
     sm:         StartupMessage,
     password:   Option[String],
     mechanisms: List[String]
   ): F[Unit] =
-    Tracer[F].span("authenticationSASL").surround {
+    Telemetry[F].internalSpan("authenticationSASL") {
       if (mechanisms.contains(Scram.SaslMechanism)) {
         for {
           pw <- requirePassword[F](sm, password)

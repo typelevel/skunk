@@ -6,7 +6,7 @@ package tests
 
 import cats.effect._
 import fs2.io.net.tls.SSLException
-import org.typelevel.otel4s.trace.Tracer
+import org.typelevel.otel4s.trace.TracerProvider
 import skunk._
 
 class SslTest extends ffstest.FTest {
@@ -17,7 +17,7 @@ class SslTest extends ffstest.FTest {
     val Trust   = 5433
   }
 
-  tracedTest("successful login with SSL.Trusted (ssl available)") { implicit tracer: Tracer[IO] =>
+  tracedTest("successful login with SSL.Trusted (ssl available)") { implicit tracerProvider: TracerProvider[IO] =>
     Session.Builder[IO]
       .withUserAndPassword("jimmy", "banana")
       .withDatabase("world")
@@ -26,7 +26,7 @@ class SslTest extends ffstest.FTest {
       .use(_ => IO.unit)
   }
 
-  tracedTest("successful login with SSL.None (ssl available)") { implicit tracer: Tracer[IO] =>
+  tracedTest("successful login with SSL.None (ssl available)") { implicit tracerProvider: TracerProvider[IO] =>
     Session.Builder[IO]
       .withUserAndPassword("jimmy", "banana")
       .withDatabase("world")
@@ -35,7 +35,7 @@ class SslTest extends ffstest.FTest {
       .use(_ => IO.unit)
   }
 
-  tracedTest("failed login with SSL.System (ssl available)") { implicit tracer: Tracer[IO] =>
+  tracedTest("failed login with SSL.System (ssl available)") { implicit tracerProvider: TracerProvider[IO] =>
     Session.Builder[IO]
       .withUserAndPassword("jimmy", "banana")
       .withDatabase("world")
@@ -44,7 +44,7 @@ class SslTest extends ffstest.FTest {
       .use(_ => IO.unit).assertFailsWith[SSLException].as("sigh") // TODO! Better failure!
   }
 
-  tracedTest("failed login with SSL.Trusted (ssl not available)") { implicit tracer: Tracer[IO] =>
+  tracedTest("failed login with SSL.Trusted (ssl not available)") { implicit tracerProvider: TracerProvider[IO] =>
     Session.Builder[IO]
       .withSSL(SSL.Trusted)
       .withDatabase("world")
@@ -53,7 +53,7 @@ class SslTest extends ffstest.FTest {
       .use(_ => IO.unit).assertFailsWith[Exception].as("ok") // TODO! Better failure!
   }
 
-  tracedTest("successful login with SSL.Trusted.withFallback(true) (ssl not available)") { implicit tracer: Tracer[IO] =>
+  tracedTest("successful login with SSL.Trusted.withFallback(true) (ssl not available)") { implicit tracerProvider: TracerProvider[IO] =>
     Session.Builder[IO]
       .withPort(Port.Trust)
       .withDatabase("world")
@@ -62,7 +62,7 @@ class SslTest extends ffstest.FTest {
       .use(_ => IO.unit)
   }
 
-  tracedTest("successful login with SSL.None (ssl not available)") { implicit tracer: Tracer[IO] =>
+  tracedTest("successful login with SSL.None (ssl not available)") { implicit tracerProvider: TracerProvider[IO] =>
     Session.Builder[IO]
       .withPort(Port.Trust)
       .withDatabase("world")
