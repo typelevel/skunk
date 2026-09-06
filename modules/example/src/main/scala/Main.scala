@@ -10,15 +10,15 @@ import skunk.implicits._
 import cats.effect._
 import cats.syntax.all._
 import fs2._
-import org.typelevel.otel4s.trace.Tracer
-import org.typelevel.otel4s.metrics.Meter
+import org.typelevel.otel4s.trace.TracerProvider
+import org.typelevel.otel4s.metrics.MeterProvider
 
 // This does a lot of stuff and is mostly just to test features as they're being added. This class
 // will probably go away.
 object Main extends IOApp {
 
-  implicit val trace: Tracer[IO] = Tracer.noop
-  implicit val meter: Meter[IO] = Meter.noop
+  implicit val tracerProvider: TracerProvider[IO] = TracerProvider.noop
+  implicit val meterProvider: MeterProvider[IO] = MeterProvider.noop
 
   case class Country(name: String, code: String, indepyear: Option[Short], population: Int)
 
@@ -99,4 +99,3 @@ object Main extends IOApp {
     }
 
 }
-

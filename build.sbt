@@ -21,7 +21,13 @@ ThisBuild / githubWorkflowOSes := Seq("ubuntu-latest")
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
 ThisBuild / tlJdkRelease := Some(8)
 ThisBuild / resolvers += Resolver.sonatypeCentralSnapshots
-ThisBuild / githubWorkflowBuildPreamble ++= nativeBrewInstallWorkflowSteps.value
+ThisBuild / githubWorkflowBuildPreamble ++= Seq(
+  WorkflowStep.Run(
+    commands = List("/home/linuxbrew/.linuxbrew/bin/brew update"),
+    name = Some("Update brew"),
+    cond = Some("startsWith(matrix.os, 'ubuntu')")
+  )
+) ++ nativeBrewInstallWorkflowSteps.value
 ThisBuild / nativeBrewInstallCond := Some("matrix.project == 'skunkNative'")
 
 lazy val setupCertAndDocker = Seq(
@@ -73,10 +79,10 @@ ThisBuild / libraryDependencySchemes +=
   "org.scala-native" %% "test-interface_native0.5" % VersionScheme.Always
 
 // This is used in a couple places
-lazy val fs2Version = "3.13.0"
-lazy val openTelemetryVersion = "1.64.0"
-lazy val otel4sVersion = "1.0.1"
-lazy val otel4sSdkVersion = "0.19.0"
+lazy val fs2Version = "3.14.0"
+lazy val openTelemetryVersion = "1.65.0"
+lazy val otel4sVersion = "1.1.0"
+lazy val otel4sSdkVersion = "0.19.2"
 lazy val refinedVersion = "0.11.4"
 
 // Global Settings
@@ -119,14 +125,17 @@ lazy val skunk = tlCrossRootProject
 lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .crossType(CrossType.Full)
   .in(file("modules/core"))
-  .enablePlugins(AutomateHeaderPlugin)
+  .enablePlugins(AutomateHeaderPlugin, BuildInfoPlugin)
   .settings(commonSettings)
   .settings(
     name := "skunk-core",
     description := "Tagless, non-blocking data access library for Postgres.",
+    buildInfoKeys := Seq[BuildInfoKey](version),
+    buildInfoPackage := "skunk",
+    buildInfoOptions += BuildInfoOption.PackagePrivate,
     libraryDependencies ++= Seq(
       "org.typelevel"          %%% "cats-core"               % "2.13.0",
-      "org.typelevel"          %%% "cats-effect"             % "3.7.0",
+      "org.typelevel"          %%% "cats-effect"             % "3.7.1",
       "co.fs2"                 %%% "fs2-core"                % fs2Version,
       "co.fs2"                 %%% "fs2-io"                  % fs2Version,
       "org.scodec"             %%% "scodec-bits"             % "1.2.5",
@@ -200,7 +209,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.typelevel"     %%% "munit-cats-effect"       % "2.2.0",
       "org.typelevel"     %%% "cats-free"               % "2.13.0",
       "org.typelevel"     %%% "cats-laws"               % "2.13.0",
-      "org.typelevel"     %%% "cats-effect-testkit"     % "3.7.0",
+      "org.typelevel"     %%% "cats-effect-testkit"     % "3.7.1",
       "org.typelevel"     %%% "discipline-munit"        % "2.0.0",
       "org.typelevel"     %%% "cats-time"               % "0.6.0",
       "eu.timepit"        %%% "refined-cats"            % refinedVersion,
@@ -222,7 +231,8 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   )
   .jvmSettings(
     Test / fork := true,
-    javaOptions += "-Dotel.service.name=SkunkTests"
+    javaOptions += "-Dotel.service.name=SkunkTests",
+    libraryDependencies += "org.typelevel" %% "otel4s-sdk-testkit" % otel4sSdkVersion % Test,
   )
   .jsSettings(
     scalaJSLinkerConfig ~= { _.withESFeatures(_.withESVersion(org.scalajs.linker.interface.ESVersion.ES2018)) },

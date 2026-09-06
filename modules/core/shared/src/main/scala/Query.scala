@@ -5,6 +5,7 @@
 package skunk
 
 import cats.arrow.Profunctor
+import org.typelevel.otel4s.{Attribute, Attributes}
 import org.typelevel.twiddles.Iso
 import skunk.util.Origin
 import skunk.util.Twiddler
@@ -40,15 +41,31 @@ final case class Query[A, B](
   override val origin:  Origin,
   override val encoder: Encoder[A],
   decoder: Decoder[B],
-  isDynamic: Boolean = false
+  isDynamic: Boolean = false,
+  override val telemetry: Statement.Telemetry = Statement.Telemetry.empty,
 ) extends Statement[A] {
+
+  /** Attaches a low-cardinality summary used as `db.query.summary` and as the span name. Statement
+    * summaries take precedence over summaries returned by a configured query analyzer. The
+    * method is a shortcut for `addAttributes(DbAttributes.DbQuerySummary(summary))`.
+    */
+  def withQuerySummary(summary: String): Query[A, B] =
+    copy(telemetry = telemetry.withQuerySummary(summary))
+
+  /** Replaces the additional attributes exported on the logical database span. */
+  def withAttributes(attributes: Attributes): Query[A, B] =
+    copy(telemetry = telemetry.withAttributes(attributes))
+
+  /** Adds or replaces additional logical database span attributes by key. */
+  def addAttributes(attributes: Attribute[_]*): Query[A, B] =
+    copy(telemetry = telemetry.addAttributes(attributes: _*))
 
   /**
    * Query is a profunctor.
    * @group Transformations
    */
   def dimap[C, D](f: C => A)(g: B => D): Query[C, D] =
-    Query(sql, origin, encoder.contramap(f), decoder.map(g), isDynamic)
+    Query(sql, origin, encoder.contramap(f), decoder.map(g), isDynamic, telemetry)
 
   /**
    * Query is a contravariant functor in `A`.

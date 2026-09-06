@@ -17,6 +17,7 @@ import skunk.exception.{ DecodeException, PostgresErrorException }
 import skunk.implicits._
 import skunk.net.Protocol
 import skunk.net.message._
+import skunk.telemetry.Telemetry
 import skunk.util.{ Namer, Typer }
 
 /** Counts protocol exchanges per operation kind: how many times the client stops writing and waits
@@ -29,6 +30,7 @@ import skunk.util.{ Namer, Typer }
 class ExchangeCountTest extends FTest with SimMessageSocket.DSL {
 
   implicit val tracer: Tracer[IO] = Tracer.noop
+  implicit val telemetry: Telemetry[IO] = skunk.TestTelemetry("simulated")
 
   private val int4Column: RowDescription.Field =
     RowDescription.Field("?column?", 0, 0, Typer.Static.oidForType(Type.int4).get, 4, 0, 0)
@@ -121,7 +123,7 @@ class ExchangeCountTest extends FTest with SimMessageSocket.DSL {
       nam <- Namer[IO]
       dc  <- skunk.net.protocol.Describe.Cache.empty[IO](1024, 1024)
       pc  <- skunk.net.protocol.Parse.Cache.empty[IO](1024)
-      pro <- Protocol.fromMessageSocket(ctr, nam, dc, pc, RedactionStrategy.None, Histogram.noop[IO, Double])
+      pro <- Protocol.fromMessageSocket(ctr, nam, dc, pc, RedactionStrategy.None)
       _   <- pro.startup("Bob", "db", None, Session.DefaultConnectionParameters)
       ses <- Session.fromProtocol(pro, nam, TypingStrategy.BuiltinsOnly, RedactionStrategy.None)
     } yield (ses, ctr)

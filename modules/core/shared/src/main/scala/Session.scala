@@ -8,14 +8,13 @@ import cats._
 import cats.effect._
 import cats.effect.std.Console
 import cats.syntax.all._
-import com.comcast.ip4s.*
+import com.comcast.ip4s._
 import fs2.concurrent.Signal
-import fs2.io.net.{ Network, Socket, SocketOption }
+import fs2.io.net.{Network, Socket, SocketOption}
 import fs2.Pipe
 import fs2.Stream
-import org.typelevel.otel4s.metrics.Meter
-import org.typelevel.otel4s.metrics.Histogram
-import org.typelevel.otel4s.trace.Tracer
+import org.typelevel.otel4s.metrics.MeterProvider
+import org.typelevel.otel4s.trace.TracerProvider
 import skunk.codec.all.bool
 import skunk.data._
 import skunk.exception.SkunkException
@@ -25,6 +24,7 @@ import skunk.net.SSLNegotiation
 import skunk.net.protocol.Describe
 import scala.concurrent.duration.Duration
 import skunk.net.protocol.Parse
+import skunk.telemetry.{ConnectionInfo, Telemetry, TelemetryConfig}
 
 /**
  * Represents a live connection to a Postgres database. Operations provided here are safe to use
@@ -218,7 +218,7 @@ sealed trait Session[F[_]] {
    * times with different arguments.
    *
    * The prepared query is not cached and is closed upon resource cleanup.
-   * 
+   *
    * @group Queries
    */
   def prepareR[A, B](query: Query[A, B]): Resource[F, PreparedQuery[F, A, B]]
@@ -228,7 +228,7 @@ sealed trait Session[F[_]] {
    * `PreparedCommand` can be executed multiple times with different arguments.
    *
    * The prepared command is not cached and is closed upon resource cleanup.
-   * 
+   *
    * @group Commands
    */
   def prepareR[A](command: Command[A]): Resource[F, PreparedCommand[F, A]]
@@ -298,6 +298,12 @@ sealed trait Session[F[_]] {
    * Send a Close to server for each prepared statement that has been evicted.
    */
   def closeEvictedPreparedStatements: F[Unit]
+
+  /**
+   * Returns `false` once an error has been detected
+   * in the underlying protocol; otherwise `true`.
+   */
+  def isHealthy: F[Boolean]
 
   /**
    * Transform this `Session` by a given `FunctionK`.
@@ -381,6 +387,8 @@ object Session {
         override def parseCache: Parse.Cache[G] = outer.parseCache.mapK(fk)
 
         override def closeEvictedPreparedStatements: G[Unit] = fk(outer.closeEvictedPreparedStatements)
+
+        override def isHealthy: G[Boolean] = fk(outer.isHealthy)
       }
   }
 
@@ -408,21 +416,28 @@ object Session {
      * isn't running arbitrary statements then `minimal` might be more efficient.
      */
     def full[F[_]: Monad]: Recycler[F, Session[F]] =
-      closeEvictedPreparedStatements[F] <+> ensureIdle[F] <+> unlistenAll <+> resetAll
+      ensureHealthy[F] <+> closeEvictedPreparedStatements[F] <+> ensureIdle[F] <+> unlistenAll <+> resetAll
 
     /**
      * Ensure the session is idle, then run a trivial query to ensure the connection is in working
      * order. In most cases this check is sufficient.
      */
     def minimal[F[_]: Monad]: Recycler[F, Session[F]] =
-      closeEvictedPreparedStatements[F] <+> ensureIdle[F] <+> Recycler(_.unique(Query("VALUES (true)", Origin.unknown, Void.codec, bool)))
+      ensureHealthy[F] <+> closeEvictedPreparedStatements[F] <+> ensureIdle[F] <+> Recycler(_.unique(Query("VALUES (true)", Origin.unknown, Void.codec, bool)))
 
     /**
      * Send a Close to server for each prepared statement that was evicted during this session.
      */
     def closeEvictedPreparedStatements[F[_]: Monad]: Recycler[F, Session[F]] =
       Recycler(_.closeEvictedPreparedStatements.as(true))
-    
+
+    /**
+     * Yields `false` once an error has been detected
+     * in the underlying protocol; otherwise `false`.
+     */
+    def ensureHealthy[F[_]]: Recycler[F, Session[F]] =
+      Recycler(_.isHealthy)
+
     /**
      * Yield `true` the session is idle (i.e., that there is no ongoing transaction), otherwise
      * yield false. This check does not require network IO.
@@ -467,14 +482,14 @@ object Session {
    * @param typingStrategy        typing strategy; defaults to [[TypingStrategy.BuiltinsOnly]]
    * @param redactionStrategy     redaction strategy; defaults to [[RedactionStrategy.OptIn]]
    * @param ssl                   ssl configuration; defaults to [[SSL.None]]
-   * @param connectionParameters  Postgres connection parameters; defaults to [[DefaultConnectionParameters]] 
+   * @param connectionParameters  Postgres connection parameters; defaults to [[DefaultConnectionParameters]]
    * @param socketOptions         options for TCP sockets; defaults to [[DefaultSocketOptions]]
    * @param readTimeout           timeout when reading from a TCP socket; defaults to infinite
    * @param commandCacheSize      size of the session-level cache for command checking; defaults to 2048
    * @param queryCacheSize        size of the session-level cache for query checking; defaults to 2048
    * @param parseCacheSize        size of the pool-level cache for parsing statements; defaults to 2048
    */
-  final class Builder[F[_]: Temporal: Meter: Network: Console] private (
+  final class Builder[F[_]: Temporal: TracerProvider: MeterProvider: Network: Console] private (
     val connectionType: ConnectionType,
     val host: Host,
     val port: Port,
@@ -485,6 +500,7 @@ object Session {
     val debug: Boolean,
     val typingStrategy: TypingStrategy,
     val redactionStrategy: RedactionStrategy,
+    val telemetryConfig: TelemetryConfig,
     val ssl: SSL,
     val connectionParameters: Map[String, String],
     val socketOptions: List[SocketOption],
@@ -505,6 +521,7 @@ object Session {
       debug: Boolean = self.debug,
       typingStrategy: TypingStrategy = self.typingStrategy,
       redactionStrategy: RedactionStrategy = self.redactionStrategy,
+      telemetryConfig: TelemetryConfig = self.telemetryConfig,
       ssl: SSL = self.ssl,
       connectionParameters: Map[String, String] = self.connectionParameters,
       socketOptions: List[SocketOption] = self.socketOptions,
@@ -513,7 +530,7 @@ object Session {
       queryCacheSize: Int = self.queryCacheSize,
       parseCacheSize: Int = self.parseCacheSize,
     ): Builder[F] =
-      new Builder(connectionType, host, port, unixSocketAddress, unixSocketDirectory, credentials, database, debug, typingStrategy, redactionStrategy, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
+      new Builder(connectionType, host, port, unixSocketAddress, unixSocketDirectory, credentials, database, debug, typingStrategy, redactionStrategy, telemetryConfig, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
 
     /** Configures the connection type. */
     def withConnectionType(newConnectionType: ConnectionType): Builder[F] =
@@ -582,6 +599,10 @@ object Session {
     def withRedactionStrategy(newRedactionStrategy: RedactionStrategy): Builder[F] =
       copy(redactionStrategy = newRedactionStrategy)
 
+    /** Configures query capture, query analysis, protocol spans, and pool spans. */
+    def withTelemetryConfig(newTelemetryConfig: TelemetryConfig): Builder[F] =
+      copy(telemetryConfig = newTelemetryConfig)
+
     def withSSL(newSSL: SSL): Builder[F] =
       copy(ssl = newSSL)
 
@@ -602,20 +623,14 @@ object Session {
 
     def withParseCacheSize(newParseCacheSize: Int): Builder[F] =
       copy(parseCacheSize = newParseCacheSize)
-   
+
     /**
      * Resource yielding logically unpooled sessions. This can be convenient for demonstrations and
      * programs that only need a single session. In reality each session is managed by its own
      * single-session pool.
      * @see pooled
      */
-    def single(implicit T: Tracer[F]): Resource[F, Session[F]] = pooled(1).flatten
-
-    /**
-     * Like [[single]] but instead of taking `Tracer[F]` implicitly, a function is returned that
-     * accepts an explicit `Tracer[F]`.
-     */
-    def singleExplicitTracer: Tracer[F] => Resource[F, Session[F]] = single(_)
+    def single: Resource[F, Session[F]] = pooled(1).flatten
 
     /**
      * Resource yielding a `SessionPool` managing up to `max` concurrent `Session`s. Typically you
@@ -631,28 +646,25 @@ object Session {
      * reasonable, but it will result in a resource that allocates a new pool for each session, which
      * is probably not what you want.
      */
-    def pooled(max: Int)(implicit T: Tracer[F]): Resource[F, Resource[F, Session[F]]] =
-      pooledExplicitTracer(max).map(_.apply(T))
+    def pooled(max: Int): Resource[F, Resource[F, Session[F]]] =
+      for {
+        telemetry <- Resource.eval(Telemetry.create(telemetryConfig, connectionInfo(database.getOrElse(""))))
+        pool      <- pooledWithTelemetry(max)
+      } yield pool(telemetry)
 
-    /**
-     * Like [[pooled]] but instead of taking `Tracer[F]` implicitly, the inner resource is replaced
-     * by a function which accepts an explicit `Tracer[F]`.
-     */
-    def pooledExplicitTracer(max: Int): Resource[F, Tracer[F] => Resource[F, Session[F]]] = {
+    private def pooledWithTelemetry(max: Int): Resource[F, Telemetry[F] => Resource[F, Session[F]]] = {
       val logger: String => F[Unit] = s => Console[F].println(s"TLS: $s")
       for {
         dc      <- Resource.eval(Describe.Cache.empty[F](commandCacheSize, queryCacheSize))
         sslOp   <- ssl.toSSLNegotiationOptions(if (debug) logger.some else none)
-        opDuration <- Resource.eval(Otel.OpDurationHistogram[F])
-        pool    <- Pool.ofF({implicit T: Tracer[F] => sessions(sslOp, dc, opDuration)}, max)(Recyclers.full)
+        pool    <- Pool.ofF({implicit T: Telemetry[F] => sessions(sslOp, dc)}, max, checkout = Recyclers.ensureHealthy[F], checkin = Recyclers.full)
       } yield pool
     }
 
     private def sessions(
       sslOptions:    Option[SSLNegotiation.Options[F]],
       describeCache: Describe.Cache[F],
-      opDuration:    Histogram[F, Double]
-    )(implicit T: Tracer[F]): Resource[F, Session[F]] = {
+    )(implicit T: Telemetry[F]): Resource[F, Session[F]] = {
       val sockets = connectionType match {
         case ConnectionType.TCP =>
           val address = SocketAddress(host, port)
@@ -663,23 +675,45 @@ object Session {
           val filteredSocketOptions = socketOptions.filter(o => o.key != SocketOption.NoDelay)
           Network[F].connect(address, filteredSocketOptions)
       }
-      fromSockets(sockets, sslOptions, describeCache, opDuration)
+
+      for {
+        resolvedCredentials <- Resource.eval(credentials)
+        telemetry = T.withConnection(connectionInfo(database.getOrElse(resolvedCredentials.user)))
+        session <- fromSockets(sockets, sslOptions, describeCache, resolvedCredentials)(telemetry)
+      } yield session
     }
 
     private def fromSockets(
       sockets:           Resource[F, Socket[F]],
       sslOptions:        Option[SSLNegotiation.Options[F]],
       describeCache:     Describe.Cache[F],
-      opDuration:        Histogram[F, Double]
-    )(implicit T: Tracer[F]): Resource[F, Session[F]] =
+      creds:             Credentials,
+    )(implicit T: Telemetry[F]): Resource[F, Session[F]] =
        for {
         namer <- Resource.eval(Namer[F])
         pc    <- Resource.eval(Parse.Cache.empty[F](parseCacheSize))
-        proto <- Protocol[F](debug, namer, sockets, sslOptions, describeCache, pc, readTimeout, redactionStrategy, opDuration)
-        creds <- Resource.eval(credentials)
+        proto <- Protocol[F](debug, namer, sockets, sslOptions, describeCache, pc, readTimeout, redactionStrategy)
         _     <- Resource.eval(proto.startup(creds.user, database.getOrElse(creds.user), creds.password, connectionParameters))
         sess  <- Resource.make(fromProtocol(proto, namer, typingStrategy, redactionStrategy))(_ => proto.cleanup)
       } yield sess
+
+
+    private def connectionInfo(databaseName: String): ConnectionInfo =
+      connectionType match {
+        case ConnectionType.TCP =>
+          ConnectionInfo(
+            databaseName,
+            host.toString,
+            Option.when(port.value != 5432)(port.value.toLong),
+          )
+        case ConnectionType.Unix =>
+          ConnectionInfo(
+            databaseName,
+            unixSocketAddress.fold(s"$unixSocketDirectory/.s.PGSQL.$port")(_.path),
+            None,
+          )
+      }
+
   }
 
   /**
@@ -702,7 +736,7 @@ object Session {
    }}}
    */
   object Builder {
-    def apply[F[_]: Temporal: Meter: Network: Console]: Builder[F] =
+    def apply[F[_]: Temporal: TracerProvider: MeterProvider: Network: Console]: Builder[F] =
       new Builder[F](
         connectionType = ConnectionType.TCP,
         host = host"localhost",
@@ -714,6 +748,7 @@ object Session {
         debug = false,
         typingStrategy = TypingStrategy.BuiltinsOnly,
         redactionStrategy = RedactionStrategy.OptIn,
+        telemetryConfig = TelemetryConfig.default,
         ssl = SSL.None,
         connectionParameters = DefaultConnectionParameters,
         socketOptions = DefaultSocketOptions,
@@ -749,7 +784,7 @@ object Session {
    * @group Constructors
    */
   @deprecated("Use Session.Builder[F].pooled instead", "1.0.0-M11")
-  def pooled[F[_]: Temporal: Tracer: Meter: Network: Console](
+  def pooled[F[_]: Temporal: TracerProvider: MeterProvider: Network: Console](
     host:          String,
     port:          Int            = 5432,
     user:          String,
@@ -783,64 +818,7 @@ object Session {
       .withQueryCacheSize(queryCache)
       .withParseCacheSize(parseCache)
       .pooled(max)
-      
 
-  /**
-   * Resource yielding a function from Tracer to `SessionPool` managing up to `max` concurrent `Session`s. Typically you
-   * will `use` this resource once on application startup and pass the resulting
-   * `Resource[F, Session[F]]` to the rest of your program.
-   *
-   * The pool maintains a cache of queries and commands that have been checked against the schema,
-   * eliminating the need to check them more than once. If your program is changing the schema on
-   * the fly than you probably don't want this behavior; you can disable it by setting the
-   * `commandCache` and `queryCache` parameters to zero.
-   *
-   * @param host          Postgres server host
-   * @param port          Postgres port, default 5432
-   * @param user          Postgres user
-   * @param database      Postgres database
-   * @param max           Maximum concurrent sessions
-   * @param debug
-   * @param strategy
-   * @param commandCache  Size of the cache for command checking
-   * @param queryCache    Size of the cache for query checking
-   * @group Constructors
-   */
-  @deprecated("Use Session.Builder[F].pooledExplicitTracer instead", "1.0.0-M11")
-  def pooledF[F[_]: Temporal: Meter: Network: Console](
-    host:          String,
-    port:          Int            = 5432,
-    user:          String,
-    database:      String,
-    password:      Option[String] = none,
-    max:           Int,
-    debug:         Boolean        = false,
-    strategy:      TypingStrategy = TypingStrategy.BuiltinsOnly,
-    ssl:           SSL            = SSL.None,
-    parameters:    Map[String, String] = Session.DefaultConnectionParameters,
-    socketOptions: List[SocketOption] = Session.DefaultSocketOptions,
-    commandCache:  Int = 2048,
-    queryCache:    Int = 2048,
-    parseCache:    Int = 2048,
-    readTimeout:   Duration = Duration.Inf,
-    redactionStrategy: RedactionStrategy = RedactionStrategy.OptIn,
-  ): Resource[F, Tracer[F] => Resource[F, Session[F]]] =
-    Builder[F]
-      .withHost(host)
-      .withPort(port)
-      .withCredentials(Credentials(user, password))
-      .withDatabase(database)
-      .withDebug(debug)
-      .withTypingStrategy(strategy)
-      .withRedactionStrategy(redactionStrategy)
-      .withSSL(ssl)
-      .withConnectionParameters(parameters)
-      .withSocketOptions(socketOptions)
-      .withReadTimeout(readTimeout)
-      .withCommandCacheSize(commandCache)
-      .withQueryCacheSize(queryCache)
-      .withParseCacheSize(parseCache)
-      .pooledExplicitTracer(max)
 
   /**
    * Resource yielding logically unpooled sessions. This can be convenient for demonstrations and
@@ -849,7 +827,7 @@ object Session {
    * @see pooled
    */
   @deprecated("Use Session.Builder[F].single instead", "1.0.0-M11")
-  def single[F[_]: Temporal: Tracer: Meter: Network: Console](
+  def single[F[_]: Temporal: TracerProvider: MeterProvider: Network: Console](
     host:         String,
     port:         Int            = 5432,
     user:         String,
@@ -882,45 +860,6 @@ object Session {
       .single
 
   /**
-   * Resource yielding logically unpooled sessions given a Tracer. This can be convenient for demonstrations and
-   * programs that only need a single session. In reality each session is managed by its own
-   * single-session pool.
-   * @see pooledF
-   */
-  @deprecated("Use Session.Builder[F].singleExplicitTracer instead", "1.0.0-M11")
-  def singleF[F[_]: Temporal: Meter: Network: Console](
-    host:         String,
-    port:         Int            = 5432,
-    user:         String,
-    database:     String,
-    password:     Option[String] = none,
-    debug:        Boolean        = false,
-    strategy:     TypingStrategy = TypingStrategy.BuiltinsOnly,
-    ssl:          SSL            = SSL.None,
-    parameters:   Map[String, String] = Session.DefaultConnectionParameters,
-    commandCache: Int = 2048,
-    queryCache:   Int = 2048,
-    parseCache:   Int = 2048,
-    readTimeout:  Duration = Duration.Inf,
-    redactionStrategy: RedactionStrategy = RedactionStrategy.OptIn,
-  ): Tracer[F] => Resource[F, Session[F]] =
-    Builder[F]
-      .withHost(host)
-      .withPort(port)
-      .withCredentials(Credentials(user, password))
-      .withDatabase(database)
-      .withDebug(debug)
-      .withTypingStrategy(strategy)
-      .withRedactionStrategy(redactionStrategy)
-      .withSSL(ssl)
-      .withConnectionParameters(parameters)
-      .withReadTimeout(readTimeout)
-      .withCommandCacheSize(commandCache)
-      .withQueryCacheSize(queryCache)
-      .withParseCacheSize(parseCache)
-      .singleExplicitTracer
-
-  /**
    * Construct a `Session` by wrapping an existing `Protocol`, which we assume has already been
    * started up.
    * @group Constructors
@@ -945,7 +884,7 @@ object Session {
 
         override def execute(command: Command[Void]): F[Completion] =
           proto.execute(command)
-        
+
         override def executeDiscard(statement: Statement[Void]): F[Unit] =
           proto.executeDiscard(statement)
 
@@ -1002,8 +941,11 @@ object Session {
         override def parseCache: Parse.Cache[F] =
           proto.parseCache
 
-        override def closeEvictedPreparedStatements: F[Unit] = 
+        override def closeEvictedPreparedStatements: F[Unit] =
           proto.closeEvictedPreparedStatements
+
+        override def isHealthy: F[Boolean] =
+          proto.isHealthy
       }
     }
   }

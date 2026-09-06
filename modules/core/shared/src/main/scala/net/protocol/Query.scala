@@ -12,11 +12,8 @@ import skunk.exception._
 import skunk.net.message.{ Query => QueryMessage, _ }
 import skunk.net.MessageSocket
 import skunk.util.Typer
-import org.typelevel.otel4s.semconv.attributes.DbAttributes
-import org.typelevel.otel4s.trace.Span
-import org.typelevel.otel4s.trace.Tracer
 import skunk.Statement
-import org.typelevel.otel4s.metrics.Histogram
+import skunk.telemetry.Telemetry
 
 trait Query[F[_]] {
   def apply(command: Command[Void]): F[Completion]
@@ -26,7 +23,7 @@ trait Query[F[_]] {
 
 object Query {
 
-  def apply[F[_]: Exchange: MessageSocket: Tracer](redactionStrategy: RedactionStrategy, opDuration: Histogram[F, Double])(
+  def apply[F[_]: Exchange: MessageSocket: Telemetry](redactionStrategy: RedactionStrategy)(
     implicit ev: MonadCancel[F, Throwable]
   ): Query[F] =
     new Unroll[F] with Query[F] {
@@ -71,10 +68,8 @@ object Query {
         }
 
       override def apply[B](query: skunk.Query[Void, B], ty: Typer): F[List[B]] =
-        exchange("query", opDuration) { (span: Span[F]) =>
-          span.addAttribute(
-            DbAttributes.DbQueryText(query.sql)
-          ) *> send(QueryMessage(query.sql)) *> flatExpect {
+        database("query", query, Nil, redactionStrategy) {
+          send(QueryMessage(query.sql)) *> flatExpect {
 
             // If we get a RowDescription back it means we have a valid query as far as Postgres is
             // concerned, and we will soon receive zero or more RowData followed by CommandComplete.
@@ -163,10 +158,8 @@ object Query {
         }
 
       override def apply(command: Command[Void]): F[Completion] =
-        exchange("query", opDuration) { (span: Span[F]) =>
-          span.addAttribute(
-            DbAttributes.DbQueryText(command.sql)
-          ) *> send(QueryMessage(command.sql)) *> flatExpect {
+        database("query", command, Nil, redactionStrategy) {
+          send(QueryMessage(command.sql)) *> flatExpect {
 
             case CommandComplete(c) =>
               finishUp(command).as(c)
@@ -246,10 +239,8 @@ object Query {
         }
 
       override def applyDiscard(statement: Statement[Void]): F[Unit] =
-        exchange("query", opDuration) { (span: Span[F]) =>
-          span.addAttribute(
-            DbAttributes.DbQueryText(statement.sql)
-          ) *> send(QueryMessage(statement.sql)) *> finishUpDiscard(statement, None)
+        database("query", statement, Nil, redactionStrategy) {
+          send(QueryMessage(statement.sql)) *> finishUpDiscard(statement, None)
         }
     }
 }

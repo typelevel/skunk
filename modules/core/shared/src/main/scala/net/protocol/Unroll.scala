@@ -14,16 +14,15 @@ import skunk.net.Protocol.QueryPortal
 import skunk.net.Protocol.PreparedQuery
 import skunk.util.Origin
 import skunk.data.TypedRowDescription
-import org.typelevel.otel4s.Attribute
-import org.typelevel.otel4s.trace.Tracer
 import skunk.exception.PostgresErrorException
+import skunk.telemetry.{SkunkAttributes, Telemetry}
 import scala.util.control.NonFatal
 
 /**
  * Superclass for `Query` and `Execute` sub-protocols, both of which need a way to accumulate
  * results in a `List` and report errors when decoding fails.
  */
-private[protocol] class Unroll[F[_]: MessageSocket: Tracer](
+private[protocol] class Unroll[F[_]: MessageSocket: Telemetry](
   implicit ev: MonadError[F, Throwable]
 ) {
 
@@ -131,17 +130,17 @@ private[protocol] class Unroll[F[_]: MessageSocket: Tracer](
       }
 
     val rows: F[(List[List[Option[String]]], Boolean)] =
-      Tracer[F].span("read").use { span =>
-        accumulate(Nil).flatTap { case (rows, bool) =>
-          span.addAttributes(
-            Attribute("row-count", rows.length.toLong),
-            Attribute("more-rows", bool)
+      Telemetry[F].internalSpan("read") {
+        accumulate(Nil).flatTap { case (rows, moreRows) =>
+          Telemetry[F].addProtocolAttributes(
+            SkunkAttributes.responseRowCount(rows.length.toLong),
+            SkunkAttributes.responseMoreRows(moreRows)
           )
         }
       }
 
     rows.flatMap { case (rows, bool) =>
-      Tracer[F].span("decode").surround {
+      Telemetry[F].internalSpan("decode") {
         rows.traverse { data =>
 
           // https://github.com/tpolecat/skunk/issues/129

@@ -13,14 +13,11 @@ import skunk.net.message.{ Bind => BindMessage, Execute => ExecuteMessage, Close
 import skunk.net.MessageSocket
 import skunk.net.Protocol.PortalId
 import skunk.util.{ Origin, Namer }
-import org.typelevel.otel4s.Attribute
-import org.typelevel.otel4s.trace.{Span, Tracer}
 import skunk.RedactionStrategy
 import skunk.net.Protocol
 import skunk.data.{ Completion, TransactionStatus }
-import skunk.net.protocol.exchange
 import cats.effect.kernel.Deferred
-import org.typelevel.otel4s.metrics.Histogram
+import skunk.telemetry.{SkunkAttributes, Telemetry}
 
 trait BindExecute[F[_]] {
 
@@ -50,7 +47,7 @@ trait BindExecute[F[_]] {
 
 object BindExecute {
   
-  def apply[F[_]: Exchange: MessageSocket: Namer: Tracer](opDuration: Histogram[F, Double])(
+  def apply[F[_]: Exchange: MessageSocket: Namer: Telemetry](
     implicit ev: Concurrent[F]
   ): BindExecute[F] =
     new Unroll[F] with BindExecute[F] {
@@ -63,17 +60,16 @@ object BindExecute {
         statement: Protocol.PreparedStatement[F, A],
         args: A,
         argsOrigin: Origin,
-        redactionStrategy: RedactionStrategy,
         syncSent: Boolean
-      ):(Span[F] => F[PortalId], F[Unit]) = {
+      ): (F[PortalId], F[Unit]) = {
         val ea  = statement.statement.encoder.encode(args) // encoded args
         
-        def preBind(span: Span[F]): F[PortalId] = for {
+        val preBind: F[PortalId] = for {
               pn <- nextName("portal").map(PortalId(_))
-              _  <- span.addAttributes(
-                Attribute("arguments", redactionStrategy.redactArguments(ea).map(_.orNull).mkString(",")),
-                Attribute("portal-id", pn.value)
-              )
+              _  <- Telemetry[F].addAttributes(
+               SkunkAttributes.portalId(pn.value),
+               SkunkAttributes.statementId(statement.id.value)
+             )
               _  <- send(BindMessage(pn.value, statement.id.value, ea.map(_.map(_.value))))
         } yield pn
 
@@ -104,7 +100,7 @@ object BindExecute {
         redactionStrategy: RedactionStrategy
       ): Resource[F, Protocol.CommandPortal[F, A]] = {
 
-        val (preBind, postBind) = bindExchange(statement, args, argsOrigin, redactionStrategy, syncSent = true)
+        val (preBind, postBind) = bindExchange(statement, args, argsOrigin, syncSent = true)
 
         val postExec: F[(Completion, TransactionStatus)] = flatExpect {
           // Sync went out with Bind and Execute, so ReadyForQuery is already on its way. Issue 210
@@ -155,9 +151,15 @@ object BindExecute {
         }
 
         Resource.make {
-          exchange("bind+execute", opDuration){ (span: Span[F]) =>
+          database(
+            "bind+execute",
+            statement.statement,
+            statement.statement.encoder.encode(args),
+            redactionStrategy,
+          ) {
+
             for {
-              pn <- preBind(span)
+              pn <- preBind
               _  <- send(ExecuteMessage(pn.value, 0))
               // Sync rather than Flush: a command never pages, so there is no portal to keep alive
               // between Executes, and all three replies come back from one flush.
@@ -179,7 +181,7 @@ object BindExecute {
           // Close cannot be folded into the write above: the backend ignores Flush and Sync during
           // copy-in but errors on anything else, and a command is only known to be COPY FROM STDIN
           // once CopyInResponse has been read.
-          Close[F](opDuration).apply(portal.id).whenA(xa =!= TransactionStatus.Idle)
+          Close[F].apply(portal.id).whenA(xa =!= TransactionStatus.Idle)
         } .map(_._1)
 
       }
@@ -194,16 +196,22 @@ object BindExecute {
 
         // Sync goes out with Bind and Execute, as for a command. Safe here and not in `query`
         // because this path fetches once, so no second Execute can be stranded.
-        val (preBind, postBind) = bindExchange(statement, args, argsOrigin, redactionStrategy, syncSent = true)
+        val (preBind, postBind) = bindExchange(statement, args, argsOrigin, syncSent = true)
 
         // A span name distinct from `command` and `query`, which share "bind+execute".
         val fetch: F[(List[B] ~ Boolean, PortalId, TransactionStatus)] =
-          exchange("bind+execute+sync", opDuration){ (span: Span[F]) =>
+          database(
+            "bind+execute+sync",
+            statement.statement,
+            statement.statement.encoder.encode(args),
+            redactionStrategy,
+          ) {
             for {
-              pn <- preBind(span)
-              _  <- span.addAttributes(
-                      Attribute("max-rows",  maxRows.toLong),
-                      Attribute("portal-id", pn.value)
+              pn <- preBind
+              _  <- Telemetry[F].addAttributes(
+                      SkunkAttributes.fetchMaxRows(maxRows.toLong),
+                      SkunkAttributes.portalId(pn.value),
+                      SkunkAttributes.statementId(statement.id.value)
                     )
               _  <- send(ExecuteMessage(pn.value, maxRows))
               _  <- send(Sync)
@@ -235,10 +243,9 @@ object BindExecute {
           fetch.flatMap { case (rs, pn, xa) =>
             // As in `command`: nothing to close outside an explicit transaction. Outside the
             // exchange above, because Close opens its own and the mutex is not reentrant.
-            Close[F](opDuration).apply(pn).whenA(xa =!= TransactionStatus.Idle).as(rs)
+            Close[F].apply(pn).whenA(xa =!= TransactionStatus.Idle).as(rs)
           }
         }
-
       }
 
       def query[A, B](
@@ -250,16 +257,18 @@ object BindExecute {
       ): Resource[F, Protocol.QueryPortal[F, A, B]] = {
         // Queries keep Flush: the portal must stay open for further Executes, which Sync would
         // prevent by ending the transaction that owns it.
-        val (preBind, postBind) = bindExchange(statement, args, argsOrigin, redactionStrategy, syncSent = false)
+        val (preBind, postBind) = bindExchange(statement, args, argsOrigin, syncSent = false)
         Resource.eval(Deferred[F, Unit]).flatMap { prefetch =>
           Resource.make {
-            exchange("bind+execute", opDuration){ (span: Span[F]) =>
+            database(
+              "bind+execute",
+              statement.statement,
+              statement.statement.encoder.encode(args),
+              redactionStrategy,
+            ) {
               for {
-                pn <- preBind(span)
-                _  <- span.addAttributes(
-                        Attribute("max-rows",  initialSize.toLong),
-                        Attribute("portal-id", pn.value)
-                      )
+                pn <- preBind
+                _  <- Telemetry[F].addAttributes(SkunkAttributes.fetchMaxRows(initialSize.toLong))
                 _  <- send(ExecuteMessage(pn.value, initialSize))
                 _  <- send(Flush)
                 _  <- postBind
@@ -268,11 +277,11 @@ object BindExecute {
                 def execute(maxRows: Int): F[List[B] ~ Boolean] = 
                   prefetch.tryGet.flatMap {
                     case None => rs.pure <* prefetch.complete(())
-                    case Some(()) => Execute[F](opDuration).apply(this, maxRows)
+                    case Some(()) => Execute[F].apply(this, maxRows)
                   }
               }
             }
-          } { portal => Close[F](opDuration).apply(portal.id)}
+          } { portal => Close[F].apply(portal.id)}
         }
       }
   }

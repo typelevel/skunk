@@ -7,29 +7,27 @@ package skunk.net
 import skunk.net.message._
 import skunk.util.Namer
 import skunk.util.Origin
-import skunk.util.Otel
-import org.typelevel.otel4s.trace.Span
-import org.typelevel.otel4s.trace.Tracer
-import org.typelevel.otel4s.trace.SpanKind
-import org.typelevel.otel4s.metrics.Histogram
-import java.util.concurrent.TimeUnit
-import cats.effect.MonadCancel
+import skunk.RedactionStrategy
+import skunk.Statement
+import skunk.data.Encoded
+import skunk.telemetry.Telemetry
 
 package object protocol {
 
-  def exchange[F[_]: Tracer, A](label: String, opDuration: Histogram[F, Double])(f: Span[F] => F[A])(
-    implicit exchange: Exchange[F], ev: MonadCancel[F, Throwable]
+  def exchange[F[_]: Telemetry, A](label: String)(fa: F[A])(
+    implicit exchange: Exchange[F]
   ): F[A] =
-    Tracer[F].spanBuilder(label)
-      .withSpanKind(SpanKind.Client)
-      .addAttribute(Otel.DbSystemName)
-      .withFinalizationStrategy(Otel.PostgresStrategy)
-      .build
-      .use{span =>
-        opDuration.recordDuration(TimeUnit.SECONDS, Otel.opDurationAttributes(_)).surround {
-          exchange(f(span))
-        }
-      }
+    Telemetry[F].internalSpan(label)(exchange(fa))
+
+  def database[F[_]: Telemetry, A](
+    label: String,
+    statement: Statement[_],
+    arguments: List[Option[Encoded]],
+    redactionStrategy: RedactionStrategy,
+  )(fa: F[A])(
+    implicit exchange: Exchange[F]
+  ): F[A] =
+    Telemetry[F].databaseSpan(label, statement, arguments, redactionStrategy)(exchange(fa))
 
   def receive[F[_]](implicit ev: MessageSocket[F]): F[BackendMessage] =
     ev.receive

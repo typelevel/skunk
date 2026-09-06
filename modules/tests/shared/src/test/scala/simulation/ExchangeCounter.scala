@@ -76,6 +76,7 @@ final class ExchangeCounter private (
   // The wrapped socket's Resource finalizer does the real work.
   override def terminate: IO[Unit] = IO.unit
 
+  override def isHealthy: IO[Boolean] = IO.pure(true)
 }
 
 object ExchangeCounter {

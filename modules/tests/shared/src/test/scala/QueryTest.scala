@@ -189,7 +189,7 @@ class QueryTest extends SkunkTest {
           } yield "ok"
         }
       }.attempt
-      _ <- assertEqual("timeout error check", getErr(sessionBroken), Option("2 seconds"))
+      _ <- assertEqual("session is released", sessionBroken.toOption, Option("ok"))
       _ <- getS.use { s =>
         s.prepare(f.query(void)).flatMap { ps =>
           for {

@@ -12,10 +12,8 @@ import skunk.net.message.{ Bind => BindMessage, Close => _, _ }
 import skunk.net.MessageSocket
 import skunk.net.Protocol.{ PreparedStatement, PortalId }
 import skunk.util.{ Origin, Namer }
-import org.typelevel.otel4s.Attribute
-import org.typelevel.otel4s.trace.{Span, Tracer}
 import skunk.RedactionStrategy
-import org.typelevel.otel4s.metrics.Histogram
+import skunk.telemetry.{SkunkAttributes, Telemetry}
 
 trait Bind[F[_]] {
 
@@ -30,7 +28,7 @@ trait Bind[F[_]] {
 
 object Bind {
 
-  def apply[F[_]: Exchange: MessageSocket: Namer: Tracer](opDuration: Histogram[F, Double])(
+  def apply[F[_]: Exchange: MessageSocket: Namer: Telemetry](
     implicit ev: MonadCancel[F, Throwable]
   ): Bind[F] =
     new Bind[F] {
@@ -42,13 +40,13 @@ object Bind {
         redactionStrategy: RedactionStrategy
       ): Resource[F, PortalId] =
         Resource.make {
-          exchange("bind", opDuration) { (span: Span[F]) =>
+          exchange("bind") {
             for {
               pn <- nextName("portal").map(PortalId(_))
               ea  = statement.statement.encoder.encode(args) // encoded args
-              _  <- span.addAttributes(
-                Attribute("arguments", redactionStrategy.redactArguments(ea).map(_.orNull).mkString(",")),
-                Attribute("portal-id", pn.value)
+              _  <- Telemetry[F].addProtocolAttributes(
+                SkunkAttributes.portalId(pn.value),
+                SkunkAttributes.statementId(statement.id.value)
               )
               _  <- send(BindMessage(pn.value, statement.id.value, ea.map(_.map(_.value))))
               _  <- send(Flush)
@@ -71,7 +69,7 @@ object Bind {
                     }
             } yield pn
           }
-        } { Close[F](opDuration).apply }
+        } { Close[F].apply }
 
     }
 
