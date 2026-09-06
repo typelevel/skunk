@@ -321,11 +321,7 @@ object Session {
   private abstract class Impl[F[_]: MonadCancelThrow] extends Session[F] { outer =>
 
     override def execute[A, B](query: Query[A, B])(args: A): F[List[B]] =
-      Monad[F].flatMap(prepare(query)) { pq =>
-        pq.cursor(args).use {
-         _.fetch(Int.MaxValue).map { case (rows, _) => rows }
-        }
-      }
+      Monad[F].flatMap(prepare(query))(_.fetchAll(args))
 
     override def unique[A, B](query: Query[A, B])(args: A): F[B] =
       Monad[F].flatMap(prepare(query))(_.unique(args))

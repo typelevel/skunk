@@ -8,8 +8,10 @@ import skunk._
 import skunk.codec.all._
 import skunk.implicits._
 import cats.Eq
+import cats.effect.IO
 import scala.concurrent.duration._
 import skunk.data.Type
+import skunk.exception.{ DecodeException, SkunkException }
 
 class QueryTest extends SkunkTest {
 
@@ -37,6 +39,73 @@ class QueryTest extends SkunkTest {
     for {
       n <- s.option(query)((123, 456, 789))
       _ <- assertEqual("123", n, None.asInstanceOf[Option[Int]])
+    } yield "ok"
+  }
+
+  // A decode failure leaves the server happy and the portal open, so skunk closes it inline. What
+  // is checkable from here is that doing so is protocol-legal and leaves the session usable; that
+  // the Close is sent at all is pinned by ExchangeCountTest.
+  sessionTest("decode failure closes its portal and leaves the session synchronized") { s =>
+    val bad = sql"select null::varchar where $int4 = 1".query(varchar)
+    for {
+      _ <- s.unique(bad)(1).assertFailsWith[DecodeException[IO, _, _]]
+      n <- s.unique(sql"select 1".query(int4))
+      _ <- assertEqual("session still usable", n, 1)
+      _ <- s.transaction.use { _ =>
+             s.unique(bad)(1).assertFailsWith[DecodeException[IO, _, _]]
+           }
+      m <- s.unique(sql"select 2".query(int4))
+      _ <- assertEqual("session still usable after a transaction", m, 2)
+      _ <- s.assertHealthy
+    } yield "ok"
+  }
+
+  // Sync does not end an explicit transaction, so the portal outlives it and must still be closed
+  // -- the branch the ordinary case never takes. CommandTest covers the command side.
+  sessionTest("parameterized queries inside a transaction") { s =>
+    val many = sql"select * from (values ($int4), ($int4), ($int4)) as t(i)".query(int4)
+    val one  = sql"select $int4".query(int4)
+    s.transaction.use { _ =>
+      for {
+        as <- s.execute(many)((123, 456, 789))
+        _  <- assertEqual("execute", as, List(123, 456, 789))
+        b  <- s.unique(one)(42)
+        _  <- assertEqual("unique", b, 42)
+        c  <- s.option(one)(7)
+        _  <- assertEqual("option", c, Some(7))
+      } yield ()
+    } >> s.assertHealthy.as("ok")
+  }
+
+  sessionTest("fetchAll") { s =>
+    val query = sql"select * from (values ($int4), ($int4), ($int4)) as t(i)".query(int4)
+    for {
+      ns <- s.prepare(query).flatMap(_.fetchAll((123, 456, 789)))
+      _  <- assertEqual("rows", ns, List(123, 456, 789))
+      _  <- s.assertHealthy
+    } yield "ok"
+  }
+
+  // option and unique ask for 2 rows to tell whether more exist. When more do, the portal suspends
+  // rather than completing, and the ReadyForQuery still has to be read or the next operation picks
+  // it up. So what matters is not that these fail, but that the session works afterwards.
+  sessionTest("option - more rows than asked for leaves the session synchronized") { s =>
+    val query = sql"select * from (values ($int4), ($int4), ($int4)) as t(i)".query(int4)
+    for {
+      _ <- s.option(query)((123, 456, 789)).assertFailsWith[SkunkException]
+      n <- s.unique(sql"select 1".query(int4))
+      _ <- assertEqual("session still usable", n, 1)
+      _ <- s.assertHealthy
+    } yield "ok"
+  }
+
+  sessionTest("unique - more rows than asked for leaves the session synchronized") { s =>
+    val query = sql"select * from (values ($int4), ($int4), ($int4)) as t(i)".query(int4)
+    for {
+      _ <- s.unique(query)((123, 456, 789)).assertFailsWith[SkunkException]
+      n <- s.unique(sql"select 1".query(int4))
+      _ <- assertEqual("session still usable", n, 1)
+      _ <- s.assertHealthy
     } yield "ok"
   }
 

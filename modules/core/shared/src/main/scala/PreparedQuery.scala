@@ -46,6 +46,18 @@ trait PreparedQuery[F[_], A, B] {
   def unique(args: A)(implicit or: Origin): F[B]
 
   /**
+   * Fetch and return all rows, in a single exchange with the server.
+   *
+   * `cursor(args).use(_.fetch(Int.MaxValue))` is the obvious way to ask for every row and costs
+   * four exchanges: `Bind`, `Execute`, a resync, then closing the portal. This is the cheap spelling.
+   *
+   * Abstract rather than defaulted in terms of `cursor`: a default would need
+   * `MonadCancel[F, Throwable]` on the signature for `Resource#use`, which `mapK` cannot supply, so
+   * a mapK'd `PreparedQuery` would silently take the four-exchange path.
+   */
+  def fetchAll(args: A)(implicit or: Origin): F[List[B]]
+
+  /**
    * A `Pipe` that executes this `PreparedQuery` for each input value, concatenating the resulting
    * streams. See `stream` for details on the `chunkSize` parameter.
    */
@@ -81,10 +93,16 @@ object PreparedQuery {
           chunks
         }
 
+      // maxRows = 0 is the protocol's "no limit", which also guarantees the portal completes
+      // rather than suspending, so the Sync sent alongside Bind and Execute is answered by exactly
+      // one ReadyForQuery.
+      override def fetchAll(args: A)(implicit or: Origin): F[List[B]] =
+        proto.executeSized(args, or, 0).map { case (rows, _) => rows }
+
       // We have a few operations that only want the first row. In order to do this AND
       // know if there are more we need to ask for 2 rows.
       private def fetch2(args: A)(implicit or: Origin): F[(List[B], Boolean)] =
-        proto.bindSized(args, or, 2).use(_.execute(2))
+        proto.executeSized(args, or, 2)
 
       override def option(args: A)(implicit or: Origin): F[Option[B]] =
         fetch2(args).flatMap { case (bs, _) =>
@@ -147,6 +165,7 @@ object PreparedQuery {
     override def map[T, U](fa: PreparedQuery[F, A, T])(f: T => U): PreparedQuery[F, A, U] =
       new PreparedQuery[F, A, U] {
         override def cursor(args: A)(implicit or: Origin): Resource[F, Cursor[F, U]] = fa.cursor(args).map(_.map(f))
+        override def fetchAll(args: A)(implicit or: Origin): F[List[U]] = fa.fetchAll(args).map(_.map(f))
         override def stream(args: A, chunkSize: Int)(implicit or: Origin): Stream[F, U] = fa.stream(args, chunkSize).map(f)
         override def option(args: A)(implicit or: Origin): F[Option[U]] = fa.option(args).map(_.map(f))
         override def unique(args: A)(implicit or: Origin): F[U] = fa.unique(args).map(f)
@@ -162,6 +181,7 @@ object PreparedQuery {
       override def contramap[T, U](fa: PreparedQuery[F, T, B])(f: U => T): PreparedQuery[F, U, B] =
         new PreparedQuery[F, U, B] {
           override def cursor(args: U)(implicit or: Origin): Resource[F, Cursor[F, B]] = fa.cursor(f(args))
+          override def fetchAll(args: U)(implicit or: Origin): F[List[B]] = fa.fetchAll(f(args))
           override def stream(args: U, chunkSize: Int)(implicit or: Origin): Stream[F, B] = fa.stream(f(args), chunkSize)
           override def option(args: U)(implicit or: Origin): F[Option[B]] = fa.option(f(args))
           override def unique(args: U)(implicit or: Origin): F[B] = fa.unique(f(args))
@@ -194,6 +214,7 @@ object PreparedQuery {
     ): PreparedQuery[G, A, B] =
       new PreparedQuery[G, A, B] {
         override def cursor(args: A)(implicit or: Origin): Resource[G,Cursor[G,B]] = outer.cursor(args).mapK(fk).map(_.mapK(fk))
+        override def fetchAll(args: A)(implicit or: Origin): G[List[B]] = fk(outer.fetchAll(args))
         override def option(args: A)(implicit or: Origin): G[Option[B]] = fk(outer.option(args))
         override def stream(args: A, chunkSize: Int)(implicit or: Origin): Stream[G,B] = outer.stream(args, chunkSize).translate(fk)
         override def unique(args: A)(implicit or: Origin): G[B] = fk(outer.unique(args))

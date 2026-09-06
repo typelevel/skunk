@@ -604,6 +604,29 @@ class CommandTest extends SkunkTest {
     } >> s.assertHealthy
   }
 
+  // Parameterized commands inside an explicit transaction. Sync does not end an explicit
+  // transaction, so the portals here outlive it and must still be closed -- unlike the usual case,
+  // where Sync ends the implicit transaction, the backend drops the portal with it and there is
+  // nothing left to close. This is the only test that runs a parameterized command inside one.
+  sessionTest("parameterized commands inside a transaction") { s =>
+    val pop = Garin.pop + 1000
+    s.transaction.use { _ =>
+      for {
+        c <- s.execute(insertCity)(Garin)
+        _ <- assertEqual("insert completion", c, Completion.Insert(1))
+        c <- s.execute(updateCityPopulation)((pop, Garin.id))
+        _ <- assertEqual("update completion", c, Completion.Update(1))
+      } yield ()
+    } >> {
+      for {
+        c <- s.unique(selectCity)(Garin.id)
+        _ <- assertEqual("committed population", c.pop, pop)
+        _ <- s.execute(deleteCity)(Garin.id)
+        _ <- s.assertHealthy
+      } yield "ok"
+    }
+  }
+
   sessionTest("insert, update and delete record") { s =>
     for {
       c <- s.execute(insertCity)(Garin)
