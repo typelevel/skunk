@@ -111,8 +111,7 @@ object BufferedMessageSocket {
     paSig: Ref[F, Map[String, String]],
     bkDef: Deferred[F, BackendKeyData],
     noTop: Topic[F, Either[Throwable, Notification[String]]],
-    queue: Queue[F, BackendMessage],
-    netEx: Ref[F, Option[Throwable]]
+    queue: Queue[F, BackendMessage]
   ): F[Unit] = {
     def step: F[Unit] =  ms.receive.flatMap {
       // RowData is really the only hot spot so we special-case it to avoid the linear search. This
@@ -134,7 +133,7 @@ object BufferedMessageSocket {
     // topic, which is then closed so `listen` streams terminate instead of hanging silently on a
     // dead connection).
     step.attempt.flatMap {
-      case Left(e)  => netEx.set(Some(e)) *> noErr.set(Some(e)) *> queue.offer(NetworkError(e)) *> noTop.publish1(Left(e)) *> noTop.close.void
+      case Left(e)  => noErr.set(Some(e)) *> queue.offer(NetworkError(e)) *> noTop.publish1(Left(e)) *> noTop.close.void
       case Right(_) => Monad[F].unit
     }
   }
@@ -148,14 +147,13 @@ object BufferedMessageSocket {
   ): F[BufferedMessageSocket[F]] =
     for {
       term  <- Ref[F].of[Option[Throwable]](None) // terminal error, as observed by the front end
-      netEx <- Ref[F].of[Option[Throwable]](None) // terminal error, as observed by the read fiber
       noErr <- Ref[F].of[Option[Throwable]](None) // terminal error for notification subscribers
       queue <- Queue.bounded[F, BackendMessage](queueSize)
       xaSig <- SignallingRef[F, TransactionStatus](TransactionStatus.Idle) // initial state (ok)
       paSig <- SignallingRef[F, Map[String, String]](Map.empty)
       bkSig <- Deferred[F, BackendKeyData]
       noTop <- Topic[F, Either[Throwable, Notification[String]]]
-      fib   <- next(ms, noErr, xaSig, paSig, bkSig, noTop, queue, netEx).start
+      fib   <- next(ms, noErr, xaSig, paSig, bkSig, noTop, queue).start
     } yield
       new AbstractMessageSocket[F] with BufferedMessageSocket[F] {
 
@@ -188,7 +186,7 @@ object BufferedMessageSocket {
           }
 
         override def isHealthy: F[Boolean] =
-          netEx.get.map(_.isEmpty)
+          noErr.get.map(_.isEmpty)
 
         override protected def terminate: F[Unit] =
           fib.cancel *>                // stop processing incoming messages
