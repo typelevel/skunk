@@ -68,6 +68,18 @@ trait BufferedMessageSocket[F[_]] extends MessageSocket[F] {
    */
   def notifications(maxQueued: Int): Resource[F, Stream[F, Notification[String]]]
 
+  /**
+   * Returns `false` once an error has been detected on
+   * the underlying network connection; otherwise `true`.
+   *
+   * Since incoming messages are read continuously, even
+   * while the session is idle, errored connections will
+   * be detected as soon as they happen. However, if the
+   * connection is not closed cleanly, this function can
+   * not detect the error and continue to report healthy.
+   */
+  def isHealthy: F[Boolean]
+
 
   // TODO: this is an implementation leakage, fold into the factory below
   protected def terminate: F[Unit]
@@ -134,7 +146,7 @@ object BufferedMessageSocket {
     queueSize: Int
   ): F[BufferedMessageSocket[F]] =
     for {
-      term  <- Ref[F].of[Option[Throwable]](None) // terminal error
+      term  <- Ref[F].of[Option[Throwable]](None) // terminal error, as observed by the front end
       noErr <- Ref[F].of[Option[Throwable]](None) // terminal error for notification subscribers
       queue <- Queue.bounded[F, BackendMessage](queueSize)
       xaSig <- SignallingRef[F, TransactionStatus](TransactionStatus.Idle) // initial state (ok)
@@ -173,6 +185,9 @@ object BufferedMessageSocket {
             s.rethrow ++ Stream.exec(noErr.get.flatMap(_.traverse_(Concurrent[F].raiseError[Unit](_))))
           }
 
+        override def isHealthy: F[Boolean] =
+          noErr.get.map(_.isEmpty)
+
         override protected def terminate: F[Unit] =
           fib.cancel *>                // stop processing incoming messages
           send(Terminate).attempt.void // server will close the socket when it sees this; ignore failure as socket may be closed mid-write
@@ -188,5 +203,3 @@ object BufferedMessageSocket {
   private case class NetworkError(cause: Throwable) extends BackendMessage
 
 }
-
-

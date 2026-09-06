@@ -37,6 +37,7 @@ trait SimTest extends FTest with SimMessageSocket.DSL {
     def parameters: Signal[IO,Map[String,String]] = ???
     def backendKeyData: Deferred[IO,BackendKeyData] = ???
     def notifications(maxQueued: Int): Resource[IO, fs2.Stream[IO, Notification[String]]] = ???
+    def isHealthy: IO[Boolean] = IO.pure(true)
     def terminate: IO[Unit] = ???
   }
 

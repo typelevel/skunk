@@ -218,7 +218,7 @@ sealed trait Session[F[_]] {
    * times with different arguments.
    *
    * The prepared query is not cached and is closed upon resource cleanup.
-   * 
+   *
    * @group Queries
    */
   def prepareR[A, B](query: Query[A, B]): Resource[F, PreparedQuery[F, A, B]]
@@ -228,7 +228,7 @@ sealed trait Session[F[_]] {
    * `PreparedCommand` can be executed multiple times with different arguments.
    *
    * The prepared command is not cached and is closed upon resource cleanup.
-   * 
+   *
    * @group Commands
    */
   def prepareR[A](command: Command[A]): Resource[F, PreparedCommand[F, A]]
@@ -298,6 +298,12 @@ sealed trait Session[F[_]] {
    * Send a Close to server for each prepared statement that has been evicted.
    */
   def closeEvictedPreparedStatements: F[Unit]
+
+  /**
+   * Returns `false` once an error has been detected
+   * in the underlying protocol; otherwise `true`.
+   */
+  def isHealthy: F[Boolean]
 
   /**
    * Transform this `Session` by a given `FunctionK`.
@@ -385,6 +391,8 @@ object Session {
         override def parseCache: Parse.Cache[G] = outer.parseCache.mapK(fk)
 
         override def closeEvictedPreparedStatements: G[Unit] = fk(outer.closeEvictedPreparedStatements)
+
+        override def isHealthy: G[Boolean] = fk(outer.isHealthy)
       }
   }
 
@@ -412,21 +420,28 @@ object Session {
      * isn't running arbitrary statements then `minimal` might be more efficient.
      */
     def full[F[_]: Monad]: Recycler[F, Session[F]] =
-      closeEvictedPreparedStatements[F] <+> ensureIdle[F] <+> unlistenAll <+> resetAll
+      ensureHealthy[F] <+> closeEvictedPreparedStatements[F] <+> ensureIdle[F] <+> unlistenAll <+> resetAll
 
     /**
      * Ensure the session is idle, then run a trivial query to ensure the connection is in working
      * order. In most cases this check is sufficient.
      */
     def minimal[F[_]: Monad]: Recycler[F, Session[F]] =
-      closeEvictedPreparedStatements[F] <+> ensureIdle[F] <+> Recycler(_.unique(Query("VALUES (true)", Origin.unknown, Void.codec, bool)))
+      ensureHealthy[F] <+> closeEvictedPreparedStatements[F] <+> ensureIdle[F] <+> Recycler(_.unique(Query("VALUES (true)", Origin.unknown, Void.codec, bool)))
 
     /**
      * Send a Close to server for each prepared statement that was evicted during this session.
      */
     def closeEvictedPreparedStatements[F[_]: Monad]: Recycler[F, Session[F]] =
       Recycler(_.closeEvictedPreparedStatements.as(true))
-    
+
+    /**
+     * Yields `false` once an error has been detected
+     * in the underlying protocol; otherwise `false`.
+     */
+    def ensureHealthy[F[_]]: Recycler[F, Session[F]] =
+      Recycler(_.isHealthy)
+
     /**
      * Yield `true` the session is idle (i.e., that there is no ongoing transaction), otherwise
      * yield false. This check does not require network IO.
@@ -471,7 +486,7 @@ object Session {
    * @param typingStrategy        typing strategy; defaults to [[TypingStrategy.BuiltinsOnly]]
    * @param redactionStrategy     redaction strategy; defaults to [[RedactionStrategy.OptIn]]
    * @param ssl                   ssl configuration; defaults to [[SSL.None]]
-   * @param connectionParameters  Postgres connection parameters; defaults to [[DefaultConnectionParameters]] 
+   * @param connectionParameters  Postgres connection parameters; defaults to [[DefaultConnectionParameters]]
    * @param socketOptions         options for TCP sockets; defaults to [[DefaultSocketOptions]]
    * @param readTimeout           timeout when reading from a TCP socket; defaults to infinite
    * @param commandCacheSize      size of the session-level cache for command checking; defaults to 2048
@@ -612,7 +627,7 @@ object Session {
 
     def withParseCacheSize(newParseCacheSize: Int): Builder[F] =
       copy(parseCacheSize = newParseCacheSize)
-   
+
     /**
      * Resource yielding logically unpooled sessions. This can be convenient for demonstrations and
      * programs that only need a single session. In reality each session is managed by its own
@@ -646,7 +661,7 @@ object Session {
       for {
         dc      <- Resource.eval(Describe.Cache.empty[F](commandCacheSize, queryCacheSize))
         sslOp   <- ssl.toSSLNegotiationOptions(if (debug) logger.some else none)
-        pool    <- Pool.ofF({implicit T: Telemetry[F] => sessions(sslOp, dc)}, max)(Recyclers.full)
+        pool    <- Pool.ofF({implicit T: Telemetry[F] => sessions(sslOp, dc)}, max, checkout = Recyclers.ensureHealthy[F], checkin = Recyclers.full)
       } yield pool
     }
 
@@ -807,7 +822,7 @@ object Session {
       .withQueryCacheSize(queryCache)
       .withParseCacheSize(parseCache)
       .pooled(max)
-      
+
 
   /**
    * Resource yielding logically unpooled sessions. This can be convenient for demonstrations and
@@ -873,7 +888,7 @@ object Session {
 
         override def execute(command: Command[Void]): F[Completion] =
           proto.execute(command)
-        
+
         override def executeDiscard(statement: Statement[Void]): F[Unit] =
           proto.executeDiscard(statement)
 
@@ -930,8 +945,11 @@ object Session {
         override def parseCache: Parse.Cache[F] =
           proto.parseCache
 
-        override def closeEvictedPreparedStatements: F[Unit] = 
+        override def closeEvictedPreparedStatements: F[Unit] =
           proto.closeEvictedPreparedStatements
+
+        override def isHealthy: F[Boolean] =
+          proto.isHealthy
       }
     }
   }
