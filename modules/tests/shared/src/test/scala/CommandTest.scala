@@ -167,6 +167,9 @@ class CommandTest extends SkunkTest {
       SELECT * FROM city
       """.command
 
+  val alterView: Command[Void] =
+    sql"ALTER VIEW city_view SET (security_barrier = true)".command
+
   val dropView: Command[Void] =
     sql"""
       DROP VIEW city_view
@@ -277,6 +280,9 @@ class CommandTest extends SkunkTest {
         AS
         SELECT now()
        """.command
+
+  val alterMaterializedView: Command[Void] =
+    sql"ALTER MATERIALIZED VIEW my_foo_mv SET (fillfactor = 90)".command
 
   val createUniqueIndexForMaterializedView: Command[Void] =
     sql"""
@@ -469,22 +475,26 @@ class CommandTest extends SkunkTest {
     } yield "ok"
   }
 
-  sessionTest("create view, drop view"){ s=>
+  sessionTest("create view, alter view, drop view"){ s=>
     for{
       c <- s.execute(createView)
       _ <- assertEqual("completion", c, Completion.CreateView)
+      c <- s.execute(alterView)
+      _ <- assertEqual("completion", c, Completion.AlterView)
       c <- s.execute(dropView)
       _ <- assertEqual("completion", c, Completion.DropView)
       _ <- s.assertHealthy
     } yield "ok"
   }
 
-  sessionTest("refresh materialized view, refresh materialized view concurrently") { s =>
+  sessionTest("alter materialized view, refresh materialized view, refresh materialized view concurrently") { s =>
     for {
       c <- s.execute(createMaterializedView)
       _ <- assertEqual("completion", c, Completion.Select(1))
       c <- s.execute(createMaterializedView)
       _ <- assertEqual("completion", c, Completion.CreateMaterializedView)
+      c <- s.execute(alterMaterializedView)
+      _ <- assertEqual("completion", c, Completion.AlterMaterializedView)
       c <- s.execute(refreshMaterializedView)
       _ <- assertEqual("completion", c, Completion.RefreshMaterializedView)
       c <- s.execute(createUniqueIndexForMaterializedView)

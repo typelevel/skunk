@@ -39,6 +39,7 @@ object Completion {
   case object Show                      extends Completion
   case object Do                        extends Completion
   case object CreateView                extends Completion
+  case object AlterView                 extends Completion
   case object DropView                  extends Completion
   case object CreateProcedure           extends Completion
   case object DropProcedure             extends Completion
@@ -55,6 +56,7 @@ object Completion {
   case object DropRole                  extends Completion
   case object AlterRole                 extends Completion
   case object CreateMaterializedView    extends Completion
+  case object AlterMaterializedView     extends Completion
   case object RefreshMaterializedView   extends Completion
   case object DropMaterializedView      extends Completion
   case object CreateExtension           extends Completion
