@@ -10,9 +10,10 @@ import cats.effect.{ Resource, MonadCancel }
 import cats.effect.kernel.MonadCancelThrow
 import cats.syntax.all._
 import fs2.{ Pipe, Stream }
+import skunk.codec.all._
 import skunk.data.{ Identifier, Notification }
 import skunk.net.Protocol
-import skunk.util.Origin
+import skunk.util.{ Origin, Typer }
 
 /**
  * A '''channel''' that can be used for inter-process communication, implemented in terms of
@@ -140,9 +141,14 @@ object Channel {
       } yield stream.filter(_.channel === name)
 
 
+    val notifyQuery =
+      Query("SELECT pg_notify($1, $2) IS NULL", Origin.unknown, text ~ text, bool)
+
     def notify(message: String): F[Unit] =
-      // TODO: escape the message
-      proto.execute(Command(s"NOTIFY ${name.sql}, '$message'", Origin.unknown, Void.codec)).void
+      for {
+        pq <- proto.prepare(notifyQuery, Typer.Static)
+        _  <- pq.executeSized((name.value, message), Origin.unknown, 1).void
+      } yield ()
 
   }
 
