@@ -56,6 +56,19 @@ class ChannelTest extends SkunkTest {
     }
   }
 
+  sessionTest("channel notify payload is passed as a bound parameter") { s =>
+    val payload = "it's a 'test\"message"
+    val ch = s.channel(ident"channel_test")
+
+    ch.listenR(42).use { r =>
+      for {
+        _ <- ch.notify(payload)
+        d <- r.map(_.value).take(1).compile.toList
+        _ <- assert(s"channel payload $d", d == List(payload))
+      } yield "ok"
+    }
+  }
+
   sessionTest("channel with quoted identifier round-trips through LISTEN/NOTIFY/UNLISTEN") { s =>
     val data = List("foo", "bar", "baz")
     val ch = s.channel(ident"q_my_queue.INSERT")
