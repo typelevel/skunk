@@ -206,7 +206,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .settings(
     libraryDependencies ++= Seq(
       "org.typelevel"     %%% "scalacheck-effect-munit" % "2.1.0",
-      "org.typelevel"     %%% "munit-cats-effect"       % "2.2.0",
+      "org.typelevel"     %%% "munit-cats-effect"       % "2.2.1",
       "org.typelevel"     %%% "cats-free"               % "2.13.0",
       "org.typelevel"     %%% "cats-laws"               % "2.13.0",
       "org.typelevel"     %%% "cats-effect-testkit"     % "3.7.1",
