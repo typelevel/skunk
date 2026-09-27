@@ -8,7 +8,6 @@ package simulation
 import cats.effect._
 import ffstest.FTest
 import fs2.concurrent.Signal
-import org.typelevel.otel4s.trace.Tracer
 import skunk.{Session, RedactionStrategy, TypingStrategy}
 import skunk.data.Notification
 import skunk.data.TransactionStatus
@@ -24,8 +23,7 @@ import skunk.telemetry.Telemetry
 
 trait SimTest extends FTest with SimMessageSocket.DSL {
 
-  implicit val tracer: Tracer[IO] = Tracer.noop
-  implicit val telemetry: Telemetry[IO] = skunk.TestTelemetry("simulated")
+  implicit val telemetry: Telemetry[IO] = Telemetry.noop
 
   private class SimulatedBufferedMessageSocket(ms: MessageSocket[IO]) extends BufferedMessageSocket[IO] {
     def receive: IO[BackendMessage] = ms.receive

@@ -11,8 +11,8 @@ package skunk.telemetry
 sealed trait TelemetryConfig {
   def captureQuery: QueryCaptureConfig
   def queryAnalyzer: QueryAnalyzer
-  def poolSpans: TelemetryConfig.PoolSpans
   def protocolSpans: TelemetryConfig.ProtocolSpans
+  def pool: PoolTelemetry.Config
 
   /** Changes query text and parameter capture. */
   def withCaptureQuery(captureQuery: QueryCaptureConfig): TelemetryConfig
@@ -21,24 +21,13 @@ sealed trait TelemetryConfig {
   def withQueryAnalyzer(queryAnalyzer: QueryAnalyzer): TelemetryConfig
 
   /** Enables or disables connection-pool spans. */
-  def withPoolSpans(poolSpans: TelemetryConfig.PoolSpans): TelemetryConfig
+  def withPoolConfig(config: PoolTelemetry.Config): TelemetryConfig
 
   /** Enables or disables PostgreSQL wire-protocol spans. */
   def withProtocolSpans(protocolSpans: TelemetryConfig.ProtocolSpans): TelemetryConfig
 }
 
 object TelemetryConfig {
-
-  /** Controls spans emitted by Skunk's connection pool. */
-  sealed trait PoolSpans
-  object PoolSpans {
-
-    /** Emit connection-pool operations as `INTERNAL` spans. */
-    case object Internal extends PoolSpans
-
-    /** Do not export connection-pool spans. */
-    case object Disabled extends PoolSpans
-  }
 
   /** Controls spans emitted for PostgreSQL wire-protocol operations. */
   sealed trait ProtocolSpans
@@ -57,24 +46,24 @@ object TelemetryConfig {
   val default: TelemetryConfig = TelemetryConfig(
     QueryCaptureConfig.recommended,
     QueryAnalyzer.noop,
-    PoolSpans.Disabled,
-    ProtocolSpans.Internal
+    ProtocolSpans.Internal,
+    PoolTelemetry.Config.default
   )
 
   /** Creates a telemetry configuration with explicit settings. */
   def apply(
       captureQuery: QueryCaptureConfig,
       queryAnalyzer: QueryAnalyzer,
-      poolSpans: PoolSpans,
-      protocolSpans: ProtocolSpans
+      protocolSpans: ProtocolSpans,
+      pool: PoolTelemetry.Config
   ): TelemetryConfig =
-    Impl(captureQuery, queryAnalyzer, poolSpans, protocolSpans)
+    Impl(captureQuery, queryAnalyzer, protocolSpans, pool)
 
   private final case class Impl(
       captureQuery: QueryCaptureConfig,
       queryAnalyzer: QueryAnalyzer,
-      poolSpans: PoolSpans,
-      protocolSpans: ProtocolSpans
+      protocolSpans: ProtocolSpans,
+      pool: PoolTelemetry.Config
   ) extends TelemetryConfig {
     def withCaptureQuery(captureQuery: QueryCaptureConfig): TelemetryConfig =
       copy(captureQuery = captureQuery)
@@ -82,13 +71,13 @@ object TelemetryConfig {
     def withQueryAnalyzer(queryAnalyzer: QueryAnalyzer): TelemetryConfig =
       copy(queryAnalyzer = queryAnalyzer)
 
-    def withPoolSpans(poolSpans: PoolSpans): TelemetryConfig =
-      copy(poolSpans = poolSpans)
+    def withPoolConfig(config: PoolTelemetry.Config): TelemetryConfig =
+      copy(pool = config)
 
     def withProtocolSpans(protocolSpans: ProtocolSpans): TelemetryConfig =
       copy(protocolSpans = protocolSpans)
 
     override def toString: String =
-      s"TelemetryConfig($captureQuery, $queryAnalyzer, $poolSpans, $protocolSpans)"
+      s"TelemetryConfig($captureQuery, $queryAnalyzer, $protocolSpans, $pool)"
   }
 }

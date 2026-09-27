@@ -40,12 +40,6 @@ trait FTest extends CatsEffectSuite with FTestPlatform {
   def tracedTest[A](options: TestOptions)(body: TracerProvider[IO] => IO[A])(implicit loc: Location): Unit =
     test(options)(withinSpan(options.name)((provider, _) => body(provider)))
 
-  def tracedTestWithTracer[A](name: String)(body: Tracer[IO] => IO[A])(implicit loc: Location): Unit =
-    test(name)(withinSpan(name)((_, tracer) => body(tracer)))
-
-  def tracedTestWithTracer[A](options: TestOptions)(body: Tracer[IO] => IO[A])(implicit loc: Location): Unit =
-    test(options)(withinSpan(options.name)((_, tracer) => body(tracer)))
-
   def pureTest(name: String)(f: => Boolean): Unit = test(name)(assert(name, f))
   def fail[A](msg: String): IO[A] = IO.raiseError(new AssertionError(msg))
   def fail[A](msg: String, cause: Throwable): IO[A] = IO.raiseError(new AssertionError(msg, cause))
