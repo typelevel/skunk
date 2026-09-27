@@ -215,6 +215,7 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "eu.timepit"        %%% "refined-cats"            % refinedVersion,
       "org.typelevel"     %%% "otel4s-sdk-trace"        % otel4sSdkVersion,
       "org.typelevel"     %%% "otel4s-sdk-exporter-trace" % otel4sSdkVersion,
+      "org.typelevel"     %%% "otel4s-sdk-testkit"      % otel4sSdkVersion,
     ),
     testFrameworks += new TestFramework("munit.Framework"),
     testOptions += {
@@ -232,7 +233,6 @@ lazy val tests = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .jvmSettings(
     Test / fork := true,
     javaOptions += "-Dotel.service.name=SkunkTests",
-    libraryDependencies += "org.typelevel" %% "otel4s-sdk-testkit" % otel4sSdkVersion % Test,
   )
   .jsSettings(
     scalaJSLinkerConfig ~= { _.withESFeatures(_.withESVersion(org.scalajs.linker.interface.ESVersion.ES2018)) },
