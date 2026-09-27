@@ -108,12 +108,16 @@ val protocolTelemetry = TelemetryConfig.default
   .withProtocolSpans(TelemetryConfig.ProtocolSpans.Disabled)
 ```
 
-Pool spans are disabled by default. They can be enabled when investigating connection acquisition
-or pool cleanup:
+Pool spans are disabled by default through `PoolTelemetry.Config.default`. Configure them with
+`TelemetryConfig.withPoolConfig` when investigating connection acquisition or pool cleanup:
 
 ```scala mdoc:silent
+import skunk.telemetry.PoolTelemetry
+
 val poolTelemetry = TelemetryConfig.default
-  .withPoolSpans(TelemetryConfig.PoolSpans.Internal)
+  .withPoolConfig(
+    PoolTelemetry.Config.default.withPoolSpans(PoolTelemetry.Config.PoolSpans.Internal)
+  )
 ```
 
 To state explicitly that neither category should be emitted:
@@ -121,7 +125,9 @@ To state explicitly that neither category should be emitted:
 ```scala mdoc:silent
 val minimalTelemetry = TelemetryConfig.default
   .withProtocolSpans(TelemetryConfig.ProtocolSpans.Disabled)
-  .withPoolSpans(TelemetryConfig.PoolSpans.Disabled)
+  .withPoolConfig(
+    PoolTelemetry.Config.default.withPoolSpans(PoolTelemetry.Config.PoolSpans.Disabled)
+  )
 
 val sessions =
   Session.Builder[IO]

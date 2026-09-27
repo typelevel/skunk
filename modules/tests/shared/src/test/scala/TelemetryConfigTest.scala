@@ -12,18 +12,10 @@ import skunk.data.Encoded
 import skunk.telemetry.ConnectionInfo
 import skunk.telemetry.QueryAnalyzer
 import skunk.telemetry.QueryCaptureConfig
+import skunk.telemetry.PoolTelemetry
 import skunk.telemetry.Telemetry
 import skunk.telemetry.TelemetryConfig
 import skunk.util.Origin
-
-object TestTelemetry {
-  def apply(database: String)(implicit tracer: org.typelevel.otel4s.trace.Tracer[cats.effect.IO]): Telemetry[cats.effect.IO] =
-    new Telemetry.Impl(
-      TelemetryConfig.default,
-      ConnectionInfo(database, "simulated", None),
-      org.typelevel.otel4s.metrics.Histogram.noop[cats.effect.IO, Double],
-    )
-}
 
 class TelemetryConfigTest extends FunSuite {
 
@@ -41,7 +33,7 @@ class TelemetryConfigTest extends FunSuite {
     val config = TelemetryConfig.default
       .withCaptureQuery(capture)
       .withQueryAnalyzer(analyzer)
-      .withPoolSpans(TelemetryConfig.PoolSpans.Internal)
+      .withPoolConfig(PoolTelemetry.Config(PoolTelemetry.Config.PoolSpans.Internal))
       .withProtocolSpans(TelemetryConfig.ProtocolSpans.Disabled)
     val analysis = QueryAnalyzer.Analysis(
       queryText = Some("SELECT ?"),
@@ -54,7 +46,7 @@ class TelemetryConfigTest extends FunSuite {
     assertEquals(capture.queryParametersPolicy, QueryCaptureConfig.QueryParametersPolicy.All)
     assertEquals(config.captureQuery, capture)
     assertEquals(config.queryAnalyzer, analyzer)
-    assertEquals(config.poolSpans, TelemetryConfig.PoolSpans.Internal)
+    assertEquals(config.pool.poolSpans, PoolTelemetry.Config.PoolSpans.Internal)
     assertEquals(config.protocolSpans, TelemetryConfig.ProtocolSpans.Disabled)
     assertEquals(analysis.queryText, Some("SELECT ?"))
     assertEquals(analysis.storedProcedureName, Some("find_country"))
@@ -63,7 +55,7 @@ class TelemetryConfigTest extends FunSuite {
   }
 
   test("pool spans are disabled by default") {
-    assertEquals(TelemetryConfig.default.poolSpans, TelemetryConfig.PoolSpans.Disabled)
+    assertEquals(TelemetryConfig.default.pool.poolSpans, PoolTelemetry.Config.PoolSpans.Disabled)
   }
 
   test("QueryAnalyzer.noop and fallback") {
@@ -145,7 +137,7 @@ class TelemetryConfigTest extends FunSuite {
       Nil,
       RedactionStrategy.OptIn,
       TelemetryConfig.default.withQueryAnalyzer(analyzer),
-      connection.copy(serverPort = Some(6432L)),
+      ConnectionInfo(connection.database, connection.serverAddress, Some(6432L)),
     )
 
     assertEquals(operation.spanName, "get country by code")

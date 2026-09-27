@@ -6,7 +6,6 @@ package skunk
 
 import cats.effect.IO
 import munit.CatsEffectSuite
-import org.typelevel.otel4s.metrics.MeterProvider
 import org.typelevel.otel4s.sdk.testkit.InstrumentationScopeExpectation
 import org.typelevel.otel4s.sdk.testkit.OpenTelemetrySdkTestkit
 import org.typelevel.otel4s.sdk.testkit.trace.SpanExpectation
@@ -16,11 +15,9 @@ import org.typelevel.otel4s.sdk.testkit.trace.TraceExpectations
 import org.typelevel.otel4s.sdk.testkit.trace.TraceForestExpectation
 import org.typelevel.otel4s.sdk.trace.data.SpanData
 import org.typelevel.otel4s.trace.TracerProvider
-import skunk.telemetry.ConnectionInfo
-import skunk.telemetry.Telemetry
-import skunk.telemetry.TelemetryConfig
+import skunk.telemetry.PoolTelemetry
 
-class TelemetryPoolConfigTest extends CatsEffectSuite {
+class PoolTelemetryConfigTest extends CatsEffectSuite {
 
   private val scope =
     InstrumentationScopeExpectation
@@ -28,24 +25,23 @@ class TelemetryPoolConfigTest extends CatsEffectSuite {
       .version(BuildInfo.version)
       .attributesEmpty
 
-  private def poolSpans(config: TelemetryConfig): IO[List[SpanData]] =
+  private def poolSpans(config: PoolTelemetry.Config): IO[List[SpanData]] =
     OpenTelemetrySdkTestkit.inMemory[IO]().use { testkit =>
       implicit val tracerProvider: TracerProvider[IO] = testkit.tracerProvider
-      implicit val meterProvider: MeterProvider[IO] = testkit.meterProvider
 
-      Telemetry
-        .create[IO](config, ConnectionInfo("world", "localhost", None))
-        .flatMap(_.poolSpan("pool.allocate")(IO.unit)) *>
+      PoolTelemetry
+        .create[IO](config)
+        .flatMap(_.span("pool.allocate")(IO.unit)) *>
         testkit.finishedSpans
     }
 
   test("pool spans are disabled by default") {
-    poolSpans(TelemetryConfig.default).map(spans => assertEquals(spans, Nil))
+    poolSpans(PoolTelemetry.Config.default).map(spans => assertEquals(spans, Nil))
   }
 
   test("pool spans can be emitted as internal spans") {
     poolSpans(
-      TelemetryConfig.default.withPoolSpans(TelemetryConfig.PoolSpans.Internal)
+      PoolTelemetry.Config(PoolTelemetry.Config.PoolSpans.Internal)
     ).map { spans =>
       val expectation =
         TraceForestExpectation.unordered(

@@ -11,7 +11,7 @@ import cats.effect.{MonadCancelThrow, Resource}
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.semigroup._
-import cats.~>
+import cats.{Applicative, ~>}
 import org.typelevel.otel4s.{Attribute, Attributes}
 import org.typelevel.otel4s.metrics.{BucketBoundaries, Histogram, Meter, MeterProvider}
 import org.typelevel.otel4s.semconv.attributes.{DbAttributes, ErrorAttributes, ServerAttributes}
@@ -27,8 +27,6 @@ sealed trait Telemetry[F[_]] {
 
   private[skunk] def withConnection(connection: ConnectionInfo): Telemetry[F]
 
-  private[skunk] def poolSpan[A](name: String)(fa: F[A]): F[A]
-
   private[skunk] def internalSpan[A](label: String)(fa: F[A]): F[A]
 
   private[skunk] def databaseSpan[A](
@@ -41,6 +39,8 @@ sealed trait Telemetry[F[_]] {
   private[skunk] def addAttributes(attributes: Attribute[_]*): F[Unit]
 
   private[skunk] def addProtocolAttributes(attributes: Attribute[_]*): F[Unit]
+
+  private[skunk] def pool: PoolTelemetry[F]
 
 }
 
@@ -68,18 +68,23 @@ object Telemetry {
       TracerProvider[F].tracer("org.typelevel.skunk").withVersion(BuildInfo.version).get.flatMap { implicit tracer: Tracer[F] =>
         for {
           operationDuration <- DbMetrics.ClientOperationDuration.create[F, Double](opDurationBoundaries)
-        } yield new Impl(config, connection, operationDuration)
+          pool <- PoolTelemetry.create[F](config.pool)
+        } yield new Impl(config, connection, operationDuration, pool)
       }
     }
+
+  def noop[F[_]: Applicative]: Telemetry[F] =
+    new Noop[F]
 
   private[skunk] final class Impl[F[_]: Tracer: MonadCancelThrow](
       config: TelemetryConfig,
       connection: ConnectionInfo,
-      operationDuration: Histogram[F, Double]
+      operationDuration: Histogram[F, Double],
+      val pool: PoolTelemetry[F]
   ) extends Telemetry[F] {
 
     def withConnection(connection: ConnectionInfo): Telemetry[F] =
-      new Impl(config, connection, operationDuration)
+      new Impl(config, connection, operationDuration, pool)
 
     private val finalizationStrategy: SpanFinalizer.Strategy = {
       case Resource.ExitCase.Errored(e: PostgresErrorException) =>
@@ -106,22 +111,6 @@ object Telemetry {
 
     }
 
-    private val poolSpanF: String => F ~> F =
-      config.poolSpans match {
-        case TelemetryConfig.PoolSpans.Internal =>
-          label =>
-            FunctionK.liftFunction[F, F](
-              Tracer[F]
-                .spanBuilder(label)
-                .withSpanKind(SpanKind.Internal)
-                .build
-                .surround
-            )
-
-        case TelemetryConfig.PoolSpans.Disabled =>
-          Function.const(FunctionK.id[F])(_)
-      }
-
     private val internalSpanF: String => F ~> F =
       config.protocolSpans match {
         case TelemetryConfig.ProtocolSpans.Internal =>
@@ -137,9 +126,6 @@ object Telemetry {
         case TelemetryConfig.ProtocolSpans.Disabled =>
           Function.const(FunctionK.id[F])(_)
       }
-
-    def poolSpan[A](name: String)(fa: F[A]): F[A] =
-      poolSpanF(name)(fa)
 
     def internalSpan[A](label: String)(fa: F[A]): F[A] =
       internalSpanF(label)(fa)
@@ -207,6 +193,29 @@ object Telemetry {
 
       builder.result()
     }
+  }
+
+  private[skunk] final class Noop[F[_]: Applicative] extends Telemetry[F] {
+    private[skunk] val pool: PoolTelemetry[F] = PoolTelemetry.noop
+
+    private[skunk] def withConnection(connection: ConnectionInfo): Telemetry[F] =
+      this
+
+    private[skunk] def internalSpan[A](label: String)(fa: F[A]): F[A] =
+      fa
+
+    private[skunk] def databaseSpan[A](
+        operationName: String,
+        statement: Statement[_],
+        arguments: List[Option[Encoded]],
+        redactionStrategy: RedactionStrategy
+    )(fa: F[A]): F[A] = fa
+
+    private[skunk] def addAttributes(attributes: Attribute[_]*): F[Unit] =
+      Applicative[F].unit
+
+    private[skunk] def addProtocolAttributes(attributes: Attribute[_]*): F[Unit] =
+      Applicative[F].unit
   }
 
   private[skunk] def resolveOperation(

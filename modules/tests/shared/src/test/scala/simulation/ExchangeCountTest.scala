@@ -8,8 +8,6 @@ package simulation
 import cats.effect.IO
 import cats.syntax.all._
 import ffstest.FTest
-import org.typelevel.otel4s.metrics.Histogram
-import org.typelevel.otel4s.trace.Tracer
 import skunk.{ RedactionStrategy, Session, TypingStrategy }
 import skunk.codec.all._
 import skunk.data.{ Completion, TransactionStatus, Type }
@@ -29,8 +27,7 @@ import skunk.util.{ Namer, Typer }
   */
 class ExchangeCountTest extends FTest with SimMessageSocket.DSL {
 
-  implicit val tracer: Tracer[IO] = Tracer.noop
-  implicit val telemetry: Telemetry[IO] = skunk.TestTelemetry("simulated")
+  implicit val telemetry: Telemetry[IO] = Telemetry.noop
 
   private val int4Column: RowDescription.Field =
     RowDescription.Field("?column?", 0, 0, Typer.Static.oidForType(Type.int4).get, 4, 0, 0)

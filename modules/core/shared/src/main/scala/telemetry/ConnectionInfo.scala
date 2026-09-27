@@ -4,8 +4,24 @@
 
 package skunk.telemetry
 
-private[skunk] final case class ConnectionInfo(
-    database: String,
-    serverAddress: String,
-    serverPort: Option[Long]
-)
+sealed trait ConnectionInfo {
+  def database: String
+  def serverAddress: String
+  def serverPort: Option[Long]
+}
+
+object ConnectionInfo {
+
+  def apply(
+      database: String,
+      serverAddress: String,
+      serverPort: Option[Long]
+  ): ConnectionInfo =
+    Impl(database, serverAddress, serverPort)
+
+  private final case class Impl(
+      database: String,
+      serverAddress: String,
+      serverPort: Option[Long]
+  ) extends ConnectionInfo
+}

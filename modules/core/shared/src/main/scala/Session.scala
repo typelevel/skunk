@@ -24,7 +24,7 @@ import skunk.net.SSLNegotiation
 import skunk.net.protocol.Describe
 import scala.concurrent.duration.Duration
 import skunk.net.protocol.Parse
-import skunk.telemetry.{ConnectionInfo, Telemetry, TelemetryConfig}
+import skunk.telemetry.{ConnectionInfo, PoolTelemetry, Telemetry, TelemetryConfig}
 
 /**
  * Represents a live connection to a Postgres database. Operations provided here are safe to use
@@ -649,15 +649,16 @@ object Session {
     def pooled(max: Int): Resource[F, Resource[F, Session[F]]] =
       for {
         telemetry <- Resource.eval(Telemetry.create(telemetryConfig, connectionInfo(database.getOrElse(""))))
-        pool      <- pooledWithTelemetry(max)
-      } yield pool(telemetry)
+        pool      <- pooledWithTelemetry(max)(telemetry)
+      } yield pool
 
-    private def pooledWithTelemetry(max: Int): Resource[F, Telemetry[F] => Resource[F, Session[F]]] = {
+    private def pooledWithTelemetry(max: Int)(implicit T: Telemetry[F]): Resource[F, Resource[F, Session[F]]] = {
+      implicit val poolTelemetry: PoolTelemetry[F] = T.pool
       val logger: String => F[Unit] = s => Console[F].println(s"TLS: $s")
       for {
         dc      <- Resource.eval(Describe.Cache.empty[F](commandCacheSize, queryCacheSize))
         sslOp   <- ssl.toSSLNegotiationOptions(if (debug) logger.some else none)
-        pool    <- Pool.ofF({implicit T: Telemetry[F] => sessions(sslOp, dc)}, max, checkout = Recyclers.ensureHealthy[F], checkin = Recyclers.full)
+        pool    <- Pool.of(sessions(sslOp, dc), max, checkout = Recyclers.ensureHealthy[F], checkin = Recyclers.full)
       } yield pool
     }
 
