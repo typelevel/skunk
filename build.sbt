@@ -153,7 +153,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   ).platformsSettings(JSPlatform, NativePlatform)(
     libraryDependencies ++= Seq(
       "io.github.cquiroz" %%% "scala-java-time" % "2.7.0",
-      "io.github.cquiroz" %%% "locales-minimal-en_us-db" % "1.5.4"
+      "io.github.cquiroz" %%% "locales-minimal-en_us-db" % "1.6.0"
     ),
   )
 
