@@ -61,17 +61,18 @@ object BindExecute {
         args: A,
         argsOrigin: Origin,
         syncSent: Boolean
-      ): (F[PortalId], F[Unit]) = {
+      ): (F[(PortalId, BindMessage)], F[Unit]) = {
         val ea  = statement.statement.encoder.encode(args) // encoded args
-        
-        val preBind: F[PortalId] = for {
+
+        // Yields the Bind rather than sending it, so the caller can send it in one write together
+        // with the Execute and Sync/Flush that follow.
+        val preBind: F[(PortalId, BindMessage)] = for {
               pn <- nextName("portal").map(PortalId(_))
               _  <- Telemetry[F].addAttributes(
                SkunkAttributes.portalId(pn.value),
                SkunkAttributes.statementId(statement.id.value)
              )
-              _  <- send(BindMessage(pn.value, statement.id.value, ea.map(_.map(_.value))))
-        } yield pn
+        } yield (pn, BindMessage(pn.value, statement.id.value, ea.map(_.map(_.value))))
 
         val postBind: F[Unit] = flatExpect {
           case BindComplete        => ().pure[F]
@@ -159,11 +160,11 @@ object BindExecute {
           ) {
 
             for {
-              pn <- preBind
-              _  <- send(ExecuteMessage(pn.value, 0))
+              pb <- preBind
+              (pn, bind) = pb
               // Sync rather than Flush: a command never pages, so there is no portal to keep alive
               // between Executes, and all three replies come back from one flush.
-              _  <- send(Sync)
+              _  <- sendAll(bind, ExecuteMessage(pn.value, 0), Sync)
               _  <- postBind
               ca <- postExec
             } yield {
@@ -207,14 +208,14 @@ object BindExecute {
             redactionStrategy,
           ) {
             for {
-              pn <- preBind
+              pb <- preBind
+              (pn, bind) = pb
               _  <- Telemetry[F].addAttributes(
                       SkunkAttributes.fetchMaxRows(maxRows.toLong),
                       SkunkAttributes.portalId(pn.value),
                       SkunkAttributes.statementId(statement.id.value)
                     )
-              _  <- send(ExecuteMessage(pn.value, maxRows))
-              _  <- send(Sync)
+              _  <- sendAll(bind, ExecuteMessage(pn.value, maxRows), Sync)
               _  <- postBind
               // Leaves the ReadyForQuery unread on success -- see unrollPresynced -- since we need
               // the status it carries. It must be read on the PortalSuspended path too, taken
@@ -227,8 +228,7 @@ object BindExecute {
                       // because the mutex is not reentrant, and attempted so that failing to close
                       // cannot mask the decode error.
                       .onError { case _: DecodeException[_, _, _] =>
-                        (send(CloseMessage.portal(pn.value)) *>
-                         send(Flush)                        *>
+                        (sendAll(CloseMessage.portal(pn.value), Flush) *>
                          expect { case CloseComplete => }).attempt.void
                       }
               xa <- expect { case ReadyForQuery(s) => s }
@@ -267,10 +267,10 @@ object BindExecute {
               redactionStrategy,
             ) {
               for {
-                pn <- preBind
+                pb <- preBind
+                (pn, bind) = pb
                 _  <- Telemetry[F].addAttributes(SkunkAttributes.fetchMaxRows(initialSize.toLong))
-                _  <- send(ExecuteMessage(pn.value, initialSize))
-                _  <- send(Flush)
+                _  <- sendAll(bind, ExecuteMessage(pn.value, initialSize), Flush)
                 _  <- postBind
                 rs <- unroll(statement, args, argsOrigin, redactionStrategy)
               } yield new Protocol.QueryPortal[F, A, B](pn, statement, args, argsOrigin, redactionStrategy) {

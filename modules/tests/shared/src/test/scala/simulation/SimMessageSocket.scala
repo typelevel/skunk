@@ -118,6 +118,9 @@ object SimMessageSocket {
             }
           } .flatten
 
+        def sendAll(messages: List[FrontendMessage]): IO[Unit] =
+          messages.traverse_(send)
+
         def history(max: Int): IO[List[Either[Any,Any]]] =
           Nil.pure[IO] // not implemeneted
 

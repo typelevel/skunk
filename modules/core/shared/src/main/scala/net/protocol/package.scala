@@ -35,6 +35,10 @@ package object protocol {
   def send[F[_]](message: FrontendMessage)(implicit ev: MessageSocket[F]): F[Unit] =
     ev.send(message)
 
+  /** Send `messages` in a single write; see `MessageSocket.sendAll`. */
+  def sendAll[F[_]](messages: FrontendMessage*)(implicit ev: MessageSocket[F]): F[Unit] =
+    ev.sendAll(messages.toList)
+
   def history[F[_]](max: Int)(implicit ev: MessageSocket[F]): F[List[Either[Any, Any]]] =
     ev.history(max)
 

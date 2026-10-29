@@ -4,7 +4,7 @@
 
 package skunk.net
 
-import skunk.net.message.BackendMessage
+import skunk.net.message.{ BackendMessage, FrontendMessage }
 import skunk.util.Origin
 import cats.effect.Concurrent
 import cats.syntax.all._
@@ -12,6 +12,10 @@ import skunk.exception.ProtocolError
 
 abstract class AbstractMessageSocket[F[_]: Concurrent]
   extends MessageSocket[F] {
+
+  /** Default implementation in terms of `send`, one write per message. */
+  override def sendAll(messages: List[FrontendMessage]): F[Unit] =
+    messages.traverse_(send)
 
   override def expect[B](f: PartialFunction[BackendMessage, B])(implicit or: Origin): F[B] =
     receive.flatMap { m =>

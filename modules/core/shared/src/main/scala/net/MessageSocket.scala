@@ -10,6 +10,7 @@ import cats.effect.std.Console
 import cats.effect.std.Queue
 import cats.syntax.all._
 import scala.io.AnsiColor
+import scodec.bits.BitVector
 import skunk.net.message.{ Sync => _, _ }
 import skunk.util.Origin
 import fs2.io.net.Socket
@@ -26,6 +27,13 @@ trait MessageSocket[F[_]] {
 
   /** Send the specified message. */
   def send(message: FrontendMessage): F[Unit]
+
+  /**
+   * Send the specified messages, in order, in a single write. Use this for messages that are sent
+   * back to back before reading a reply (e.g. `Bind`, `Execute`, `Sync`), so that they go out in one
+   * write rather than in one write (and possibly one TCP segment) each.
+   */
+  def sendAll(messages: List[FrontendMessage]): F[Unit]
 
   /** Destructively read the last `n` messages from the circular buffer. */
   def history(max: Int): F[List[Either[Any, Any]]]
@@ -75,6 +83,18 @@ object MessageSocket {
             _ <- bvs.write(message.encode)
             _ <- cb.offer(Left(message))
           } yield ()
+
+        override def sendAll(messages: List[FrontendMessage]): F[Unit] =
+          messages match {
+            case Nil         => Applicative[F].unit
+            case m :: Nil    => send(m)
+            case _           =>
+              for {
+                _ <- messages.traverse_(m => debug(s" → ${AnsiColor.YELLOW}$m${AnsiColor.RESET}"))
+                _ <- bvs.write(messages.foldLeft(BitVector.empty)(_ ++ _.encode))
+                _ <- messages.traverse_(m => cb.offer(Left(m)))
+              } yield ()
+          }
 
         override def history(max: Int): F[List[Either[Any, Any]]] =
           cb.take.flatMap { first =>
