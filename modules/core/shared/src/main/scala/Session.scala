@@ -426,6 +426,17 @@ object Session {
       ensureHealthy[F] <+> closeEvictedPreparedStatements[F] <+> ensureIdle[F] <+> Recycler(_.unique(Query("VALUES (true)", Origin.unknown, Void.codec, bool)))
 
     /**
+     * Ensure the session is healthy and idle (i.e., that there is no ongoing or failed transaction),
+     * and close prepared statements evicted from the cache. Unlike `full` and `minimal`, this does
+     * not send any statement to the server (closing evicted prepared statements is the only network
+     * IO, and only happens if there are any). Session state such as variables set via `SET` and
+     * channel listeners is retained, so only use this if your application does not change session
+     * state, or resets it itself.
+     */
+    def idle[F[_]: Monad]: Recycler[F, Session[F]] =
+      ensureHealthy[F] <+> closeEvictedPreparedStatements[F] <+> ensureIdle[F]
+
+    /**
      * Send a Close to server for each prepared statement that was evicted during this session.
      */
     def closeEvictedPreparedStatements[F[_]: Monad]: Recycler[F, Session[F]] =
@@ -488,6 +499,7 @@ object Session {
    * @param commandCacheSize      size of the session-level cache for command checking; defaults to 2048
    * @param queryCacheSize        size of the session-level cache for query checking; defaults to 2048
    * @param parseCacheSize        size of the pool-level cache for parsing statements; defaults to 2048
+   * @param recycler              recycler run on each session returned to the pool; a session is reused only if it yields `true`; defaults to [[Recyclers.full]]
    */
   final class Builder[F[_]: Temporal: TracerProvider: MeterProvider: Network: Console] private (
     val connectionType: ConnectionType,
@@ -508,6 +520,7 @@ object Session {
     val commandCacheSize: Int,
     val queryCacheSize: Int,
     val parseCacheSize: Int,
+    val recycler: Recycler[F, Session[F]],
   ) { self =>
 
     private def copy(
@@ -529,8 +542,9 @@ object Session {
       commandCacheSize: Int = self.commandCacheSize,
       queryCacheSize: Int = self.queryCacheSize,
       parseCacheSize: Int = self.parseCacheSize,
+      recycler: Recycler[F, Session[F]] = self.recycler,
     ): Builder[F] =
-      new Builder(connectionType, host, port, unixSocketAddress, unixSocketDirectory, credentials, database, debug, typingStrategy, redactionStrategy, telemetryConfig, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize)
+      new Builder(connectionType, host, port, unixSocketAddress, unixSocketDirectory, credentials, database, debug, typingStrategy, redactionStrategy, telemetryConfig, ssl, connectionParameters, socketOptions, readTimeout, commandCacheSize, queryCacheSize, parseCacheSize, recycler)
 
     /** Configures the connection type. */
     def withConnectionType(newConnectionType: ConnectionType): Builder[F] =
@@ -625,6 +639,15 @@ object Session {
       copy(parseCacheSize = newParseCacheSize)
 
     /**
+     * Configures the recycler run on each session returned to the pool. The session is reused if
+     * the recycler yields `true`, otherwise it is closed. Defaults to [[Recyclers.full]], which
+     * resets session state via `UNLISTEN *` and `RESET ALL`. Use [[Recyclers.idle]] to skip these
+     * statements if your application does not change session state.
+     */
+    def withRecycler(newRecycler: Recycler[F, Session[F]]): Builder[F] =
+      copy(recycler = newRecycler)
+
+    /**
      * Resource yielding logically unpooled sessions. This can be convenient for demonstrations and
      * programs that only need a single session. In reality each session is managed by its own
      * single-session pool.
@@ -657,7 +680,7 @@ object Session {
       for {
         dc      <- Resource.eval(Describe.Cache.empty[F](commandCacheSize, queryCacheSize))
         sslOp   <- ssl.toSSLNegotiationOptions(if (debug) logger.some else none)
-        pool    <- Pool.ofF({implicit T: Telemetry[F] => sessions(sslOp, dc)}, max, checkout = Recyclers.ensureHealthy[F], checkin = Recyclers.full)
+        pool    <- Pool.ofF({implicit T: Telemetry[F] => sessions(sslOp, dc)}, max, checkout = Recyclers.ensureHealthy[F], checkin = recycler)
       } yield pool
     }
 
@@ -756,6 +779,7 @@ object Session {
         commandCacheSize = 2048,
         queryCacheSize = 2048,
         parseCacheSize = 2048,
+        recycler = Recyclers.full[F],
       )
   }
 
