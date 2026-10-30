@@ -30,6 +30,7 @@ trait SimTest extends FTest with SimMessageSocket.DSL {
   private class SimulatedBufferedMessageSocket(ms: MessageSocket[IO]) extends BufferedMessageSocket[IO] {
     def receive: IO[BackendMessage] = ms.receive
     def send(message: FrontendMessage): IO[Unit] = ms.send(message)
+    def sendAll(messages: List[FrontendMessage]): IO[Unit] = ms.sendAll(messages)
     def history(max: Int): IO[List[Either[Any,Any]]] = ms.history(max)
     def expect[B](f: PartialFunction[BackendMessage,B])(implicit or: Origin): IO[B] = ms.expect(f)
     def flatExpect[B](f: PartialFunction[BackendMessage,IO[B]])(implicit or: Origin): IO[B] = ms.flatExpect(f)

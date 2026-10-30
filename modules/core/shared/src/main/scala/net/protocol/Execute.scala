@@ -35,8 +35,7 @@ object Execute {
                       SkunkAttributes.portalId(portal.id.value),
                       SkunkAttributes.statementId(portal.preparedStatement.id.value)
                     )
-              _  <- send(ExecuteMessage(portal.id.value, maxRows))
-              _  <- send(Flush)
+              _  <- sendAll(ExecuteMessage(portal.id.value, maxRows), Flush)
               rs <- unroll(portal)
             } yield rs
         }

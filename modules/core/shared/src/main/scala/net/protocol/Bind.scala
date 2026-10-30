@@ -48,8 +48,7 @@ object Bind {
                 SkunkAttributes.portalId(pn.value),
                 SkunkAttributes.statementId(statement.id.value)
               )
-              _  <- send(BindMessage(pn.value, statement.id.value, ea.map(_.map(_.value))))
-              _  <- send(Flush)
+              _  <- sendAll(BindMessage(pn.value, statement.id.value, ea.map(_.map(_.value))), Flush)
               _  <- flatExpect {
                       case BindComplete        => ().pure[F]
                       case ErrorResponse(info) =>

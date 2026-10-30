@@ -6,6 +6,7 @@ package tests
 package simulation
 
 import cats.effect._
+import cats.syntax.all._
 import fs2.Stream
 import fs2.concurrent.{ Signal, SignallingRef }
 import skunk.data.{ Notification, TransactionStatus }
@@ -15,8 +16,8 @@ import skunk.net.message.{ BackendKeyData, BackendMessage, FrontendMessage, Para
 /** What one operation cost on the wire.
   *
   * `exchanges` counts `send`→`receive` transitions -- the points where the client stopped writing and
-  * blocked on a reply. `writes` and `bytesSent` move independently of it, since nothing buffers
-  * frontend messages, so three pipelined messages still cost three writes.
+  * blocked on a reply. `writes` counts socket writes: one per `send`, and one per `sendAll` however
+  * many messages it carries. `bytesSent` moves independently of both.
   */
 final case class ExchangeCounts(exchanges: Int, writes: Int, reads: Int, bytesSent: Long)
 
@@ -48,6 +49,11 @@ final class ExchangeCounter private (
 
   override def send(message: FrontendMessage): IO[Unit] =
     state.update(_.writing(message.encode.size / 8)) *> underlying.send(message)
+
+  // One write however many messages, as that is what the real socket does.
+  override def sendAll(messages: List[FrontendMessage]): IO[Unit] =
+    state.update(_.writing(messages.foldMap(_.encode.size / 8))).whenA(messages.nonEmpty) *>
+    underlying.sendAll(messages)
 
   override def history(max: Int): IO[List[Either[Any, Any]]] =
     underlying.history(max)

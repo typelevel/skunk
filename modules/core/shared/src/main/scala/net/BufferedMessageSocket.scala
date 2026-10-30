@@ -174,6 +174,12 @@ object BufferedMessageSocket {
             case None    => ms.send(message)
           }
 
+        override def sendAll(messages: List[FrontendMessage]): F[Unit] =
+          term.get.flatMap {
+            case Some(t) => Concurrent[F].raiseError(t)
+            case None    => ms.sendAll(messages)
+          }
+
         override def transactionStatus: SignallingRef[F, TransactionStatus] = xaSig
         override def parameters: SignallingRef[F, Map[String, String]] = paSig
         override def backendKeyData: Deferred[F, BackendKeyData] = bkSig

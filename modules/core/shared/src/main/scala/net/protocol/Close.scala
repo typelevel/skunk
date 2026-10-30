@@ -34,8 +34,7 @@ object Close {
 
       def close(message: CloseMessage): F[Unit] =
         for {
-          _ <- send(message)
-          _ <- send(Flush)
+          _ <- sendAll(message, Flush)
           _ <- expect { case CloseComplete => }
         } yield ()
     }

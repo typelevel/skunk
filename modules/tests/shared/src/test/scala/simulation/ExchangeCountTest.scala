@@ -179,24 +179,27 @@ class ExchangeCountTest extends FTest with SimMessageSocket.DSL {
       discard  <- measure(simpleCount = 2)(_.executeDiscard(multi))
       begin    <- measure(completion = Completion.Begin)(_.execute(sql"begin".command))
 
+      // (label, counts, expected exchanges, expected writes). Messages sent back to back before a
+      // read go out in one write, so writes equal exchanges.
       table = List(
-        ("parameterized command, warm",     cmdWarm, 1),
-        ("parameterized command, cold",     cmdCold, 2),
-        ("parameterized command, in tx",    cmdInTx, 2),
-        ("parameterized query, all rows",   qAll,    1),
-        ("parameterized query, all rows/tx", qAllInTx, 2),
-        ("parameterized query, unique",     qUnique, 1),
-        ("parameterized query, option",     qOption, 1),
-        ("streaming query, 3 rows / 2",     qStream, 4),
-        ("parameterless command (simple)",  simpCmd, 1),
-        ("parameterless query (simple)",    simpQry, 1),
-        ("executeDiscard (simple, 2 stmt)", discard, 1),
-        ("BEGIN (simple)",                  begin,   1)
+        ("parameterized command, warm",     cmdWarm, 1, 1),
+        ("parameterized command, cold",     cmdCold, 2, 2),
+        ("parameterized command, in tx",    cmdInTx, 2, 2),
+        ("parameterized query, all rows",   qAll,    1, 1),
+        ("parameterized query, all rows/tx", qAllInTx, 2, 2),
+        ("parameterized query, unique",     qUnique, 1, 1),
+        ("parameterized query, option",     qOption, 1, 1),
+        ("streaming query, 3 rows / 2",     qStream, 4, 4),
+        ("parameterless command (simple)",  simpCmd, 1, 1),
+        ("parameterless query (simple)",    simpQry, 1, 1),
+        ("executeDiscard (simple, 2 stmt)", discard, 1, 1),
+        ("BEGIN (simple)",                  begin,   1, 1)
       )
 
-      _ <- IO.println("\n" + render(table) + "\n")
-      _ <- table.traverse_ { case (label, c, expected) =>
-             assertEqual(s"exchanges for $label", c.exchanges, expected)
+      _ <- IO.println("\n" + render(table.map { case (l, c, e, _) => (l, c, e) }) + "\n")
+      _ <- table.traverse_ { case (label, c, exchanges, writes) =>
+             assertEqual(s"exchanges for $label", c.exchanges, exchanges) *>
+             assertEqual(s"writes for $label", c.writes, writes)
            }
     } yield ()
 

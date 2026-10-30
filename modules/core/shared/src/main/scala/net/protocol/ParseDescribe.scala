@@ -42,11 +42,18 @@ object ParseDescribe {
                 ).raiseError[F, Unit]
         } yield a
 
-      def parseExchange(stmt: Statement[_], ty: Typer): F[(F[StatementId], StatementId => F[Unit])] =
+      // Send `messages` followed by Flush in one write, or nothing if there are none, as then there is
+      // no reply to wait for.
+      def sendWithFlush(messages: List[FrontendMessage]): F[Unit] =
+        sendAll[F]((messages :+ Flush): _*).whenA(messages.nonEmpty)
+
+      // The `pre` halves below yield the messages to send rather than sending them, so that Parse,
+      // Describe and Flush go out in one write. Nothing is sent at all if both are cached.
+      def parseExchange(stmt: Statement[_], ty: Typer): F[(F[(StatementId, List[FrontendMessage])], StatementId => F[Unit])] =
         stmt.encoder.oids(ty) match {
 
           case Right(os) if os.length > Short.MaxValue =>
-            TooManyParametersException(stmt).raiseError[F, (F[StatementId], StatementId => F[Unit])]
+            TooManyParametersException(stmt).raiseError[F, (F[(StatementId, List[FrontendMessage])], StatementId => F[Unit])]
 
           case Right(os) =>
 
@@ -58,12 +65,11 @@ object ParseDescribe {
                 )
               )
 
-            OptionT(parseCache.value.get(stmt)).map(id => (addStatement(id).as(id), (_:StatementId) => ().pure)).getOrElse {
+            OptionT(parseCache.value.get(stmt)).map(id => (addStatement(id).as((id, List.empty[FrontendMessage])), (_:StatementId) => ().pure)).getOrElse {
               val pre = for {
                 id <- nextName("statement").map(StatementId(_))
                 _  <- addStatement(id)
-                _  <- send(ParseMessage(id.value, stmt.sql, os))
-              } yield id
+              } yield (id, List[FrontendMessage](ParseMessage(id.value, stmt.sql, os)))
               val post = (id: StatementId) => for {
                 _  <- flatExpect {
                         case ParseComplete       => ().pure[F]
@@ -75,17 +81,15 @@ object ParseDescribe {
               (pre, post)
             }
           case Left(err) =>
-            UnknownTypeException(stmt, err, ty.strategy).raiseError[F, (F[StatementId], StatementId => F[Unit])]
+            UnknownTypeException(stmt, err, ty.strategy).raiseError[F, (F[(StatementId, List[FrontendMessage])], StatementId => F[Unit])]
 
         }
 
       override def command[A](cmd: skunk.Command[A], ty: Typer): F[StatementId] = {
 
-        def describeExchange: F[(StatementId => F[Unit], F[Unit])] = {
-          OptionT(cache.commandCache.get(cmd)).as(((_: StatementId) => ().pure[F], ().pure[F])).getOrElse {
-            val pre = (id: StatementId) => for {
-              _  <- send(DescribeMessage.statement(id.value))
-            } yield ()
+        def describeExchange: F[(StatementId => List[FrontendMessage], F[Unit])] = {
+          OptionT(cache.commandCache.get(cmd)).as(((_: StatementId) => List.empty[FrontendMessage], ().pure[F])).getOrElse {
+            val pre = (id: StatementId) => List[FrontendMessage](DescribeMessage.statement(id.value))
 
             val post: F[Unit] = for {
               _  <- expect { case ParameterDescription(_) => } // always ok
@@ -114,9 +118,9 @@ object ParseDescribe {
           parseExchange(cmd, ty).flatMap { case (preParse, postParse) =>
             describeExchange.flatMap { case (preDesc, postDesc) =>
               for {
-                id <- preParse
-                _  <- preDesc(id)
-                _  <- send(Flush)
+                pp <- preParse
+                (id, parse) = pp
+                _  <- sendWithFlush(parse ++ preDesc(id))
                 _  <- postParse(id)
                 _  <- postDesc
               } yield id
@@ -128,21 +132,18 @@ object ParseDescribe {
 
       override def apply[A, B](query: skunk.Query[A, B], ty: Typer): F[(StatementId, TypedRowDescription)] = {
 
-        def describeExchange: F[(StatementId => F[Unit], F[TypedRowDescription])] = {
+        def describeExchange: F[(StatementId => List[FrontendMessage], F[TypedRowDescription])] = {
           def addColumnTypes(td: TypedRowDescription): F[Unit] =
             Telemetry[F].addProtocolAttributes(
               SkunkAttributes.resultColumnTypes(td.fields.map(_.tpe).mkString("[", ", ", "]"))
             )
 
           OptionT(cache.queryCache.get(query)).map { rd =>
-            val pre  = (_: StatementId) => ().pure[F]
+            val pre  = (_: StatementId) => List.empty[FrontendMessage]
             val post = addColumnTypes(rd).as(rd)
             (pre, post)
           }.getOrElse {
-            val pre = (id: StatementId) =>
-              for {
-                _  <- send(DescribeMessage.statement(id.value))
-              } yield ()
+            val pre = (id: StatementId) => List[FrontendMessage](DescribeMessage.statement(id.value))
 
             val post =
               for {
@@ -168,9 +169,9 @@ object ParseDescribe {
           parseExchange(query, ty).flatMap { case (preParse, postParse) =>
             describeExchange.flatMap { case (preDesc, postDesc) =>
               for {
-                id <- preParse
-                _  <- preDesc(id)
-                _  <- send(Flush)
+                pp <- preParse
+                (id, parse) = pp
+                _  <- sendWithFlush(parse ++ preDesc(id))
                 _  <- postParse(id)
                 rd <- postDesc
               } yield (id, rd)
