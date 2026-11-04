@@ -145,7 +145,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform, NativePlatform)
       "org.typelevel"          %%% "otel4s-semconv"          % otel4sVersion,
       "org.typelevel"          %%% "otel4s-semconv-metrics"  % otel4sVersion,
       "org.tpolecat"           %%% "sourcepos"               % "1.2.0",
-      "org.typelevel"          %%% "twiddles-core"           % "1.1.0",
+      "org.typelevel"          %%% "twiddles-core"           % "1.1.1",
       "org.typelevel"          %%% "saslprep"                % "1.0.0",
     ) ++ Seq(
       "com.beachape"  %%% "enumeratum"   % "1.9.8",
