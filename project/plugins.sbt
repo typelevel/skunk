@@ -9,6 +9,6 @@ addSbtPlugin("com.timushev.sbt"   % "sbt-updates"                               
 addSbtPlugin("pl.project13.scala" % "sbt-jmh"                                     % "0.4.8")
 addSbtPlugin("org.scoverage"      % "sbt-scoverage"                               % "2.4.4")
 addSbtPlugin("org.scala-js"       % "sbt-scalajs"                                 % "1.22.0")
-addSbtPlugin("org.scala-native"   % "sbt-scala-native"                            % "0.5.12")
+addSbtPlugin("org.scala-native"   % "sbt-scala-native"                            % "0.5.13")
 addSbtPlugin("com.armanbilge"     % "sbt-scala-native-config-brew-github-actions" % "0.4.0")
 addSbtPlugin("com.eed3si9n"       % "sbt-buildinfo"                               % "0.13.1")
