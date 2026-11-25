@@ -12,8 +12,10 @@ import fs2.io.net.Socket
 import fs2.io.net.tls.TLSContext
 import fs2.io.net.tls.TLSParameters
 import fs2.io.net.tls.TLSLogger
+import com.comcast.ip4s.Host
+import com.comcast.ip4s.Hostname
 
-object SSLNegotiation {
+object SSLNegotiation extends SSLNegotiationPlatform {
 
   /** Parameters for `negotiateSSL`. */
   case class Options[F[_]](
@@ -22,6 +24,19 @@ object SSLNegotiation {
     fallbackOk:    Boolean,
     logger:        Option[String => F[Unit]],
   )
+
+  /**
+   * If `options` still carries the default `TLSParameters`, which name no server, replace them with
+   * defaults naming `host`. On Scala Native and Scala.js the TLS client needs a server name to verify
+   * the certificate against (without one, s2n rejects every certificate), and on every platform it is
+   * what gets sent as SNI. Explicitly configured parameters, and IP-address hosts, are left as they are.
+   */
+  def withServerName[F[_]](options: Options[F], host: Host): Options[F] =
+    host match {
+      case h: Hostname if options.tlsParameters == TLSParameters.Default =>
+        options.copy(tlsParameters = serverNameParameters(h.toString))
+      case _ => options
+    }
 
   // SSLRequest message, as a Chunk[Byte]
   val SSLRequest: Chunk[Byte] =

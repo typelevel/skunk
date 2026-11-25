@@ -665,21 +665,21 @@ object Session {
       sslOptions:    Option[SSLNegotiation.Options[F]],
       describeCache: Describe.Cache[F],
     )(implicit T: Telemetry[F]): Resource[F, Session[F]] = {
-      val sockets = connectionType match {
+      val (sockets, sslOptionsʹ) = connectionType match {
         case ConnectionType.TCP =>
           val address = SocketAddress(host, port)
-          Network[F].connect(address, socketOptions)
+          (Network[F].connect(address, socketOptions), sslOptions.map(SSLNegotiation.withServerName(_, host)))
 
         case ConnectionType.Unix =>
           val address = unixSocketAddress.getOrElse(UnixSocketAddress(s"${unixSocketDirectory}/.s.PGSQL.${port}"))
           val filteredSocketOptions = socketOptions.filter(o => o.key != SocketOption.NoDelay)
-          Network[F].connect(address, filteredSocketOptions)
+          (Network[F].connect(address, filteredSocketOptions), sslOptions)
       }
 
       for {
         resolvedCredentials <- Resource.eval(credentials)
         telemetry = T.withConnection(connectionInfo(database.getOrElse(resolvedCredentials.user)))
-        session <- fromSockets(sockets, sslOptions, describeCache, resolvedCredentials)(telemetry)
+        session <- fromSockets(sockets, sslOptionsʹ, describeCache, resolvedCredentials)(telemetry)
       } yield session
     }
 
